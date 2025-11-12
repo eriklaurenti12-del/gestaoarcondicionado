@@ -7,6 +7,7 @@ import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp } from "luc
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import InstallButton from "@/components/InstallButton";
+import SupportButton from "@/components/SupportButton";
 import Dashboard from "@/components/Dashboard";
 import ClientsTab from "@/components/ClientsTab";
 import ProductsTab from "@/components/ProductsTab";
@@ -49,6 +50,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background p-6">
+      <SupportButton />
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold">Gestão de Eletrônicos</h1>

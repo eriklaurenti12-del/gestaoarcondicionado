@@ -95,7 +95,7 @@ const ProductsTab: React.FC = () => {
       price: parseFloat(productPrice),
       cost_price: parseFloat(costPrice),
       barcode: scannedBarcode,
-      supplier_id: selectedSupplier ? Number(selectedSupplier) : null,
+      supplier_id: selectedSupplier && selectedSupplier !== "none" ? Number(selectedSupplier) : null,
       warranty_months: warrantyMonths,
       min_stock: minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
@@ -172,10 +172,11 @@ const ProductsTab: React.FC = () => {
               <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min="1"/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="supplier-select">Fornecedor</Label>
+              <Label htmlFor="supplier-select">Fornecedor (Opcional)</Label>
               <Select value={selectedSupplier} onValueChange={setSelectedSupplier} disabled={isLoadingSuppliers}>
-                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecione o fornecedor (opcional)" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {suppliers?.map((supplier) => (<SelectItem key={supplier.id} value={String(supplier.id)}>{supplier.name}</SelectItem>))}
                 </SelectContent>
               </Select>
