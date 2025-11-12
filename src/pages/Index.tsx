@@ -1,11 +1,12 @@
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { supabase } from "@/integrations/supabase/client";
 import InstallButton from "@/components/InstallButton";
-import LoginForm from "@/components/LoginForm";
 import Dashboard from "@/components/Dashboard";
 import ClientsTab from "@/components/ClientsTab";
 import ProductsTab from "@/components/ProductsTab";
@@ -14,10 +15,36 @@ import ReportsTab from "@/components/ReportsTab";
 
 export default function Index() {
   const { theme, toggleTheme } = useTheme();
-  const [loggedIn, setLoggedIn] = useState(false);
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
 
-  if (!loggedIn) {
-    return <LoginForm onLogin={() => setLoggedIn(true)} />;
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setLoading(false);
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!session) {
+        navigate("/auth");
+      } else {
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
+
+  if (loading) {
+    return null;
   }
 
   return (
@@ -30,7 +57,7 @@ export default function Index() {
               {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
             </Button>
             <InstallButton />
-            <Button variant="outline" onClick={() => setLoggedIn(false)}>
+            <Button variant="outline" onClick={handleSignOut}>
               Sair
             </Button>
           </div>
