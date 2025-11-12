@@ -66,7 +66,7 @@ export default function Index() {
         <div className="max-w-7xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <h1 className="text-3xl font-bold">Gestão de Eletrônicos</h1>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
               {isSuperAdmin && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/members")}>
                   <UserCog className="w-4 h-4 mr-2" />
@@ -83,29 +83,29 @@ export default function Index() {
             </div>
           </div>
 
-        <Tabs defaultValue="dashboard" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 h-auto">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2 p-3">
-              <BarChart3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="clients" className="flex items-center gap-2 p-3">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Clientes</span>
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2 p-3">
-              <Package className="w-4 h-4" />
-              <span className="hidden sm:inline">Produtos</span>
-            </TabsTrigger>
-            <TabsTrigger value="suppliers" className="flex items-center gap-2 p-3">
-              <Building2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Fornecedores</span>
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="flex items-center gap-2 p-3">
-              <TrendingUp className="w-4 h-4" />
-              <span className="hidden sm:inline">Relatórios</span>
-            </TabsTrigger>
-          </TabsList>
+          <Tabs defaultValue="dashboard" className="space-y-6">
+            <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+              <TabsTrigger value="dashboard" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <BarChart3 className="w-4 h-4" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </TabsTrigger>
+              <TabsTrigger value="clients" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Users className="w-4 h-4" />
+                <span className="hidden sm:inline">Clientes</span>
+              </TabsTrigger>
+              <TabsTrigger value="products" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Package className="w-4 h-4" />
+                <span className="hidden sm:inline">Produtos</span>
+              </TabsTrigger>
+              <TabsTrigger value="suppliers" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Building2 className="w-4 h-4" />
+                <span className="hidden sm:inline">Fornecedores</span>
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <TrendingUp className="w-4 h-4" />
+                <span className="hidden sm:inline">Relatórios</span>
+              </TabsTrigger>
+            </TabsList>
 
           <TabsContent value="dashboard">
             <Dashboard />

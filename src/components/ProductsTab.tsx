@@ -169,7 +169,7 @@ const ProductsTab: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-quantity-barcode">Quantidade</Label>
-              <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min="1"/>
+              <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="supplier-select">Fornecedor (Opcional)</Label>

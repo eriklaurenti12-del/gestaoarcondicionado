@@ -105,37 +105,51 @@ const ClientsTab: React.FC = () => {
       return;
     }
     
-    let { data: client, error: clientError } = await supabase.from('clients').select('id').eq('name', clientName).maybeSingle();
-    if (clientError) {
+    try {
+      let { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('name', clientName.trim())
+        .maybeSingle();
+      
+      if (clientError) {
         toast({ variant: "destructive", title: "Erro ao buscar cliente.", description: clientError.message });
         return;
-    }
+      }
 
-    if (!client) {
-        const { data: newClient, error: newClientError } = await supabase.from('clients').insert({ name: clientName }).select('id').single();
+      if (!client) {
+        const { data: newClient, error: newClientError } = await supabase
+          .from('clients')
+          .insert({ name: clientName.trim() })
+          .select('id')
+          .single();
+        
         if (newClientError) {
-            toast({ variant: "destructive", title: "Erro ao criar cliente.", description: newClientError.message });
-            return;
+          toast({ variant: "destructive", title: "Erro ao criar cliente.", description: newClientError.message });
+          return;
         }
         client = newClient;
-    }
-    
-    const saleData: TablesInsert<'sales'> = {
-      client_id: client.id,
-      product_id: product.id,
-      qty,
-      sale_price: product.price,
-      total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
-      payment_method: paymentMethod,
-      payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
-    };
-    
-    const productUpdateData = {
-      id: product.id,
-      qty: product.qty - qty
-    };
+      }
+      
+      const saleData: TablesInsert<'sales'> = {
+        client_id: client.id,
+        product_id: product.id,
+        qty,
+        sale_price: product.price,
+        total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
+        payment_method: paymentMethod,
+        payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
+      };
+      
+      const productUpdateData = {
+        id: product.id,
+        qty: product.qty - qty
+      };
 
-    addSaleMutation.mutate({ saleData, productUpdateData });
+      addSaleMutation.mutate({ saleData, productUpdateData });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao registrar venda.", description: error.message });
+    }
   };
   
   const filteredClients = useMemo(() => {
@@ -210,7 +224,7 @@ const ClientsTab: React.FC = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantidade</Label>
-              <Input id="quantity" type="number" value={qty} onChange={(e) => setQty(Number(e.target.value))} min="1"/>
+              <Input id="quantity" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
