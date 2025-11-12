@@ -160,6 +160,45 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          id: string
+          is_active: boolean | null
+          payment_date: string | null
+          plan: string
+          start_date: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_date?: string | null
+          plan?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          payment_date?: string | null
+          plan?: string
+          start_date?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           contact: string | null
@@ -210,6 +249,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_subscription: { Args: { _user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -217,6 +257,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      setup_super_admin: { Args: never; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin"
