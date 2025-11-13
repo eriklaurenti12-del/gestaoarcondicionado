@@ -69,21 +69,21 @@ const Dashboard: React.FC = () => {
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" />Produtos em Estoque</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stockCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{stockCount}</div>
             <p className="text-sm text-muted-foreground">{lowStockProducts.length} com estoque baixo</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />Total de Clientes</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{clientsCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{clientsCount}</div>
             <p className="text-sm text-muted-foreground">Clientes cadastrados</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Performance de Vendas</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} itens vendidos</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
