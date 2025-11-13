@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Search, PlusCircle, Pencil } from "lucide-react";
+import { Trash2, Search, PlusCircle, Pencil, FileDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Constants, Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import EditClientDialog from './EditClientDialog';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type ClientWithSales = Tables<'clients'> & { sales: Pick<Tables<'sales'>, 'sale_price' | 'qty'>[] };
 

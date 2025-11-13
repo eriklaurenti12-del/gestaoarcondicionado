@@ -5,11 +5,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2 } from "lucide-react";
+import { Trash2, FileDown } from "lucide-react";
 import AddSupplierDialog from './AddSupplierDialog';
 import { TablesInsert } from '@/integrations/supabase/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const fetchSuppliers = async () => {
   const { data, error } = await supabase.from('suppliers').select('*').order('name');
