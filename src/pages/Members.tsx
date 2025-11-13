@@ -48,37 +48,9 @@ export default function Members() {
 
   const loadMembers = async () => {
     try {
-      // Buscar todos os profiles (super admin pode ver todos)
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, username, created_at');
-      
-      if (profilesError) throw profilesError;
-
-      // Buscar todas as subscriptions
-      const { data: subscriptions, error: subsError } = await supabase
-        .from('subscriptions')
-        .select('*');
-      
-      if (subsError) throw subsError;
-
-      // Para cada profile, buscar o email do auth
-      const membersData: Member[] = [];
-      
-      for (const profile of profiles || []) {
-        const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profile.user_id);
-        
-        if (!userError && user) {
-          membersData.push({
-            id: user.id,
-            email: user.email || '',
-            created_at: profile.created_at,
-            subscription: subscriptions?.find(s => s.user_id === user.id) || null
-          });
-        }
-      }
-
-      setMembers(membersData);
+      const { data, error } = await supabase.functions.invoke('admin-members', { body: {} });
+      if (error) throw error;
+      setMembers((data as Member[]) || []);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar membros",
