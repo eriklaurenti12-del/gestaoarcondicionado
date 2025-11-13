@@ -57,6 +57,18 @@ const SuppliersTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [userId, setUserId] = useState<string>("");
+
+  // Obter userId da sessão
+  React.useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const { data: suppliers, isLoading, isError, error } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers });
 
@@ -187,6 +199,7 @@ const SuppliersTab: React.FC = () => {
         onOpenChange={setIsAddDialogOpen}
         onAddSupplier={(supplier) => addMutation.mutate(supplier)}
         isPending={addMutation.isPending}
+        userId={userId}
       />
     </div>
   );

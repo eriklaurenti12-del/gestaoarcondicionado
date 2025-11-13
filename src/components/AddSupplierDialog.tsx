@@ -27,9 +27,10 @@ interface AddSupplierDialogProps {
   onOpenChange: (open: boolean) => void;
   onAddSupplier: (supplier: TablesInsert<'suppliers'>) => void;
   isPending: boolean;
+  userId: string;
 }
 
-const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({ open, onOpenChange, onAddSupplier, isPending }) => {
+const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({ open, onOpenChange, onAddSupplier, isPending, userId }) => {
   const form = useForm<z.infer<typeof supplierSchema>>({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
@@ -44,6 +45,7 @@ const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({ open, onOpenChang
       name: values.name,
       contact: values.contact || null,
       email: values.email || null,
+      user_id: userId,
     };
     onAddSupplier(supplierData);
     if (!isPending) {

@@ -43,6 +43,7 @@ const deleteProduct = async (productId: number) => {
 const ProductsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const [userId, setUserId] = useState<string>("");
 
   const [scannedBarcode, setScannedBarcode] = useState("");
   const [productName, setProductName] = useState("");
@@ -55,6 +56,17 @@ const ProductsTab: React.FC = () => {
   const [minStockAlert, setMinStockAlert] = useState(5);
   const [editingProduct, setEditingProduct] = useState<ProductWithSupplier | null>(null);
   const [editQty, setEditQty] = useState(0);
+
+  // Obter userId da sessão
+  React.useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   // Calcula o preço de venda baseado no custo e na porcentagem de lucro
   const calculateSalePrice = (cost: string, percentage: string) => {
@@ -166,6 +178,7 @@ const ProductsTab: React.FC = () => {
       warranty_months: warrantyMonths,
       min_stock: minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
+      user_id: userId,
     };
 
     console.log('[ProductsTab] Sending product data', productData);
