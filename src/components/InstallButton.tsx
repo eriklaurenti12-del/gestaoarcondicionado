@@ -61,7 +61,7 @@ const InstallButton: React.FC = () => {
         variant="default" 
         size="sm" 
         onClick={handleInstall}
-        className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 animate-pulse"
+        className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 animate-pulse sm:px-3 px-2"
       >
         <Download className="w-4 h-4" />
         <span className="hidden sm:inline">Instalar App</span>
