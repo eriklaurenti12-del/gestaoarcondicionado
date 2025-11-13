@@ -69,17 +69,17 @@ export default function Index() {
             <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-fade-in">Gestão de Negócios</h1>
             <div className="flex gap-2 items-center flex-wrap">
               {isSuperAdmin && (
-                <Button variant="outline" size="sm" onClick={() => navigate("/members")}>
+                <Button variant="outline" size="sm" onClick={() => navigate("/members")} className="sm:px-3 px-2">
                   <UserCog className="w-4 h-4 sm:mr-2" />
                   <span className="hidden sm:inline">Membros</span>
                 </Button>
               )}
-              <Button variant="outline" size="sm" onClick={toggleTheme}>
+              <Button variant="outline" size="sm" onClick={toggleTheme} className="sm:px-3 px-2">
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </Button>
               <InstallButton />
-              <Button variant="outline" size="sm" onClick={handleSignOut}>
-                Sair
+              <Button variant="outline" size="sm" onClick={handleSignOut} className="sm:px-3 px-2">
+                <span className="text-xs sm:text-sm">Sair</span>
               </Button>
             </div>
           </div>
