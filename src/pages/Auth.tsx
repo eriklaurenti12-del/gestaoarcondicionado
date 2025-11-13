@@ -16,6 +16,7 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -211,12 +212,13 @@ export default function Auth() {
                   </div>
 
                   <div className="text-center">
-                    <a
-                      href="#forgot"
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
                       className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
                     >
                       Esqueci minha senha
-                    </a>
+                    </button>
                   </div>
 
                   <Button 
@@ -290,44 +292,55 @@ export default function Auth() {
         </Card>
 
         {/* Seção de recuperação de senha */}
-        <div id="forgot" className="mt-6">
-          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)]">
-            <CardContent className="p-6 space-y-4">
-              <div className="text-center space-y-1 mb-4">
-                <h2 className="text-xl font-bold text-white">RECUPERAR SENHA</h2>
-                <p className="text-xs text-gray-400">Digite seu email para recuperação</p>
-              </div>
-
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="forgot-email" className="text-xs font-medium text-gray-300 uppercase">
-                    EMAIL
-                  </Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      required
-                      className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                    />
-                  </div>
+        {showForgotPassword && (
+          <div className="mt-6">
+            <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)]">
+              <CardContent className="p-6 space-y-4">
+                <div className="text-center space-y-1 mb-4">
+                  <h2 className="text-xl font-bold text-white">RECUPERAR SENHA</h2>
+                  <p className="text-xs text-gray-400">Digite seu email para recuperação</p>
                 </div>
 
-                <Button 
-                  type="submit" 
-                  className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all" 
-                  disabled={loading}
-                >
-                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR EMAIL"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="forgot-email" className="text-xs font-medium text-gray-300 uppercase">
+                      EMAIL
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      type="button"
+                      onClick={() => setShowForgotPassword(false)}
+                      className="flex-1 h-11 bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white font-medium rounded-lg transition-all" 
+                    >
+                      VOLTAR
+                    </Button>
+                    <Button 
+                      type="submit" 
+                      className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all" 
+                      disabled={loading}
+                    >
+                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR EMAIL"}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

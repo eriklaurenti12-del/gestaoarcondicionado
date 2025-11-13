@@ -259,10 +259,10 @@ const ClientsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="product-select">Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
-                <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
+                <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+                <SelectContent className="bg-popover border-border z-[100] max-h-[300px]" position="popper" sideOffset={5}>
                   {products?.filter(p => p.qty > 0).map((product) => (
-                    <SelectItem key={product.id} value={String(product.id)}>{product.name} ({product.qty} disp.)</SelectItem>
+                    <SelectItem key={product.id} value={String(product.id)} className="cursor-pointer">{product.name} ({product.qty} disp.)</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -274,9 +274,9 @@ const ClientsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
-                <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent className="bg-background border-border z-50">
-                  {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
+                <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent className="bg-popover border-border z-[100]" position="popper" sideOffset={5}>
+                  {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method} className="cursor-pointer">{method}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
