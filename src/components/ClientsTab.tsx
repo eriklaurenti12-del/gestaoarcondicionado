@@ -145,7 +145,7 @@ const ClientsTab: React.FC = () => {
         client = newClient;
       }
       
-      const saleData: TablesInsert<'sales'> = {
+      const saleData = {
         client_id: client.id,
         product_id: product.id,
         qty,
@@ -153,7 +153,8 @@ const ClientsTab: React.FC = () => {
         total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
         payment_method: paymentMethod,
         payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
-      };
+        user_id: userId,
+      } as TablesInsert<'sales'>;
       
       const productUpdateData = {
         id: product.id,
@@ -258,8 +259,8 @@ const ClientsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="product-select">Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
-                <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
                   {products?.filter(p => p.qty > 0).map((product) => (
                     <SelectItem key={product.id} value={String(product.id)}>{product.name} ({product.qty} disp.)</SelectItem>
                   ))}
@@ -273,8 +274,8 @@ const ClientsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
+                <SelectTrigger className="bg-background"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent className="bg-background border-border z-50">
                   {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                 </SelectContent>
               </Select>
