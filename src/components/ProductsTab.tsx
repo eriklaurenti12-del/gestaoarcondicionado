@@ -84,6 +84,17 @@ const ProductsTab: React.FC = () => {
   });
 
   const handleAddProduct = () => {
+    console.log('[ProductsTab] handleAddProduct called', {
+      productName,
+      productPrice,
+      costPrice,
+      qty,
+      scannedBarcode,
+      selectedSupplier,
+      warrantyMonths,
+      minStockAlert
+    });
+
     if (!productName || !productPrice || !costPrice) {
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome, preço e custo são obrigatórios."});
         return;
@@ -93,18 +104,21 @@ const ProductsTab: React.FC = () => {
         toast({ variant: "destructive", title: "Quantidade inválida", description: "A quantidade mínima é 1."});
         return;
     }
-    
-    addMutation.mutate({
-      name: productName,
+
+    const productData = {
+      name: productName.trim(),
       qty: Math.max(1, qty),
       price: parseFloat(productPrice),
       cost_price: parseFloat(costPrice),
-      barcode: scannedBarcode || null,
+      barcode: scannedBarcode?.trim() || null,
       supplier_id: selectedSupplier && selectedSupplier !== "none" ? Number(selectedSupplier) : null,
       warranty_months: warrantyMonths,
       min_stock: minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
-    });
+    };
+
+    console.log('[ProductsTab] Sending product data', productData);
+    addMutation.mutate(productData);
   };
 
   const handleDeleteProduct = (productId: number) => {
@@ -152,9 +166,9 @@ const ProductsTab: React.FC = () => {
         <CardHeader><CardTitle>Cadastrar Produto</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="barcode">Código de Barras</Label>
+            <Label htmlFor="barcode">Código de Barras (Opcional)</Label>
             <div className="flex items-center gap-2">
-              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Digite ou escaneie o código" />
+              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Digite ou escaneie o código (opcional)" />
               <BarcodeScanner onBarcodeDetected={setScannedBarcode} />
             </div>
           </div>
@@ -196,7 +210,7 @@ const ProductsTab: React.FC = () => {
             </div>
           </div>
           
-          <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !scannedBarcode || !productName || !productPrice || !costPrice}>
+          <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !productName || !productPrice || !costPrice}>
             {addMutation.isPending ? "Cadastrando..." : "Cadastrar Produto"}
           </Button>
         </CardContent>
