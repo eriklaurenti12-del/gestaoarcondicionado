@@ -84,17 +84,22 @@ const ProductsTab: React.FC = () => {
   });
 
   const handleAddProduct = () => {
-    if (!scannedBarcode || !productName || !productPrice || !costPrice) {
-        toast({ variant: "destructive", title: "Campos obrigatórios", description: "Código de barras, nome, preço e custo são obrigatórios."});
+    if (!productName || !productPrice || !costPrice) {
+        toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome, preço e custo são obrigatórios."});
+        return;
+    }
+    
+    if (qty < 1) {
+        toast({ variant: "destructive", title: "Quantidade inválida", description: "A quantidade mínima é 1."});
         return;
     }
     
     addMutation.mutate({
       name: productName,
-      qty,
+      qty: Math.max(1, qty),
       price: parseFloat(productPrice),
       cost_price: parseFloat(costPrice),
-      barcode: scannedBarcode,
+      barcode: scannedBarcode || null,
       supplier_id: selectedSupplier && selectedSupplier !== "none" ? Number(selectedSupplier) : null,
       warranty_months: warrantyMonths,
       min_stock: minStockAlert,

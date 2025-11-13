@@ -168,45 +168,50 @@ export default function Members() {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-7xl mx-auto space-y-6">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => navigate("/")}>
-            <ArrowLeft className="w-4 h-4" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+              <ArrowLeft className="w-4 h-4" />
+            </Button>
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+              <Mail className="w-6 h-6 sm:w-8 sm:h-8" />
+              Membros
+            </h1>
+          </div>
+          <Button onClick={loadMembers} variant="outline">
+            Atualizar Lista
           </Button>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Mail className="w-8 h-8" />
-            Membros
-          </h1>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold">{stats.total}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Total</div>
             </CardContent>
           </Card>
           <Card className="bg-green-50 dark:bg-green-950">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-green-600">{stats.aprovados}</div>
-              <div className="text-sm">✓ Pagamentos Aprovados</div>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.aprovados}</div>
+              <div className="text-xs sm:text-sm">✓ Aprovados</div>
             </CardContent>
           </Card>
           <Card className="bg-yellow-50 dark:bg-yellow-950">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-yellow-600">{stats.aguardando}</div>
-              <div className="text-sm">⏱ Aguardando</div>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.aguardando}</div>
+              <div className="text-xs sm:text-sm">⏱ Aguardando</div>
             </CardContent>
           </Card>
           <Card className="bg-blue-50 dark:bg-blue-950">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-blue-600">{stats.dia1}</div>
-              <div className="text-sm">Dia 1</div>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.dia1}</div>
+              <div className="text-xs sm:text-sm">Dia 1</div>
             </CardContent>
           </Card>
           <Card className="bg-purple-50 dark:bg-purple-950">
-            <CardContent className="pt-6">
-              <div className="text-2xl font-bold text-purple-600">{stats.completa}</div>
-              <div className="text-sm">Completa</div>
+            <CardContent className="pt-4 sm:pt-6">
+              <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.completa}</div>
+              <div className="text-xs sm:text-sm">Vitalício</div>
             </CardContent>
           </Card>
         </div>
@@ -227,66 +232,69 @@ export default function Members() {
             </div>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Plano</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Cadastro</TableHead>
-                  <TableHead>Vencimento</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMembers.map((member) => (
-                  <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.email}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={member.subscription?.plan || 'mensal'}
-                        onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="vitalicio">Vitalício</SelectItem>
-                          <SelectItem value="anual">1 Ano</SelectItem>
-                          <SelectItem value="trimestral">3 Meses</SelectItem>
-                          <SelectItem value="mensal">1 Mês</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      {member.subscription && getStatusBadge(member.subscription.status)}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {format(new Date(member.created_at), 'dd/MM/yyyy')}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {member.subscription?.end_date 
-                        ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
-                        : member.subscription?.plan === 'vitalicio' ? '∞' : '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
-                        onClick={() => updateSubscription(
-                          member.id, 
-                          member.subscription?.plan || 'mensal',
-                          member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
-                        )}
-                      >
-                        {member.subscription?.status === 'aprovado' ? 'Cancelar' : 'Marcar Pago'}
-                      </Button>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[200px]">Email</TableHead>
+                    <TableHead className="min-w-[120px]">Plano</TableHead>
+                    <TableHead className="min-w-[100px]">Status</TableHead>
+                    <TableHead className="min-w-[100px]">Cadastro</TableHead>
+                    <TableHead className="min-w-[120px]">Vencimento</TableHead>
+                    <TableHead className="min-w-[130px]">Ações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredMembers.map((member) => (
+                    <TableRow key={member.id}>
+                      <TableCell className="font-medium text-xs sm:text-sm">{member.email}</TableCell>
+                      <TableCell>
+                        <Select
+                          value={member.subscription?.plan || 'mensal'}
+                          onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
+                        >
+                          <SelectTrigger className="w-[110px] text-xs sm:text-sm">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vitalicio">Vitalício</SelectItem>
+                            <SelectItem value="anual">1 Ano</SelectItem>
+                            <SelectItem value="trimestral">3 Meses</SelectItem>
+                            <SelectItem value="mensal">1 Mês</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        {member.subscription && getStatusBadge(member.subscription.status)}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {format(new Date(member.created_at), 'dd/MM/yyyy')}
+                      </TableCell>
+                      <TableCell className="text-xs sm:text-sm">
+                        {member.subscription?.end_date 
+                          ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
+                          : member.subscription?.plan === 'vitalicio' ? '∞' : '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
+                          onClick={() => updateSubscription(
+                            member.id, 
+                            member.subscription?.plan || 'mensal',
+                            member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
+                          )}
+                          className="text-xs whitespace-nowrap"
+                        >
+                          {member.subscription?.status === 'aprovado' ? 'Cancelar' : 'Marcar Pago'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

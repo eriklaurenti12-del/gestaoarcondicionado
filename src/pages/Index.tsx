@@ -61,23 +61,23 @@ export default function Index() {
 
   return (
     <SubscriptionGate>
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-background p-4 sm:p-6">
         <SupportButton />
         <div className="max-w-7xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl font-bold">Gestão de Eletrônicos</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de Eletrônicos</h1>
             <div className="flex gap-2 items-center flex-wrap">
               {isSuperAdmin && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/members")}>
-                  <UserCog className="w-4 h-4 mr-2" />
-                  Membros
+                  <UserCog className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Membros</span>
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={toggleTheme}>
                 {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
               </Button>
               <InstallButton />
-              <Button variant="outline" onClick={handleSignOut}>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
                 Sair
               </Button>
             </div>
@@ -85,25 +85,25 @@ export default function Index() {
 
           <Tabs defaultValue="dashboard" className="space-y-6">
             <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-              <TabsTrigger value="dashboard" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Dashboard</span>
+                <span className="text-xs sm:text-sm">Dashboard</span>
               </TabsTrigger>
-              <TabsTrigger value="clients" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Users className="w-4 h-4" />
-                <span className="hidden sm:inline">Clientes</span>
+                <span className="text-xs sm:text-sm">Clientes</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Package className="w-4 h-4" />
-                <span className="hidden sm:inline">Produtos</span>
+                <span className="text-xs sm:text-sm">Produtos</span>
               </TabsTrigger>
-              <TabsTrigger value="suppliers" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Building2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Fornecedores</span>
+                <span className="text-xs sm:text-sm">Fornecedores</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex items-center gap-2 p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <TrendingUp className="w-4 h-4" />
-                <span className="hidden sm:inline">Relatórios</span>
+                <span className="text-xs sm:text-sm">Relatórios</span>
               </TabsTrigger>
             </TabsList>
 
