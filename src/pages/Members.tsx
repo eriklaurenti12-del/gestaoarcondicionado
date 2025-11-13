@@ -48,20 +48,35 @@ export default function Members() {
 
   const loadMembers = async () => {
     try {
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
-      if (usersError) throw usersError;
+      // Buscar todos os profiles (super admin pode ver todos)
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, username, created_at');
+      
+      if (profilesError) throw profilesError;
 
+      // Buscar todas as subscriptions
       const { data: subscriptions, error: subsError } = await supabase
         .from('subscriptions')
         .select('*');
+      
       if (subsError) throw subsError;
 
-      const membersData: Member[] = users.users.map(user => ({
-        id: user.id,
-        email: user.email || '',
-        created_at: user.created_at,
-        subscription: subscriptions?.find(s => s.user_id === user.id) || null
-      }));
+      // Para cada profile, buscar o email do auth
+      const membersData: Member[] = [];
+      
+      for (const profile of profiles || []) {
+        const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profile.user_id);
+        
+        if (!userError && user) {
+          membersData.push({
+            id: user.id,
+            email: user.email || '',
+            created_at: profile.created_at,
+            subscription: subscriptions?.find(s => s.user_id === user.id) || null
+          });
+        }
+      }
 
       setMembers(membersData);
     } catch (error: any) {
@@ -82,7 +97,13 @@ export default function Members() {
 
       if (plan !== 'vitalicio') {
         endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + (plan === 'trimestral' ? 3 : 1));
+        if (plan === 'anual') {
+          endDate.setFullYear(endDate.getFullYear() + 1);
+        } else if (plan === 'trimestral') {
+          endDate.setMonth(endDate.getMonth() + 3);
+        } else {
+          endDate.setMonth(endDate.getMonth() + 1);
+        }
       }
 
       const { error } = await supabase
@@ -231,8 +252,9 @@ export default function Members() {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="vitalicio">Vitalício</SelectItem>
-                          <SelectItem value="trimestral">3 meses</SelectItem>
-                          <SelectItem value="mensal">1 mês</SelectItem>
+                          <SelectItem value="anual">1 Ano</SelectItem>
+                          <SelectItem value="trimestral">3 Meses</SelectItem>
+                          <SelectItem value="mensal">1 Mês</SelectItem>
                         </SelectContent>
                       </Select>
                     </TableCell>

@@ -81,17 +81,31 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
   return (
     <>
       {showExpiryWarning && (
-        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-black p-2 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span className="font-medium">
-              Sua assinatura vence em {daysUntilExpiry} {daysUntilExpiry === 1 ? 'dia' : 'dias'}! 
-              Entre em contato para renovar.
-            </span>
+        <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-black p-3 text-center">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-bold text-lg">
+                Sua assinatura vence em {daysUntilExpiry} {daysUntilExpiry === 1 ? 'dia' : 'dias'}!
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-medium">
+                Para renovar, entre em contato:
+              </span>
+              <a 
+                href="https://wa.me/5516993729938?text=Olá%20Natalia,%20quero%20renovar%20minha%20assinatura"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-bold hover:opacity-80"
+              >
+                WhatsApp: +55 16 99372-9938
+              </a>
+            </div>
           </div>
         </div>
       )}
-      <div className={showExpiryWarning ? 'pt-12' : ''}>
+      <div className={showExpiryWarning ? 'pt-24' : ''}>
         {children}
       </div>
     </>
