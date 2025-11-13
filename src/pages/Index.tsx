@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp, UserCog } from "lucide-react";
+import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp, UserCog, Building } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import InstallButton from "@/components/InstallButton";
@@ -14,6 +14,7 @@ import ClientsTab from "@/components/ClientsTab";
 import ProductsTab from "@/components/ProductsTab";
 import SuppliersTab from "@/components/SuppliersTab";
 import ReportsTab from "@/components/ReportsTab";
+import CompanyDataTab from "@/components/CompanyDataTab";
 
 export default function Index() {
   const { theme, toggleTheme } = useTheme();
@@ -84,7 +85,7 @@ export default function Index() {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 h-auto p-1">
+            <TabsList className="grid w-full grid-cols-6 h-auto p-1">
               <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <BarChart3 className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Dashboard</span>
@@ -104,6 +105,10 @@ export default function Index() {
               <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <TrendingUp className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Relatórios</span>
+              </TabsTrigger>
+              <TabsTrigger value="company" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Building className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Empresa</span>
               </TabsTrigger>
             </TabsList>
 
@@ -125,6 +130,10 @@ export default function Index() {
 
           <TabsContent value="reports">
             <ReportsTab />
+          </TabsContent>
+
+          <TabsContent value="company">
+            <CompanyDataTab />
           </TabsContent>
         </Tabs>
       </div>

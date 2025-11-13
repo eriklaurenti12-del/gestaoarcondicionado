@@ -170,10 +170,40 @@ const ClientsTab: React.FC = () => {
     }
   }
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Relatório de Clientes', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+    const tableData = clients?.map(c => {
+      const total = c.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
+      return [c.name, `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
+    }) || [];
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Cliente', 'Compras', 'Total Gasto']],
+      body: tableData,
+    });
+
+    doc.save('clientes.pdf');
+    toast({ title: "PDF exportado!", description: "Relatório de clientes salvo." });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle>Gerenciar Clientes</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex justify-between items-center">
+            Gerenciar Clientes
+            <Button onClick={exportToPDF} size="sm" variant="outline">
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
+          </CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
