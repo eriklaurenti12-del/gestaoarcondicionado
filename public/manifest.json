@@ -1,8 +1,8 @@
 
 {
-  "name": "Sistema de Gestão de Eletrônicos",
-  "short_name": "Gestão Eletrônicos",
-  "description": "Sistema completo para gestão de lojas de eletrônicos",
+  "name": "Sistema de Gestão de Negócios",
+  "short_name": "Gestão Negócios",
+  "description": "Sistema completo para gestão de negócios",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

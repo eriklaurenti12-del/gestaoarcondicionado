@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp, UserCog } from "lucide-react";
+import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp, UserCog, Briefcase } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import InstallButton from "@/components/InstallButton";
@@ -14,6 +14,7 @@ import ClientsTab from "@/components/ClientsTab";
 import ProductsTab from "@/components/ProductsTab";
 import SuppliersTab from "@/components/SuppliersTab";
 import ReportsTab from "@/components/ReportsTab";
+import CompanyDataTab from "@/components/CompanyDataTab";
 
 export default function Index() {
   const { theme, toggleTheme } = useTheme();
@@ -65,7 +66,7 @@ export default function Index() {
         <SupportButton />
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold">Gestão de Eletrônicos</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-fade-in">Gestão de Negócios</h1>
             <div className="flex gap-2 items-center flex-wrap">
               {isSuperAdmin && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/members")}>
@@ -84,26 +85,30 @@ export default function Index() {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 h-auto p-1">
-              <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsList className="grid w-full grid-cols-6 h-auto p-1 gap-1">
+              <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
                 <BarChart3 className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Dashboard</span>
               </TabsTrigger>
-              <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
                 <Users className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Clientes</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
                 <Package className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Produtos</span>
               </TabsTrigger>
-              <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
                 <Building2 className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Fornecedores</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
                 <TrendingUp className="w-4 h-4" />
                 <span className="text-xs sm:text-sm">Relatórios</span>
+              </TabsTrigger>
+              <TabsTrigger value="company" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
+                <Briefcase className="w-4 h-4" />
+                <span className="text-xs sm:text-sm">Meus Dados</span>
               </TabsTrigger>
             </TabsList>
 
@@ -125,6 +130,10 @@ export default function Index() {
 
           <TabsContent value="reports">
             <ReportsTab />
+          </TabsContent>
+
+          <TabsContent value="company">
+            <CompanyDataTab />
           </TabsContent>
         </Tabs>
       </div>

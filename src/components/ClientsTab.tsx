@@ -153,7 +153,6 @@ const ClientsTab: React.FC = () => {
         total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
         payment_method: paymentMethod,
         payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
-        user_id: userId,
       };
       
       const productUpdateData = {
