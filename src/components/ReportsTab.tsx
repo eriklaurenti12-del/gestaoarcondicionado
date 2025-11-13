@@ -155,10 +155,10 @@ const ReportsTab: React.FC = () => {
         <h2 className="text-2xl font-bold">Relatórios</h2>
         <div className="flex flex-wrap gap-2">
           <Select value={period} onValueChange={(val) => { setPeriod(val); setUseCustomDates(false); }}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="w-48 transition-all">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="animate-scale-in">
               <SelectItem value="all">Todos os períodos</SelectItem>
               <SelectItem value="thisMonth">Este mês</SelectItem>
               <SelectItem value="lastMonth">Mês passado</SelectItem>

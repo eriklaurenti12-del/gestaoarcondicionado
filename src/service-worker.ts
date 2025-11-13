@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'gestao-eletronicos-v1';
+const CACHE_NAME = 'gestao-negocios-v1';
 const urlsToCache = [
   '/',
   '/index.html',
