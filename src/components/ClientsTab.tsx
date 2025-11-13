@@ -40,6 +40,18 @@ const ClientsTab: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<Tables<'sales'>['payment_method']>('Dinheiro');
   const [paymentFee, setPaymentFee] = useState("0");
   const [editingClient, setEditingClient] = useState<ClientWithSales | null>(null);
+  const [userId, setUserId] = useState<string>("");
+
+  // Obter userId da sessão
+  React.useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({ queryKey: ['clients'], queryFn: fetchClients });
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
@@ -122,7 +134,7 @@ const ClientsTab: React.FC = () => {
       if (!client) {
         const { data: newClient, error: newClientError } = await supabase
           .from('clients')
-          .insert({ name: clientName.trim() })
+          .insert({ name: clientName.trim(), user_id: userId })
           .select('id')
           .single();
         
@@ -141,6 +153,7 @@ const ClientsTab: React.FC = () => {
         total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
         payment_method: paymentMethod,
         payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
+        user_id: userId,
       };
       
       const productUpdateData = {
