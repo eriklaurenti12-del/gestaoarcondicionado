@@ -45,10 +45,39 @@ const ProductsTab: React.FC = () => {
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
   const [costPrice, setCostPrice] = useState("");
+  const [profitPercentage, setProfitPercentage] = useState("");
   const [qty, setQty] = useState(1);
   const [selectedSupplier, setSelectedSupplier] = useState<string | undefined>();
   const [warrantyMonths, setWarrantyMonths] = useState(12);
   const [minStockAlert, setMinStockAlert] = useState(5);
+
+  // Calcula o preço de venda baseado no custo e na porcentagem de lucro
+  const calculateSalePrice = (cost: string, percentage: string) => {
+    const costValue = parseFloat(cost);
+    const percentValue = parseFloat(percentage);
+    
+    if (!isNaN(costValue) && !isNaN(percentValue) && costValue > 0 && percentValue >= 0) {
+      const salePrice = costValue + (costValue * percentValue / 100);
+      setProductPrice(salePrice.toFixed(2));
+    }
+  };
+
+  // Atualiza o preço de venda quando custo ou porcentagem mudam
+  React.useEffect(() => {
+    if (costPrice && profitPercentage) {
+      calculateSalePrice(costPrice, profitPercentage);
+    }
+  }, [costPrice, profitPercentage]);
+
+  // Calcula o lucro em reais
+  const profitInReais = React.useMemo(() => {
+    const cost = parseFloat(costPrice);
+    const price = parseFloat(productPrice);
+    if (!isNaN(cost) && !isNaN(price)) {
+      return (price - cost).toFixed(2);
+    }
+    return "0.00";
+  }, [costPrice, productPrice]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
   const { data: suppliers, isLoading: isLoadingSuppliers } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers });
@@ -63,6 +92,7 @@ const ProductsTab: React.FC = () => {
       setProductName("");
       setProductPrice("");
       setCostPrice("");
+      setProfitPercentage("");
       setQty(1);
       setSelectedSupplier(undefined);
     },
@@ -178,13 +208,37 @@ const ProductsTab: React.FC = () => {
               <Label htmlFor="product-name-barcode">Nome do Produto</Label>
               <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Nome do produto"/>
             </div>
-             <div className="space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="cost-price">Preço de Custo (R$)</Label>
               <Input id="cost-price" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00"/>
             </div>
             <div className="space-y-2">
+              <Label htmlFor="profit-percentage">Margem de Lucro (%)</Label>
+              <Input 
+                id="profit-percentage" 
+                type="number" 
+                step="0.01" 
+                value={profitPercentage} 
+                onChange={(e) => setProfitPercentage(e.target.value)} 
+                placeholder="0.00"
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="product-price">Preço de Venda (R$)</Label>
-              <Input id="product-price" type="number" step="0.01" value={productPrice} onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00"/>
+              <Input 
+                id="product-price" 
+                type="number" 
+                step="0.01" 
+                value={productPrice} 
+                onChange={(e) => setProductPrice(e.target.value)} 
+                placeholder="0.00"
+                className="font-semibold"
+              />
+              {profitInReais !== "0.00" && (
+                <p className="text-xs text-muted-foreground">
+                  Lucro: R$ {profitInReais}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="add-quantity-barcode">Quantidade</Label>
