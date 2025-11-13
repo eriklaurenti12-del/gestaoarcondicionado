@@ -4,11 +4,24 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const authHeader = req.headers.get('Authorization') || '';
+
+    console.log('[admin-members] Incoming request');
 
     // Client that validates the incoming JWT (forwarding Authorization)
     const supabaseAuthed = createClient(supabaseUrl, serviceRoleKey, {
@@ -17,7 +30,8 @@ Deno.serve(async (req) => {
 
     const { data: { user }, error: authError } = await supabaseAuthed.auth.getUser();
     if (authError || !user) {
-      return new Response('Unauthorized', { status: 401 });
+      console.warn('[admin-members] Unauthorized access attempt', authError?.message);
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // Service client without user context for admin operations
@@ -30,12 +44,14 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id);
 
     if (rolesError) {
-      return new Response(JSON.stringify({ error: rolesError.message }), { status: 500 });
+      console.error('[admin-members] rolesError', rolesError.message);
+      return new Response(JSON.stringify({ error: rolesError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     const isSuperAdmin = roles?.some((r: any) => r.role === 'super_admin');
     if (!isSuperAdmin) {
-      return new Response('Forbidden', { status: 403 });
+      console.warn('[admin-members] Forbidden - user is not super_admin');
+      return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
     // List all users (paginate just in case)
@@ -43,17 +59,29 @@ Deno.serve(async (req) => {
     let page = 1; const perPage = 1000;
     while (true) {
       const { data, error } = await supabaseService.auth.admin.listUsers({ page, perPage });
-      if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+      if (error) {
+        console.error('[admin-members] listUsers error', error.message);
+        return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       allUsers.push(...data.users);
       if (data.users.length < perPage) break;
       page += 1;
     }
 
     // Load subscriptions and profiles
-    const [{ data: subs }, { data: profiles }] = await Promise.all([
+    const [{ data: subs, error: subsError }, { data: profiles, error: profilesError }] = await Promise.all([
       supabaseService.from('subscriptions').select('*'),
       supabaseService.from('profiles').select('user_id, created_at')
     ]);
+
+    if (subsError) {
+      console.error('[admin-members] subsError', subsError.message);
+      return new Response(JSON.stringify({ error: subsError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    if (profilesError) {
+      console.error('[admin-members] profilesError', profilesError.message);
+      return new Response(JSON.stringify({ error: profilesError.message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const members = allUsers.map((u: any) => {
       const profile = profiles?.find((p: any) => p.user_id === u.id);
@@ -66,10 +94,13 @@ Deno.serve(async (req) => {
       };
     });
 
+    console.log('[admin-members] Returning', members.length, 'members');
+
     return new Response(JSON.stringify(members), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
-    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500 });
+    console.error('[admin-members] Unhandled error', (e as Error).message);
+    return new Response(JSON.stringify({ error: (e as Error).message }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });
