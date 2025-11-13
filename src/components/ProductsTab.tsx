@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2 } from "lucide-react";
+import { Trash2, FileDown, Pencil } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type ProductWithSupplier = Tables<'products'> & { suppliers: Pick<Tables<'suppliers'>, 'name'> | null };
 
@@ -50,6 +53,8 @@ const ProductsTab: React.FC = () => {
   const [selectedSupplier, setSelectedSupplier] = useState<string | undefined>();
   const [warrantyMonths, setWarrantyMonths] = useState(12);
   const [minStockAlert, setMinStockAlert] = useState(5);
+  const [editingProduct, setEditingProduct] = useState<ProductWithSupplier | null>(null);
+  const [editQty, setEditQty] = useState(0);
 
   // Calcula o preço de venda baseado no custo e na porcentagem de lucro
   const calculateSalePrice = (cost: string, percentage: string) => {
@@ -113,6 +118,22 @@ const ProductsTab: React.FC = () => {
     }
   });
 
+  const updateQtyMutation = useMutation({
+    mutationFn: async ({ id, qty }: { id: number, qty: number }) => {
+      const { error } = await supabase.from('products').update({ qty }).eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({ title: "Sucesso!", description: "Quantidade atualizada." });
+      setEditingProduct(null);
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Erro ao atualizar quantidade.", description: error.message });
+    }
+  });
+
   const handleAddProduct = () => {
     console.log('[ProductsTab] handleAddProduct called', {
       productName,
@@ -157,10 +178,56 @@ const ProductsTab: React.FC = () => {
     }
   };
 
+  const handleEditQty = (product: ProductWithSupplier) => {
+    setEditingProduct(product);
+    setEditQty(product.qty);
+  };
+
+  const handleUpdateQty = () => {
+    if (editingProduct && editQty >= 0) {
+      updateQtyMutation.mutate({ id: editingProduct.id, qty: editQty });
+    }
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Relatório de Produtos', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+    const tableData = products?.map(p => [
+      p.name,
+      p.barcode || 'N/A',
+      `${p.qty} un`,
+      `R$ ${Number(p.cost_price).toFixed(2)}`,
+      `R$ ${Number(p.price).toFixed(2)}`,
+      p.suppliers?.name || 'N/A',
+      `${p.warranty_months || 'N/A'} meses`
+    ]) || [];
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Produto', 'Código', 'Qtd', 'Custo', 'Venda', 'Fornecedor', 'Garantia']],
+      body: tableData,
+    });
+
+    doc.save('produtos.pdf');
+    toast({ title: "PDF exportado!", description: "Relatório de produtos salvo." });
+  };
+
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader><CardTitle>Estoque de Produtos</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex justify-between items-center">
+            Estoque de Produtos
+            <Button onClick={exportToPDF} size="sm" variant="outline">
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar PDF
+            </Button>
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
@@ -183,7 +250,10 @@ const ProductsTab: React.FC = () => {
                   <TableCell>{product.suppliers?.name || "N/A"}</TableCell>
                   <TableCell>{product.warranty_months || "N/A"} meses</TableCell>
                   <TableCell>
-                    <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -269,6 +339,29 @@ const ProductsTab: React.FC = () => {
           </Button>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Quantidade - {editingProduct?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-qty">Quantidade em Estoque</Label>
+              <Input 
+                id="edit-qty" 
+                type="number" 
+                value={editQty} 
+                onChange={(e) => setEditQty(Number(e.target.value))} 
+                min="0"
+              />
+            </div>
+            <Button onClick={handleUpdateQty} className="w-full" disabled={updateQtyMutation.isPending}>
+              {updateQtyMutation.isPending ? "Atualizando..." : "Atualizar Quantidade"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
