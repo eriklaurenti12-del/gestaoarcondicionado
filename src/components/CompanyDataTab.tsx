@@ -8,21 +8,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { FileDown } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import jsPDF from 'jspdf';
 
-interface CompanyData {
-  id?: number;
-  user_id: string;
-  company_name: string;
-  cnpj_cpf: string;
-  email: string;
-  whatsapp: string;
-  address: string;
-  created_at?: string;
-  updated_at?: string;
-}
-
-const fetchCompanyData = async (userId: string): Promise<CompanyData | null> => {
+const fetchCompanyData = async (userId: string) => {
   const { data, error } = await supabase
     .from('company_data')
     .select('*')
@@ -30,7 +19,7 @@ const fetchCompanyData = async (userId: string): Promise<CompanyData | null> => 
     .maybeSingle();
   
   if (error && error.code !== 'PGRST116') throw new Error(error.message);
-  return data;
+  return data as Tables<'company_data'> | null;
 };
 
 const CompanyDataTab: React.FC = () => {
@@ -71,7 +60,7 @@ const CompanyDataTab: React.FC = () => {
   }, [companyData]);
 
   const saveMutation = useMutation({
-    mutationFn: async (data: CompanyData) => {
+    mutationFn: async (data: TablesInsert<'company_data'> | TablesUpdate<'company_data'>) => {
       if (companyData?.id) {
         const { error } = await supabase
           .from('company_data')
@@ -81,7 +70,7 @@ const CompanyDataTab: React.FC = () => {
       } else {
         const { error } = await supabase
           .from('company_data')
-          .insert(data);
+          .insert(data as TablesInsert<'company_data'>);
         if (error) throw new Error(error.message);
       }
     },

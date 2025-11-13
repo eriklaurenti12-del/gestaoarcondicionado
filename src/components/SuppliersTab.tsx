@@ -97,6 +97,29 @@ const SuppliersTab: React.FC = () => {
     }
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Relatório de Fornecedores', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+    const tableData = suppliers?.map(s => [
+      s.name,
+      s.contact || 'N/A',
+      s.email || 'N/A'
+    ]) || [];
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Nome', 'Contato', 'E-mail']],
+      body: tableData,
+    });
+
+    doc.save('fornecedores.pdf');
+    toast({ title: "PDF exportado!", description: "Relatório de fornecedores salvo." });
+  };
+
   if (isError) {
     return <div>Error: {error.message}</div>;
   }
@@ -107,9 +130,15 @@ const SuppliersTab: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
             Fornecedores
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              Adicionar Fornecedor
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={exportToPDF} size="sm" variant="outline">
+                <FileDown className="w-4 h-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                Adicionar Fornecedor
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
