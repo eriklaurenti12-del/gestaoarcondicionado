@@ -4,10 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Mail, Lock } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -122,157 +122,205 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0f0f1a] flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Efeitos de fundo */}
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0a0f] via-[#16161f] to-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Efeitos de fundo com glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-pink-600/20 rounded-full blur-[120px] animate-pulse delay-700"></div>
+        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[150px] animate-pulse"></div>
+        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[150px] animate-pulse" style={{ animationDelay: '1s' }}></div>
       </div>
 
-      {/* Conteúdo */}
+      {/* Conteúdo principal */}
       <div className="relative z-10 w-full max-w-md">
-        {/* Header com branding */}
-        <div className="text-center mb-8 animate-fade-in">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <Sparkles className="w-10 h-10 text-purple-500 animate-pulse" />
-          </div>
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent mb-2">
-            Gestão de Negócios
+        {/* Header com título e créditos */}
+        <div className="text-center mb-10 space-y-3 animate-fade-in">
+          <h1 className="text-6xl font-bold tracking-tight">
+            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+              GESTÃO DE NEGÓCIOS
+            </span>
           </h1>
-          <p className="text-muted-foreground text-sm">Sistema Completo de Gestão</p>
+          <p className="text-gray-400 text-base font-light">
+            Sistema Completo de Gestão
+          </p>
+          <p className="text-sm text-gray-500">
+            Criado por <span className="text-purple-400 font-medium">Erik Laurenti</span>
+          </p>
         </div>
 
-        {/* Card principal */}
-        <Card className="w-full backdrop-blur-xl bg-card/40 border-purple-500/30 shadow-[0_0_40px_rgba(168,85,247,0.3)] hover:shadow-[0_0_60px_rgba(168,85,247,0.5)] transition-all duration-300">
-          <CardHeader className="text-center pb-6">
-            <CardTitle className="text-2xl font-bold text-foreground">Acesse sua conta</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Faça login ou crie sua conta para começar
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+        {/* Card de autenticação */}
+        <Card className="backdrop-blur-2xl bg-[#1a1a24]/60 border-[#2a2a3a] shadow-[0_0_80px_rgba(147,51,234,0.15)] rounded-2xl overflow-hidden">
+          <CardContent className="p-0">
             <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-muted/50 backdrop-blur-sm">
-                <TabsTrigger value="login" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white transition-all">
+              {/* Tabs customizadas */}
+              <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-[#2a2a3a] rounded-none h-14">
+                <TabsTrigger 
+                  value="login" 
+                  className="rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:text-white text-gray-400 font-medium transition-all"
+                >
                   Login
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white transition-all">
+                <TabsTrigger 
+                  value="signup" 
+                  className="rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:text-white text-gray-400 font-medium transition-all"
+                >
                   Cadastro
                 </TabsTrigger>
-                <TabsTrigger value="forgot" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white transition-all">
+                <TabsTrigger 
+                  value="forgot" 
+                  className="rounded-none data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-purple-500 data-[state=active]:text-white text-gray-400 font-medium transition-all text-xs sm:text-sm"
+                >
                   Esqueci
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="login" className="animate-fade-in">
-                <form onSubmit={handleSignIn} className="space-y-4">
+              {/* Tab Login */}
+              <TabsContent value="login" className="p-8 space-y-6 animate-fade-in">
+                <div className="text-center space-y-2 mb-6">
+                  <h2 className="text-2xl font-bold text-white">FAZER LOGIN</h2>
+                  <p className="text-sm text-gray-400">Acesse sua conta</p>
+                </div>
+
+                <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-muted/50 border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/50 transition-all"
-                    />
+                    <Label htmlFor="login-email" className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                      Email
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="login-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="pl-11 h-12 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all"
+                      />
+                    </div>
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-foreground">Senha</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      className="bg-muted/50 border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/50 transition-all"
-                    />
+                    <Label htmlFor="login-password" className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                      Senha
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="login-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="pl-11 h-12 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all"
+                      />
+                    </div>
                   </div>
+
                   <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300" 
+                    type="submit"
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all duration-300 flex items-center justify-center gap-2" 
                     disabled={loading}
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Entrar
+                    <Mail className="w-5 h-5" />
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONTINUAR"}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="signup" className="animate-fade-in">
-                <form onSubmit={handleSignUp} className="space-y-4">
+              {/* Tab Cadastro */}
+              <TabsContent value="signup" className="p-8 space-y-6 animate-fade-in">
+                <div className="text-center space-y-2 mb-6">
+                  <h2 className="text-2xl font-bold text-white">CRIAR CONTA</h2>
+                  <p className="text-sm text-gray-400">Cadastre-se gratuitamente</p>
+                </div>
+
+                <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="bg-muted/50 border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/50 transition-all"
-                    />
+                    <Label htmlFor="signup-email" className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                      Email
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="signup-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="pl-11 h-12 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all"
+                      />
+                    </div>
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-foreground">Senha</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={6}
-                      className="bg-muted/50 border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/50 transition-all"
-                    />
+                    <Label htmlFor="signup-password" className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                      Senha
+                    </Label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="signup-password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="pl-11 h-12 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all"
+                      />
+                    </div>
                   </div>
+
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300" 
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all duration-300 flex items-center justify-center gap-2" 
                     disabled={loading}
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Criar Conta
+                    <Mail className="w-5 h-5" />
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CRIAR CONTA"}
                   </Button>
                 </form>
               </TabsContent>
 
-              <TabsContent value="forgot" className="animate-fade-in">
-                <form onSubmit={handleForgotPassword} className="space-y-4">
+              {/* Tab Esqueci Senha */}
+              <TabsContent value="forgot" className="p-8 space-y-6 animate-fade-in">
+                <div className="text-center space-y-2 mb-6">
+                  <h2 className="text-2xl font-bold text-white">RECUPERAR SENHA</h2>
+                  <p className="text-sm text-gray-400">Digite seu email para recuperação</p>
+                </div>
+
+                <form onSubmit={handleForgotPassword} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="forgot-email" className="text-foreground">Email</Label>
-                    <Input
-                      id="forgot-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={forgotEmail}
-                      onChange={(e) => setForgotEmail(e.target.value)}
-                      required
-                      className="bg-muted/50 border-purple-500/30 focus:border-purple-500 focus:ring-purple-500/50 transition-all"
-                    />
+                    <Label htmlFor="forgot-email" className="text-sm font-medium text-gray-300 uppercase tracking-wide">
+                      Email
+                    </Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <Input
+                        id="forgot-email"
+                        type="email"
+                        placeholder="seu@email.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        className="pl-11 h-12 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-500 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all"
+                      />
+                    </div>
                   </div>
+
                   <Button 
                     type="submit" 
-                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300" 
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] transition-all duration-300" 
                     disabled={loading}
                   >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Enviar Email de Recuperação
+                    {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "ENVIAR EMAIL"}
                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
           </CardContent>
         </Card>
-
-        {/* Footer com créditos */}
-        <div className="text-center mt-6 animate-fade-in">
-          <p className="text-sm text-muted-foreground/70">
-            Criado por <span className="text-purple-400 font-semibold">Erik Laurenti</span>
-          </p>
-        </div>
       </div>
     </div>
   );
