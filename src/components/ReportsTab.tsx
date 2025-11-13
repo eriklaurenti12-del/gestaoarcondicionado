@@ -152,13 +152,13 @@ const ReportsTab: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-bold">Relatórios</h2>
+        <h2 className="text-xl sm:text-2xl font-bold">Relatórios</h2>
         <div className="flex flex-wrap gap-2">
           <Select value={period} onValueChange={(val) => { setPeriod(val); setUseCustomDates(false); }}>
-            <SelectTrigger className="w-48 transition-all">
+            <SelectTrigger className="w-48 transition-all bg-background border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="animate-scale-in">
+            <SelectContent className="animate-scale-in bg-popover border-border z-[100]" position="popper" sideOffset={5}>
               <SelectItem value="all">Todos os períodos</SelectItem>
               <SelectItem value="thisMonth">Este mês</SelectItem>
               <SelectItem value="lastMonth">Mês passado</SelectItem>
@@ -207,22 +207,22 @@ const ReportsTab: React.FC = () => {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader><CardTitle>Total de Vendas</CardTitle></CardHeader>
-          <CardContent><p className="text-3xl font-bold text-green-600">R$ {salesReport?.totalSales.toFixed(2)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Lucro Total</CardTitle></CardHeader>
-          <CardContent><p className="text-3xl font-bold text-blue-600">R$ {salesReport?.totalProfit.toFixed(2)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Itens Vendidos</CardTitle></CardHeader>
-          <CardContent><p className="text-3xl font-bold">{salesReport?.totalItems}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle>Total de Clientes</CardTitle></CardHeader>
-          <CardContent><p className="text-3xl font-bold">{salesReport?.totalClients}</p></CardContent>
-        </Card>
+          <Card>
+            <CardHeader><CardTitle>Total de Vendas</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport?.totalSales.toFixed(2)}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Lucro Total</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl sm:text-3xl font-bold text-blue-600">R$ {salesReport?.totalProfit.toFixed(2)}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Itens Vendidos</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl sm:text-3xl font-bold">{salesReport?.totalItems}</p></CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Total de Clientes</CardTitle></CardHeader>
+            <CardContent><p className="text-2xl sm:text-3xl font-bold">{salesReport?.totalClients}</p></CardContent>
+          </Card>
       </div>
 
       <Card>
