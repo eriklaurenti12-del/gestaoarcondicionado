@@ -155,14 +155,14 @@ const ReportsTab: React.FC = () => {
         <h2 className="text-xl sm:text-2xl font-bold">Relatórios</h2>
         <div className="flex flex-wrap gap-2">
           <Select value={period} onValueChange={(val) => { setPeriod(val); setUseCustomDates(false); }}>
-            <SelectTrigger className="w-48 transition-all bg-background border-border">
+            <SelectTrigger className="w-[200px] sm:w-48 transition-all bg-background border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="animate-scale-in bg-popover border-border z-[100]" position="popper" sideOffset={5}>
-              <SelectItem value="all">Todos os períodos</SelectItem>
-              <SelectItem value="thisMonth">Este mês</SelectItem>
-              <SelectItem value="lastMonth">Mês passado</SelectItem>
-              <SelectItem value="thisYear">Este ano</SelectItem>
+            <SelectContent className="bg-popover border-border z-[200]" position="popper" sideOffset={8} align="start">
+              <SelectItem value="all" className="cursor-pointer">Todos os períodos</SelectItem>
+              <SelectItem value="thisMonth" className="cursor-pointer">Este mês</SelectItem>
+              <SelectItem value="lastMonth" className="cursor-pointer">Mês passado</SelectItem>
+              <SelectItem value="thisYear" className="cursor-pointer">Este ano</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={exportToPDF} size="sm" variant="outline">
