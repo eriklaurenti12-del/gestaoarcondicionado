@@ -73,6 +73,8 @@ export default function Members() {
           endDate.setFullYear(endDate.getFullYear() + 1);
         } else if (plan === 'trimestral') {
           endDate.setMonth(endDate.getMonth() + 3);
+        } else if (plan === '1dia') {
+          endDate.setDate(endDate.getDate() + 1);
         } else {
           endDate.setMonth(endDate.getMonth() + 1);
         }
@@ -233,6 +235,7 @@ export default function Members() {
                             <SelectItem value="anual">1 Ano</SelectItem>
                             <SelectItem value="trimestral">3 Meses</SelectItem>
                             <SelectItem value="mensal">1 Mês</SelectItem>
+                            <SelectItem value="1dia">1 Dia</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
