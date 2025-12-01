@@ -21,6 +21,7 @@ export type Database = {
           id: number
           name: string
           telefone: string | null
+          user_id: string
         }
         Insert: {
           aniversario?: string | null
@@ -28,6 +29,7 @@ export type Database = {
           id?: number
           name: string
           telefone?: string | null
+          user_id: string
         }
         Update: {
           aniversario?: string | null
@@ -35,6 +37,43 @@ export type Database = {
           id?: number
           name?: string
           telefone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      company_data: {
+        Row: {
+          address: string | null
+          cnpj_cpf: string
+          company_name: string
+          created_at: string
+          email: string | null
+          id: number
+          updated_at: string
+          user_id: string
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          cnpj_cpf: string
+          company_name: string
+          created_at?: string
+          email?: string | null
+          id?: number
+          updated_at?: string
+          user_id: string
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          cnpj_cpf?: string
+          company_name?: string
+          created_at?: string
+          email?: string | null
+          id?: number
+          updated_at?: string
+          user_id?: string
+          whatsapp?: string | null
         }
         Relationships: []
       }
@@ -50,6 +89,7 @@ export type Database = {
           price: number
           qty: number
           supplier_id: number | null
+          user_id: string
           warranty_months: number | null
         }
         Insert: {
@@ -63,6 +103,7 @@ export type Database = {
           price: number
           qty?: number
           supplier_id?: number | null
+          user_id: string
           warranty_months?: number | null
         }
         Update: {
@@ -76,6 +117,7 @@ export type Database = {
           price?: number
           qty?: number
           supplier_id?: number | null
+          user_id?: string
           warranty_months?: number | null
         }
         Relationships: [
@@ -120,6 +162,7 @@ export type Database = {
           sale_date: string
           sale_price: number
           total_profit: number
+          user_id: string
         }
         Insert: {
           client_id: number
@@ -131,6 +174,7 @@ export type Database = {
           sale_date?: string
           sale_price: number
           total_profit: number
+          user_id: string
         }
         Update: {
           client_id?: number
@@ -142,6 +186,7 @@ export type Database = {
           sale_date?: string
           sale_price?: number
           total_profit?: number
+          user_id?: string
         }
         Relationships: [
           {
@@ -206,6 +251,7 @@ export type Database = {
           email: string | null
           id: number
           name: string
+          user_id: string
         }
         Insert: {
           contact?: string | null
@@ -213,6 +259,7 @@ export type Database = {
           email?: string | null
           id?: number
           name: string
+          user_id: string
         }
         Update: {
           contact?: string | null
@@ -220,6 +267,7 @@ export type Database = {
           email?: string | null
           id?: number
           name?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -331,9 +331,9 @@ const ProductsTab: React.FC = () => {
               <Label htmlFor="supplier-select">Fornecedor (Opcional)</Label>
               <Select value={selectedSupplier} onValueChange={setSelectedSupplier} disabled={isLoadingSuppliers}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione o fornecedor (opcional)" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border z-[100]" position="popper" sideOffset={5}>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {suppliers?.map((supplier) => (<SelectItem key={supplier.id} value={String(supplier.id)}>{supplier.name}</SelectItem>))}
+                <SelectContent className="bg-popover border-border z-[200]" position="popper" sideOffset={8} align="start">
+                  <SelectItem value="none" className="cursor-pointer">Nenhum</SelectItem>
+                  {suppliers?.map((supplier) => (<SelectItem key={supplier.id} value={String(supplier.id)} className="cursor-pointer">{supplier.name}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
