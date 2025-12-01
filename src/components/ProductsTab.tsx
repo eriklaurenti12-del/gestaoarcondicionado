@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, FileDown, Pencil } from "lucide-react";
+import { Trash2, FileDown, Pencil, Scissors } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
@@ -104,7 +104,7 @@ const ProductsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast({ title: "Sucesso!", description: "Produto adicionado ao estoque." });
+      toast({ title: "Sucesso!", description: "Serviço/Produto adicionado." });
       setScannedBarcode("");
       setProductName("");
       setProductPrice("");
@@ -114,7 +114,7 @@ const ProductsTab: React.FC = () => {
       setSelectedSupplier(undefined);
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Erro ao adicionar produto.", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
     }
   });
   
@@ -123,10 +123,10 @@ const ProductsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast({ title: "Sucesso!", description: "Produto removido." });
+      toast({ title: "Sucesso!", description: "Item removido." });
     },
     onError: (error: Error) => {
-      toast({ variant: "destructive", title: "Erro ao remover produto.", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao remover.", description: error.message });
     }
   });
 
@@ -147,17 +147,6 @@ const ProductsTab: React.FC = () => {
   });
 
   const handleAddProduct = () => {
-    console.log('[ProductsTab] handleAddProduct called', {
-      productName,
-      productPrice,
-      costPrice,
-      qty,
-      scannedBarcode,
-      selectedSupplier,
-      warrantyMonths,
-      minStockAlert
-    });
-
     if (!productName || !productPrice || !costPrice) {
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome, preço e custo são obrigatórios."});
         return;
@@ -181,12 +170,11 @@ const ProductsTab: React.FC = () => {
       user_id: userId,
     };
 
-    console.log('[ProductsTab] Sending product data', productData);
     addMutation.mutate(productData);
   };
 
   const handleDeleteProduct = (productId: number) => {
-    if (window.confirm("Tem certeza que deseja remover este produto?")) {
+    if (window.confirm("Tem certeza que deseja remover este item?")) {
       deleteMutation.mutate(productId);
     }
   };
@@ -205,7 +193,7 @@ const ProductsTab: React.FC = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text('Relatório de Produtos', 14, 22);
+    doc.text('Catálogo de Serviços e Produtos', 14, 22);
     doc.setFontSize(11);
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
@@ -215,18 +203,17 @@ const ProductsTab: React.FC = () => {
       `${p.qty} un`,
       `R$ ${Number(p.cost_price).toFixed(2)}`,
       `R$ ${Number(p.price).toFixed(2)}`,
-      p.suppliers?.name || 'N/A',
-      `${p.warranty_months || 'N/A'} meses`
+      p.suppliers?.name || 'N/A'
     ]) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Produto', 'Código', 'Qtd', 'Custo', 'Venda', 'Fornecedor', 'Garantia']],
+      head: [['Serviço/Produto', 'Código', 'Qtd', 'Custo', 'Preço', 'Fornecedor']],
       body: tableData,
     });
 
-    doc.save('produtos.pdf');
-    toast({ title: "PDF exportado!", description: "Relatório de produtos salvo." });
+    doc.save('servicos-produtos.pdf');
+    toast({ title: "PDF exportado!", description: "Catálogo salvo." });
   };
 
   return (
@@ -234,7 +221,10 @@ const ProductsTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex justify-between items-center">
-            Estoque de Produtos
+            <span className="flex items-center gap-2">
+              <Scissors className="w-5 h-5" />
+              Serviços & Produtos
+            </span>
             <Button onClick={exportToPDF} size="sm" variant="outline">
               <FileDown className="w-4 h-4 mr-2" />
               Exportar PDF
@@ -245,23 +235,22 @@ const ProductsTab: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Produto</TableHead><TableHead>Código</TableHead><TableHead>Quantidade</TableHead>
-                <TableHead>Preço Custo</TableHead><TableHead>Preço Venda</TableHead>
-                <TableHead>Fornecedor</TableHead><TableHead>Garantia</TableHead><TableHead>Ações</TableHead>
+                <TableHead>Serviço/Produto</TableHead><TableHead>Código</TableHead><TableHead>Estoque</TableHead>
+                <TableHead>Custo</TableHead><TableHead>Preço</TableHead>
+                <TableHead>Fornecedor</TableHead><TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={8}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
               )) : products?.map((product) => (
                 <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) ? "bg-orange-50 dark:bg-orange-950" : ""}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{product.barcode}</TableCell>
-                  <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty} unidades</span></TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{product.barcode || "-"}</TableCell>
+                  <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span></TableCell>
                   <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
                   <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
-                  <TableCell>{product.suppliers?.name || "N/A"}</TableCell>
-                  <TableCell>{product.warranty_months || "N/A"} meses</TableCell>
+                  <TableCell>{product.suppliers?.name || "-"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
@@ -276,20 +265,20 @@ const ProductsTab: React.FC = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle>Cadastrar Produto</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Cadastrar Serviço ou Produto</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="barcode">Código de Barras (Opcional)</Label>
+            <Label htmlFor="barcode">Código (Opcional)</Label>
             <div className="flex items-center gap-2">
-              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Digite ou escaneie o código (opcional)" />
+              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Código do serviço/produto (opcional)" />
               <BarcodeScanner onBarcodeDetected={setScannedBarcode} />
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="product-name-barcode">Nome do Produto</Label>
-              <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Nome do produto"/>
+              <Label htmlFor="product-name-barcode">Nome do Serviço/Produto</Label>
+              <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Ex: Corte Feminino, Escova, Tintura..."/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="cost-price">Preço de Custo (R$)</Label>
@@ -338,17 +327,13 @@ const ProductsTab: React.FC = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="warranty">Garantia (meses)</Label>
-              <Input id="warranty" type="number" value={warrantyMonths} onChange={(e) => setWarrantyMonths(Number(e.target.value))} min="0"/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="min-stock">Estoque Mínimo</Label>
+              <Label htmlFor="min-stock">Estoque Mínimo (para produtos)</Label>
               <Input id="min-stock" type="number" value={minStockAlert} onChange={(e) => setMinStockAlert(Number(e.target.value))} min="0"/>
             </div>
           </div>
           
           <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !productName || !productPrice || !costPrice}>
-            {addMutation.isPending ? "Cadastrando..." : "Cadastrar Produto"}
+            {addMutation.isPending ? "Cadastrando..." : "Cadastrar Serviço/Produto"}
           </Button>
         </CardContent>
       </Card>

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Sun, Moon, Package, Users, Building2, TrendingUp, UserCog, Briefcase } from "lucide-react";
+import { BarChart3, Sun, Moon, Scissors, Users, Building2, TrendingUp, UserCog, Briefcase } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { supabase } from "@/integrations/supabase/client";
 import InstallButton from "@/components/InstallButton";
@@ -66,7 +66,10 @@ export default function Index() {
         <SupportButton />
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
-            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent animate-fade-in">Gestão de Negócios</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent animate-fade-in flex items-center gap-2">
+              <Scissors className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
+              Salão de Beleza
+            </h1>
             <div className="flex gap-2 items-center flex-wrap">
               {isSuperAdmin && (
                 <Button variant="outline" size="sm" onClick={() => navigate("/members")} className="sm:px-3 px-2">
@@ -95,8 +98,8 @@ export default function Index() {
                 <span className="hidden sm:inline text-xs sm:text-sm truncate">Clientes</span>
               </TabsTrigger>
               <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                <span className="hidden sm:inline text-xs sm:text-sm truncate">Produtos</span>
+                <Scissors className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Serviços</span>
               </TabsTrigger>
               <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
                 <Building2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
@@ -108,7 +111,7 @@ export default function Index() {
               </TabsTrigger>
               <TabsTrigger value="company" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
                 <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                <span className="hidden sm:inline text-xs sm:text-sm truncate">Meus Dados</span>
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Meu Salão</span>
               </TabsTrigger>
             </TabsList>
 
