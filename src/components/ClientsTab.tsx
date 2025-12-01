@@ -39,6 +39,7 @@ const ClientsTab: React.FC = () => {
   const [qty, setQty] = useState(1);
   const [paymentMethod, setPaymentMethod] = useState<Tables<'sales'>['payment_method']>('Dinheiro');
   const [paymentFee, setPaymentFee] = useState("0");
+  const [discount, setDiscount] = useState("0");
   const [editingClient, setEditingClient] = useState<ClientWithSales | null>(null);
   const [userId, setUserId] = useState<string>("");
 
@@ -80,6 +81,7 @@ const ClientsTab: React.FC = () => {
       setQty(1);
       setPaymentMethod('Dinheiro');
       setPaymentFee("0");
+      setDiscount("0");
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Erro ao registrar venda.", description: error.message });
@@ -145,12 +147,15 @@ const ClientsTab: React.FC = () => {
         client = newClient;
       }
       
+      const discountValue = parseFloat(discount) || 0;
+      const finalPrice = Number(product.price) - discountValue;
+      
       const saleData = {
         client_id: client.id,
         product_id: product.id,
         qty,
-        sale_price: product.price,
-        total_profit: (Number(product.price) - Number(product.cost_price)) * qty,
+        sale_price: finalPrice,
+        total_profit: (finalPrice - Number(product.cost_price)) * qty,
         payment_method: paymentMethod,
         payment_fee_percentage: ['Débito', 'Crédito'].includes(paymentMethod) ? parseFloat(paymentFee) : null,
         user_id: userId,
@@ -260,7 +265,7 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="product-select">Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border z-[100] max-h-[300px]" position="popper" sideOffset={5}>
+                <SelectContent className="bg-popover border-border z-[200] max-h-[300px]" position="popper" sideOffset={8} align="start">
                   {products?.filter(p => p.qty > 0).map((product) => (
                     <SelectItem key={product.id} value={String(product.id)} className="cursor-pointer">{product.name} ({product.qty} disp.)</SelectItem>
                   ))}
@@ -275,10 +280,14 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border z-[100]" position="popper" sideOffset={5}>
+                <SelectContent className="bg-popover border-border z-[200]" position="popper" sideOffset={8} align="start">
                   {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method} className="cursor-pointer">{method}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="discount">Desconto (R$)</Label>
+              <Input id="discount" type="number" step="0.01" value={discount} onChange={(e) => setDiscount(e.target.value)} min="0" placeholder="0.00"/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="payment-fee">Taxa da Máquina (%)</Label>
