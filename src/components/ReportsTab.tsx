@@ -158,11 +158,11 @@ const ReportsTab: React.FC = () => {
             <SelectTrigger className="w-[200px] sm:w-48 transition-all bg-background border-border">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-popover border-border z-[200]" position="popper" sideOffset={8} align="start">
-              <SelectItem value="all" className="cursor-pointer">Todos os períodos</SelectItem>
-              <SelectItem value="thisMonth" className="cursor-pointer">Este mês</SelectItem>
-              <SelectItem value="lastMonth" className="cursor-pointer">Mês passado</SelectItem>
-              <SelectItem value="thisYear" className="cursor-pointer">Este ano</SelectItem>
+            <SelectContent className="bg-popover border-border">
+              <SelectItem value="all">Todos os períodos</SelectItem>
+              <SelectItem value="thisMonth">Este mês</SelectItem>
+              <SelectItem value="lastMonth">Mês passado</SelectItem>
+              <SelectItem value="thisYear">Este ano</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={exportToPDF} size="sm" variant="outline">

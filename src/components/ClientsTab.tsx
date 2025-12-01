@@ -265,9 +265,9 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="product-select">Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border z-[200] max-h-[300px]" position="popper" sideOffset={8} align="start">
+                <SelectContent className="bg-popover border-border">
                   {products?.filter(p => p.qty > 0).map((product) => (
-                    <SelectItem key={product.id} value={String(product.id)} className="cursor-pointer">{product.name} ({product.qty} disp.)</SelectItem>
+                    <SelectItem key={product.id} value={String(product.id)}>{product.name} ({product.qty} disp.)</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -280,8 +280,8 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border z-[200]" position="popper" sideOffset={8} align="start">
-                  {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method} className="cursor-pointer">{method}</SelectItem>)}
+                <SelectContent className="bg-popover border-border">
+                  {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

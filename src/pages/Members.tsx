@@ -230,7 +230,7 @@ export default function Members() {
                           <SelectTrigger className="w-[110px] text-xs sm:text-sm bg-background border-border">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-popover border-border z-[100]" position="popper" sideOffset={5}>
+                          <SelectContent className="bg-popover border-border">
                             <SelectItem value="vitalicio">Vitalício</SelectItem>
                             <SelectItem value="anual">1 Ano</SelectItem>
                             <SelectItem value="trimestral">3 Meses</SelectItem>
