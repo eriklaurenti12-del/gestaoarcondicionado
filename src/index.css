@@ -6,94 +6,94 @@
 
 @layer base {
   :root {
-    /* Cores vibrantes inspiradas no Caminho da Luz */
-    --background: 240 15% 8%;
-    --foreground: 280 5% 96%;
+    /* Cores elegantes para Salão de Beleza - Rose Gold & Soft Pink */
+    --background: 340 20% 6%;
+    --foreground: 340 10% 96%;
 
-    --card: 245 15% 12%;
-    --card-foreground: 280 5% 96%;
+    --card: 340 15% 10%;
+    --card-foreground: 340 10% 96%;
 
-    --popover: 245 15% 12%;
-    --popover-foreground: 280 5% 96%;
+    --popover: 340 15% 10%;
+    --popover-foreground: 340 10% 96%;
 
-    --primary: 270 91% 65%;
+    --primary: 340 65% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 280 100% 70%;
+    --secondary: 25 70% 65%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 245 15% 18%;
-    --muted-foreground: 280 5% 70%;
+    --muted: 340 15% 15%;
+    --muted-foreground: 340 10% 65%;
 
-    --accent: 330 81% 60%;
+    --accent: 340 80% 65%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 245 15% 20%;
-    --input: 245 15% 18%;
-    --ring: 270 91% 65%;
+    --border: 340 15% 18%;
+    --input: 340 15% 15%;
+    --ring: 340 65% 55%;
 
     --radius: 0.75rem;
 
-    /* Gradientes vibrantes */
-    --gradient-primary: linear-gradient(135deg, hsl(270 91% 65%), hsl(330 81% 60%));
-    --gradient-secondary: linear-gradient(180deg, hsl(245 15% 12%), hsl(240 15% 8%));
-    --gradient-glow: linear-gradient(135deg, hsl(270 91% 65% / 0.2), hsl(330 81% 60% / 0.2));
+    /* Gradientes elegantes para salão */
+    --gradient-primary: linear-gradient(135deg, hsl(340 65% 55%), hsl(25 70% 65%));
+    --gradient-secondary: linear-gradient(180deg, hsl(340 15% 10%), hsl(340 20% 6%));
+    --gradient-glow: linear-gradient(135deg, hsl(340 65% 55% / 0.2), hsl(25 70% 65% / 0.2));
 
-    /* Sombras com glow */
-    --shadow-glow-purple: 0 0 40px hsl(270 91% 65% / 0.5);
-    --shadow-glow-pink: 0 0 40px hsl(330 81% 60% / 0.5);
-    --shadow-elegant: 0 20px 40px -10px hsl(270 91% 65% / 0.3);
+    /* Sombras com glow rose gold */
+    --shadow-glow-primary: 0 0 40px hsl(340 65% 55% / 0.5);
+    --shadow-glow-secondary: 0 0 40px hsl(25 70% 65% / 0.5);
+    --shadow-elegant: 0 20px 40px -10px hsl(340 65% 55% / 0.3);
 
-    --sidebar-background: 245 15% 12%;
-    --sidebar-foreground: 280 5% 96%;
-    --sidebar-primary: 270 91% 65%;
+    --sidebar-background: 340 15% 10%;
+    --sidebar-foreground: 340 10% 96%;
+    --sidebar-primary: 340 65% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 245 15% 18%;
-    --sidebar-accent-foreground: 280 5% 96%;
-    --sidebar-border: 245 15% 20%;
-    --sidebar-ring: 270 91% 65%;
+    --sidebar-accent: 340 15% 15%;
+    --sidebar-accent-foreground: 340 10% 96%;
+    --sidebar-border: 340 15% 18%;
+    --sidebar-ring: 340 65% 55%;
   }
 
   .dark {
-    --background: 240 15% 8%;
-    --foreground: 280 5% 96%;
+    --background: 340 20% 6%;
+    --foreground: 340 10% 96%;
 
-    --card: 245 15% 12%;
-    --card-foreground: 280 5% 96%;
+    --card: 340 15% 10%;
+    --card-foreground: 340 10% 96%;
 
-    --popover: 245 15% 12%;
-    --popover-foreground: 280 5% 96%;
+    --popover: 340 15% 10%;
+    --popover-foreground: 340 10% 96%;
 
-    --primary: 270 91% 65%;
+    --primary: 340 65% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 280 100% 70%;
+    --secondary: 25 70% 65%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 245 15% 18%;
-    --muted-foreground: 280 5% 70%;
+    --muted: 340 15% 15%;
+    --muted-foreground: 340 10% 65%;
 
-    --accent: 330 81% 60%;
+    --accent: 340 80% 65%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 245 15% 20%;
-    --input: 245 15% 18%;
-    --ring: 270 91% 65%;
+    --border: 340 15% 18%;
+    --input: 340 15% 15%;
+    --ring: 340 65% 55%;
 
-    --sidebar-background: 245 15% 12%;
-    --sidebar-foreground: 280 5% 96%;
-    --sidebar-primary: 270 91% 65%;
+    --sidebar-background: 340 15% 10%;
+    --sidebar-foreground: 340 10% 96%;
+    --sidebar-primary: 340 65% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 245 15% 18%;
-    --sidebar-accent-foreground: 280 5% 96%;
-    --sidebar-border: 245 15% 20%;
-    --sidebar-ring: 270 91% 65%;
+    --sidebar-accent: 340 15% 15%;
+    --sidebar-accent-foreground: 340 10% 96%;
+    --sidebar-border: 340 15% 18%;
+    --sidebar-ring: 340 65% 55%;
   }
 }
 

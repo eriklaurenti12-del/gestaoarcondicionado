@@ -85,7 +85,7 @@ const ReportsTab: React.FC = () => {
 
       const doc = new jsPDF();
       doc.setFontSize(18);
-      doc.text('Relatório de Vendas', 14, 22);
+      doc.text('Relatório do Salão', 14, 22);
       doc.setFontSize(11);
       
       let periodText = 'Todos os períodos';
@@ -105,14 +105,14 @@ const ReportsTab: React.FC = () => {
       doc.setFontSize(14);
       doc.text('Resumo:', 14, 46);
       doc.setFontSize(11);
-      doc.text(`Total de Vendas: R$ ${salesReport.totalSales.toFixed(2)}`, 14, 54);
+      doc.text(`Faturamento: R$ ${salesReport.totalSales.toFixed(2)}`, 14, 54);
       doc.text(`Lucro Total: R$ ${salesReport.totalProfit.toFixed(2)}`, 14, 60);
-      doc.text(`Itens Vendidos: ${salesReport.totalItems}`, 14, 66);
+      doc.text(`Atendimentos: ${salesReport.totalItems}`, 14, 66);
       doc.text(`Total de Clientes: ${salesReport.totalClients}`, 14, 72);
 
       if (salesReport.topProducts.length > 0) {
         doc.setFontSize(14);
-        doc.text('Top 5 Produtos:', 14, 84);
+        doc.text('Top 5 Serviços:', 14, 84);
         
         const topProductsData = salesReport.topProducts.map((p: any) => [
           p.name,
@@ -127,8 +127,8 @@ const ReportsTab: React.FC = () => {
         });
       }
 
-      doc.save(`relatorio-vendas-${new Date().toISOString().split('T')[0]}.pdf`);
-      toast({ title: "PDF exportado!", description: "Relatório de vendas salvo." });
+      doc.save(`relatorio-salao-${new Date().toISOString().split('T')[0]}.pdf`);
+      toast({ title: "PDF exportado!", description: "Relatório do salão salvo." });
     };
 
   if (isLoading) {
@@ -136,7 +136,7 @@ const ReportsTab: React.FC = () => {
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
-                    <CardHeader><CardTitle>Relatório de Vendas</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>Relatório do Salão</CardTitle></CardHeader>
                     <CardContent className="space-y-4">
                         <Skeleton className="h-6 w-full" />
                         <Skeleton className="h-6 w-full" />
@@ -208,7 +208,7 @@ const ReportsTab: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
-            <CardHeader><CardTitle>Total de Vendas</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Faturamento</CardTitle></CardHeader>
             <CardContent><p className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport?.totalSales.toFixed(2)}</p></CardContent>
           </Card>
           <Card>
@@ -216,7 +216,7 @@ const ReportsTab: React.FC = () => {
             <CardContent><p className="text-2xl sm:text-3xl font-bold text-blue-600">R$ {salesReport?.totalProfit.toFixed(2)}</p></CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Itens Vendidos</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Atendimentos</CardTitle></CardHeader>
             <CardContent><p className="text-2xl sm:text-3xl font-bold">{salesReport?.totalItems}</p></CardContent>
           </Card>
           <Card>
@@ -226,17 +226,17 @@ const ReportsTab: React.FC = () => {
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Top 5 Produtos Mais Vendidos</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Top 5 Serviços Mais Realizados</CardTitle></CardHeader>
         <CardContent>
           {salesReport?.topProducts.length === 0 ? (
-            <p className="text-muted-foreground">Nenhum produto vendido neste período.</p>
+            <p className="text-muted-foreground">Nenhum serviço realizado neste período.</p>
           ) : (
             <ul className="space-y-2">
               {salesReport?.topProducts.map((product: any, index: number) => (
                 <li key={index} className="flex justify-between items-center p-3 bg-muted rounded-lg">
                   <span className="font-medium">{product.name}</span>
                   <div className="flex gap-4">
-                    <span className="text-sm text-muted-foreground">{product.qty} unidades</span>
+                    <span className="text-sm text-muted-foreground">{product.qty} atendimentos</span>
                     <span className="font-semibold text-green-600">R$ {product.revenue.toFixed(2)}</span>
                   </div>
                 </li>

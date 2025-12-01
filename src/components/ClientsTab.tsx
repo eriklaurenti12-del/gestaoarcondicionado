@@ -254,20 +254,20 @@ const ClientsTab: React.FC = () => {
         </CardContent>
       </Card>
       <Card>
-        <CardHeader><CardTitle>Registrar Nova Venda</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Registrar Novo Atendimento</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
             <div className="space-y-2">
               <Label htmlFor="client-name">Cliente</Label>
-              <Input id="client-name" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nome (novo ou existente)"/>
+              <Input id="client-name" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nome do cliente"/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="product-select">Produto</Label>
+              <Label htmlFor="product-select">Serviço/Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
-                <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+                <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
                 <SelectContent className="bg-popover border-border">
                   {products?.filter(p => p.qty > 0).map((product) => (
-                    <SelectItem key={product.id} value={String(product.id)}>{product.name} ({product.qty} disp.)</SelectItem>
+                    <SelectItem key={product.id} value={String(product.id)}>{product.name} - R$ {Number(product.price).toFixed(2)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -295,7 +295,7 @@ const ClientsTab: React.FC = () => {
             </div>
             <Button onClick={handleAddSale} disabled={addSaleMutation.isPending}>
               <PlusCircle className="mr-2 h-4 w-4" />
-              {addSaleMutation.isPending ? "Salvando..." : "Salvar Venda"}
+              {addSaleMutation.isPending ? "Salvando..." : "Registrar Atendimento"}
             </Button>
           </div>
         </CardContent>

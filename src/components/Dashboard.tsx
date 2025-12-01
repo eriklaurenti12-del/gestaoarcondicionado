@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Package, Users, TrendingUp, AlertTriangle } from "lucide-react";
+import { Scissors, Users, TrendingUp, AlertTriangle } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 
 const fetchDashboardData = async () => {
@@ -26,7 +26,7 @@ const fetchDashboardData = async () => {
     const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
     return {
-        stockCount: products!.length,
+        servicesCount: products!.length,
         clientsCount: clientsCount || 0,
         lowStockProducts,
         salesReport: { totalSales, totalItems, totalProfit, profitMargin }
@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
     );
     if (isError) return <div>Error loading dashboard: {(error as Error).message}</div>
 
-    const { stockCount, clientsCount, lowStockProducts, salesReport } = data!;
+    const { servicesCount, clientsCount, lowStockProducts, salesReport } = data!;
 
     return (
     <div className="space-y-6">
@@ -67,9 +67,9 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Package className="w-5 h-5" />Produtos em Estoque</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Scissors className="w-5 h-5" />Serviços & Produtos</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{stockCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold">{servicesCount}</div>
             <p className="text-sm text-muted-foreground">{lowStockProducts.length} com estoque baixo</p>
           </CardContent>
         </Card>
@@ -81,10 +81,10 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Performance de Vendas</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} itens vendidos</p>
+            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} atendimentos</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Lucro Total</span>
