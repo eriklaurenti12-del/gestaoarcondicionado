@@ -85,30 +85,30 @@ export default function Index() {
           </div>
 
           <Tabs defaultValue="dashboard" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 h-auto p-1 gap-1">
-              <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <BarChart3 className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Dashboard</span>
+            <TabsList className="grid w-full grid-cols-6 h-auto p-1 gap-0.5 sm:gap-1">
+              <TabsTrigger value="dashboard" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Dashboard</span>
               </TabsTrigger>
-              <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <Users className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Clientes</span>
+              <TabsTrigger value="clients" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <Users className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Clientes</span>
               </TabsTrigger>
-              <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <Package className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Produtos</span>
+              <TabsTrigger value="products" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Produtos</span>
               </TabsTrigger>
-              <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <Building2 className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Fornecedores</span>
+              <TabsTrigger value="suppliers" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <Building2 className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Fornecedores</span>
               </TabsTrigger>
-              <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Relatórios</span>
+              <TabsTrigger value="reports" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Relatórios</span>
               </TabsTrigger>
-              <TabsTrigger value="company" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale">
-                <Briefcase className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">Meus Dados</span>
+              <TabsTrigger value="company" className="flex flex-col sm:flex-row items-center justify-center gap-0.5 sm:gap-2 p-1.5 sm:p-3 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all hover-scale min-w-0">
+                <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                <span className="hidden sm:inline text-xs sm:text-sm truncate">Meus Dados</span>
               </TabsTrigger>
             </TabsList>
 
