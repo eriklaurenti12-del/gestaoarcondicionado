@@ -197,12 +197,12 @@ const ClientsTab: React.FC = () => {
 
     const tableData = clients?.map(c => {
       const total = c.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-      return [c.name, `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
+      return [c.name, c.telefone || '-', c.aniversario || '-', `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
     }) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Cliente', 'Compras', 'Total Gasto']],
+      head: [['Cliente', 'Telefone', 'Aniversário', 'Compras', 'Total Gasto']],
       body: tableData,
     });
 
@@ -227,30 +227,39 @@ const ClientsTab: React.FC = () => {
             <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10"/>
           </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead><TableHead>Compras</TableHead><TableHead>Total Gasto</TableHead><TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
-              : filteredClients.map((client) => {
-                const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-                return (
-                  <TableRow key={client.id}>
-                    <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.sales.length}</TableCell>
-                    <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" className="mr-2" onClick={() => setEditingClient(client)}><Pencil className="w-4 h-4" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => onDeleteClient(client.id)}><Trash2 className="w-4 h-4" /></Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[120px]">Cliente</TableHead>
+                  <TableHead className="min-w-[100px]">Telefone</TableHead>
+                  <TableHead className="min-w-[60px]">Compras</TableHead>
+                  <TableHead className="min-w-[80px]">Total</TableHead>
+                  <TableHead className="min-w-[100px]">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
+                : filteredClients.map((client) => {
+                  const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
+                  return (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium text-xs sm:text-sm">{client.name}</TableCell>
+                      <TableCell className="text-xs sm:text-sm text-muted-foreground">{client.telefone || '-'}</TableCell>
+                      <TableCell className="text-xs sm:text-sm">{client.sales.length}</TableCell>
+                      <TableCell className="font-semibold text-green-600 text-xs sm:text-sm">R$ {total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setEditingClient(client)}><Pencil className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => onDeleteClient(client.id)}><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
       <Card>

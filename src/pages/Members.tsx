@@ -227,10 +227,14 @@ export default function Members() {
                           value={member.subscription?.plan || 'mensal'}
                           onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
                         >
-                          <SelectTrigger className="w-[110px] text-xs sm:text-sm bg-background border-border">
+                          <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-background border-border">
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className="bg-popover border-border">
+                          <SelectContent 
+                            className="bg-popover border-border min-w-[120px]"
+                            position="popper"
+                            sideOffset={4}
+                          >
                             <SelectItem value="vitalicio">Vitalício</SelectItem>
                             <SelectItem value="anual">1 Ano</SelectItem>
                             <SelectItem value="trimestral">3 Meses</SelectItem>
