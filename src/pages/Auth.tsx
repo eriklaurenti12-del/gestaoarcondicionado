@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Download, Bell, Smartphone, Scissors } from "lucide-react";
+import { Loader2, Mail, Lock, Scissors } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -17,12 +17,6 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  
-  // PWA install state
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [canInstall, setCanInstall] = useState(false);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -37,74 +31,10 @@ export default function Auth() {
       }
     });
 
-    // PWA install prompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-      setCanInstall(true);
-    };
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-      setCanInstall(false);
-    }
-
-    // Check notification permission
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-    }
-
     return () => {
       subscription.unsubscribe();
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     };
   }, [navigate]);
-
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      toast({
-        title: "App instalado!",
-        description: "Acesse pela sua tela inicial."
-      });
-      setDeferredPrompt(null);
-      setCanInstall(false);
-      setIsInstalled(true);
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    if ('Notification' in window) {
-      const permission = await Notification.requestPermission();
-      setNotificationPermission(permission);
-      
-      if (permission === 'granted') {
-        toast({
-          title: "Notificações ativadas!",
-          description: "Você receberá alertas de aniversários e agendamentos."
-        });
-        
-        // Show test notification
-        new Notification("Salão de Beleza", {
-          body: "Notificações ativadas com sucesso! 🎉",
-          icon: "/icon-192x192.png"
-        });
-      } else if (permission === 'denied') {
-        toast({
-          title: "Notificações bloqueadas",
-          description: "Você pode ativar nas configurações do navegador.",
-          variant: "destructive"
-        });
-      }
-    }
-  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,59 +138,6 @@ export default function Auth() {
           <p className="text-gray-400 text-sm">Sistema Completo de Gestão</p>
           <p className="text-xs text-gray-500">Criado por Erik Laurenti</p>
         </div>
-
-        {/* PWA Install & Notifications Card */}
-        {(canInstall || notificationPermission !== 'granted') && !isInstalled && (
-          <Card className="backdrop-blur-xl bg-gradient-to-r from-green-900/30 to-emerald-900/30 border border-green-500/30 rounded-2xl">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center gap-2 text-green-400 font-medium">
-                <Smartphone className="w-5 h-5" />
-                <span>Instale o App no seu celular!</span>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                {canInstall && (
-                  <Button 
-                    onClick={handleInstall}
-                    className="flex-1 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Instalar App
-                  </Button>
-                )}
-                {notificationPermission !== 'granted' && 'Notification' in window && (
-                  <Button 
-                    onClick={requestNotificationPermission}
-                    variant="outline"
-                    className="flex-1 border-yellow-500/50 text-yellow-400 hover:bg-yellow-500/10"
-                  >
-                    <Bell className="w-4 h-4 mr-2" />
-                    Ativar Lembretes
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-gray-400 text-center">
-                Receba alertas de aniversários e agendamentos
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {isInstalled && notificationPermission !== 'granted' && 'Notification' in window && (
-          <Card className="backdrop-blur-xl bg-gradient-to-r from-yellow-900/30 to-orange-900/30 border border-yellow-500/30 rounded-2xl">
-            <CardContent className="p-4">
-              <Button 
-                onClick={requestNotificationPermission}
-                className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                Ativar Notificações de Lembretes
-              </Button>
-              <p className="text-xs text-gray-400 text-center mt-2">
-                Receba alertas de aniversários e agendamentos
-              </p>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Auth Card */}
         <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)]">
