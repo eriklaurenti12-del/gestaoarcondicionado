@@ -62,7 +62,7 @@ export default function Members() {
     }
   };
 
-  const updateSubscription = async (userId: string, plan: string, status: string) => {
+  const updateSubscription = async (targetUserId: string, plan: string, status: string) => {
     try {
       const startDate = new Date();
       let endDate: Date | null = null;
@@ -80,19 +80,21 @@ export default function Members() {
         }
       }
 
-      const { error } = await supabase
-        .from('subscriptions')
-        .update({
+      // Use edge function for admin operations
+      const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
+        body: {
+          target_user_id: targetUserId,
           plan,
           status,
           is_active: status === 'aprovado',
           start_date: startDate.toISOString(),
           end_date: endDate?.toISOString() || null,
           payment_date: status === 'aprovado' ? startDate.toISOString() : null
-        })
-        .eq('user_id', userId);
+        }
+      });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Sucesso!",
