@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, FileDown, Pencil, Scissors } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -16,18 +15,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type ProductWithSupplier = Tables<'products'> & { suppliers: Pick<Tables<'suppliers'>, 'name'> | null };
+type Product = Tables<'products'>;
 
-const fetchProducts = async (): Promise<ProductWithSupplier[]> => {
-  const { data, error } = await supabase.from('products').select(`*, suppliers(name)`).order('name');
+const fetchProducts = async (): Promise<Product[]> => {
+  const { data, error } = await supabase.from('products').select('*').order('name');
   if (error) throw new Error(error.message);
-  return data as ProductWithSupplier[];
-};
-
-const fetchSuppliers = async () => {
-  const { data, error } = await supabase.from('suppliers').select('id, name').order('name');
-  if (error) throw new Error(error.message);
-  return data;
+  return data as Product[];
 };
 
 const addProduct = async (product: TablesInsert<'products'>) => {
@@ -51,10 +44,9 @@ const ProductsTab: React.FC = () => {
   const [costPrice, setCostPrice] = useState("");
   const [profitPercentage, setProfitPercentage] = useState("");
   const [qty, setQty] = useState(1);
-  const [selectedSupplier, setSelectedSupplier] = useState<string | undefined>();
   const [warrantyMonths, setWarrantyMonths] = useState(12);
   const [minStockAlert, setMinStockAlert] = useState(5);
-  const [editingProduct, setEditingProduct] = useState<ProductWithSupplier | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editQty, setEditQty] = useState(0);
 
   // Obter userId da sessão
@@ -97,7 +89,6 @@ const ProductsTab: React.FC = () => {
   }, [costPrice, productPrice]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
-  const { data: suppliers, isLoading: isLoadingSuppliers } = useQuery({ queryKey: ['suppliers'], queryFn: fetchSuppliers });
 
   const addMutation = useMutation({
     mutationFn: addProduct,
@@ -111,7 +102,6 @@ const ProductsTab: React.FC = () => {
       setCostPrice("");
       setProfitPercentage("");
       setQty(1);
-      setSelectedSupplier(undefined);
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
@@ -163,7 +153,7 @@ const ProductsTab: React.FC = () => {
       price: parseFloat(productPrice),
       cost_price: parseFloat(costPrice),
       barcode: scannedBarcode?.trim() || null,
-      supplier_id: selectedSupplier && selectedSupplier !== "none" ? Number(selectedSupplier) : null,
+      supplier_id: null,
       warranty_months: warrantyMonths,
       min_stock: minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
@@ -179,7 +169,7 @@ const ProductsTab: React.FC = () => {
     }
   };
 
-  const handleEditQty = (product: ProductWithSupplier) => {
+  const handleEditQty = (product: Product) => {
     setEditingProduct(product);
     setEditQty(product.qty);
   };
@@ -202,14 +192,14 @@ const ProductsTab: React.FC = () => {
       p.barcode || 'N/A',
       `${p.qty} un`,
       `R$ ${Number(p.cost_price).toFixed(2)}`,
-      `R$ ${Number(p.price).toFixed(2)}`,
-      p.suppliers?.name || 'N/A'
+      `R$ ${Number(p.price).toFixed(2)}`
     ]) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Serviço/Produto', 'Código', 'Qtd', 'Custo', 'Preço', 'Fornecedor']],
+      head: [['Serviço/Produto', 'Código', 'Qtd', 'Custo', 'Preço']],
       body: tableData,
+      headStyles: { fillColor: [147, 51, 234] },
     });
 
     doc.save('servicos-produtos.pdf');
@@ -235,22 +225,24 @@ const ProductsTab: React.FC = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Serviço/Produto</TableHead><TableHead>Código</TableHead><TableHead>Estoque</TableHead>
-                <TableHead>Custo</TableHead><TableHead>Preço</TableHead>
-                <TableHead>Fornecedor</TableHead><TableHead>Ações</TableHead>
+                <TableHead>Serviço/Produto</TableHead>
+                <TableHead className="hidden sm:table-cell">Código</TableHead>
+                <TableHead>Estoque</TableHead>
+                <TableHead>Custo</TableHead>
+                <TableHead>Preço</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
               )) : products?.map((product) => (
                 <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) ? "bg-orange-50 dark:bg-orange-950" : ""}>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{product.barcode || "-"}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
                   <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span></TableCell>
                   <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
                   <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
-                  <TableCell>{product.suppliers?.name || "-"}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
@@ -315,16 +307,6 @@ const ProductsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="add-quantity-barcode">Quantidade</Label>
               <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="supplier-select">Fornecedor (Opcional)</Label>
-              <Select value={selectedSupplier} onValueChange={setSelectedSupplier} disabled={isLoadingSuppliers}>
-                <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione o fornecedor (opcional)" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {suppliers?.map((supplier) => (<SelectItem key={supplier.id} value={String(supplier.id)}>{supplier.name}</SelectItem>))}
-                </SelectContent>
-              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="min-stock">Estoque Mínimo (para produtos)</Label>

@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { format, addDays, startOfDay, endOfDay, eachHourOfInterval, setHours, setMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type Appointment = {
   id: string;
@@ -184,6 +186,87 @@ const AppointmentsTab: React.FC = () => {
     return appointments.filter(a => new Date(a.appointment_date).toDateString() === today && a.status !== 'cancelado').length;
   }, [appointments]);
 
+  // Generate available time slots
+  const generateTimeSlots = () => {
+    const slots: string[] = [];
+    for (let hour = 8; hour <= 19; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`);
+      slots.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+    return slots;
+  };
+
+  const timeSlots = generateTimeSlots();
+
+  // Get booked times for a specific date
+  const getBookedTimes = (date: string) => {
+    if (!appointments) return [];
+    return appointments
+      .filter(a => {
+        const appointmentDate = new Date(a.appointment_date);
+        return appointmentDate.toISOString().split('T')[0] === date && a.status !== 'cancelado';
+      })
+      .map(a => format(new Date(a.appointment_date), 'HH:mm'));
+  };
+
+  // Export PDF with available times
+  const exportAvailableTimesPDF = () => {
+    const doc = new jsPDF();
+    const selectedDate = appointmentDate || new Date().toISOString().split('T')[0];
+    const bookedTimes = getBookedTimes(selectedDate);
+    
+    doc.setFontSize(18);
+    doc.text('Horários Disponíveis', 14, 22);
+    doc.setFontSize(12);
+    doc.text(`Data: ${format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}`, 14, 32);
+    
+    const tableData = timeSlots.map(slot => {
+      const isBooked = bookedTimes.includes(slot);
+      return [slot, isBooked ? '❌ Ocupado' : '✅ Disponível'];
+    });
+
+    autoTable(doc, {
+      startY: 40,
+      head: [['Horário', 'Status']],
+      body: tableData,
+      styles: { fontSize: 11 },
+      headStyles: { fillColor: [147, 51, 234] },
+    });
+
+    doc.save(`horarios-disponiveis-${selectedDate}.pdf`);
+    toast({ title: "PDF exportado!", description: "Horários disponíveis salvos." });
+  };
+
+  // Export PDF with scheduled appointments
+  const exportScheduledPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Agenda de Atendimentos', 14, 22);
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 30);
+
+    const scheduledAppointments = appointments?.filter(a => a.status !== 'cancelado') || [];
+    const tableData = scheduledAppointments.map(a => [
+      format(new Date(a.appointment_date), 'dd/MM/yyyy'),
+      format(new Date(a.appointment_date), 'HH:mm'),
+      a.clients?.name || '-',
+      a.clients?.telefone || '-',
+      a.products?.name || '-',
+      a.status === 'agendado' ? 'Agendado' : a.status === 'confirmado' ? 'Confirmado' : 'Concluído'
+    ]);
+
+    autoTable(doc, {
+      startY: 38,
+      head: [['Data', 'Hora', 'Cliente', 'Telefone', 'Serviço', 'Status']],
+      body: tableData,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [147, 51, 234] },
+    });
+
+    doc.save('agenda-atendimentos.pdf');
+    toast({ title: "PDF exportado!", description: "Agenda de atendimentos salva." });
+  };
+
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
@@ -229,6 +312,16 @@ const AppointmentsTab: React.FC = () => {
               Agendamentos
             </span>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button onClick={exportAvailableTimesPDF} size="sm" variant="outline" className="text-xs">
+                <FileDown className="w-3 h-3 mr-1" />
+                <span className="hidden sm:inline">Horários Disponíveis</span>
+                <span className="sm:hidden">Disponíveis</span>
+              </Button>
+              <Button onClick={exportScheduledPDF} size="sm" variant="outline" className="text-xs">
+                <FileDown className="w-3 h-3 mr-1" />
+                <span className="hidden sm:inline">Exportar Agenda</span>
+                <span className="sm:hidden">Agenda</span>
+              </Button>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
                 <SelectTrigger className="w-full sm:w-[130px] bg-background border-border">
                   <SelectValue placeholder="Filtrar" />
