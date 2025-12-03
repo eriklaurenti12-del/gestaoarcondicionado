@@ -1,6 +1,5 @@
 import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -40,41 +39,42 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
-      <SidebarHeader className="p-4 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20">
+      <SidebarHeader className="p-4 border-b border-border transition-all duration-300">
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 transition-transform duration-300 hover:scale-105">
             <Scissors className="w-5 h-5 text-primary" />
           </div>
-          {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                Salão de Beleza
-              </span>
-              <span className="text-[10px] text-muted-foreground">Gestão Completa</span>
-            </div>
-          )}
+          <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
+            <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap">
+              Salão de Beleza
+            </span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão Completa</span>
+          </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2">
+      <SidebarContent className="px-2 py-2">
         <SidebarGroup>
-          <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>Menu Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            Menu Principal
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {menuItems.map((item, index) => (
                 <SidebarMenuItem key={item.id}>
                   <SidebarMenuButton
                     onClick={() => onTabChange(item.id)}
                     isActive={activeTab === item.id}
                     tooltip={item.title}
-                    className={`transition-all ${
+                    className={`transition-all duration-200 ease-out ${
                       activeTab === item.id 
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90" 
-                        : "hover:bg-muted"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
+                        : "hover:bg-muted hover:translate-x-1"
                     }`}
+                    style={{ animationDelay: `${index * 50}ms` }}
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
+                    <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
+                    <span className="transition-all duration-300">{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -84,14 +84,16 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
 
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>Administração</SidebarGroupLabel>
+            <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+              Administração
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={onNavigateMembers}
                     tooltip="Gerenciar Membros"
-                    className="hover:bg-muted"
+                    className="hover:bg-muted hover:translate-x-1 transition-all duration-200"
                   >
                     <UserCog className="w-4 h-4" />
                     <span>Membros</span>
@@ -109,9 +111,13 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
             <SidebarMenuButton
               onClick={toggleTheme}
               tooltip={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
-              className="hover:bg-muted"
+              className="hover:bg-muted transition-all duration-200 hover:translate-x-1"
             >
-              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              {theme === 'light' ? (
+                <Moon className="w-4 h-4 transition-transform duration-300 hover:rotate-12" />
+              ) : (
+                <Sun className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
+              )}
               <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -119,9 +125,9 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
             <SidebarMenuButton
               onClick={onSignOut}
               tooltip="Sair"
-              className="hover:bg-destructive/10 text-destructive hover:text-destructive"
+              className="hover:bg-destructive/10 text-destructive hover:text-destructive transition-all duration-200 hover:translate-x-1"
             >
-              <LogOut className="w-4 h-4" />
+              <LogOut className="w-4 h-4 transition-transform duration-200 hover:scale-110" />
               <span>Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
