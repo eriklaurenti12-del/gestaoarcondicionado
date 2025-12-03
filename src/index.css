@@ -107,6 +107,20 @@
   }
 }
 
+/* Fix Select dropdown not collapsing page */
+[data-radix-popper-content-wrapper] {
+  z-index: 9999 !important;
+}
+
+[data-radix-select-viewport] {
+  max-height: 300px;
+}
+
+/* Prevent layout shifts from select */
+.overflow-visible-select {
+  overflow: visible !important;
+}
+
 /* Ocultar badges e referências do Lovable */
 a[href*="lovable.dev"],
 iframe[src*="lovable.dev"],

@@ -7,11 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
-import { format, addDays, startOfDay, endOfDay, eachHourOfInterval, setHours, setMinutes } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -61,6 +62,7 @@ const AppointmentsTab: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [showAddDialog, setShowAddDialog] = useState(false);
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -88,6 +90,7 @@ const AppointmentsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       toast({ title: "Sucesso!", description: "Agendamento criado." });
       resetForm();
+      setShowAddDialog(false);
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Erro ao criar agendamento.", description: error.message });
@@ -186,10 +189,10 @@ const AppointmentsTab: React.FC = () => {
     return appointments.filter(a => new Date(a.appointment_date).toDateString() === today && a.status !== 'cancelado').length;
   }, [appointments]);
 
-  // Generate available time slots
+  // Generate available time slots - 24 hours (every 30 min)
   const generateTimeSlots = () => {
     const slots: string[] = [];
-    for (let hour = 8; hour <= 19; hour++) {
+    for (let hour = 0; hour <= 23; hour++) {
       slots.push(`${hour.toString().padStart(2, '0')}:00`);
       slots.push(`${hour.toString().padStart(2, '0')}:30`);
     }
@@ -220,10 +223,8 @@ const AppointmentsTab: React.FC = () => {
     doc.setFontSize(12);
     doc.text(`Data: ${format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}`, 14, 32);
     
-    const tableData = timeSlots.map(slot => {
-      const isBooked = bookedTimes.includes(slot);
-      return [slot, isBooked ? '❌ Ocupado' : '✅ Disponível'];
-    });
+    const availableSlots = timeSlots.filter(slot => !bookedTimes.includes(slot));
+    const tableData = availableSlots.map(slot => [slot, '✅ Disponível']);
 
     autoTable(doc, {
       startY: 40,
@@ -311,46 +312,53 @@ const AppointmentsTab: React.FC = () => {
               <Calendar className="w-5 h-5" />
               Agendamentos
             </span>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+              <Button onClick={() => setShowAddDialog(true)} size="sm">
+                <PlusCircle className="w-4 h-4 mr-1" />
+                <span className="hidden sm:inline">Novo Agendamento</span>
+                <span className="sm:hidden">Novo</span>
+              </Button>
               <Button onClick={exportAvailableTimesPDF} size="sm" variant="outline" className="text-xs">
                 <FileDown className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Horários Disponíveis</span>
-                <span className="sm:hidden">Disponíveis</span>
+                <span className="hidden sm:inline">Horários</span>
+                <span className="sm:hidden">Disp.</span>
               </Button>
               <Button onClick={exportScheduledPDF} size="sm" variant="outline" className="text-xs">
                 <FileDown className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Exportar Agenda</span>
-                <span className="sm:hidden">Agenda</span>
+                <span className="hidden sm:inline">Agenda</span>
+                <span className="sm:hidden">PDF</span>
               </Button>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-[130px] bg-background border-border">
-                  <SelectValue placeholder="Filtrar" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="agendado">Agendados</SelectItem>
-                  <SelectItem value="confirmado">Confirmados</SelectItem>
-                  <SelectItem value="concluido">Concluídos</SelectItem>
-                  <SelectItem value="cancelado">Cancelados</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10"/>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10"/>
+            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full sm:w-[140px]">
+                <SelectValue placeholder="Filtrar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="agendado">Agendados</SelectItem>
+                <SelectItem value="confirmado">Confirmados</SelectItem>
+                <SelectItem value="concluido">Concluídos</SelectItem>
+                <SelectItem value="cancelado">Cancelados</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[120px]">Data/Hora</TableHead>
+                  <TableHead className="min-w-[100px]">Data/Hora</TableHead>
                   <TableHead className="min-w-[120px]">Cliente</TableHead>
                   <TableHead className="min-w-[100px]">Serviço</TableHead>
                   <TableHead className="min-w-[80px]">Status</TableHead>
-                  <TableHead className="min-w-[150px]">Ações</TableHead>
+                  <TableHead className="min-w-[120px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -444,18 +452,27 @@ const AppointmentsTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Novo Agendamento */}
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="w-5 h-5" />Novo Agendamento</CardTitle></CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+      {/* Dialog Novo Agendamento */}
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Novo Agendamento
+            </DialogTitle>
+            <DialogDescription>
+              Preencha os dados do novo agendamento
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label>Cliente *</Label>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger className="bg-background border-border">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
+                <SelectContent>
                   {clients?.map((client) => (
                     <SelectItem key={client.id} value={String(client.id)}>
                       {client.name} {client.telefone && `- ${client.telefone}`}
@@ -464,13 +481,14 @@ const AppointmentsTab: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-2">
               <Label>Serviço</Label>
               <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-                <SelectTrigger className="bg-background border-border">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o serviço (opcional)" />
                 </SelectTrigger>
-                <SelectContent className="bg-popover border-border">
+                <SelectContent>
                   {services?.map((service) => (
                     <SelectItem key={service.id} value={String(service.id)}>
                       {service.name} - R$ {Number(service.price).toFixed(2)}
@@ -479,25 +497,54 @@ const AppointmentsTab: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label>Data *</Label>
-              <Input type="date" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Data *</Label>
+                <Input type="date" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Horário *</Label>
+                <Select value={appointmentTime} onValueChange={setAppointmentTime}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {timeSlots.map((slot) => {
+                      const isBooked = appointmentDate ? getBookedTimes(appointmentDate).includes(slot) : false;
+                      return (
+                        <SelectItem 
+                          key={slot} 
+                          value={slot}
+                          disabled={isBooked}
+                          className={isBooked ? "text-muted-foreground line-through" : ""}
+                        >
+                          {slot} {isBooked ? "(ocupado)" : ""}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Horário *</Label>
-              <Input type="time" value={appointmentTime} onChange={(e) => setAppointmentTime(e.target.value)} />
-            </div>
+
             <div className="space-y-2">
               <Label>Observações</Label>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas adicionais..." />
             </div>
-            <Button onClick={handleAddAppointment} disabled={addAppointmentMutation.isPending} className="w-full">
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddAppointment} disabled={addAppointmentMutation.isPending}>
               <PlusCircle className="mr-2 h-4 w-4" />
               {addAppointmentMutation.isPending ? "Salvando..." : "Agendar"}
             </Button>
-          </div>
-        </CardContent>
-      </Card>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
