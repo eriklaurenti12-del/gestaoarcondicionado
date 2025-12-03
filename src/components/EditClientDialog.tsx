@@ -1,9 +1,7 @@
-
 import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -58,7 +56,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Editar Cliente</DialogTitle>
-          <DialogDescription>Altere os dados do cliente aqui. Clique em salvar para aplicar as mudanças.</DialogDescription>
+          <DialogDescription>Altere os dados do cliente. Clique em salvar para aplicar as mudanças.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -78,8 +76,17 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
               name="telefone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Telefone</FormLabel>
-                  <FormControl><Input placeholder="(XX) XXXXX-XXXX" {...field} value={field.value || ''} /></FormControl>
+                  <FormLabel>WhatsApp / Telefone</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="(XX) XXXXX-XXXX" 
+                      {...field} 
+                      value={field.value || ''} 
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Usado para enviar mensagens de aniversário e promoções
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -90,7 +97,16 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Data de Aniversário</FormLabel>
-                  <FormControl><Input type="date" {...field} value={field.value || ''} /></FormControl>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field} 
+                      value={field.value || ''} 
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Você receberá alertas 7 dias antes do aniversário
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}

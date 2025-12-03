@@ -137,11 +137,11 @@ const SuppliersTab: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 overflow-visible">
+      <Card className="overflow-visible">
         <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            Fornecedores
+          <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <span>Fornecedores</span>
             <div className="flex gap-2">
               <Button onClick={exportToPDF} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-2" />
@@ -154,44 +154,54 @@ const SuppliersTab: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Contato</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <TableRow key={index}>
-                    <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Button size="sm" variant="outline" disabled><Trash2 className="w-4 h-4" /></Button></TableCell>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="min-w-[500px] px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome</TableHead>
+                    <TableHead>Contato</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Ações</TableHead>
                   </TableRow>
-                ))
-              ) : suppliers?.map((supplier) => (
-                <TableRow key={supplier.id}>
-                  <TableCell className="font-medium">{supplier.name}</TableCell>
-                  <TableCell>{supplier.contact || "N/A"}</TableCell>
-                  <TableCell>{supplier.email || "N/A"}</TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDeleteSupplier(supplier.id)}
-                      disabled={deleteMutation.isPending}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                      <TableRow key={index}>
+                        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Button size="sm" variant="outline" disabled><Trash2 className="w-4 h-4" /></Button></TableCell>
+                      </TableRow>
+                    ))
+                  ) : suppliers?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                        Nenhum fornecedor cadastrado
+                      </TableCell>
+                    </TableRow>
+                  ) : suppliers?.map((supplier) => (
+                    <TableRow key={supplier.id}>
+                      <TableCell className="font-medium">{supplier.name}</TableCell>
+                      <TableCell>{supplier.contact || "-"}</TableCell>
+                      <TableCell>{supplier.email || "-"}</TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDeleteSupplier(supplier.id)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
       <AddSupplierDialog
