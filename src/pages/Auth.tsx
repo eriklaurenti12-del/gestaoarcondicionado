@@ -8,122 +8,118 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock } from "lucide-react";
-
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({
+      data: {
+        session
+      }
+    }) => {
       if (session) {
         navigate("/");
       }
     });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const {
+      data: {
+        subscription
+      }
+    } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         navigate("/");
       }
     });
-
     return () => subscription.unsubscribe();
   }, [navigate]);
-
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const { error } = await supabase.auth.signUp({
+      const {
+        error
+      } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/`,
-        },
+          emailRedirectTo: `${window.location.origin}/`
+        }
       });
-
       if (error) throw error;
-
       toast({
         title: "Cadastro realizado!",
-        description: "Você já pode fazer login.",
+        description: "Você já pode fazer login."
       });
-      
       setEmail("");
       setPassword("");
     } catch (error: any) {
       toast({
         title: "Erro no cadastro",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const {
+        error
+      } = await supabase.auth.signInWithPassword({
         email,
-        password,
+        password
       });
-
       if (error) throw error;
-
       toast({
         title: "Login realizado!",
-        description: "Bem-vindo de volta.",
+        description: "Bem-vindo de volta."
       });
     } catch (error: any) {
       toast({
         title: "Erro no login",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      const {
+        error
+      } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+        redirectTo: `${window.location.origin}/reset-password`
       });
-
       if (error) throw error;
-
       toast({
         title: "Email enviado!",
-        description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        description: "Verifique sua caixa de entrada para redefinir sua senha."
       });
-      
       setForgotEmail("");
     } catch (error: any) {
       toast({
         title: "Erro ao enviar email",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+  return <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Efeitos de fundo */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"></div>
@@ -139,9 +135,7 @@ export default function Auth() {
               GESTÃO DE NEGÓCIOS
             </span>
           </h1>
-          <p className="text-gray-400 text-sm">
-            Sistema Completo de Gestão
-          </p>
+          <p className="text-gray-400 text-sm">Sistema Completo de Salão</p>
           <p className="text-xs text-gray-500">
             Criado por Erik Laurenti
           </p>
@@ -153,16 +147,10 @@ export default function Auth() {
             <Tabs defaultValue="login" className="w-full">
               {/* Tabs */}
               <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-[#2a2a3a] rounded-none h-12">
-                <TabsTrigger 
-                  value="login" 
-                  className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all"
-                >
+                <TabsTrigger value="login" className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all">
                   Login
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="signup" 
-                  className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all"
-                >
+                <TabsTrigger value="signup" className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all">
                   Cadastro
                 </TabsTrigger>
               </TabsList>
@@ -181,15 +169,7 @@ export default function Auth() {
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                      />
+                      <Input id="login-email" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" />
                     </div>
                   </div>
 
@@ -199,33 +179,17 @@ export default function Auth() {
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input
-                        id="login-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                      />
+                      <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" />
                     </div>
                   </div>
 
                   <div className="text-center">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-xs text-purple-400 hover:text-purple-300 transition-colors"
-                    >
+                    <button type="button" onClick={() => setShowForgotPassword(true)} className="text-xs text-purple-400 hover:text-purple-300 transition-colors">
                       Esqueci minha senha
                     </button>
                   </div>
 
-                  <Button 
-                    type="submit"
-                    className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all flex items-center justify-center gap-2" 
-                    disabled={loading}
-                  >
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all flex items-center justify-center gap-2" disabled={loading}>
                     <Mail className="w-4 h-4" />
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "CONTINUAR"}
                   </Button>
@@ -246,15 +210,7 @@ export default function Auth() {
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input
-                        id="signup-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                      />
+                      <Input id="signup-email" type="email" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" />
                     </div>
                   </div>
 
@@ -264,24 +220,11 @@ export default function Auth() {
                     </Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input
-                        id="signup-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required
-                        minLength={6}
-                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                      />
+                      <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" />
                     </div>
                   </div>
 
-                  <Button 
-                    type="submit" 
-                    className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all flex items-center justify-center gap-2" 
-                    disabled={loading}
-                  >
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all flex items-center justify-center gap-2" disabled={loading}>
                     <Mail className="w-4 h-4" />
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "CRIAR CONTA"}
                   </Button>
@@ -292,8 +235,7 @@ export default function Auth() {
         </Card>
 
         {/* Seção de recuperação de senha */}
-        {showForgotPassword && (
-          <div className="mt-6">
+        {showForgotPassword && <div className="mt-6">
             <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)]">
               <CardContent className="p-6 space-y-4">
                 <div className="text-center space-y-1 mb-4">
@@ -308,40 +250,22 @@ export default function Auth() {
                     </Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                      <Input
-                        id="forgot-email"
-                        type="email"
-                        placeholder="seu@email.com"
-                        value={forgotEmail}
-                        onChange={(e) => setForgotEmail(e.target.value)}
-                        required
-                        className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg"
-                      />
+                      <Input id="forgot-email" type="email" placeholder="seu@email.com" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" />
                     </div>
                   </div>
 
                   <div className="flex gap-2">
-                    <Button 
-                      type="button"
-                      onClick={() => setShowForgotPassword(false)}
-                      className="flex-1 h-11 bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white font-medium rounded-lg transition-all" 
-                    >
+                    <Button type="button" onClick={() => setShowForgotPassword(false)} className="flex-1 h-11 bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white font-medium rounded-lg transition-all">
                       VOLTAR
                     </Button>
-                    <Button 
-                      type="submit" 
-                      className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all" 
-                      disabled={loading}
-                    >
+                    <Button type="submit" className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all" disabled={loading}>
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR EMAIL"}
                     </Button>
                   </div>
                 </form>
               </CardContent>
             </Card>
-          </div>
-        )}
+          </div>}
       </div>
-    </div>
-  );
+    </div>;
 }
