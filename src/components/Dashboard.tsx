@@ -148,7 +148,7 @@ const Dashboard: React.FC = () => {
         queryFn: fetchDashboardData
     });
 
-    if (isLoading) return (
+    if (isLoading || !data) return (
       <div className="space-y-6">
         <Skeleton className="h-16 w-full" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -160,7 +160,14 @@ const Dashboard: React.FC = () => {
     );
     if (isError) return <div>Error loading dashboard: {(error as Error).message}</div>
 
-    const { servicesCount, clientsCount, lowStockProducts, salesReport, appointmentStats, upcomingBirthdays } = data!;
+    const { 
+      servicesCount = 0, 
+      clientsCount = 0, 
+      lowStockProducts = [], 
+      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
+      appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
+      upcomingBirthdays = [] 
+    } = data;
 
     return (
     <div className="space-y-6">
