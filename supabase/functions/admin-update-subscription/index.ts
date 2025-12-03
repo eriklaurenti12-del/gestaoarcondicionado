@@ -73,23 +73,60 @@ Deno.serve(async (req) => {
     }
 
     console.log('[admin-update-subscription] Updating subscription for user:', target_user_id);
+    console.log('[admin-update-subscription] New values:', { plan, status, is_active, start_date, end_date });
 
-    // Update subscription using service role (bypasses RLS)
-    const { error: updateError } = await supabaseService
+    // First check if subscription exists
+    const { data: existingSub, error: checkError } = await supabaseService
       .from('subscriptions')
-      .update({
-        plan,
-        status,
-        is_active,
-        start_date,
-        end_date,
-        payment_date,
-        updated_at: new Date().toISOString()
-      })
-      .eq('user_id', target_user_id);
+      .select('id')
+      .eq('user_id', target_user_id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('[admin-update-subscription] Check error:', checkError.message);
+      return new Response(JSON.stringify({ error: checkError.message }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
+    }
+
+    let updateError;
+
+    if (existingSub) {
+      // Update existing subscription
+      const { error } = await supabaseService
+        .from('subscriptions')
+        .update({
+          plan,
+          status,
+          is_active,
+          start_date,
+          end_date,
+          payment_date,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', target_user_id);
+      updateError = error;
+    } else {
+      // Insert new subscription
+      const { error } = await supabaseService
+        .from('subscriptions')
+        .insert({
+          user_id: target_user_id,
+          plan,
+          status,
+          is_active,
+          start_date,
+          end_date,
+          payment_date,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      updateError = error;
+    }
 
     if (updateError) {
-      console.error('[admin-update-subscription] Update error:', updateError.message);
+      console.error('[admin-update-subscription] Update/Insert error:', updateError.message);
       return new Response(JSON.stringify({ error: updateError.message }), { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

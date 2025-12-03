@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Search, PlusCircle, Pencil, FileDown } from "lucide-react";
+import { Trash2, Search, PlusCircle, Pencil, FileDown, Gift, MessageCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Constants, Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import EditClientDialog from './EditClientDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 
 type ClientWithSales = Tables<'clients'> & { sales: Pick<Tables<'sales'>, 'sale_price' | 'qty'>[] };
 
@@ -28,6 +28,42 @@ const fetchProducts = async () => {
   const { data, error } = await supabase.from('products').select('*').order('name');
   if (error) throw new Error(error.message);
   return data;
+};
+
+// Check if birthday is coming in X days
+const getBirthdayStatus = (aniversario: string | null): { isBirthdaySoon: boolean; daysUntil: number; message: string } | null => {
+  if (!aniversario) return null;
+  
+  try {
+    const birthDate = parseISO(aniversario);
+    if (!isValid(birthDate)) return null;
+    
+    const today = new Date();
+    const thisYearBirthday = new Date(today.getFullYear(), birthDate.getMonth(), birthDate.getDate());
+    
+    // If birthday already passed this year, check next year
+    if (thisYearBirthday < today) {
+      thisYearBirthday.setFullYear(today.getFullYear() + 1);
+    }
+    
+    const daysUntil = differenceInDays(thisYearBirthday, today);
+    
+    if (daysUntil <= 7 && daysUntil >= 0) {
+      let message = '';
+      if (daysUntil === 0) {
+        message = '🎂 Hoje é aniversário! Envie parabéns e ofereça um desconto especial!';
+      } else if (daysUntil === 1) {
+        message = '🎁 Aniversário amanhã! Aproveite para enviar uma mensagem especial.';
+      } else {
+        message = `🎁 Aniversário em ${daysUntil} dias! Envie uma mensagem com desconto.`;
+      }
+      return { isBirthdaySoon: true, daysUntil, message };
+    }
+  } catch (e) {
+    return null;
+  }
+  
+  return null;
 };
 
 const ClientsTab: React.FC = () => {
@@ -59,13 +95,11 @@ const ClientsTab: React.FC = () => {
 
   const addSaleMutation = useMutation({
     mutationFn: async ({ saleData, productUpdateData }: { saleData: TablesInsert<'sales'>, productUpdateData: { id: number, qty: number } }) => {
-      // Idealmente, isso deveria ser uma transação (ex: com uma Edge Function)
       const { error: saleError } = await supabase.from('sales').insert(saleData);
       if (saleError) throw saleError;
       
       const { error: productError } = await supabase.from('products').update({ qty: productUpdateData.qty }).eq('id', productUpdateData.id);
       if (productError) {
-        // Tenta reverter a venda se a atualização do produto falhar
         await supabase.from('sales').delete().match({ client_id: saleData.client_id, product_id: saleData.product_id });
         throw productError;
       }
@@ -188,6 +222,16 @@ const ClientsTab: React.FC = () => {
     }
   }
 
+  const sendBirthdayMessage = (client: ClientWithSales) => {
+    const phone = client.telefone?.replace(/\D/g, '');
+    if (!phone) {
+      toast({ variant: "destructive", title: "Telefone não cadastrado", description: "Cadastre o telefone do cliente para enviar mensagem." });
+      return;
+    }
+    const message = `Olá ${client.name}! 🎂 Feliz aniversário! Como presente especial, preparamos um desconto exclusivo para você. Agende seu horário e aproveite! 💝`;
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
@@ -197,12 +241,12 @@ const ClientsTab: React.FC = () => {
 
     const tableData = clients?.map(c => {
       const total = c.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-      return [c.name, c.telefone || '-', c.aniversario || '-', `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
+      return [c.name, c.telefone || '-', c.aniversario ? format(parseISO(c.aniversario), 'dd/MM') : '-', `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
     }) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Cliente', 'Telefone', 'Aniversário', 'Compras', 'Total Gasto']],
+      head: [['Cliente', 'WhatsApp', 'Aniversário', 'Compras', 'Total Gasto']],
       body: tableData,
     });
 
@@ -211,11 +255,11 @@ const ClientsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 overflow-visible">
+      <Card className="overflow-visible">
         <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            Gerenciar Clientes
+          <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <span>Gerenciar Clientes</span>
             <Button onClick={exportToPDF} size="sm" variant="outline">
               <FileDown className="w-4 h-4 mr-2" />
               Exportar PDF
@@ -224,45 +268,73 @@ const ClientsTab: React.FC = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10"/>
           </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[120px]">Cliente</TableHead>
-                  <TableHead className="min-w-[100px]">Telefone</TableHead>
-                  <TableHead className="min-w-[60px]">Compras</TableHead>
-                  <TableHead className="min-w-[80px]">Total</TableHead>
-                  <TableHead className="min-w-[100px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
-                : filteredClients.map((client) => {
-                  const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-                  return (
-                    <TableRow key={client.id}>
-                      <TableCell className="font-medium text-xs sm:text-sm">{client.name}</TableCell>
-                      <TableCell className="text-xs sm:text-sm text-muted-foreground">{client.telefone || '-'}</TableCell>
-                      <TableCell className="text-xs sm:text-sm">{client.sales.length}</TableCell>
-                      <TableCell className="font-semibold text-green-600 text-xs sm:text-sm">R$ {total.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setEditingClient(client)}><Pencil className="w-3 h-3" /></Button>
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => onDeleteClient(client.id)}><Trash2 className="w-3 h-3" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="min-w-[600px] px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>WhatsApp</TableHead>
+                    <TableHead>Aniversário</TableHead>
+                    <TableHead>Compras</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
+                  : filteredClients.map((client) => {
+                    const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
+                    const birthdayStatus = getBirthdayStatus(client.aniversario);
+                    
+                    return (
+                      <React.Fragment key={client.id}>
+                        <TableRow className={birthdayStatus?.isBirthdaySoon ? 'bg-pink-50 dark:bg-pink-950/30' : ''}>
+                          <TableCell className="font-medium">{client.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{client.telefone || '-'}</TableCell>
+                          <TableCell>
+                            {client.aniversario ? (
+                              <span className="flex items-center gap-1">
+                                {birthdayStatus?.isBirthdaySoon && <Gift className="w-4 h-4 text-pink-500" />}
+                                {format(parseISO(client.aniversario), 'dd/MM')}
+                              </span>
+                            ) : '-'}
+                          </TableCell>
+                          <TableCell>{client.sales.length}</TableCell>
+                          <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {birthdayStatus?.isBirthdaySoon && client.telefone && (
+                                <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-pink-500 hover:text-pink-600" onClick={() => sendBirthdayMessage(client)} title="Enviar mensagem de aniversário">
+                                  <MessageCircle className="w-3 h-3" />
+                                </Button>
+                              )}
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => setEditingClient(client)}><Pencil className="w-3 h-3" /></Button>
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => onDeleteClient(client.id)}><Trash2 className="w-3 h-3" /></Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                        {birthdayStatus?.isBirthdaySoon && (
+                          <TableRow className="bg-pink-50 dark:bg-pink-950/30 border-0">
+                            <TableCell colSpan={6} className="py-2 text-sm text-pink-600 dark:text-pink-400">
+                              {birthdayStatus.message}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         </CardContent>
       </Card>
-      <Card>
+
+      <Card className="overflow-visible">
         <CardHeader><CardTitle>Registrar Novo Atendimento</CardTitle></CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
@@ -270,11 +342,11 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="client-name">Cliente</Label>
               <Input id="client-name" value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nome do cliente"/>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-visible">
               <Label htmlFor="product-select">Serviço/Produto</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId} disabled={isLoadingProducts}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border">
+                <SelectContent className="bg-popover border-border z-[9999]" position="popper" sideOffset={4}>
                   {products?.filter(p => p.qty > 0).map((product) => (
                     <SelectItem key={product.id} value={String(product.id)}>{product.name} - R$ {Number(product.price).toFixed(2)}</SelectItem>
                   ))}
@@ -285,11 +357,11 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="quantity">Quantidade</Label>
               <Input id="quantity" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-visible">
               <Label htmlFor="payment-method">Forma de Pagamento</Label>
               <Select value={paymentMethod} onValueChange={(v) => setPaymentMethod(v as any)}>
                 <SelectTrigger className="bg-background border-border"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent className="bg-popover border-border">
+                <SelectContent className="bg-popover border-border z-[9999]" position="popper" sideOffset={4}>
                   {Constants.public.Enums.payment_method_enum.map(method => <SelectItem key={method} value={method}>{method}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -302,13 +374,14 @@ const ClientsTab: React.FC = () => {
               <Label htmlFor="payment-fee">Taxa da Máquina (%)</Label>
               <Input id="payment-fee" type="number" value={paymentFee} onChange={(e) => setPaymentFee(e.target.value)} min="0" disabled={!['Débito', 'Crédito'].includes(paymentMethod)}/>
             </div>
-            <Button onClick={handleAddSale} disabled={addSaleMutation.isPending}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              {addSaleMutation.isPending ? "Salvando..." : "Registrar Atendimento"}
-            </Button>
           </div>
+          <Button onClick={handleAddSale} disabled={addSaleMutation.isPending} className="mt-4 w-full md:w-auto">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            {addSaleMutation.isPending ? "Salvando..." : "Registrar Atendimento"}
+          </Button>
         </CardContent>
       </Card>
+
       {editingClient && (
         <EditClientDialog
             client={editingClient}

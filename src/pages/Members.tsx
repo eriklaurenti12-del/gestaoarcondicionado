@@ -80,6 +80,8 @@ export default function Members() {
         }
       }
 
+      console.log('[Members] Updating subscription:', { targetUserId, plan, status });
+
       // Use edge function for admin operations
       const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
         body: {
@@ -93,16 +95,22 @@ export default function Members() {
         }
       });
 
+      console.log('[Members] Response:', { data, error });
+
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       toast({
         title: "Sucesso!",
-        description: "Assinatura atualizada."
+        description: status === 'aprovado' 
+          ? "Acesso liberado! O usuário já pode acessar o sistema."
+          : "Assinatura cancelada."
       });
 
-      loadMembers();
+      // Reload members list
+      await loadMembers();
     } catch (error: any) {
+      console.error('[Members] Error updating subscription:', error);
       toast({
         title: "Erro",
         description: error.message,

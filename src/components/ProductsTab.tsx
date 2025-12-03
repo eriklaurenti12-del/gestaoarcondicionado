@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Trash2, FileDown, Pencil, Scissors } from "lucide-react";
+import { Trash2, FileDown, Pencil, Scissors, Plus, X } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
@@ -16,6 +16,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 type Product = Tables<'products'>;
+type Expense = { name: string; value: number };
 
 const fetchProducts = async (): Promise<Product[]> => {
   const { data, error } = await supabase.from('products').select('*').order('name');
@@ -41,15 +42,18 @@ const ProductsTab: React.FC = () => {
   const [scannedBarcode, setScannedBarcode] = useState("");
   const [productName, setProductName] = useState("");
   const [productPrice, setProductPrice] = useState("");
-  const [costPrice, setCostPrice] = useState("");
+  const [baseCostPrice, setBaseCostPrice] = useState("");
   const [profitPercentage, setProfitPercentage] = useState("");
   const [qty, setQty] = useState(1);
-  const [warrantyMonths, setWarrantyMonths] = useState(12);
   const [minStockAlert, setMinStockAlert] = useState(5);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editQty, setEditQty] = useState(0);
 
-  // Obter userId da sessão
+  // Expense tracking
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [newExpenseName, setNewExpenseName] = useState("");
+  const [newExpenseValue, setNewExpenseValue] = useState("");
+
   React.useEffect(() => {
     const getUserId = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -60,33 +64,41 @@ const ProductsTab: React.FC = () => {
     getUserId();
   }, []);
 
-  // Calcula o preço de venda baseado no custo e na porcentagem de lucro
-  const calculateSalePrice = (cost: string, percentage: string) => {
-    const costValue = parseFloat(cost);
+  // Calculate total expenses
+  const totalExpenses = React.useMemo(() => {
+    return expenses.reduce((sum, exp) => sum + exp.value, 0);
+  }, [expenses]);
+
+  // Total cost = base cost + expenses
+  const totalCost = React.useMemo(() => {
+    const base = parseFloat(baseCostPrice) || 0;
+    return base + totalExpenses;
+  }, [baseCostPrice, totalExpenses]);
+
+  // Calculate sale price based on total cost and profit percentage
+  const calculateSalePrice = React.useCallback((cost: number, percentage: string) => {
     const percentValue = parseFloat(percentage);
-    
-    if (!isNaN(costValue) && !isNaN(percentValue) && costValue > 0 && percentValue >= 0) {
-      const salePrice = costValue + (costValue * percentValue / 100);
+    if (!isNaN(cost) && !isNaN(percentValue) && cost > 0 && percentValue >= 0) {
+      const salePrice = cost + (cost * percentValue / 100);
       setProductPrice(salePrice.toFixed(2));
     }
-  };
+  }, []);
 
-  // Atualiza o preço de venda quando custo ou porcentagem mudam
+  // Update sale price when cost or percentage changes
   React.useEffect(() => {
-    if (costPrice && profitPercentage) {
-      calculateSalePrice(costPrice, profitPercentage);
+    if (totalCost > 0 && profitPercentage) {
+      calculateSalePrice(totalCost, profitPercentage);
     }
-  }, [costPrice, profitPercentage]);
+  }, [totalCost, profitPercentage, calculateSalePrice]);
 
-  // Calcula o lucro em reais
+  // Net profit in reais
   const profitInReais = React.useMemo(() => {
-    const cost = parseFloat(costPrice);
     const price = parseFloat(productPrice);
-    if (!isNaN(cost) && !isNaN(price)) {
-      return (price - cost).toFixed(2);
+    if (!isNaN(totalCost) && !isNaN(price)) {
+      return (price - totalCost).toFixed(2);
     }
     return "0.00";
-  }, [costPrice, productPrice]);
+  }, [totalCost, productPrice]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
 
@@ -99,9 +111,12 @@ const ProductsTab: React.FC = () => {
       setScannedBarcode("");
       setProductName("");
       setProductPrice("");
-      setCostPrice("");
+      setBaseCostPrice("");
       setProfitPercentage("");
       setQty(1);
+      setExpenses([]);
+      setNewExpenseName("");
+      setNewExpenseValue("");
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
@@ -136,8 +151,24 @@ const ProductsTab: React.FC = () => {
     }
   });
 
+  const addExpense = () => {
+    const name = newExpenseName.trim();
+    const value = parseFloat(newExpenseValue);
+    if (!name || isNaN(value) || value <= 0) {
+      toast({ variant: "destructive", title: "Gasto inválido", description: "Informe nome e valor do gasto." });
+      return;
+    }
+    setExpenses([...expenses, { name, value }]);
+    setNewExpenseName("");
+    setNewExpenseValue("");
+  };
+
+  const removeExpense = (index: number) => {
+    setExpenses(expenses.filter((_, i) => i !== index));
+  };
+
   const handleAddProduct = () => {
-    if (!productName || !productPrice || !costPrice) {
+    if (!productName || !productPrice || totalCost <= 0) {
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome, preço e custo são obrigatórios."});
         return;
     }
@@ -151,10 +182,10 @@ const ProductsTab: React.FC = () => {
       name: productName.trim(),
       qty: Math.max(1, qty),
       price: parseFloat(productPrice),
-      cost_price: parseFloat(costPrice),
+      cost_price: totalCost,
       barcode: scannedBarcode?.trim() || null,
       supplier_id: null,
-      warranty_months: warrantyMonths,
+      warranty_months: 12,
       min_stock: minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
       user_id: userId,
@@ -207,10 +238,10 @@ const ProductsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
+    <div className="space-y-6 overflow-visible">
+      <Card className="overflow-visible">
         <CardHeader>
-          <CardTitle className="flex justify-between items-center">
+          <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <span className="flex items-center gap-2">
               <Scissors className="w-5 h-5" />
               Serviços & Produtos
@@ -222,41 +253,45 @@ const ProductsTab: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Serviço/Produto</TableHead>
-                <TableHead className="hidden sm:table-cell">Código</TableHead>
-                <TableHead>Estoque</TableHead>
-                <TableHead>Custo</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead>Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
-                <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-              )) : products?.map((product) => (
-                <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) ? "bg-orange-50 dark:bg-orange-950" : ""}>
-                  <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
-                  <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span></TableCell>
-                  <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
-                  <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
-                      <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="overflow-x-auto -mx-4 sm:mx-0">
+            <div className="min-w-[600px] px-4 sm:px-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Serviço/Produto</TableHead>
+                    <TableHead className="hidden sm:table-cell">Código</TableHead>
+                    <TableHead>Estoque</TableHead>
+                    <TableHead>Custo</TableHead>
+                    <TableHead>Preço</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                  )) : products?.map((product) => (
+                    <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) ? "bg-orange-50 dark:bg-orange-950" : ""}>
+                      <TableCell className="font-medium">{product.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
+                      <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span></TableCell>
+                      <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
+                          <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-visible">
         <CardHeader><CardTitle>Cadastrar Serviço ou Produto</CardTitle></CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
@@ -273,9 +308,60 @@ const ProductsTab: React.FC = () => {
               <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Ex: Corte Feminino, Escova, Tintura..."/>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cost-price">Preço de Custo (R$)</Label>
-              <Input id="cost-price" type="number" step="0.01" value={costPrice} onChange={(e) => setCostPrice(e.target.value)} placeholder="0.00"/>
+              <Label htmlFor="base-cost-price">Custo Base (R$)</Label>
+              <Input id="base-cost-price" type="number" step="0.01" value={baseCostPrice} onChange={(e) => setBaseCostPrice(e.target.value)} placeholder="0.00"/>
             </div>
+          </div>
+
+          {/* Expense Section */}
+          <Card className="bg-muted/50">
+            <CardHeader className="py-3">
+              <CardTitle className="text-sm font-medium">Gastos Adicionais (Opcional)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input 
+                  placeholder="Nome do gasto (ex: Tinta, Shampoo)" 
+                  value={newExpenseName} 
+                  onChange={(e) => setNewExpenseName(e.target.value)} 
+                  className="flex-1"
+                />
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  placeholder="Valor (R$)" 
+                  value={newExpenseValue} 
+                  onChange={(e) => setNewExpenseValue(e.target.value)} 
+                  className="w-full sm:w-32"
+                />
+                <Button type="button" onClick={addExpense} size="sm" variant="secondary">
+                  <Plus className="w-4 h-4 mr-1" /> Adicionar
+                </Button>
+              </div>
+              
+              {expenses.length > 0 && (
+                <div className="space-y-2">
+                  {expenses.map((exp, index) => (
+                    <div key={index} className="flex items-center justify-between bg-background p-2 rounded-md">
+                      <span className="text-sm">{exp.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">R$ {exp.value.toFixed(2)}</span>
+                        <Button type="button" variant="ghost" size="sm" onClick={() => removeExpense(index)} className="h-6 w-6 p-0">
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-sm font-semibold pt-2 border-t">
+                    <span>Total Gastos:</span>
+                    <span className="text-orange-600">R$ {totalExpenses.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="profit-percentage">Margem de Lucro (%)</Label>
               <Input 
@@ -298,12 +384,36 @@ const ProductsTab: React.FC = () => {
                 placeholder="0.00"
                 className="font-semibold"
               />
-              {profitInReais !== "0.00" && (
-                <p className="text-xs text-muted-foreground">
-                  Lucro: R$ {profitInReais}
-                </p>
-              )}
             </div>
+          </div>
+
+          {/* Cost Summary */}
+          {totalCost > 0 && (
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-purple-200 dark:border-purple-800">
+              <CardContent className="py-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Custo Base:</span>
+                    <p className="font-semibold">R$ {(parseFloat(baseCostPrice) || 0).toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">+ Gastos:</span>
+                    <p className="font-semibold text-orange-600">R$ {totalExpenses.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">= Custo Total:</span>
+                    <p className="font-semibold text-red-600">R$ {totalCost.toFixed(2)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Lucro Líquido:</span>
+                    <p className="font-semibold text-green-600">R$ {profitInReais}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="add-quantity-barcode">Quantidade</Label>
               <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
@@ -314,7 +424,7 @@ const ProductsTab: React.FC = () => {
             </div>
           </div>
           
-          <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !productName || !productPrice || !costPrice}>
+          <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !productName || !productPrice || totalCost <= 0}>
             {addMutation.isPending ? "Cadastrando..." : "Cadastrar Serviço/Produto"}
           </Button>
         </CardContent>
