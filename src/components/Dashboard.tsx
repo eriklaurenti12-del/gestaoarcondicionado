@@ -24,10 +24,16 @@ const fetchDashboardData = async () => {
         throw new Error("Failed to fetch dashboard data");
     }
 
-    const lowStockProducts = products!.filter(p => p.qty <= (p.min_stock || 0));
-    const totalSales = sales!.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
-    const totalProfit = sales!.reduce((sum, s) => sum + Number(s.total_profit), 0);
-    const totalItems = sales!.reduce((sum, s) => sum + s.qty, 0);
+    // Use empty arrays as defaults if data is null
+    const productsList = products || [];
+    const clientsList = clients || [];
+    const salesList = sales || [];
+    const appointmentsList = appointments || [];
+
+    const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0));
+    const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
+    const totalProfit = salesList.reduce((sum, s) => sum + Number(s.total_profit), 0);
+    const totalItems = salesList.reduce((sum, s) => sum + s.qty, 0);
     const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
     // Appointment statistics
@@ -35,8 +41,8 @@ const fetchDashboardData = async () => {
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
 
-    const todayAppointments = appointments!.filter(a => isToday(new Date(a.appointment_date)));
-    const weekAppointments = appointments!.filter(a => {
+    const todayAppointments = appointmentsList.filter(a => isToday(new Date(a.appointment_date)));
+    const weekAppointments = appointmentsList.filter(a => {
         const date = new Date(a.appointment_date);
         return date >= weekStart && date <= weekEnd;
     });
@@ -46,7 +52,7 @@ const fetchDashboardData = async () => {
     const completedToday = todayAppointments.filter(a => a.status === 'concluído').length;
 
     // Birthday reminders
-    const upcomingBirthdays = clients!.filter(client => {
+    const upcomingBirthdays = clientsList.filter(client => {
         if (!client.aniversario) return false;
         const birthday = new Date(client.aniversario);
         const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
@@ -60,8 +66,8 @@ const fetchDashboardData = async () => {
     });
 
     return {
-        servicesCount: products!.length,
-        clientsCount: clients!.length,
+        servicesCount: productsList.length,
+        clientsCount: clientsList.length,
         lowStockProducts,
         salesReport: { totalSales, totalItems, totalProfit, profitMargin },
         appointmentStats: {
