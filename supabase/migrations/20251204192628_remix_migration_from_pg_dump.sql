@@ -10,7 +10,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 
 -- Dumped from database version 17.6
--- Dumped by pg_dump version 17.7
+-- Dumped by pg_dump version 18.1
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -191,6 +191,24 @@ $$;
 SET default_table_access_method = heap;
 
 --
+-- Name: appointments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.appointments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    client_id integer,
+    service_id integer,
+    appointment_date timestamp with time zone NOT NULL,
+    status text DEFAULT 'agendado'::text NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT appointments_status_check CHECK ((status = ANY (ARRAY['agendado'::text, 'confirmado'::text, 'concluido'::text, 'cancelado'::text])))
+);
+
+
+--
 -- Name: clients; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -200,7 +218,8 @@ CREATE TABLE public.clients (
     telefone text,
     aniversario date,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    user_id uuid NOT NULL
+    user_id uuid NOT NULL,
+    preferences text
 );
 
 
@@ -259,6 +278,49 @@ CREATE SEQUENCE public.company_data_id_seq
 --
 
 ALTER SEQUENCE public.company_data_id_seq OWNED BY public.company_data.id;
+
+
+--
+-- Name: financial_records; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.financial_records (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    type text NOT NULL,
+    amount numeric NOT NULL,
+    description text,
+    payment_method text,
+    installments integer DEFAULT 1,
+    category text,
+    record_date timestamp with time zone DEFAULT now() NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT financial_records_payment_method_check CHECK ((payment_method = ANY (ARRAY['Dinheiro'::text, 'PIX'::text, 'Débito'::text, 'Crédito'::text]))),
+    CONSTRAINT financial_records_type_check CHECK ((type = ANY (ARRAY['entrada'::text, 'saque'::text, 'reserva'::text])))
+);
+
+
+--
+-- Name: installments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.installments (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    sale_id integer,
+    appointment_id uuid,
+    installment_number integer NOT NULL,
+    total_installments integer NOT NULL,
+    amount numeric NOT NULL,
+    due_date date NOT NULL,
+    paid_date date,
+    is_paid boolean DEFAULT false,
+    payment_method text,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
 
 
 --
@@ -451,6 +513,14 @@ ALTER TABLE ONLY public.suppliers ALTER COLUMN id SET DEFAULT nextval('public.su
 
 
 --
+-- Name: appointments appointments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: clients clients_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -472,6 +542,22 @@ ALTER TABLE ONLY public.company_data
 
 ALTER TABLE ONLY public.company_data
     ADD CONSTRAINT company_data_user_id_key UNIQUE (user_id);
+
+
+--
+-- Name: financial_records financial_records_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.financial_records
+    ADD CONSTRAINT financial_records_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: installments installments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installments
+    ADD CONSTRAINT installments_pkey PRIMARY KEY (id);
 
 
 --
@@ -555,10 +641,47 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+-- Name: appointments update_appointments_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_appointments_updated_at BEFORE UPDATE ON public.appointments FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: company_data update_company_data_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_company_data_updated_at BEFORE UPDATE ON public.company_data FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: financial_records update_financial_records_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_financial_records_updated_at BEFORE UPDATE ON public.financial_records FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: installments update_installments_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_installments_updated_at BEFORE UPDATE ON public.installments FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: appointments appointments_client_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_client_id_fkey FOREIGN KEY (client_id) REFERENCES public.clients(id) ON DELETE CASCADE;
+
+
+--
+-- Name: appointments appointments_service_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.appointments
+    ADD CONSTRAINT appointments_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.products(id) ON DELETE SET NULL;
 
 
 --
@@ -575,6 +698,22 @@ ALTER TABLE ONLY public.clients
 
 ALTER TABLE ONLY public.company_data
     ADD CONSTRAINT company_data_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: installments installments_appointment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installments
+    ADD CONSTRAINT installments_appointment_id_fkey FOREIGN KEY (appointment_id) REFERENCES public.appointments(id) ON DELETE CASCADE;
+
+
+--
+-- Name: installments installments_sale_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.installments
+    ADD CONSTRAINT installments_sale_id_fkey FOREIGN KEY (sale_id) REFERENCES public.sales(id) ON DELETE CASCADE;
 
 
 --
@@ -706,6 +845,13 @@ CREATE POLICY "Usuários podem atualizar seu próprio perfil" ON public.profiles
 
 
 --
+-- Name: appointments Usuários podem atualizar seus próprios agendamentos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem atualizar seus próprios agendamentos" ON public.appointments FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
 -- Name: clients Usuários podem atualizar seus próprios clientes; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -734,10 +880,52 @@ CREATE POLICY "Usuários podem atualizar seus próprios produtos" ON public.prod
 
 
 --
+-- Name: financial_records Usuários podem atualizar seus próprios registros financeiros; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem atualizar seus próprios registros financeiros" ON public.financial_records FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: installments Usuários podem atualizar suas próprias parcelas; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem atualizar suas próprias parcelas" ON public.installments FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
 -- Name: sales Usuários podem atualizar suas próprias vendas; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Usuários podem atualizar suas próprias vendas" ON public.sales FOR UPDATE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: appointments Usuários podem criar seus próprios agendamentos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem criar seus próprios agendamentos" ON public.appointments FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: financial_records Usuários podem criar seus próprios registros financeiros; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem criar seus próprios registros financeiros" ON public.financial_records FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: installments Usuários podem criar suas próprias parcelas; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem criar suas próprias parcelas" ON public.installments FOR INSERT WITH CHECK ((auth.uid() = user_id));
+
+
+--
+-- Name: appointments Usuários podem deletar seus próprios agendamentos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem deletar seus próprios agendamentos" ON public.appointments FOR DELETE USING ((auth.uid() = user_id));
 
 
 --
@@ -759,6 +947,20 @@ CREATE POLICY "Usuários podem deletar seus próprios fornecedores" ON public.su
 --
 
 CREATE POLICY "Usuários podem deletar seus próprios produtos" ON public.products FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: financial_records Usuários podem deletar seus próprios registros financeiros; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem deletar seus próprios registros financeiros" ON public.financial_records FOR DELETE USING ((auth.uid() = user_id));
+
+
+--
+-- Name: installments Usuários podem deletar suas próprias parcelas; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem deletar suas próprias parcelas" ON public.installments FOR DELETE USING ((auth.uid() = user_id));
 
 
 --
@@ -811,6 +1013,13 @@ CREATE POLICY "Usuários podem ver seu próprio perfil" ON public.profiles FOR S
 
 
 --
+-- Name: appointments Usuários podem ver seus próprios agendamentos; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem ver seus próprios agendamentos" ON public.appointments FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: company_data Usuários podem ver seus próprios dados; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -818,10 +1027,24 @@ CREATE POLICY "Usuários podem ver seus próprios dados" ON public.company_data 
 
 
 --
+-- Name: financial_records Usuários podem ver seus próprios registros financeiros; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem ver seus próprios registros financeiros" ON public.financial_records FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
 -- Name: subscriptions Usuários podem ver sua própria assinatura; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Usuários podem ver sua própria assinatura" ON public.subscriptions FOR SELECT USING ((auth.uid() = user_id));
+
+
+--
+-- Name: installments Usuários podem ver suas próprias parcelas; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Usuários podem ver suas próprias parcelas" ON public.installments FOR SELECT USING ((auth.uid() = user_id));
 
 
 --
@@ -860,6 +1083,12 @@ CREATE POLICY "Usuários veem apenas suas próprias vendas" ON public.sales FOR 
 
 
 --
+-- Name: appointments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: clients; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -870,6 +1099,18 @@ ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.company_data ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: financial_records; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.financial_records ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: installments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.installments ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: products; Type: ROW SECURITY; Schema: public; Owner: -
