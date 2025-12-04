@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target } from "lucide-react";
+import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 interface FinancialRecord {
   id: string;
@@ -21,6 +24,17 @@ interface FinancialRecord {
   installments: number | null;
   category: string | null;
   record_date: string;
+}
+
+interface Sale {
+  id: number;
+  sale_price: number;
+  qty: number;
+  total_profit: number;
+  payment_method: string;
+  sale_date: string;
+  clients: { name: string } | null;
+  products: { name: string; price: number; cost_price: number } | null;
 }
 
 export default function FinanceiroTab() {
@@ -38,6 +52,23 @@ export default function FinanceiroTab() {
     payment_method: "Dinheiro",
     installments: "1",
     category: "",
+  });
+
+  // Fetch sales for the month
+  const { data: sales } = useQuery({
+    queryKey: ["sales-financial", selectedMonth],
+    queryFn: async () => {
+      const startDate = `${selectedMonth}-01`;
+      const endDate = `${selectedMonth}-31`;
+      const { data, error } = await supabase
+        .from("sales")
+        .select("*, clients(name), products(name, price, cost_price)")
+        .gte("sale_date", startDate)
+        .lte("sale_date", endDate)
+        .order("sale_date", { ascending: false });
+      if (error) throw error;
+      return data as Sale[];
+    }
   });
 
   useEffect(() => {
@@ -113,10 +144,18 @@ export default function FinanceiroTab() {
     }
   };
 
+  // Financial calculations
   const totalEntradas = records.filter(r => r.type === "entrada").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
-  const saldoDisponivel = totalEntradas - totalSaques - totalReservas;
+  
+  // Sales data
+  const totalVendas = sales?.reduce((acc, s) => acc + Number(s.sale_price) * s.qty, 0) || 0;
+  const lucroServicos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
+  
+  // Combined totals
+  const totalGeral = totalEntradas + totalVendas;
+  const saldoDisponivel = totalGeral - totalSaques - totalReservas;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -136,6 +175,156 @@ export default function FinanceiroTab() {
     }
   };
 
+  // Export beautiful bank statement PDF
+  const exportStatementPDF = () => {
+    const doc = new jsPDF();
+    const monthName = format(new Date(selectedMonth + "-01"), "MMMM 'de' yyyy", { locale: ptBR });
+    
+    // Header with gradient effect (simulated with rectangles)
+    doc.setFillColor(147, 51, 234);
+    doc.rect(0, 0, 220, 45, 'F');
+    doc.setFillColor(219, 39, 119);
+    doc.rect(0, 35, 220, 10, 'F');
+    
+    // Logo/Title
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.setFont("helvetica", "bold");
+    doc.text("EXTRATO FINANCEIRO", 105, 20, { align: "center" });
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Salão de Beleza - ${monthName}`, 105, 30, { align: "center" });
+    
+    // Summary boxes
+    doc.setTextColor(0, 0, 0);
+    let yPos = 55;
+    
+    // Summary Cards
+    const summaryData = [
+      { label: "Total Entradas", value: totalGeral, color: [34, 197, 94] },
+      { label: "Total Saques", value: totalSaques, color: [239, 68, 68] },
+      { label: "Reservas", value: totalReservas, color: [59, 130, 246] },
+      { label: "Saldo Disponível", value: saldoDisponivel, color: [147, 51, 234] },
+    ];
+    
+    const cardWidth = 45;
+    const startX = 14;
+    
+    summaryData.forEach((item, index) => {
+      const x = startX + (index * (cardWidth + 4));
+      doc.setFillColor(item.color[0], item.color[1], item.color[2]);
+      doc.roundedRect(x, yPos, cardWidth, 20, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(8);
+      doc.text(item.label, x + cardWidth/2, yPos + 7, { align: "center" });
+      doc.setFontSize(11);
+      doc.setFont("helvetica", "bold");
+      doc.text(`R$ ${item.value.toFixed(2)}`, x + cardWidth/2, yPos + 15, { align: "center" });
+    });
+    
+    // Lucro section
+    yPos += 30;
+    doc.setFillColor(34, 197, 94);
+    doc.roundedRect(14, yPos, 182, 15, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("LUCRO LÍQUIDO DOS SERVIÇOS", 20, yPos + 6);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(`R$ ${lucroServicos.toFixed(2)}`, 186, yPos + 10, { align: "right" });
+    
+    // Transactions section
+    yPos += 25;
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text("MOVIMENTAÇÕES", 14, yPos);
+    
+    // Combine all transactions
+    const allTransactions: any[] = [];
+    
+    // Add financial records
+    records.forEach(r => {
+      allTransactions.push({
+        date: r.record_date,
+        description: r.description || (r.type === "entrada" ? "Entrada" : r.type === "saque" ? "Saque" : "Reserva"),
+        type: r.type,
+        method: r.payment_method,
+        amount: Number(r.amount),
+        isEntry: r.type === "entrada"
+      });
+    });
+    
+    // Add sales
+    sales?.forEach(s => {
+      allTransactions.push({
+        date: s.sale_date,
+        description: `${s.products?.name || "Serviço"} - ${s.clients?.name || "Cliente"}`,
+        type: "venda",
+        method: s.payment_method,
+        amount: Number(s.sale_price) * s.qty,
+        isEntry: true,
+        profit: Number(s.total_profit)
+      });
+    });
+    
+    // Sort by date
+    allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    const tableData = allTransactions.map(t => [
+      format(new Date(t.date), "dd/MM/yyyy"),
+      t.description,
+      t.method || "-",
+      t.type === "venda" ? "Serviço" : t.type.charAt(0).toUpperCase() + t.type.slice(1),
+      t.isEntry ? `+ R$ ${t.amount.toFixed(2)}` : `- R$ ${t.amount.toFixed(2)}`
+    ]);
+    
+    autoTable(doc, {
+      startY: yPos + 5,
+      head: [["Data", "Descrição", "Forma Pgto", "Tipo", "Valor"]],
+      body: tableData,
+      theme: "striped",
+      headStyles: { 
+        fillColor: [147, 51, 234],
+        textColor: 255,
+        fontStyle: "bold",
+        fontSize: 9
+      },
+      bodyStyles: { fontSize: 8 },
+      alternateRowStyles: { fillColor: [250, 245, 255] },
+      columnStyles: {
+        0: { cellWidth: 25 },
+        1: { cellWidth: 70 },
+        2: { cellWidth: 25 },
+        3: { cellWidth: 25 },
+        4: { cellWidth: 30, halign: "right", fontStyle: "bold" }
+      },
+      didParseCell: (data) => {
+        if (data.column.index === 4 && data.section === "body") {
+          const value = data.cell.raw as string;
+          if (value.startsWith("+")) {
+            data.cell.styles.textColor = [34, 197, 94];
+          } else {
+            data.cell.styles.textColor = [239, 68, 68];
+          }
+        }
+      }
+    });
+    
+    // Footer
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFillColor(147, 51, 234);
+    doc.rect(0, pageHeight - 20, 220, 20, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, pageHeight - 10);
+    doc.text("Salão de Beleza - Sistema de Gestão", 196, pageHeight - 10, { align: "right" });
+    
+    doc.save(`extrato-financeiro-${selectedMonth}.pdf`);
+    toast({ title: "Extrato exportado!", description: "PDF salvo com sucesso." });
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -144,13 +333,17 @@ export default function FinanceiroTab() {
           <h2 className="text-2xl font-bold">Controle Financeiro</h2>
           <p className="text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Input
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="w-auto"
           />
+          <Button onClick={exportStatementPDF} variant="outline" size="sm">
+            <FileDown className="h-4 w-4 mr-2" />
+            Extrato PDF
+          </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-primary to-accent">
@@ -249,16 +442,44 @@ export default function FinanceiroTab() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              Entradas do Mês
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Receipt className="h-3 w-3 text-green-500" />
+              Vendas/Serviços
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-green-500">
+            <p className="text-lg sm:text-xl font-bold text-green-500">
+              R$ {totalVendas.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Target className="h-3 w-3 text-emerald-500" />
+              Lucro Serviços
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg sm:text-xl font-bold text-emerald-500">
+              R$ {lucroServicos.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border-teal-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <TrendingUp className="h-3 w-3 text-teal-500" />
+              Outras Entradas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg sm:text-xl font-bold text-teal-500">
               R$ {totalEntradas.toFixed(2)}
             </p>
           </CardContent>
@@ -266,13 +487,13 @@ export default function FinanceiroTab() {
 
         <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-red-500" />
-              Saques do Mês
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <TrendingDown className="h-3 w-3 text-red-500" />
+              Saques
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-red-500">
+            <p className="text-lg sm:text-xl font-bold text-red-500">
               R$ {totalSaques.toFixed(2)}
             </p>
           </CardContent>
@@ -280,13 +501,13 @@ export default function FinanceiroTab() {
 
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Wallet className="h-3 w-3 text-blue-500" />
               Reservas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold text-blue-500">
+            <p className="text-lg sm:text-xl font-bold text-blue-500">
               R$ {totalReservas.toFixed(2)}
             </p>
           </CardContent>
@@ -294,23 +515,72 @@ export default function FinanceiroTab() {
 
         <Card className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <DollarSign className="h-3 w-3 text-primary" />
               Saldo Disponível
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className={`text-2xl font-bold ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
+            <p className={`text-lg sm:text-xl font-bold ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
               R$ {saldoDisponivel.toFixed(2)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Records Table */}
+      {/* Sales from services */}
+      {sales && sales.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-green-500" />
+              Vendas de Serviços - {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ptBR })}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead>Pagamento</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="text-right">Lucro</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell>{format(new Date(sale.sale_date), "dd/MM/yyyy")}</TableCell>
+                      <TableCell className="font-medium">{sale.clients?.name || "-"}</TableCell>
+                      <TableCell>{sale.products?.name || "-"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getPaymentIcon(sale.payment_method)}
+                          {sale.payment_method}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-green-500">
+                        R$ {(Number(sale.sale_price) * sale.qty).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-emerald-500">
+                        R$ {Number(sale.total_profit).toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Manual Records Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registros de {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ptBR })}</CardTitle>
+          <CardTitle>Registros Manuais - {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ptBR })}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -320,7 +590,7 @@ export default function FinanceiroTab() {
           ) : records.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum registro encontrado para este mês</p>
+              <p>Nenhum registro manual encontrado para este mês</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
