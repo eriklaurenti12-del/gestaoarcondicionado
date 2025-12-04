@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Scissors, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, Gift } from "lucide-react";
+import { Scissors, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, Gift, CreditCard, AlertCircle } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, addDays, isSameDay, differenceInDays } from 'date-fns';
@@ -16,11 +16,12 @@ const fetchDashboardData = async () => {
     const clientsPromise = supabase.from('clients').select('*');
     const salesPromise = supabase.from('sales').select('sale_price, qty, total_profit');
     const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
+    const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name))').eq('is_paid', false).order('due_date');
 
-    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise]);
+    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise]);
 
     if (pError || cError || sError || aError) {
-        console.error(pError || cError || sError || aError);
+        console.error(pError || cError || sError || aError || iError);
         throw new Error("Failed to fetch dashboard data");
     }
 
@@ -29,6 +30,7 @@ const fetchDashboardData = async () => {
     const clientsList = clients || [];
     const salesList = sales || [];
     const appointmentsList = appointments || [];
+    const installmentsList = installments || [];
 
     const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0));
     const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
@@ -65,6 +67,19 @@ const fetchDashboardData = async () => {
         return { ...client, daysUntil };
     });
 
+    // Pending installments with status
+    const pendingInstallments = installmentsList.map((inst: any) => {
+        const dueDate = new Date(inst.due_date);
+        const daysUntilDue = differenceInDays(dueDate, today);
+        let status = 'normal';
+        if (daysUntilDue < 0) status = 'overdue';
+        else if (daysUntilDue <= 3) status = 'urgent';
+        else if (daysUntilDue <= 7) status = 'warning';
+        return { ...inst, daysUntilDue, status };
+    });
+
+    const totalPendingAmount = pendingInstallments.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
+
     return {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
@@ -79,7 +94,9 @@ const fetchDashboardData = async () => {
             todayAppointments,
             weekAppointments
         },
-        upcomingBirthdays
+        upcomingBirthdays,
+        pendingInstallments,
+        totalPendingAmount
     };
 };
 
@@ -166,7 +183,9 @@ const Dashboard: React.FC = () => {
       lowStockProducts = [], 
       salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
       appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
-      upcomingBirthdays = [] 
+      upcomingBirthdays = [],
+      pendingInstallments = [],
+      totalPendingAmount = 0
     } = data;
 
     return (
@@ -210,6 +229,17 @@ const Dashboard: React.FC = () => {
           <AlertTitle className="text-orange-800 dark:text-orange-200">Alerta de Estoque Baixo!</AlertTitle>
           <AlertDescription className="text-orange-700 dark:text-orange-300">
             {lowStockProducts.length} produto(s) com estoque baixo: {lowStockProducts.map(p => p.name).join(", ")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Pending Installments Alert */}
+      {pendingInstallments.length > 0 && (
+        <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+          <CreditCard className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 dark:text-red-200">💰 Parcelas a Receber</AlertTitle>
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            Você tem {pendingInstallments.length} parcela(s) pendente(s) totalizando R$ {totalPendingAmount.toFixed(2)}
           </AlertDescription>
         </Alert>
       )}
@@ -343,7 +373,56 @@ const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      <Card>
+      {/* Pending Installments List */}
+      {pendingInstallments.length > 0 && (
+        <Card className="border-red-200 dark:border-red-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-600">
+              <CreditCard className="w-5 h-5" />
+              Parcelas a Receber
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingInstallments.slice(0, 5).map((inst: any) => (
+                <div 
+                  key={inst.id} 
+                  className={`flex justify-between items-center p-3 rounded-lg border ${
+                    inst.status === 'overdue' ? 'bg-red-100 dark:bg-red-900/30 border-red-300' :
+                    inst.status === 'urgent' ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-300' :
+                    inst.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300' :
+                    'bg-muted/50 border-muted'
+                  }`}
+                >
+                  <div>
+                    <span className="font-medium">{inst.appointments?.clients?.name || 'Cliente'}</span>
+                    <span className="text-muted-foreground mx-2">•</span>
+                    <span className="text-sm text-muted-foreground">Parcela {inst.installment_number}/{inst.total_installments}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold text-green-600">R$ {Number(inst.amount).toFixed(2)}</span>
+                    <span className={`ml-2 text-xs px-2 py-1 rounded-full block mt-1 ${
+                      inst.status === 'overdue' ? 'bg-red-200 text-red-700' :
+                      inst.status === 'urgent' ? 'bg-orange-200 text-orange-700' :
+                      inst.status === 'warning' ? 'bg-yellow-200 text-yellow-700' :
+                      'bg-gray-200 text-gray-700'
+                    }`}>
+                      {inst.status === 'overdue' ? 'VENCIDA' : format(new Date(inst.due_date), 'dd/MM')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {pendingInstallments.length > 5 && (
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  + {pendingInstallments.length - 5} parcela(s) a mais
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+        <Card>
           <CardHeader><CardTitle>Produtos com Estoque Baixo</CardTitle></CardHeader>
           <CardContent>
             {lowStockProducts.length === 0 ? (

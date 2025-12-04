@@ -170,6 +170,72 @@ export type Database = {
         }
         Relationships: []
       }
+      installments: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          created_at: string
+          due_date: string
+          id: string
+          installment_number: number
+          is_paid: boolean | null
+          notes: string | null
+          paid_date: string | null
+          payment_method: string | null
+          sale_id: number | null
+          total_installments: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          appointment_id?: string | null
+          created_at?: string
+          due_date: string
+          id?: string
+          installment_number: number
+          is_paid?: boolean | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          sale_id?: number | null
+          total_installments: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          created_at?: string
+          due_date?: string
+          id?: string
+          installment_number?: number
+          is_paid?: boolean | null
+          notes?: string | null
+          paid_date?: string | null
+          payment_method?: string | null
+          sale_id?: number | null
+          total_installments?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "installments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "installments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
