@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, CalendarRange, Database } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -25,12 +25,15 @@ interface AppSidebarProps {
 const menuItems = [
   { id: "dashboard", title: "Dashboard", icon: BarChart3 },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
+  { id: "calendar", title: "Calendário", icon: CalendarRange },
   { id: "clients", title: "Clientes", icon: Users },
   { id: "products", title: "Serviços", icon: Scissors },
   { id: "suppliers", title: "Fornecedores", icon: Building2 },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
   { id: "installments", title: "Parcelas", icon: CreditCard },
+  { id: "charts", title: "Gráficos", icon: PieChart },
   { id: "reports", title: "Relatórios", icon: TrendingUp },
+  { id: "backup", title: "Backup", icon: Database },
   { id: "company", title: "Meu Salão", icon: Briefcase },
 ];
 

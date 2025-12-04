@@ -71,6 +71,7 @@ export type Database = {
           created_at: string
           id: number
           name: string
+          preferences: string | null
           telefone: string | null
           user_id: string
         }
@@ -79,6 +80,7 @@ export type Database = {
           created_at?: string
           id?: number
           name: string
+          preferences?: string | null
           telefone?: string | null
           user_id: string
         }
@@ -87,6 +89,7 @@ export type Database = {
           created_at?: string
           id?: number
           name?: string
+          preferences?: string | null
           telefone?: string | null
           user_id?: string
         }

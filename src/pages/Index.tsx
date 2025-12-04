@@ -14,6 +14,9 @@ import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
 import FinanceiroTab from "@/components/FinanceiroTab";
 import InstallmentsTab from "@/components/InstallmentsTab";
+import ChartsMetrics from "@/components/ChartsMetrics";
+import CalendarAgenda from "@/components/CalendarAgenda";
+import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
@@ -120,6 +123,8 @@ export default function Index() {
         return <Dashboard />;
       case "appointments":
         return <AppointmentsTab />;
+      case "calendar":
+        return <CalendarAgenda />;
       case "clients":
         return <ClientsTab />;
       case "products":
@@ -130,8 +135,12 @@ export default function Index() {
         return <FinanceiroTab />;
       case "installments":
         return <InstallmentsTab />;
+      case "charts":
+        return <ChartsMetrics />;
       case "reports":
         return <ReportsTab />;
+      case "backup":
+        return <DataBackup />;
       case "company":
         return <CompanyDataTab />;
       default:
@@ -143,12 +152,15 @@ export default function Index() {
     const titles: Record<string, string> = {
       dashboard: "Dashboard",
       appointments: "Agenda",
+      calendar: "Calendário Visual",
       clients: "Clientes",
       products: "Serviços & Produtos",
       suppliers: "Fornecedores",
       financeiro: "Financeiro",
       installments: "Parcelas",
+      charts: "Gráficos & Métricas",
       reports: "Relatórios",
+      backup: "Backup dos Dados",
       company: "Meu Salão"
     };
     return titles[activeTab] || "Dashboard";
