@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, X, Smartphone, Sparkles } from 'lucide-react';
+import { Download, X, Sparkles, Share } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -8,28 +8,52 @@ const InstallButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // Detectar iOS
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+
+    // Verificar se já está instalado como PWA
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       (window.navigator as any).standalone === true;
+    setIsStandalone(standalone);
+
+    if (standalone) {
+      setShowInstall(false);
+      setShowBanner(false);
+      return;
+    }
+
+    // Handler para Chrome/Android
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstall(true);
       
-      // Mostrar banner automático após 2 segundos
       const dismissed = localStorage.getItem('pwa-banner-dismissed');
-      if (!dismissed) {
-        setTimeout(() => {
-          setShowBanner(true);
-        }, 2000);
+      const lastDismissed = localStorage.getItem('pwa-banner-dismissed-time');
+      const dayPassed = lastDismissed ? (Date.now() - parseInt(lastDismissed)) > 86400000 : true;
+      
+      if (!dismissed || dayPassed) {
+        setTimeout(() => setShowBanner(true), 2000);
       }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    // Verificar se já está instalado
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setShowInstall(false);
-      setShowBanner(false);
+    // Para iOS, sempre mostrar opção de instalação manual
+    if (iOS && !standalone) {
+      setShowInstall(true);
+      const dismissed = localStorage.getItem('pwa-banner-dismissed');
+      const lastDismissed = localStorage.getItem('pwa-banner-dismissed-time');
+      const dayPassed = lastDismissed ? (Date.now() - parseInt(lastDismissed)) > 86400000 : true;
+      
+      if (!dismissed || dayPassed) {
+        setTimeout(() => setShowBanner(true), 2000);
+      }
     }
 
     return () => {
@@ -38,7 +62,18 @@ const InstallButton: React.FC = () => {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
+    if (isIOS) {
+      toast.info(
+        'Para instalar no iPhone/iPad:\n1. Toque no ícone de compartilhar (📤)\n2. Role e toque em "Adicionar à Tela de Início"',
+        { duration: 8000 }
+      );
+      return;
+    }
+
+    if (!deferredPrompt) {
+      toast.info('Abra no Chrome e acesse: Menu (⋮) → "Instalar aplicativo"', { duration: 6000 });
+      return;
+    }
 
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
@@ -55,20 +90,22 @@ const InstallButton: React.FC = () => {
   const dismissBanner = () => {
     setShowBanner(false);
     localStorage.setItem('pwa-banner-dismissed', 'true');
+    localStorage.setItem('pwa-banner-dismissed-time', Date.now().toString());
   };
 
-  if (!showInstall) return null;
+  // Não mostrar se já instalado
+  if (isStandalone) return null;
 
   return (
     <>
-      {/* Botão de instalação compacto */}
+      {/* Botão de instalação compacto - sempre visível */}
       <Button 
         variant="default" 
         size="sm" 
         onClick={handleInstall}
         className="h-8 sm:h-9 px-2 sm:px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
       >
-        <Download className="w-4 h-4" />
+        {isIOS ? <Share className="w-4 h-4" /> : <Download className="w-4 h-4" />}
         <span className="hidden sm:inline ml-1.5 text-xs font-medium">Instalar</span>
       </Button>
 
@@ -110,14 +147,22 @@ const InstallButton: React.FC = () => {
                   <span className="text-center text-[10px] sm:text-xs">Notificações</span>
                 </div>
               </div>
-              <Button 
-                onClick={handleInstall} 
-                className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-medium"
-                size="lg"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Instalar Agora - Grátis
-              </Button>
+              
+              {isIOS ? (
+                <div className="text-xs text-center text-muted-foreground bg-muted/30 p-3 rounded-lg">
+                  <p className="font-medium mb-1">No iPhone/iPad:</p>
+                  <p>Toque em <Share className="inline w-4 h-4" /> e depois em "Adicionar à Tela de Início"</p>
+                </div>
+              ) : (
+                <Button 
+                  onClick={handleInstall} 
+                  className="w-full bg-gradient-to-r from-primary to-accent hover:opacity-90 text-primary-foreground font-medium"
+                  size="lg"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Instalar Agora - Grátis
+                </Button>
+              )}
             </CardContent>
           </Card>
         </div>
