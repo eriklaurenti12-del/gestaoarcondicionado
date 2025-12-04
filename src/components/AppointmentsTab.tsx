@@ -62,6 +62,8 @@ const AppointmentsTab: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
   const [filterStatus, setFilterStatus] = useState<string>("todos");
+  const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
+  const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
 
   React.useEffect(() => {
@@ -189,9 +191,22 @@ const AppointmentsTab: React.FC = () => {
       const matchesSearch = a.clients?.name.toLowerCase().includes(search.toLowerCase()) || 
                            a.products?.name.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = filterStatus === "todos" || a.status === filterStatus;
-      return (search === "" || matchesSearch) && matchesStatus;
+      
+      // Filter by month/year
+      const appointmentDateObj = new Date(a.appointment_date);
+      const matchesMonth = filterMonth === "todos" || (appointmentDateObj.getMonth() + 1) === parseInt(filterMonth);
+      const matchesYear = filterYear === "todos" || appointmentDateObj.getFullYear() === parseInt(filterYear);
+      
+      return (search === "" || matchesSearch) && matchesStatus && matchesMonth && matchesYear;
     });
-  }, [appointments, search, filterStatus]);
+  }, [appointments, search, filterStatus, filterMonth, filterYear]);
+
+  // Get unique years from appointments
+  const availableYears = useMemo(() => {
+    if (!appointments) return [new Date().getFullYear()];
+    const years = [...new Set(appointments.map(a => new Date(a.appointment_date).getFullYear()))];
+    return years.sort((a, b) => b - a);
+  }, [appointments]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
@@ -301,16 +316,16 @@ const AppointmentsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card>
+        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold">{todayAppointments}</div>
             <div className="text-xs text-muted-foreground">Hoje</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-yellow-500">
               {appointments?.filter(a => a.status === 'agendado').length || 0}
@@ -318,7 +333,7 @@ const AppointmentsTab: React.FC = () => {
             <div className="text-xs text-muted-foreground">Agendados</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-green-500">
               {appointments?.filter(a => a.status === 'confirmado').length || 0}
@@ -326,7 +341,7 @@ const AppointmentsTab: React.FC = () => {
             <div className="text-xs text-muted-foreground">Confirmados</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
           <CardContent className="pt-4">
             <div className="text-2xl font-bold text-primary">
               {appointments?.filter(a => a.status === 'concluido').length || 0}
@@ -367,8 +382,39 @@ const AppointmentsTab: React.FC = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10"/>
+              <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 transition-all duration-200"/>
             </div>
+            <Select value={filterMonth} onValueChange={setFilterMonth}>
+              <SelectTrigger className="w-full sm:w-[120px]">
+                <SelectValue placeholder="Mês" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="1">Janeiro</SelectItem>
+                <SelectItem value="2">Fevereiro</SelectItem>
+                <SelectItem value="3">Março</SelectItem>
+                <SelectItem value="4">Abril</SelectItem>
+                <SelectItem value="5">Maio</SelectItem>
+                <SelectItem value="6">Junho</SelectItem>
+                <SelectItem value="7">Julho</SelectItem>
+                <SelectItem value="8">Agosto</SelectItem>
+                <SelectItem value="9">Setembro</SelectItem>
+                <SelectItem value="10">Outubro</SelectItem>
+                <SelectItem value="11">Novembro</SelectItem>
+                <SelectItem value="12">Dezembro</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterYear} onValueChange={setFilterYear}>
+              <SelectTrigger className="w-full sm:w-[100px]">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="w-full sm:w-[140px]">
                 <SelectValue placeholder="Filtrar" />
