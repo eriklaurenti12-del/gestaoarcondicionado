@@ -18,17 +18,83 @@ export default function ResetPassword() {
   const [success, setSuccess] = useState(false);
 
   useEffect(() => {
-    // Check if there's a password recovery hash in the URL
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    let timeoutId: NodeJS.Timeout;
+    let isHandled = false;
 
-    if (type === 'recovery' && accessToken) {
-      // User came from recovery link
-      setIsReady(true);
+    // Setup auth listener FIRST - this is critical
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth event:', event, 'Session:', !!session);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        console.log('PASSWORD_RECOVERY event received');
+        isHandled = true;
+        setIsReady(true);
+        clearTimeout(timeoutId);
+      } else if (event === 'SIGNED_IN' && session) {
+        // User might have come from recovery and already signed in
+        console.log('SIGNED_IN event with session');
+        isHandled = true;
+        setIsReady(true);
+        clearTimeout(timeoutId);
+      }
+    });
+
+    // Check for tokens in URL (both hash and query params)
+    const checkUrlTokens = () => {
+      // Check hash params (most common for recovery)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const type = hashParams.get('type');
+      
+      // Check query params (alternative format)
+      const queryParams = new URLSearchParams(window.location.search);
+      const code = queryParams.get('code');
+      const queryType = queryParams.get('type');
+      
+      if ((type === 'recovery' && accessToken) || (queryType === 'recovery' && code)) {
+        console.log('Recovery tokens found in URL');
+        return true;
+      }
+      
+      // Check for any access token (might be recovery)
+      if (accessToken || code) {
+        console.log('Access token found in URL');
+        return true;
+      }
+      
+      return false;
+    };
+
+    const hasTokens = checkUrlTokens();
+    
+    if (hasTokens) {
+      // Tokens found - wait for auth event or session
+      console.log('Waiting for Supabase to process tokens...');
+      
+      // Give Supabase time to process the tokens
+      timeoutId = setTimeout(async () => {
+        if (isHandled) return;
+        
+        // Check if session was established
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Timeout check - session:', !!session);
+        
+        if (session) {
+          setIsReady(true);
+        } else {
+          // Still no session - might need more time or there's an issue
+          toast({
+            title: "Erro na verificação",
+            description: "Não foi possível verificar o link. Tente novamente.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+        }
+      }, 3000);
     } else {
-      // Check if already has an active session
+      // No tokens in URL - check for existing session
       supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log('No tokens, checking session:', !!session);
         if (session) {
           setIsReady(true);
         } else {
@@ -42,14 +108,10 @@ export default function ResetPassword() {
       });
     }
 
-    // Listener for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setIsReady(true);
-      }
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, [navigate, toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
