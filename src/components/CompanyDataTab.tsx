@@ -122,84 +122,172 @@ const CompanyDataTab: React.FC = () => {
     }
 
     const doc = new jsPDF();
-    doc.setFontSize(20);
-    doc.text('Dados do Salão', 14, 22);
+    const pageWidth = doc.internal.pageSize.getWidth();
     
-    doc.setFontSize(12);
-    let y = 40;
+    // Header with gradient effect
+    doc.setFillColor(147, 51, 234);
+    doc.rect(0, 0, pageWidth, 50, 'F');
     
-    doc.text(`CNPJ/CPF: ${cnpjCpf}`, 14, y);
-    y += 10;
-    doc.text(`Nome: ${companyName}`, 14, y);
-    y += 10;
+    // Gradient overlay
+    doc.setFillColor(219, 39, 119);
+    doc.rect(pageWidth / 2, 0, pageWidth / 2, 50, 'F');
     
-    if (whatsapp) {
-      doc.text(`WhatsApp: ${whatsapp}`, 14, y);
-      y += 10;
+    // Company name
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(28);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName, pageWidth / 2, 25, { align: 'center' });
+    
+    // Subtitle
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Cartão de Apresentação', pageWidth / 2, 35, { align: 'center' });
+    
+    // CNPJ/CPF badge
+    doc.setFontSize(9);
+    doc.text(`CNPJ/CPF: ${cnpjCpf}`, pageWidth / 2, 44, { align: 'center' });
+    
+    let y = 65;
+    doc.setTextColor(60, 60, 60);
+    
+    // Contact Info Box
+    if (whatsapp || phone || email) {
+      doc.setFillColor(250, 245, 255);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'F');
+      doc.setDrawColor(147, 51, 234);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(147, 51, 234);
+      doc.text('📞 CONTATO', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      
+      let contactY = y + 15;
+      if (whatsapp) { doc.text(`WhatsApp: ${whatsapp}`, 20, contactY); contactY += 8; }
+      if (phone) { doc.text(`Telefone: ${phone}`, 20, contactY); contactY += 8; }
+      if (email) { doc.text(`Email: ${email}`, 20, contactY); }
+      
+      y += 50;
     }
     
-    if (phone) {
-      doc.text(`Telefone: ${phone}`, 14, y);
-      y += 10;
+    // Schedule Box
+    if (openingHours || closingHours || workDays) {
+      doc.setFillColor(240, 253, 244);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'F');
+      doc.setDrawColor(34, 197, 94);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(34, 197, 94);
+      doc.text('🕐 HORÁRIO DE FUNCIONAMENTO', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      doc.text(`${workDays || 'Seg - Sáb'} • ${openingHours || '09:00'} às ${closingHours || '19:00'}`, 20, y + 18);
+      
+      y += 40;
     }
     
-    if (email) {
-      doc.text(`Email: ${email}`, 14, y);
-      y += 10;
+    // Social Media Box
+    if (instagram || facebook || website) {
+      doc.setFillColor(239, 246, 255);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'F');
+      doc.setDrawColor(59, 130, 246);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(59, 130, 246);
+      doc.text('🌐 REDES SOCIAIS', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      
+      let socialY = y + 15;
+      if (instagram) { doc.text(`Instagram: @${instagram}`, 20, socialY); socialY += 8; }
+      if (facebook) { doc.text(`Facebook: ${facebook}`, 20, socialY); socialY += 8; }
+      if (website) { doc.text(`Site: ${website}`, 20, socialY); }
+      
+      y += 45;
     }
     
+    // Address Box
     if (address) {
-      doc.text('Endereço:', 14, y);
-      y += 7;
-      const splitAddress = doc.splitTextToSize(address, 180);
-      doc.text(splitAddress, 14, y);
-      y += splitAddress.length * 7;
-    }
-
-    if (openingHours || closingHours) {
-      doc.text(`Horário: ${openingHours || '00:00'} às ${closingHours || '00:00'}`, 14, y);
-      y += 10;
-    }
-
-    if (workDays) {
-      doc.text(`Dias: ${workDays}`, 14, y);
-      y += 10;
-    }
-
-    if (instagram) {
-      doc.text(`Instagram: @${instagram}`, 14, y);
-      y += 10;
-    }
-
-    if (facebook) {
-      doc.text(`Facebook: ${facebook}`, 14, y);
-      y += 10;
-    }
-
-    if (website) {
-      doc.text(`Site: ${website}`, 14, y);
-      y += 10;
-    }
-
-    if (specialties) {
-      doc.text('Especialidades:', 14, y);
-      y += 7;
-      const splitSpecialties = doc.splitTextToSize(specialties, 180);
-      doc.text(splitSpecialties, 14, y);
-      y += splitSpecialties.length * 7;
-    }
-
-    if (description) {
-      doc.text('Sobre:', 14, y);
-      y += 7;
-      const splitDesc = doc.splitTextToSize(description, 180);
-      doc.text(splitDesc, 14, y);
+      doc.setFillColor(254, 252, 232);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'F');
+      doc.setDrawColor(234, 179, 8);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(161, 98, 7);
+      doc.text('📍 LOCALIZAÇÃO', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      const splitAddress = doc.splitTextToSize(address, 170);
+      doc.text(splitAddress, 20, y + 15);
+      
+      y += 45;
     }
     
-    doc.save(`dados-salao-${new Date().toISOString().split('T')[0]}.pdf`);
+    // Specialties Box
+    if (specialties) {
+      doc.setFillColor(253, 242, 248);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'F');
+      doc.setDrawColor(236, 72, 153);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(236, 72, 153);
+      doc.text('✨ ESPECIALIDADES', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      const splitSpecialties = doc.splitTextToSize(specialties, 170);
+      doc.text(splitSpecialties, 20, y + 15);
+      
+      y += 40;
+    }
+    
+    // Description Box
+    if (description) {
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 45, 3, 3, 'F');
+      doc.setDrawColor(100, 116, 139);
+      doc.roundedRect(14, y - 5, pageWidth - 28, 45, 3, 3, 'S');
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(71, 85, 105);
+      doc.text('📝 SOBRE NÓS', 20, y + 5);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(60, 60, 60);
+      doc.setFontSize(10);
+      const splitDesc = doc.splitTextToSize(description, 170);
+      doc.text(splitDesc, 20, y + 15);
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} • Sistema Salão de Beleza`, pageWidth / 2, 285, { align: 'center' });
+    
+    doc.save(`cartao-${companyName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
     toast({
       title: "PDF Exportado!",
-      description: "Dados do salão salvos em PDF."
+      description: "Cartão de apresentação salvo."
     });
   };
 

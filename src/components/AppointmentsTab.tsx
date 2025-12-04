@@ -65,6 +65,11 @@ const AppointmentsTab: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
+  
+  // Payment fields
+  const [paymentMethod, setPaymentMethod] = useState<string>("Dinheiro");
+  const [installments, setInstallments] = useState<number>(1);
+  const [firstDueDate, setFirstDueDate] = useState<string>("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -85,11 +90,40 @@ const AppointmentsTab: React.FC = () => {
 
   const addAppointmentMutation = useMutation({
     mutationFn: async (data: any) => {
-      const { error } = await supabase.from('appointments').insert(data);
+      const { payment_method, installments: numInstallments, first_due_date, installment_amount, ...appointmentData } = data;
+      
+      // Insert appointment
+      const { data: newAppointment, error } = await supabase.from('appointments').insert(appointmentData).select().single();
       if (error) throw error;
+      
+      // If there are installments > 1 and service selected, create installment records
+      if (numInstallments > 1 && appointmentData.service_id && first_due_date) {
+        const installmentRecords = [];
+        const baseDate = new Date(first_due_date);
+        
+        for (let i = 0; i < numInstallments; i++) {
+          const dueDate = new Date(baseDate);
+          dueDate.setMonth(dueDate.getMonth() + i);
+          
+          installmentRecords.push({
+            user_id: userId,
+            appointment_id: newAppointment.id,
+            installment_number: i + 1,
+            total_installments: numInstallments,
+            amount: installment_amount,
+            due_date: dueDate.toISOString().split('T')[0],
+            is_paid: false,
+            payment_method: payment_method
+          });
+        }
+        
+        const { error: installmentError } = await supabase.from('installments').insert(installmentRecords);
+        if (installmentError) console.error('Error creating installments:', installmentError);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
       toast({ title: "Sucesso!", description: "Agendamento criado." });
       resetForm();
       setShowAddDialog(false);
@@ -165,9 +199,12 @@ const AppointmentsTab: React.FC = () => {
     setAppointmentDate("");
     setAppointmentTime("");
     setNotes("");
+    setPaymentMethod("Dinheiro");
+    setInstallments(1);
+    setFirstDueDate("");
   };
 
-  const handleAddAppointment = () => {
+  const handleAddAppointment = async () => {
     if (!selectedClientId || !appointmentDate || !appointmentTime) {
       toast({ variant: "destructive", title: "Campos obrigatórios", description: "Cliente, data e horário são obrigatórios." });
       return;
@@ -175,13 +212,22 @@ const AppointmentsTab: React.FC = () => {
 
     const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     
+    // Get service price for installments
+    const service = services?.find(s => s.id === parseInt(selectedServiceId));
+    const servicePrice = service?.price || 0;
+    const installmentAmount = servicePrice / installments;
+    
     addAppointmentMutation.mutate({
       user_id: userId,
       client_id: parseInt(selectedClientId),
       service_id: selectedServiceId ? parseInt(selectedServiceId) : null,
       appointment_date: dateTime.toISOString(),
       notes: notes || null,
-      status: 'agendado'
+      status: 'agendado',
+      payment_method: paymentMethod,
+      installments: installments,
+      first_due_date: firstDueDate || null,
+      installment_amount: installmentAmount
     });
   };
 
@@ -609,6 +655,61 @@ const AppointmentsTab: React.FC = () => {
             <div className="space-y-2">
               <Label>Observações</Label>
               <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas adicionais..." />
+            </div>
+
+            {/* Payment Section */}
+            <div className="border-t pt-4 mt-4">
+              <Label className="text-sm font-semibold text-muted-foreground mb-3 block">Pagamento</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                      <SelectItem value="PIX">📱 PIX</SelectItem>
+                      <SelectItem value="Débito">💳 Débito</SelectItem>
+                      <SelectItem value="Crédito">💳 Crédito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Parcelas</Label>
+                  <Select value={String(installments)} onValueChange={(v) => setInstallments(parseInt(v))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Parcelas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">À vista</SelectItem>
+                      <SelectItem value="2">2x</SelectItem>
+                      <SelectItem value="3">3x</SelectItem>
+                      <SelectItem value="4">4x</SelectItem>
+                      <SelectItem value="5">5x</SelectItem>
+                      <SelectItem value="6">6x</SelectItem>
+                      <SelectItem value="10">10x</SelectItem>
+                      <SelectItem value="12">12x</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              {installments > 1 && (
+                <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-lg animate-fade-in">
+                  <Label>Data do 1º Vencimento *</Label>
+                  <Input 
+                    type="date" 
+                    value={firstDueDate} 
+                    onChange={(e) => setFirstDueDate(e.target.value)}
+                  />
+                  {selectedServiceId && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Valor por parcela: R$ {((services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0) / installments).toFixed(2)}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

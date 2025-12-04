@@ -168,14 +168,14 @@ export default function ResetPassword() {
     return (
       <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center p-4">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"></div>
-          <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px]"></div>
+          <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"></div>
+          <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px] animate-pulse"></div>
         </div>
-        <Card className="w-full max-w-md backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl">
+        <Card className="w-full max-w-md backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl animate-scale-in">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
-              <p className="text-gray-400">Verificando acesso...</p>
+              <p className="text-gray-400 animate-pulse">Verificando acesso...</p>
             </div>
           </CardContent>
         </Card>
