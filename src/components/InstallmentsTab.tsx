@@ -4,13 +4,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, Search, FileText, MessageCircle, Check, Filter, Calendar, DollarSign, Clock, AlertTriangle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { CreditCard, Search, FileText, MessageCircle, Check, Calendar, DollarSign, Clock, AlertTriangle, CalendarPlus, CalendarMinus, MoreHorizontal } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -30,6 +36,13 @@ const InstallmentsTab: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
+  
+  // Dialog states
+  const [editingInstallment, setEditingInstallment] = useState<any>(null);
+  const [newDueDate, setNewDueDate] = useState<Date | undefined>();
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
+  const [dateDialogMode, setDateDialogMode] = useState<'extend' | 'early'>('extend');
+  const [notes, setNotes] = useState('');
 
   const { data: installments = [], isLoading } = useQuery({
     queryKey: ['installments'],
@@ -93,6 +106,58 @@ const InstallmentsTab: React.FC = () => {
     }
     const message = `Olá ${clientName}, tudo bem? Passando para lembrar da parcela ${inst.installment_number}/${inst.total_installments} no valor de R$ ${Number(inst.amount).toFixed(2)} com vencimento em ${format(new Date(inst.due_date), 'dd/MM/yyyy')}.`;
     window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const openDateDialog = (inst: any, mode: 'extend' | 'early') => {
+    setEditingInstallment(inst);
+    setDateDialogMode(mode);
+    setNewDueDate(new Date(inst.due_date));
+    setNotes(inst.notes || '');
+    setIsDateDialogOpen(true);
+  };
+
+  const handleUpdateDueDate = async () => {
+    if (!editingInstallment || !newDueDate) return;
+
+    const { error } = await supabase
+      .from('installments')
+      .update({ 
+        due_date: newDueDate.toISOString().split('T')[0],
+        notes: notes || null
+      })
+      .eq('id', editingInstallment.id);
+
+    if (error) {
+      toast.error('Erro ao atualizar data');
+    } else {
+      const action = dateDialogMode === 'extend' ? 'Prazo estendido' : 'Data antecipada';
+      toast.success(`${action} com sucesso!`);
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'] });
+      setIsDateDialogOpen(false);
+      setEditingInstallment(null);
+    }
+  };
+
+  const handlePayEarly = async (inst: any) => {
+    const { error } = await supabase
+      .from('installments')
+      .update({ 
+        is_paid: true, 
+        paid_date: new Date().toISOString().split('T')[0],
+        notes: `Pagamento antecipado em ${format(new Date(), 'dd/MM/yyyy')}`
+      })
+      .eq('id', inst.id);
+
+    if (error) {
+      toast.error('Erro ao registrar pagamento');
+    } else {
+      toast.success('Pagamento antecipado registrado!');
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'] });
+    }
   };
 
   const exportToPDF = () => {
@@ -404,16 +469,39 @@ const InstallmentsTab: React.FC = () => {
                           >
                             <MessageCircle className="w-4 h-4" />
                           </Button>
+                          
                           {!inst.is_paid && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleMarkAsPaid(inst.id)}
-                              className="h-8 w-8 p-0 text-primary hover:text-primary/80 hover:bg-primary/10"
-                              title="Marcar como paga"
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0"
+                                  title="Mais opções"
+                                >
+                                  <MoreHorizontal className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => handleMarkAsPaid(inst.id)}>
+                                  <Check className="w-4 h-4 mr-2 text-green-600" />
+                                  Marcar como Paga
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handlePayEarly(inst)}>
+                                  <CalendarMinus className="w-4 h-4 mr-2 text-blue-600" />
+                                  Pagar Antecipado
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => openDateDialog(inst, 'extend')}>
+                                  <CalendarPlus className="w-4 h-4 mr-2 text-orange-600" />
+                                  Estender Prazo
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => openDateDialog(inst, 'early')}>
+                                  <Calendar className="w-4 h-4 mr-2 text-purple-600" />
+                                  Alterar Vencimento
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           )}
                         </div>
                       </TableCell>
@@ -425,6 +513,113 @@ const InstallmentsTab: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Dialog para alterar data de vencimento */}
+      <Dialog open={isDateDialogOpen} onOpenChange={setIsDateDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {dateDialogMode === 'extend' ? (
+                <>
+                  <CalendarPlus className="w-5 h-5 text-orange-600" />
+                  Estender Prazo
+                </>
+              ) : (
+                <>
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  Alterar Vencimento
+                </>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {editingInstallment && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <p className="font-medium">{editingInstallment.appointments?.clients?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  Parcela {editingInstallment.installment_number}/{editingInstallment.total_installments} • 
+                  R$ {Number(editingInstallment.amount).toFixed(2)}
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  Vencimento atual: {format(new Date(editingInstallment.due_date), 'dd/MM/yyyy')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Nova data de vencimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !newDueDate && "text-muted-foreground"
+                      )}
+                    >
+                      <Calendar className="mr-2 h-4 w-4" />
+                      {newDueDate ? format(newDueDate, "dd/MM/yyyy") : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={newDueDate}
+                      onSelect={setNewDueDate}
+                      locale={ptBR}
+                      className={cn("p-3 pointer-events-auto")}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {dateDialogMode === 'extend' && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewDueDate(addDays(new Date(editingInstallment.due_date), 7))}
+                  >
+                    +7 dias
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewDueDate(addDays(new Date(editingInstallment.due_date), 15))}
+                  >
+                    +15 dias
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewDueDate(addDays(new Date(editingInstallment.due_date), 30))}
+                  >
+                    +30 dias
+                  </Button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label>Observação (opcional)</Label>
+                <Input
+                  placeholder="Ex: Cliente pediu mais prazo"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDateDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateDueDate} disabled={!newDueDate}>
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
