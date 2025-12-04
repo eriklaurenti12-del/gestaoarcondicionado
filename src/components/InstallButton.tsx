@@ -71,19 +71,29 @@ const InstallButton: React.FC = () => {
     }
 
     if (!deferredPrompt) {
+      // Tentar forçar instalação via manifest
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = '/manifest.json';
+      document.head.appendChild(link);
       toast.info('Abra no Chrome e acesse: Menu (⋮) → "Instalar aplicativo"', { duration: 6000 });
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === 'accepted') {
-      toast.success('App instalado com sucesso! Acesse pela sua tela inicial.');
-      setDeferredPrompt(null);
-      setShowInstall(false);
-      setShowBanner(false);
-      localStorage.setItem('pwa-banner-dismissed', 'true');
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        toast.success('App instalado com sucesso! Acesse pela sua tela inicial.');
+        setDeferredPrompt(null);
+        setShowInstall(false);
+        setShowBanner(false);
+        localStorage.setItem('pwa-banner-dismissed', 'true');
+      }
+    } catch (error) {
+      console.error('Erro ao instalar:', error);
+      toast.error('Erro ao instalar. Tente novamente.');
     }
   };
 
