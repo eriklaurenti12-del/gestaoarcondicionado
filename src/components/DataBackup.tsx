@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -8,9 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Upload, FileJson, FileSpreadsheet, FileArchive, Shield, Database, Users, Calendar, Package, DollarSign, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Download, Upload, FileJson, FileSpreadsheet, FileArchive, Shield, Database, Users, Calendar, Package, DollarSign, CheckCircle2, AlertCircle, RefreshCw, CalendarDays, Filter } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval, subMonths, addMonths } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import JSZip from 'jszip';
 
 const fetchAllData = async () => {
@@ -52,6 +55,8 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
   const [exportProgress, setExportProgress] = useState(0);
   const [importProgress, setImportProgress] = useState(0);
   const [importPreview, setImportPreview] = useState<any>(null);
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [exportFormat, setExportFormat] = useState<'json' | 'zip' | 'csv'>('json');
 
   const { data, refetch } = useQuery({
     queryKey: ['backup-data'],
@@ -60,14 +65,42 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
   });
 
   const tables = [
-    { key: 'clients', label: 'Clientes', icon: Users, dbTable: 'clients' },
-    { key: 'products', label: 'Serviços/Produtos', icon: Package, dbTable: 'products' },
-    { key: 'appointments', label: 'Agendamentos', icon: Calendar, dbTable: 'appointments' },
-    { key: 'sales', label: 'Vendas', icon: DollarSign, dbTable: 'sales' },
-    { key: 'suppliers', label: 'Fornecedores', icon: Package, dbTable: 'suppliers' },
-    { key: 'installments', label: 'Parcelas', icon: DollarSign, dbTable: 'installments' },
-    { key: 'financialRecords', label: 'Registros Financeiros', icon: DollarSign, dbTable: 'financial_records' },
+    { key: 'clients', label: 'Clientes', icon: Users, dbTable: 'clients', dateField: 'created_at', color: 'bg-blue-500' },
+    { key: 'products', label: 'Serviços/Produtos', icon: Package, dbTable: 'products', dateField: 'created_at', color: 'bg-purple-500' },
+    { key: 'appointments', label: 'Agendamentos', icon: Calendar, dbTable: 'appointments', dateField: 'appointment_date', color: 'bg-green-500' },
+    { key: 'sales', label: 'Vendas', icon: DollarSign, dbTable: 'sales', dateField: 'sale_date', color: 'bg-amber-500' },
+    { key: 'suppliers', label: 'Fornecedores', icon: Package, dbTable: 'suppliers', dateField: 'created_at', color: 'bg-pink-500' },
+    { key: 'installments', label: 'Parcelas', icon: DollarSign, dbTable: 'installments', dateField: 'due_date', color: 'bg-red-500' },
+    { key: 'financialRecords', label: 'Registros Financeiros', icon: DollarSign, dbTable: 'financial_records', dateField: 'record_date', color: 'bg-cyan-500' },
   ];
+
+  // Generate months for filter (last 12 months + current)
+  const monthOptions = useMemo(() => {
+    const options = [{ value: 'all', label: 'Todos os meses' }];
+    const now = new Date();
+    for (let i = 0; i < 12; i++) {
+      const date = subMonths(now, i);
+      options.push({
+        value: format(date, 'yyyy-MM'),
+        label: format(date, 'MMMM yyyy', { locale: ptBR })
+      });
+    }
+    return options;
+  }, []);
+
+  const filterDataByMonth = (data: any[], dateField: string) => {
+    if (selectedMonth === 'all') return data;
+    
+    const [year, month] = selectedMonth.split('-').map(Number);
+    const start = startOfMonth(new Date(year, month - 1));
+    const end = endOfMonth(new Date(year, month - 1));
+    
+    return data.filter(item => {
+      if (!item[dateField]) return false;
+      const itemDate = parseISO(item[dateField]);
+      return isWithinInterval(itemDate, { start, end });
+    });
+  };
 
   const toggleTable = (tableKey: string) => {
     setSelectedTables(prev => 
@@ -77,134 +110,6 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
 
   const selectAll = () => setSelectedTables(tables.map(t => t.key));
   const deselectAll = () => setSelectedTables([]);
-
-  // Export Functions
-  const exportToJSON = async () => {
-    setIsExporting(true);
-    setExportProgress(10);
-    try {
-      const result = await refetch();
-      setExportProgress(50);
-      if (!result.data) throw new Error('No data to export');
-
-      const exportData: Record<string, any> = {
-        exportDate: new Date().toISOString(),
-        version: '2.0',
-        appName: 'Salao de Beleza',
-        data: {}
-      };
-
-      selectedTables.forEach(table => {
-        if (result.data[table as keyof typeof result.data]) {
-          exportData.data[table] = result.data[table as keyof typeof result.data];
-        }
-      });
-
-      setExportProgress(80);
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-      downloadFile(blob, `backup-salao-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`);
-      setExportProgress(100);
-      toast({ title: "Backup realizado!", description: "Arquivo JSON exportado com sucesso." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro no backup", description: error.message });
-    } finally {
-      setIsExporting(false);
-      setTimeout(() => setExportProgress(0), 1000);
-    }
-  };
-
-  const exportToZIP = async () => {
-    setIsExporting(true);
-    setExportProgress(10);
-    try {
-      const result = await refetch();
-      setExportProgress(30);
-      if (!result.data) throw new Error('No data to export');
-
-      const zip = new JSZip();
-      const backupFolder = zip.folder('backup-salao');
-      
-      // Add metadata
-      const metadata = {
-        exportDate: new Date().toISOString(),
-        version: '2.0',
-        appName: 'Salao de Beleza',
-        tables: selectedTables
-      };
-      backupFolder?.file('_metadata.json', JSON.stringify(metadata, null, 2));
-      
-      setExportProgress(50);
-      
-      // Add each table as separate JSON file
-      selectedTables.forEach(tableKey => {
-        const tableData = result.data[tableKey as keyof typeof result.data];
-        if (tableData && tableData.length > 0) {
-          backupFolder?.file(`${tableKey}.json`, JSON.stringify(tableData, null, 2));
-        }
-      });
-
-      setExportProgress(80);
-      const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
-      downloadFile(content, `backup-salao-${format(new Date(), 'yyyy-MM-dd-HHmm')}.zip`);
-      setExportProgress(100);
-      toast({ title: "Backup realizado!", description: "Arquivo ZIP exportado com sucesso." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro no backup", description: error.message });
-    } finally {
-      setIsExporting(false);
-      setTimeout(() => setExportProgress(0), 1000);
-    }
-  };
-
-  const exportToCSV = async () => {
-    setIsExporting(true);
-    setExportProgress(10);
-    try {
-      const result = await refetch();
-      setExportProgress(30);
-      if (!result.data) throw new Error('No data to export');
-
-      const zip = new JSZip();
-      const csvFolder = zip.folder('backup-csv');
-      
-      selectedTables.forEach(tableKey => {
-        const tableData = result.data[tableKey as keyof typeof result.data];
-        if (!tableData || tableData.length === 0) return;
-
-        const headers = Object.keys(tableData[0]).filter(h => 
-          typeof tableData[0][h] !== 'object' || tableData[0][h] === null
-        );
-        
-        const csvRows = [headers.join(',')];
-        tableData.forEach((row: any) => {
-          const values = headers.map(header => {
-            let value = row[header];
-            if (value === null || value === undefined) return '';
-            if (typeof value === 'string') {
-              value = value.replace(/"/g, '""');
-              if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-                value = `"${value}"`;
-              }
-            }
-            return value;
-          });
-          csvRows.push(values.join(','));
-        });
-
-        csvFolder?.file(`${tableKey}.csv`, '\ufeff' + csvRows.join('\n'));
-      });
-
-      setExportProgress(80);
-      const content = await zip.generateAsync({ type: 'blob' });
-      downloadFile(content, `backup-csv-${format(new Date(), 'yyyy-MM-dd')}.zip`);
-      toast({ title: "Backup realizado!", description: "Arquivos CSV exportados em ZIP." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro no backup", description: error.message });
-    } finally {
-      setIsExporting(false);
-      setTimeout(() => setExportProgress(0), 1000);
-    }
-  };
 
   const downloadFile = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
@@ -217,7 +122,103 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
     URL.revokeObjectURL(url);
   };
 
-  // Import Functions
+  const executeExport = async () => {
+    setIsExporting(true);
+    setExportProgress(10);
+    
+    try {
+      const result = await refetch();
+      setExportProgress(30);
+      if (!result.data) throw new Error('Nenhum dado para exportar');
+
+      const monthLabel = selectedMonth === 'all' ? 'completo' : selectedMonth;
+      const exportData: Record<string, any> = {
+        exportDate: new Date().toISOString(),
+        version: '2.0',
+        appName: 'Salao de Beleza',
+        period: selectedMonth,
+        data: {}
+      };
+
+      selectedTables.forEach(tableKey => {
+        const tableConfig = tables.find(t => t.key === tableKey);
+        if (!tableConfig) return;
+        
+        let tableData = result.data[tableKey as keyof typeof result.data] || [];
+        if (selectedMonth !== 'all') {
+          tableData = filterDataByMonth(tableData, tableConfig.dateField);
+        }
+        exportData.data[tableKey] = tableData;
+      });
+
+      setExportProgress(60);
+
+      if (exportFormat === 'json') {
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        downloadFile(blob, `backup-${monthLabel}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`);
+      } else if (exportFormat === 'zip') {
+        const zip = new JSZip();
+        const folder = zip.folder(`backup-${monthLabel}`);
+        
+        folder?.file('_metadata.json', JSON.stringify({
+          exportDate: exportData.exportDate,
+          version: exportData.version,
+          period: exportData.period,
+          tables: Object.keys(exportData.data)
+        }, null, 2));
+        
+        Object.entries(exportData.data).forEach(([key, value]) => {
+          if (Array.isArray(value) && value.length > 0) {
+            folder?.file(`${key}.json`, JSON.stringify(value, null, 2));
+          }
+        });
+        
+        const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        downloadFile(content, `backup-${monthLabel}-${format(new Date(), 'yyyy-MM-dd-HHmm')}.zip`);
+      } else if (exportFormat === 'csv') {
+        const zip = new JSZip();
+        const folder = zip.folder(`csv-${monthLabel}`);
+        
+        Object.entries(exportData.data).forEach(([key, value]) => {
+          if (!Array.isArray(value) || value.length === 0) return;
+          
+          const headers = Object.keys(value[0]).filter(h => 
+            typeof value[0][h] !== 'object' || value[0][h] === null
+          );
+          
+          const csvRows = [headers.join(',')];
+          value.forEach((row: any) => {
+            const values = headers.map(header => {
+              let val = row[header];
+              if (val === null || val === undefined) return '';
+              if (typeof val === 'string') {
+                val = val.replace(/"/g, '""');
+                if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+                  val = `"${val}"`;
+                }
+              }
+              return val;
+            });
+            csvRows.push(values.join(','));
+          });
+          
+          folder?.file(`${key}.csv`, '\ufeff' + csvRows.join('\n'));
+        });
+        
+        const content = await zip.generateAsync({ type: 'blob' });
+        downloadFile(content, `csv-${monthLabel}-${format(new Date(), 'yyyy-MM-dd')}.zip`);
+      }
+
+      setExportProgress(100);
+      toast({ title: "Backup realizado!", description: `Exportado com sucesso (${monthLabel})` });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro no backup", description: error.message });
+    } finally {
+      setIsExporting(false);
+      setTimeout(() => setExportProgress(0), 1000);
+    }
+  };
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -236,6 +237,7 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
           filename: file.name,
           date: parsed.exportDate,
           version: parsed.version,
+          period: parsed.period || 'N/A',
           tables: Object.keys(parsed.data).map(key => ({
             key,
             count: Array.isArray(parsed.data[key]) ? parsed.data[key].length : 0
@@ -244,29 +246,42 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
         });
       } else if (file.name.endsWith('.zip')) {
         const zip = await JSZip.loadAsync(file);
-        const folder = zip.folder('backup-salao');
         
-        if (!folder) throw new Error('Estrutura de backup inválida');
+        // Find the backup folder
+        let folder: JSZip | null = null;
+        let folderName = '';
+        zip.forEach((path, entry) => {
+          if (entry.dir && path.includes('backup')) {
+            folder = zip.folder(path.replace('/', ''));
+            folderName = path.replace('/', '');
+          }
+        });
         
-        const metadataFile = folder.file('_metadata.json');
-        let metadata = null;
+        if (!folder) {
+          folder = zip;
+          folderName = '';
+        }
         
-        if (metadataFile) {
-          const metaText = await metadataFile.async('text');
+        let metadata: any = null;
+        const metaFile = folder.file(folderName ? `${folderName}/_metadata.json` : '_metadata.json') || 
+                         folder.file('_metadata.json');
+        
+        if (metaFile) {
+          const metaText = await metaFile.async('text');
           metadata = JSON.parse(metaText);
         }
         
         const tablesList: any[] = [];
         const rawData: Record<string, any[]> = {};
         
-        for (const [relativePath, zipEntry] of Object.entries(folder.files)) {
-          if (relativePath.endsWith('.json') && !relativePath.includes('_metadata')) {
-            const content = await (zipEntry as JSZip.JSZipObject).async('text');
-            const tableKey = relativePath.replace('backup-salao/', '').replace('.json', '');
-            const tableData = JSON.parse(content);
-            rawData[tableKey] = tableData;
-            tablesList.push({ key: tableKey, count: tableData.length });
-          }
+        const files = folder.filter((path, file) => path.endsWith('.json') && !path.includes('_metadata'));
+        
+        for (const file of files) {
+          const content = await file.async('text');
+          const tableKey = file.name.replace(/.*\//, '').replace('.json', '');
+          const tableData = JSON.parse(content);
+          rawData[tableKey] = tableData;
+          tablesList.push({ key: tableKey, count: tableData.length });
         }
         
         setImportPreview({
@@ -274,11 +289,12 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
           filename: file.name,
           date: metadata?.exportDate,
           version: metadata?.version,
+          period: metadata?.period || 'N/A',
           tables: tablesList,
           rawData
         });
       } else {
-        throw new Error('Formato de arquivo não suportado. Use .json ou .zip');
+        throw new Error('Formato não suportado. Use .json ou .zip');
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao ler arquivo", description: error.message });
@@ -292,8 +308,8 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
     if (!importPreview?.rawData) return;
     
     const confirmed = window.confirm(
-      '⚠️ ATENÇÃO: Esta ação irá SUBSTITUIR os dados existentes pelas informações do backup.\n\n' +
-      'Dados atuais serão perdidos. Deseja continuar?'
+      '⚠️ ATENÇÃO: Esta ação irá ADICIONAR os dados do backup.\n\n' +
+      'Dados duplicados podem ser criados. Deseja continuar?'
     );
     
     if (!confirmed) return;
@@ -309,7 +325,6 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
       const totalTables = Object.keys(importPreview.rawData).length;
       let processed = 0;
       
-      // Import order matters due to foreign keys
       const importOrder = ['suppliers', 'clients', 'products', 'appointments', 'sales', 'installments', 'financialRecords'];
       
       for (const tableKey of importOrder) {
@@ -321,17 +336,13 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
         const tableData = importPreview.rawData[tableKey];
         if (!Array.isArray(tableData) || tableData.length === 0) continue;
         
-        // Delete existing data based on table
         const dbTable = tableConfig.dbTable as 'clients' | 'products' | 'appointments' | 'sales' | 'suppliers' | 'installments' | 'financial_records';
-        await supabase.from(dbTable).delete().eq('user_id', userId);
         
-        // Prepare data for insert (update user_id, remove id for auto-generation)
         const preparedData = tableData.map((row: any) => {
           const { id, clients, products, ...rest } = row;
           return { ...rest, user_id: userId };
         });
         
-        // Insert in batches of 100
         for (let i = 0; i < preparedData.length; i += 100) {
           const batch = preparedData.slice(i, i + 100);
           const { error } = await supabase.from(dbTable).insert(batch as any);
@@ -342,10 +353,8 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
         setImportProgress(Math.round((processed / totalTables) * 100));
       }
       
-      // Invalidate all queries to refresh data
       queryClient.invalidateQueries();
-      
-      toast({ title: "Importação concluída!", description: "Todos os dados foram restaurados com sucesso." });
+      toast({ title: "Importação concluída!", description: "Dados restaurados com sucesso." });
       setImportPreview(null);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro na importação", description: error.message });
@@ -357,54 +366,163 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
 
   return (
     <div className={`space-y-6 ${className}`}>
-      <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-        <Shield className="h-4 w-4 text-blue-600" />
-        <AlertTitle className="text-blue-800 dark:text-blue-200">Backup & Restauração Segura</AlertTitle>
-        <AlertDescription className="text-blue-700 dark:text-blue-300">
-          Exporte seus dados para backup ou restaure a partir de um arquivo anterior.
-        </AlertDescription>
-      </Alert>
+      {/* Header Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{tables.length}</p>
+                <p className="text-xs text-muted-foreground">Tabelas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
+                <Download className="w-5 h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">3</p>
+                <p className="text-xs text-muted-foreground">Formatos</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                <CalendarDays className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">12</p>
+                <p className="text-xs text-muted-foreground">Meses</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900">
+                <Upload className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">✓</p>
+                <p className="text-xs text-muted-foreground">Restaurar</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Tabs defaultValue="export" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="export" className="flex items-center gap-2">
+        <TabsList className="grid w-full grid-cols-2 h-12">
+          <TabsTrigger value="export" className="flex items-center gap-2 text-base">
             <Download className="w-4 h-4" />
-            Exportar Backup
+            Exportar
           </TabsTrigger>
-          <TabsTrigger value="import" className="flex items-center gap-2">
+          <TabsTrigger value="import" className="flex items-center gap-2 text-base">
             <Upload className="w-4 h-4" />
-            Importar Backup
+            Importar
           </TabsTrigger>
         </TabsList>
 
         {/* EXPORT TAB */}
-        <TabsContent value="export">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Table Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Database className="w-5 h-5" />
-                  Selecionar Dados
+        <TabsContent value="export" className="mt-6">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Filters */}
+            <Card className="xl:col-span-1">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Filter className="w-5 h-5" />
+                  Filtros
                 </CardTitle>
-                <CardDescription>Escolha quais tabelas exportar</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Período</Label>
+                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione o mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {monthOptions.map(option => (
+                        <SelectItem key={option.value} value={option.value}>
+                          <span className="capitalize">{option.label}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Formato</Label>
+                  <Select value={exportFormat} onValueChange={(v: any) => setExportFormat(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="json">
+                        <span className="flex items-center gap-2">
+                          <FileJson className="w-4 h-4 text-amber-600" /> JSON
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="zip">
+                        <span className="flex items-center gap-2">
+                          <FileArchive className="w-4 h-4 text-purple-600" /> ZIP Comprimido
+                        </span>
+                      </SelectItem>
+                      <SelectItem value="csv">
+                        <span className="flex items-center gap-2">
+                          <FileSpreadsheet className="w-4 h-4 text-green-600" /> CSV/Excel
+                        </span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="pt-2">
+                  <div className="flex justify-between mb-2">
+                    <Button variant="ghost" size="sm" onClick={selectAll} className="text-xs">
+                      Todos
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={deselectAll} className="text-xs">
+                      Limpar
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Tables Selection */}
+            <Card className="xl:col-span-1">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Database className="w-5 h-5" />
+                  Dados
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex gap-2 mb-4">
-                  <Button variant="outline" size="sm" onClick={selectAll}>Selecionar Tudo</Button>
-                  <Button variant="outline" size="sm" onClick={deselectAll}>Limpar</Button>
-                </div>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[320px] overflow-y-auto pr-2">
                   {tables.map(table => {
                     const Icon = table.icon;
                     const isSelected = selectedTables.includes(table.key);
                     return (
                       <div key={table.key} onClick={() => toggleTable(table.key)}
                         className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all
-                          ${isSelected ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50'}`}>
+                          ${isSelected ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:bg-muted/50'}`}>
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleTable(table.key)} />
-                        <Icon className={`w-4 h-4 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <Label className="cursor-pointer font-medium flex-1">{table.label}</Label>
+                        <div className={`p-1.5 rounded ${table.color}`}>
+                          <Icon className="w-3.5 h-3.5 text-white" />
+                        </div>
+                        <span className="text-sm font-medium flex-1">{table.label}</span>
                       </div>
                     );
                   })}
@@ -412,12 +530,12 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
               </CardContent>
             </Card>
 
-            {/* Export Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
+            {/* Export Action */}
+            <Card className="xl:col-span-1">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <Download className="w-5 h-5" />
-                  Formato de Exportação
+                  Exportar
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -431,53 +549,43 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
                   </div>
                 )}
 
-                <div className="grid gap-3">
-                  <Button onClick={exportToJSON} disabled={isExporting || selectedTables.length === 0}
-                    className="w-full justify-start h-auto py-3" variant="outline">
-                    <FileJson className="w-5 h-5 mr-3 text-amber-600" />
-                    <div className="text-left">
-                      <div className="font-semibold">JSON</div>
-                      <div className="text-xs text-muted-foreground">Formato padrão para importação</div>
-                    </div>
-                  </Button>
-
-                  <Button onClick={exportToZIP} disabled={isExporting || selectedTables.length === 0}
-                    className="w-full justify-start h-auto py-3" variant="outline">
-                    <FileArchive className="w-5 h-5 mr-3 text-purple-600" />
-                    <div className="text-left">
-                      <div className="font-semibold">ZIP Comprimido</div>
-                      <div className="text-xs text-muted-foreground">Arquivos separados compactados</div>
-                    </div>
-                  </Button>
-
-                  <Button onClick={exportToCSV} disabled={isExporting || selectedTables.length === 0}
-                    className="w-full justify-start h-auto py-3" variant="outline">
-                    <FileSpreadsheet className="w-5 h-5 mr-3 text-green-600" />
-                    <div className="text-left">
-                      <div className="font-semibold">CSV/Excel (ZIP)</div>
-                      <div className="text-xs text-muted-foreground">Compatível com planilhas</div>
-                    </div>
-                  </Button>
+                <div className="p-4 rounded-lg bg-gradient-to-br from-primary/5 to-primary/10 border border-primary/20">
+                  <div className="text-center space-y-2">
+                    <Badge variant="outline" className="mb-2">
+                      {selectedMonth === 'all' ? 'Todos os dados' : monthOptions.find(m => m.value === selectedMonth)?.label}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedTables.length} tabela(s) selecionada(s)
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Formato: {exportFormat.toUpperCase()}
+                    </p>
+                  </div>
                 </div>
 
-                <div className="p-4 rounded-lg bg-muted/50 space-y-2">
-                  <h5 className="font-medium flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    Dicas
-                  </h5>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Use JSON ou ZIP para restauração posterior</li>
-                    <li>• Faça backup semanal regularmente</li>
-                    <li>• Guarde em local seguro (Drive, HD externo)</li>
-                  </ul>
-                </div>
+                <Button 
+                  onClick={executeExport} 
+                  disabled={isExporting || selectedTables.length === 0}
+                  className="w-full h-12 text-base"
+                  size="lg"
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Gerar Backup
+                </Button>
+
+                <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-xs text-green-700 dark:text-green-300">
+                    Use JSON ou ZIP para restauração posterior
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
         {/* IMPORT TAB */}
-        <TabsContent value="import">
+        <TabsContent value="import" className="mt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* File Selection */}
             <Card>
@@ -486,7 +594,7 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
                   <Upload className="w-5 h-5" />
                   Selecionar Arquivo
                 </CardTitle>
-                <CardDescription>Escolha um arquivo de backup para restaurar</CardDescription>
+                <CardDescription>Escolha um backup para restaurar</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <input
@@ -499,24 +607,26 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
                 
                 <div 
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all"
+                  className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all group"
                 >
-                  <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                  <p className="font-medium">Clique para selecionar arquivo</p>
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                    <Upload className="w-8 h-8 text-primary" />
+                  </div>
+                  <p className="font-semibold text-lg">Clique para selecionar</p>
                   <p className="text-sm text-muted-foreground mt-1">Formatos: .json ou .zip</p>
                 </div>
 
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>Atenção</AlertTitle>
-                  <AlertDescription>
-                    A importação substituirá os dados existentes. Faça backup antes de continuar.
+                  <AlertDescription className="text-xs">
+                    Os dados serão adicionados ao sistema. Dados existentes não serão apagados.
                   </AlertDescription>
                 </Alert>
               </CardContent>
             </Card>
 
-            {/* Preview & Confirm */}
+            {/* Preview */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -537,47 +647,53 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
 
                 {importPreview ? (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-lg bg-muted/50">
-                      <div className="grid grid-cols-2 gap-2 text-sm">
-                        <div className="text-muted-foreground">Arquivo:</div>
-                        <div className="font-medium">{importPreview.filename}</div>
-                        <div className="text-muted-foreground">Formato:</div>
-                        <div className="font-medium uppercase">{importPreview.type}</div>
-                        <div className="text-muted-foreground">Versão:</div>
-                        <div className="font-medium">{importPreview.version || 'N/A'}</div>
-                        {importPreview.date && (
-                          <>
-                            <div className="text-muted-foreground">Data do backup:</div>
-                            <div className="font-medium">{format(new Date(importPreview.date), 'dd/MM/yyyy HH:mm')}</div>
-                          </>
-                        )}
+                    <div className="p-4 rounded-lg bg-gradient-to-br from-muted/50 to-muted/30 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Arquivo:</span>
+                        <Badge variant="outline">{importPreview.filename}</Badge>
                       </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Período:</span>
+                        <Badge>{importPreview.period}</Badge>
+                      </div>
+                      {importPreview.date && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-muted-foreground">Data:</span>
+                          <span className="text-sm">{format(new Date(importPreview.date), 'dd/MM/yyyy HH:mm')}</span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-2">
-                      <h5 className="font-medium">Dados encontrados:</h5>
-                      {importPreview.tables.map((table: any) => (
-                        <div key={table.key} className="flex justify-between items-center p-2 rounded bg-muted/30">
-                          <span className="capitalize">{table.key}</span>
-                          <span className="text-sm text-muted-foreground">{table.count} registro(s)</span>
-                        </div>
-                      ))}
+                      <Label className="text-sm font-medium">Dados encontrados:</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {importPreview.tables.map((table: any) => {
+                          const config = tables.find(t => t.key === table.key);
+                          return (
+                            <div key={table.key} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 text-sm">
+                              <span className="capitalize truncate">{config?.label || table.key}</span>
+                              <Badge variant="secondary" className="ml-2">{table.count}</Badge>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 pt-2">
                       <Button variant="outline" onClick={() => setImportPreview(null)} className="flex-1">
                         Cancelar
                       </Button>
                       <Button onClick={executeImport} disabled={isImporting} className="flex-1 bg-green-600 hover:bg-green-700">
                         <Upload className="w-4 h-4 mr-2" />
-                        Restaurar Dados
+                        Restaurar
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                    <Database className="w-12 h-12 mb-4 opacity-50" />
-                    <p>Selecione um arquivo para visualizar</p>
+                    <Database className="w-16 h-16 mb-4 opacity-30" />
+                    <p className="font-medium">Nenhum arquivo selecionado</p>
+                    <p className="text-sm">Selecione um backup para visualizar</p>
                   </div>
                 )}
               </CardContent>

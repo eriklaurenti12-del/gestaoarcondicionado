@@ -14,6 +14,7 @@ import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
 import FinanceiroTab from "@/components/FinanceiroTab";
 import InstallmentsTab from "@/components/InstallmentsTab";
+import SalesTab from "@/components/SalesTab";
 import ChartsMetrics from "@/components/ChartsMetrics";
 import CalendarAgenda from "@/components/CalendarAgenda";
 import DataBackup from "@/components/DataBackup";
@@ -131,6 +132,8 @@ export default function Index() {
         return <ProductsTab />;
       case "suppliers":
         return <SuppliersTab />;
+      case "sales":
+        return <SalesTab />;
       case "financeiro":
         return <FinanceiroTab />;
       case "installments":
@@ -156,6 +159,7 @@ export default function Index() {
       clients: "Clientes",
       products: "Serviços & Produtos",
       suppliers: "Fornecedores",
+      sales: "Vendas",
       financeiro: "Financeiro",
       installments: "Parcelas",
       charts: "Gráficos & Métricas",
