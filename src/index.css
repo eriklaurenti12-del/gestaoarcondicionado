@@ -6,7 +6,59 @@
 
 @layer base {
   :root {
-    /* Cores elegantes para Salão de Beleza - Rose Gold & Soft Pink */
+    /* Modo Claro - Rose Gold & Soft Pink */
+    --background: 340 20% 98%;
+    --foreground: 340 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 340 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 340 30% 15%;
+
+    --primary: 340 65% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 25 70% 55%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 340 15% 92%;
+    --muted-foreground: 340 20% 40%;
+
+    --accent: 340 80% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 340 20% 85%;
+    --input: 340 15% 90%;
+    --ring: 340 65% 50%;
+
+    --radius: 0.75rem;
+
+    /* Gradientes elegantes para salão */
+    --gradient-primary: linear-gradient(135deg, hsl(340 65% 50%), hsl(25 70% 55%));
+    --gradient-secondary: linear-gradient(180deg, hsl(340 15% 95%), hsl(340 20% 98%));
+    --gradient-glow: linear-gradient(135deg, hsl(340 65% 50% / 0.15), hsl(25 70% 55% / 0.15));
+
+    /* Sombras suaves para modo claro */
+    --shadow-glow-primary: 0 0 30px hsl(340 65% 50% / 0.2);
+    --shadow-glow-secondary: 0 0 30px hsl(25 70% 55% / 0.2);
+    --shadow-elegant: 0 10px 30px -10px hsl(340 65% 50% / 0.15);
+
+    --sidebar-background: 340 15% 96%;
+    --sidebar-foreground: 340 30% 15%;
+    --sidebar-primary: 340 65% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 340 15% 90%;
+    --sidebar-accent-foreground: 340 30% 15%;
+    --sidebar-border: 340 20% 85%;
+    --sidebar-ring: 340 65% 50%;
+  }
+
+  .dark {
+    /* Modo Escuro - Rose Gold & Soft Pink */
     --background: 340 20% 6%;
     --foreground: 340 10% 96%;
 
@@ -35,9 +87,7 @@
     --input: 340 15% 15%;
     --ring: 340 65% 55%;
 
-    --radius: 0.75rem;
-
-    /* Gradientes elegantes para salão */
+    /* Gradientes elegantes para salão - dark */
     --gradient-primary: linear-gradient(135deg, hsl(340 65% 55%), hsl(25 70% 65%));
     --gradient-secondary: linear-gradient(180deg, hsl(340 15% 10%), hsl(340 20% 6%));
     --gradient-glow: linear-gradient(135deg, hsl(340 65% 55% / 0.2), hsl(25 70% 65% / 0.2));
@@ -46,45 +96,6 @@
     --shadow-glow-primary: 0 0 40px hsl(340 65% 55% / 0.5);
     --shadow-glow-secondary: 0 0 40px hsl(25 70% 65% / 0.5);
     --shadow-elegant: 0 20px 40px -10px hsl(340 65% 55% / 0.3);
-
-    --sidebar-background: 340 15% 10%;
-    --sidebar-foreground: 340 10% 96%;
-    --sidebar-primary: 340 65% 55%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 340 15% 15%;
-    --sidebar-accent-foreground: 340 10% 96%;
-    --sidebar-border: 340 15% 18%;
-    --sidebar-ring: 340 65% 55%;
-  }
-
-  .dark {
-    --background: 340 20% 6%;
-    --foreground: 340 10% 96%;
-
-    --card: 340 15% 10%;
-    --card-foreground: 340 10% 96%;
-
-    --popover: 340 15% 10%;
-    --popover-foreground: 340 10% 96%;
-
-    --primary: 340 65% 55%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 25 70% 65%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 340 15% 15%;
-    --muted-foreground: 340 10% 65%;
-
-    --accent: 340 80% 65%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 340 15% 18%;
-    --input: 340 15% 15%;
-    --ring: 340 65% 55%;
 
     --sidebar-background: 340 15% 10%;
     --sidebar-foreground: 340 10% 96%;
