@@ -12,6 +12,7 @@ import ReportsTab from "@/components/ReportsTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
 import FinanceiroTab from "@/components/FinanceiroTab";
+import InstallmentsTab from "@/components/InstallmentsTab";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 
@@ -72,6 +73,8 @@ export default function Index() {
         return <SuppliersTab />;
       case "financeiro":
         return <FinanceiroTab />;
+      case "installments":
+        return <InstallmentsTab />;
       case "reports":
         return <ReportsTab />;
       case "company":
@@ -89,6 +92,7 @@ export default function Index() {
       products: "Serviços & Produtos",
       suppliers: "Fornecedores",
       financeiro: "Financeiro",
+      installments: "Parcelas",
       reports: "Relatórios",
       company: "Meu Salão"
     };
