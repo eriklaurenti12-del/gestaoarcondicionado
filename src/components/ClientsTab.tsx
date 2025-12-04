@@ -5,17 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Pencil, FileDown, Gift, MessageCircle, PlusCircle } from "lucide-react";
+import { Trash2, Search, Pencil, FileDown, Gift, MessageCircle, PlusCircle, History } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import EditClientDialog from './EditClientDialog';
 import AddClientDialog from './AddClientDialog';
+import ClientHistoryDialog from './ClientHistoryDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, differenceInDays, parseISO, isValid } from 'date-fns';
 
-type ClientWithSales = Tables<'clients'> & { sales: Pick<Tables<'sales'>, 'sale_price' | 'qty'>[] };
+type ClientWithSales = Tables<'clients'> & { sales: Pick<Tables<'sales'>, 'sale_price' | 'qty'>[], preferences?: string | null };
 
 const fetchClients = async (): Promise<ClientWithSales[]> => {
   const { data, error } = await supabase.from('clients').select(`*, sales(sale_price, qty)`).order('name');
@@ -65,6 +66,7 @@ const ClientsTab: React.FC = () => {
   const [search, setSearch] = useState("");
   const [editingClient, setEditingClient] = useState<ClientWithSales | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
+  const [historyClient, setHistoryClient] = useState<ClientWithSales | null>(null);
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({ queryKey: ['clients'], queryFn: fetchClients });
   const updateClientMutation = useMutation({
@@ -190,6 +192,9 @@ const ClientsTab: React.FC = () => {
                           <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-primary hover:text-primary/80 transition-all duration-200 hover:scale-110" onClick={() => setHistoryClient(client)} title="Ver histórico">
+                                <History className="w-3 h-3" />
+                              </Button>
                               {birthdayStatus?.isBirthdaySoon && client.telefone && (
                                 <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-pink-500 hover:text-pink-600 transition-all duration-200 hover:scale-110" onClick={() => sendBirthdayMessage(client)} title="Enviar mensagem de aniversário">
                                   <MessageCircle className="w-3 h-3" />
@@ -229,6 +234,12 @@ const ClientsTab: React.FC = () => {
       <AddClientDialog
         isOpen={showAddClient}
         onOpenChange={setShowAddClient}
+      />
+
+      <ClientHistoryDialog
+        client={historyClient}
+        isOpen={!!historyClient}
+        onOpenChange={(open) => !open && setHistoryClient(null)}
       />
     </div>
   );
