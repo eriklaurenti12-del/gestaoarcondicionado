@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, Gift, CreditCard, Calendar, Users, TrendingUp, X, MessageCircle, Check } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bell, Gift, CreditCard, Calendar, TrendingUp, X, MessageCircle, Check, BellRing, Sparkles, Clock, AlertTriangle } from "lucide-react";
 import { toast } from 'sonner';
-import { format, differenceInDays, differenceInYears, isToday, isTomorrow, endOfMonth, startOfMonth, addDays } from 'date-fns';
+import { format, differenceInDays, differenceInYears, isToday, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Notification {
@@ -18,6 +19,7 @@ interface Notification {
   priority: 'high' | 'medium' | 'low';
   data?: any;
   action?: () => void;
+  secondaryAction?: () => void;
 }
 
 const fetchNotificationData = async () => {
@@ -37,12 +39,14 @@ const fetchNotificationData = async () => {
 };
 
 const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
+  const queryClient = useQueryClient();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
 
   const { data, isLoading } = useQuery({
     queryKey: ['notifications-data'],
     queryFn: fetchNotificationData,
-    refetchInterval: 60000 // Refetch every minute
+    refetchInterval: 60000
   });
 
   useEffect(() => {
@@ -58,7 +62,6 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         setNotificationsEnabled(true);
         toast.success('Notificações ativadas!');
         
-        // Test notification
         new Notification('Salão de Beleza', {
           body: 'Notificações ativadas com sucesso! Você receberá alertas importantes.',
           icon: '/icon-192x192.png',
@@ -67,6 +70,22 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       } else {
         toast.error('Permissão negada para notificações');
       }
+    }
+  };
+
+  const markInstallmentAsPaid = async (id: string) => {
+    const { error } = await supabase
+      .from('installments')
+      .update({ is_paid: true, paid_date: new Date().toISOString().split('T')[0] })
+      .eq('id', id);
+
+    if (error) {
+      toast.error('Erro ao marcar como paga');
+    } else {
+      toast.success('Parcela marcada como paga!');
+      queryClient.invalidateQueries({ queryKey: ['notifications-data'] });
+      queryClient.invalidateQueries({ queryKey: ['notification-count'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     }
   };
 
@@ -83,7 +102,6 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       const birthday = new Date(client.aniversario);
       const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
       
-      // If birthday already passed this year, check next year
       if (thisYearBirthday < today) {
         thisYearBirthday.setFullYear(today.getFullYear() + 1);
       }
@@ -145,7 +163,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         priority = 'medium';
         title = `💰 Parcela vence em ${daysUntil} dias`;
       } else {
-        return; // Skip if more than 7 days
+        return;
       }
 
       const clientName = inst.appointments?.clients?.name || 'Cliente';
@@ -162,7 +180,8 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
           const phone = clientPhone.replace(/\D/g, '');
           const message = `Olá ${clientName}, tudo bem? Passando para lembrar da parcela ${inst.installment_number}/${inst.total_installments} no valor de R$ ${Number(inst.amount).toFixed(2)} com vencimento em ${format(dueDate, 'dd/MM/yyyy')}.`;
           window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
-        } : undefined
+        } : undefined,
+        secondaryAction: () => markInstallmentAsPaid(inst.id)
       });
     });
 
@@ -202,12 +221,23 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       });
     }
 
-    // Sort by priority
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     return notifications.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   };
 
   const notifications = generateNotifications();
+  
+  const filteredNotifications = activeTab === 'all' 
+    ? notifications 
+    : notifications.filter(n => n.type === activeTab);
+
+  const counts = {
+    all: notifications.length,
+    birthday: notifications.filter(n => n.type === 'birthday').length,
+    installment: notifications.filter(n => n.type === 'installment').length,
+    appointment: notifications.filter(n => n.type === 'appointment').length,
+  };
+
   const highPriorityCount = notifications.filter(n => n.priority === 'high').length;
 
   const sendPushNotification = (notification: Notification) => {
@@ -222,7 +252,6 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
     }
   };
 
-  // Auto-send high priority notifications
   useEffect(() => {
     if (notificationsEnabled && notifications.length > 0) {
       const highPriority = notifications.filter(n => n.priority === 'high');
@@ -241,120 +270,176 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
     }
   }, [notifications, notificationsEnabled]);
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500 text-white';
-      case 'medium': return 'bg-yellow-500 text-foreground';
-      default: return 'bg-muted text-muted-foreground';
+  const getTypeIcon = (type: string, size = 'w-4 h-4') => {
+    const iconClass = size;
+    switch (type) {
+      case 'birthday': return <Gift className={iconClass} />;
+      case 'installment': return <CreditCard className={iconClass} />;
+      case 'appointment': return <Calendar className={iconClass} />;
+      case 'month_close': return <TrendingUp className={iconClass} />;
+      default: return <Bell className={iconClass} />;
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeColor = (type: string) => {
     switch (type) {
-      case 'birthday': return <Gift className="w-4 h-4" />;
-      case 'installment': return <CreditCard className="w-4 h-4" />;
-      case 'appointment': return <Calendar className="w-4 h-4" />;
-      case 'month_close': return <TrendingUp className="w-4 h-4" />;
-      default: return <Bell className="w-4 h-4" />;
+      case 'birthday': return 'text-pink-500 bg-pink-100 dark:bg-pink-900/30';
+      case 'installment': return 'text-green-500 bg-green-100 dark:bg-green-900/30';
+      case 'appointment': return 'text-blue-500 bg-blue-100 dark:bg-blue-900/30';
+      case 'month_close': return 'text-purple-500 bg-purple-100 dark:bg-purple-900/30';
+      default: return 'text-muted-foreground bg-muted';
     }
   };
 
   if (isLoading) {
     return (
-      <Card className="w-full max-w-md">
-        <CardContent className="p-6 text-center">
-          Carregando notificações...
-        </CardContent>
-      </Card>
+      <div className="p-6 text-center">
+        <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full mx-auto mb-2" />
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md shadow-xl border-primary/20">
-      <CardHeader className="pb-3 border-b">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Bell className="w-5 h-5 text-primary" />
-            Notificações
-            {highPriorityCount > 0 && (
-              <Badge className="bg-red-500 text-white text-xs">
-                {highPriorityCount} urgente(s)
-              </Badge>
-            )}
-          </CardTitle>
+    <div className="w-full">
+      {/* Header */}
+      <div className="p-4 border-b bg-gradient-to-r from-primary/10 to-accent/10">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-full bg-primary/20 animate-pulse">
+              <BellRing className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold text-base">Central de Notificações</h3>
+              <p className="text-xs text-muted-foreground">
+                {notifications.length} pendência(s)
+              </p>
+            </div>
+          </div>
           {onClose && (
             <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
               <X className="w-4 h-4" />
             </Button>
           )}
         </div>
-        
+
+        {/* Quick stats */}
+        <div className="grid grid-cols-4 gap-2 mb-3">
+          <div className="text-center p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30">
+            <Gift className="w-4 h-4 mx-auto text-pink-500" />
+            <span className="text-xs font-bold">{counts.birthday}</span>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
+            <CreditCard className="w-4 h-4 mx-auto text-green-500" />
+            <span className="text-xs font-bold">{counts.installment}</span>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <Calendar className="w-4 h-4 mx-auto text-blue-500" />
+            <span className="text-xs font-bold">{counts.appointment}</span>
+          </div>
+          <div className="text-center p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
+            <AlertTriangle className="w-4 h-4 mx-auto text-red-500" />
+            <span className="text-xs font-bold">{highPriorityCount}</span>
+          </div>
+        </div>
+
         {!notificationsEnabled && (
           <Button 
             variant="outline" 
             size="sm" 
             onClick={requestNotifications}
-            className="mt-2 w-full"
+            className="w-full bg-background/80 hover:bg-background"
           >
-            <Bell className="w-4 h-4 mr-2" />
-            Ativar Notificações Push
+            <Sparkles className="w-4 h-4 mr-2" />
+            Ativar Notificações no Celular
           </Button>
         )}
-      </CardHeader>
-      
-      <CardContent className="p-0">
-        <ScrollArea className="h-[400px]">
-          {notifications.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              <Check className="w-12 h-12 mx-auto mb-2 text-green-500" />
-              <p>Tudo em dia! Nenhuma pendência.</p>
-            </div>
-          ) : (
-            <div className="divide-y">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`p-4 hover:bg-muted/50 transition-colors ${
-                    notification.priority === 'high' ? 'bg-red-50 dark:bg-red-950/30' : ''
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-full ${
-                      notification.priority === 'high' ? 'bg-red-100 dark:bg-red-900' :
-                      notification.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-900' :
-                      'bg-muted'
-                    }`}>
-                      {getTypeIcon(notification.type)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        <Badge className={`text-xs ${getPriorityColor(notification.priority)}`}>
-                          {notification.priority === 'high' ? 'Urgente' : 
-                           notification.priority === 'medium' ? 'Atenção' : 'Info'}
-                        </Badge>
+      </div>
+
+      {/* Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full grid grid-cols-4 h-10 p-1 mx-0 rounded-none border-b">
+          <TabsTrigger value="all" className="text-xs data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            Todos
+          </TabsTrigger>
+          <TabsTrigger value="birthday" className="text-xs data-[state=active]:bg-pink-500 data-[state=active]:text-white">
+            🎂
+          </TabsTrigger>
+          <TabsTrigger value="installment" className="text-xs data-[state=active]:bg-green-500 data-[state=active]:text-white">
+            💰
+          </TabsTrigger>
+          <TabsTrigger value="appointment" className="text-xs data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+            📅
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="m-0">
+          <ScrollArea className="h-[320px]">
+            {filteredNotifications.length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                  <Check className="w-8 h-8 text-green-500" />
+                </div>
+                <p className="font-medium">Tudo em dia! 🎉</p>
+                <p className="text-sm text-muted-foreground">Nenhuma pendência nesta categoria.</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {filteredNotifications.map((notification, index) => (
+                  <div
+                    key={notification.id}
+                    className={`p-3 hover:bg-muted/50 transition-all duration-200 animate-in slide-in-from-right-5`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <div className="flex gap-3">
+                      <div className={`p-2 rounded-full shrink-0 ${getTypeColor(notification.type)}`}>
+                        {getTypeIcon(notification.type)}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">{notification.message}</p>
-                      {notification.action && (
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={notification.action}
-                          className="mt-2 h-7 text-green-600 hover:text-green-700 hover:bg-green-100 p-0 px-2"
-                        >
-                          <MessageCircle className="w-3 h-3 mr-1" />
-                          Enviar WhatsApp
-                        </Button>
-                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-medium text-sm leading-tight">{notification.title}</p>
+                          {notification.priority === 'high' && (
+                            <Badge className="bg-red-500 text-white text-[10px] shrink-0">
+                              Urgente
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">{notification.message}</p>
+                        
+                        <div className="flex gap-1 mt-2">
+                          {notification.action && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={notification.action}
+                              className="h-7 text-xs text-green-600 hover:text-green-700 hover:bg-green-100 px-2"
+                            >
+                              <MessageCircle className="w-3 h-3 mr-1" />
+                              WhatsApp
+                            </Button>
+                          )}
+                          {notification.secondaryAction && (
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={notification.secondaryAction}
+                              className="h-7 text-xs text-primary hover:bg-primary/10 px-2"
+                            >
+                              <Check className="w-3 h-3 mr-1" />
+                              Marcar Paga
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </ScrollArea>
-      </CardContent>
-    </Card>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };
 
