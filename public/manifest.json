@@ -1,12 +1,11 @@
-
 {
   "name": "Salão de Beleza",
   "short_name": "Salão Beauty",
   "description": "Sistema completo para gestão de salão de beleza",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#000000",
+  "background_color": "#1a0a10",
+  "theme_color": "#d64a7a",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -23,5 +22,7 @@
     }
   ],
   "categories": ["business", "productivity", "lifestyle"],
-  "lang": "pt-BR"
+  "lang": "pt-BR",
+  "scope": "/",
+  "prefer_related_applications": false
 }
