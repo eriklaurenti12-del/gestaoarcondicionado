@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, CalendarRange, Database } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, CalendarRange, Database, ShoppingCart, FolderOpen, Settings } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -22,28 +22,65 @@ interface AppSidebarProps {
   onSignOut: () => void;
 }
 
-const menuItems = [
+// Menu Principal
+const mainItems = [
   { id: "dashboard", title: "Dashboard", icon: BarChart3 },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
   { id: "calendar", title: "Calendário", icon: CalendarRange },
+];
+
+// Cadastros
+const cadastrosItems = [
   { id: "clients", title: "Clientes", icon: Users },
   { id: "products", title: "Serviços", icon: Scissors },
   { id: "suppliers", title: "Fornecedores", icon: Building2 },
-  { id: "financeiro", title: "Financeiro", icon: Wallet },
-  { id: "installments", title: "Parcelas", icon: CreditCard },
-  { id: "company", title: "Meu Salão", icon: Briefcase },
 ];
 
+// Vendas e Financeiro
+const vendasItems = [
+  { id: "sales", title: "Vendas", icon: ShoppingCart },
+  { id: "financeiro", title: "Financeiro", icon: Wallet },
+  { id: "installments", title: "Parcelas", icon: CreditCard },
+];
+
+// Ferramentas
 const toolsItems = [
   { id: "charts", title: "Gráficos", icon: PieChart },
   { id: "reports", title: "Relatórios", icon: TrendingUp },
   { id: "backup", title: "Backup", icon: Database },
 ];
 
+// Configurações
+const configItems = [
+  { id: "company", title: "Meu Salão", icon: Briefcase },
+];
+
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+
+  const renderMenuItems = (items: typeof mainItems) => (
+    <SidebarMenu>
+      {items.map((item) => (
+        <SidebarMenuItem key={item.id}>
+          <SidebarMenuButton
+            onClick={() => onTabChange(item.id)}
+            isActive={activeTab === item.id}
+            tooltip={item.title}
+            className={`transition-all duration-200 ease-out ${
+              activeTab === item.id 
+                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
+                : "hover:bg-muted hover:translate-x-1"
+            }`}
+          >
+            <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
+            <span className="transition-all duration-300">{item.title}</span>
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      ))}
+    </SidebarMenu>
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -62,61 +99,60 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">
+        {/* Menu Principal */}
         <SidebarGroup>
           <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            Menu Principal
+            Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item, index) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onTabChange(item.id)}
-                    isActive={activeTab === item.id}
-                    tooltip={item.title}
-                    className={`transition-all duration-200 ease-out ${
-                      activeTab === item.id 
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
-                        : "hover:bg-muted hover:translate-x-1"
-                    }`}
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
-                    <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
-                    <span className="transition-all duration-300">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {renderMenuItems(mainItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Cadastros */}
         <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <FolderOpen className="w-3 h-3" />
+            Cadastros
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {renderMenuItems(cadastrosItems)}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Vendas e Financeiro */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <ShoppingCart className="w-3 h-3" />
+            Vendas
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {renderMenuItems(vendasItems)}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Ferramentas */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <Settings className="w-3 h-3" />
             Ferramentas
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {toolsItems.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton
-                    onClick={() => onTabChange(item.id)}
-                    isActive={activeTab === item.id}
-                    tooltip={item.title}
-                    className={`transition-all duration-200 ease-out ${
-                      activeTab === item.id 
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
-                        : "hover:bg-muted hover:translate-x-1"
-                    }`}
-                  >
-                    <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
-                    <span className="transition-all duration-300">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            {renderMenuItems(toolsItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Configurações */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            Configurações
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {renderMenuItems(configItems)}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Administração */}
         {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
