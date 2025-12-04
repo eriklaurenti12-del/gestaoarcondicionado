@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -29,6 +29,7 @@ const menuItems = [
   { id: "products", title: "Serviços", icon: Scissors },
   { id: "suppliers", title: "Fornecedores", icon: Building2 },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
+  { id: "installments", title: "Parcelas", icon: CreditCard },
   { id: "reports", title: "Relatórios", icon: TrendingUp },
   { id: "company", title: "Meu Salão", icon: Briefcase },
 ];
