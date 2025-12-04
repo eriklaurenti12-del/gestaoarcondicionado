@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Scissors } from "lucide-react";
+import { Loader2, Mail, Lock, Scissors, CheckCircle } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -17,24 +17,44 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  
+  // Reset password states
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+    // Check URL for recovery tokens
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    const accessToken = hashParams.get('access_token');
+    
+    if (type === 'recovery' || accessToken) {
+      setIsPasswordRecovery(true);
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      } else if (event === 'SIGNED_IN' && session && !isPasswordRecovery) {
         navigate("/");
       }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/");
-      }
-    });
+    // Check for existing session only if not in recovery mode
+    if (!isPasswordRecovery) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session && !isPasswordRecovery) {
+          navigate("/");
+        }
+      });
+    }
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, isPasswordRecovery]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,7 +114,7 @@ export default function Auth() {
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: `${window.location.origin}/auth`
       });
       if (error) throw error;
       toast({
@@ -102,6 +122,7 @@ export default function Auth() {
         description: "Verifique sua caixa de entrada para redefinir sua senha."
       });
       setForgotEmail("");
+      setShowForgotPassword(false);
     } catch (error: any) {
       toast({
         title: "Erro ao enviar email",
@@ -112,6 +133,177 @@ export default function Auth() {
       setLoading(false);
     }
   };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Erro",
+        description: "As senhas não coincidem.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Erro",
+        description: "A senha deve ter no mínimo 6 caracteres.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      setResetSuccess(true);
+      toast({
+        title: "Senha alterada!",
+        description: "Sua senha foi redefinida com sucesso."
+      });
+      
+      // Clear URL hash and redirect after 2 seconds
+      window.history.replaceState(null, '', window.location.pathname);
+      setTimeout(() => {
+        navigate("/");
+      }, 2000);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao redefinir senha",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show reset password success screen
+  if (resetSuccess) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px]"></div>
+        </div>
+        <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)] w-full max-w-md">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="p-4 rounded-full bg-green-500/20 border border-green-500/30">
+                <CheckCircle className="w-12 h-12 text-green-400" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-bold text-white">Senha Alterada!</h2>
+            <p className="text-gray-400">Sua senha foi redefinida com sucesso. Redirecionando...</p>
+            <Loader2 className="w-6 h-6 animate-spin mx-auto text-purple-400" />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show reset password form
+  if (isPasswordRecovery) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px]"></div>
+          <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px]"></div>
+        </div>
+
+        <div className="relative z-10 w-full max-w-md space-y-4">
+          <div className="text-center mb-6 space-y-2">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30">
+                <Scissors className="w-10 h-10 text-purple-400" />
+              </div>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
+                Salão de Beleza
+              </span>
+            </h1>
+          </div>
+
+          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)]">
+            <CardContent className="p-6 space-y-4">
+              <div className="text-center space-y-1 mb-4">
+                <h2 className="text-xl font-bold text-white">REDEFINIR SENHA</h2>
+                <p className="text-xs text-gray-400">Digite sua nova senha</p>
+              </div>
+
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="new-password" className="text-xs font-medium text-gray-300 uppercase">
+                    NOVA SENHA
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input 
+                      id="new-password" 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={newPassword} 
+                      onChange={e => setNewPassword(e.target.value)} 
+                      required 
+                      minLength={6}
+                      className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" 
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password" className="text-xs font-medium text-gray-300 uppercase">
+                    CONFIRMAR SENHA
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                    <Input 
+                      id="confirm-password" 
+                      type="password" 
+                      placeholder="••••••••" 
+                      value={confirmPassword} 
+                      onChange={e => setConfirmPassword(e.target.value)} 
+                      required 
+                      minLength={6}
+                      className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg" 
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all" 
+                  disabled={loading}
+                >
+                  {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "SALVAR NOVA SENHA"}
+                </Button>
+
+                <Button 
+                  type="button" 
+                  onClick={() => {
+                    setIsPasswordRecovery(false);
+                    window.history.replaceState(null, '', window.location.pathname);
+                  }}
+                  className="w-full h-11 bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white font-medium rounded-lg transition-all"
+                >
+                  VOLTAR PARA LOGIN
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
