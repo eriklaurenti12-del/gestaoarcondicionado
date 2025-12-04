@@ -31,10 +31,13 @@ const menuItems = [
   { id: "suppliers", title: "Fornecedores", icon: Building2 },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
   { id: "installments", title: "Parcelas", icon: CreditCard },
+  { id: "company", title: "Meu Salão", icon: Briefcase },
+];
+
+const toolsItems = [
   { id: "charts", title: "Gráficos", icon: PieChart },
   { id: "reports", title: "Relatórios", icon: TrendingUp },
   { id: "backup", title: "Backup", icon: Database },
-  { id: "company", title: "Meu Salão", icon: Briefcase },
 ];
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
@@ -77,6 +80,33 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
                         : "hover:bg-muted hover:translate-x-1"
                     }`}
                     style={{ animationDelay: `${index * 50}ms` }}
+                  >
+                    <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
+                    <span className="transition-all duration-300">{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            Ferramentas
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {toolsItems.map((item) => (
+                <SidebarMenuItem key={item.id}>
+                  <SidebarMenuButton
+                    onClick={() => onTabChange(item.id)}
+                    isActive={activeTab === item.id}
+                    tooltip={item.title}
+                    className={`transition-all duration-200 ease-out ${
+                      activeTab === item.id 
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
+                        : "hover:bg-muted hover:translate-x-1"
+                    }`}
                   >
                     <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
                     <span className="transition-all duration-300">{item.title}</span>
