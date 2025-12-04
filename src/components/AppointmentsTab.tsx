@@ -98,12 +98,44 @@ const AppointmentsTab: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, appointment }: { id: string; status: string; appointment?: Appointment }) => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
+      
+      // If completing the appointment and has a service, register the sale
+      if (status === 'concluido' && appointment?.service_id && appointment?.client_id && appointment?.products) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const salePrice = Number(appointment.products.price);
+          const costPrice = 0; // We'd need to fetch this from products table
+          
+          // Fetch product cost price
+          const { data: productData } = await supabase
+            .from('products')
+            .select('cost_price')
+            .eq('id', appointment.service_id)
+            .maybeSingle();
+          
+          const actualCostPrice = productData?.cost_price || 0;
+          const profit = salePrice - Number(actualCostPrice);
+          
+          await supabase.from('sales').insert({
+            user_id: session.user.id,
+            client_id: appointment.client_id,
+            product_id: appointment.service_id,
+            qty: 1,
+            sale_price: salePrice,
+            total_profit: profit,
+            payment_method: 'Dinheiro' as const, // Default, can be changed
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-financial'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
       toast({ title: "Status atualizado!" });
     },
     onError: (error: any) => {
@@ -404,7 +436,7 @@ const AppointmentsTab: React.FC = () => {
                               size="sm" 
                               variant="outline" 
                               className="h-8 w-8 p-0"
-                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado' })}
+                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado', appointment })}
                             >
                               <Check className="w-3 h-3" />
                             </Button>
@@ -414,7 +446,7 @@ const AppointmentsTab: React.FC = () => {
                               size="sm" 
                               variant="default" 
                               className="h-8 px-2 text-xs"
-                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido' })}
+                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
                             >
                               Concluir
                             </Button>
@@ -424,7 +456,7 @@ const AppointmentsTab: React.FC = () => {
                               size="sm" 
                               variant="outline" 
                               className="h-8 w-8 p-0"
-                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'cancelado' })}
+                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'cancelado', appointment })}
                             >
                               <X className="w-3 h-3" />
                             </Button>
