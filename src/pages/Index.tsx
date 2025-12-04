@@ -177,16 +177,29 @@ export default function Index() {
                 {/* Notification Bell */}
                 <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className="relative h-9 w-9">
-                      <Bell className="h-5 w-5" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className={`relative h-9 w-9 transition-all duration-300 ${
+                        notificationCount > 0 
+                          ? 'text-primary hover:bg-primary/10' 
+                          : 'hover:bg-muted'
+                      }`}
+                    >
+                      <Bell className={`h-5 w-5 transition-transform ${
+                        notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
+                      }`} />
                       {notificationCount > 0 && (
-                        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center font-bold animate-pulse">
-                          {notificationCount > 9 ? '9+' : notificationCount}
-                        </span>
+                        <>
+                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
+                            {notificationCount > 99 ? '99' : notificationCount}
+                          </span>
+                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                        </>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[380px] p-0" align="end">
+                  <PopoverContent className="w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
                     <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
                   </PopoverContent>
                 </Popover>
