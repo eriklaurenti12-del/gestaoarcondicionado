@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -275,6 +275,115 @@ const AppointmentsTab: React.FC = () => {
     const formattedDate = format(new Date(date), "dd/MM 'às' HH:mm", { locale: ptBR });
     const message = `Olá ${clientName}! Confirmando seu agendamento para ${formattedDate}. Podemos confirmar?`;
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  // Generate service receipt and send via WhatsApp
+  const sendServiceReceipt = (appointment: Appointment) => {
+    const phone = appointment.clients?.telefone;
+    if (!phone) {
+      toast({ variant: "destructive", title: "Cliente não possui telefone cadastrado" });
+      return;
+    }
+    
+    const cleanPhone = phone.replace(/\D/g, '');
+    const serviceDate = format(new Date(appointment.appointment_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    const serviceName = appointment.products?.name || 'Serviço';
+    const servicePrice = appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+    
+    const message = `✅ *COMPROVANTE DE SERVIÇO*\n\n` +
+      `📋 *AC Service Pro*\n` +
+      `━━━━━━━━━━━━━━━━\n\n` +
+      `👤 *Cliente:* ${appointment.clients?.name || 'N/A'}\n` +
+      `📅 *Data:* ${serviceDate}\n` +
+      `🔧 *Serviço:* ${serviceName}\n` +
+      `💰 *Valor:* ${servicePrice}\n` +
+      `📌 *Status:* Concluído ✓\n\n` +
+      (appointment.notes ? `📝 *Obs:* ${appointment.notes}\n\n` : '') +
+      `━━━━━━━━━━━━━━━━\n` +
+      `Agradecemos a preferência! 🙏\n` +
+      `Em caso de dúvidas, entre em contato.`;
+    
+    window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  // Generate PDF receipt
+  const generateServiceReceiptPDF = (appointment: Appointment) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFillColor(0, 150, 200);
+    doc.rect(0, 0, pageWidth, 35, "F");
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("COMPROVANTE DE SERVIÇO", pageWidth / 2, 15, { align: "center" });
+    doc.setFontSize(12);
+    doc.text("AC Service Pro", pageWidth / 2, 25, { align: "center" });
+    
+    // Content
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    
+    let y = 50;
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Cliente:", 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(appointment.clients?.name || 'N/A', 60, y);
+    
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Telefone:", 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(appointment.clients?.telefone || 'N/A', 60, y);
+    
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Data:", 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(format(new Date(appointment.appointment_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR }), 60, y);
+    
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Serviço:", 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(appointment.products?.name || 'N/A', 60, y);
+    
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Valor:", 20, y);
+    doc.setFont("helvetica", "normal");
+    const price = appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+    doc.text(price, 60, y);
+    
+    y += 12;
+    doc.setFont("helvetica", "bold");
+    doc.text("Status:", 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0, 150, 0);
+    doc.text("CONCLUÍDO", 60, y);
+    
+    if (appointment.notes) {
+      y += 15;
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "bold");
+      doc.text("Observações:", 20, y);
+      doc.setFont("helvetica", "normal");
+      y += 8;
+      doc.text(appointment.notes, 20, y);
+    }
+    
+    // Footer
+    doc.setFontSize(9);
+    doc.setTextColor(128, 128, 128);
+    doc.text("Documento gerado pelo sistema AC Service Pro", pageWidth / 2, 280, { align: "center" });
+    doc.text(format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR }), pageWidth / 2, 286, { align: "center" });
+    
+    doc.save(`comprovante-servico-${appointment.id.slice(0, 8)}.pdf`);
+    toast({ title: "PDF do comprovante gerado!" });
   };
 
   const todayAppointments = useMemo(() => {
@@ -572,6 +681,28 @@ const AppointmentsTab: React.FC = () => {
                             >
                               Concluir
                             </Button>
+                          )}
+                          {appointment.status === 'concluido' && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-10 w-10 p-0 touch-target text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                                onClick={() => sendServiceReceipt(appointment)}
+                                title="Enviar comprovante WhatsApp"
+                              >
+                                <Send className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-10 w-10 p-0 touch-target text-primary hover:bg-primary/10"
+                                onClick={() => generateServiceReceiptPDF(appointment)}
+                                title="Gerar PDF do comprovante"
+                              >
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                            </>
                           )}
                           {appointment.status !== 'cancelado' && appointment.status !== 'concluido' && (
                             <Button 
