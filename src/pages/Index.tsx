@@ -170,7 +170,7 @@ export default function Index() {
             {/* Header */}
             <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
               <div className="flex items-center gap-3">
-                <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target" />
+                <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target relative z-50" />
                 <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
               </div>
               <div className="flex items-center gap-2">

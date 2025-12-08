@@ -269,14 +269,17 @@ const SidebarTrigger = React.forwardRef<
       data-sidebar="trigger"
       variant="ghost"
       size="icon"
-      className={cn("h-10 w-10 min-h-[44px] min-w-[44px]", className)}
+      className={cn("h-10 w-10 min-h-[44px] min-w-[44px] cursor-pointer select-none", className)}
       onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
         onClick?.(event)
         toggleSidebar()
       }}
+      type="button"
       {...props}
     >
-      <PanelLeft className="h-5 w-5" />
+      <PanelLeft className="h-5 w-5 pointer-events-none" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   )
