@@ -26,7 +26,6 @@ interface AppSidebarProps {
 const mainItems = [
   { id: "dashboard", title: "Dashboard", icon: BarChart3 },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
-  { id: "calendar", title: "Calendário", icon: CalendarRange },
 ];
 
 // Cadastros

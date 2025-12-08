@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wine, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isPast, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -335,7 +335,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Wine className="w-3 h-3" />
+                            <Wrench className="w-3 h-3" />
                             <span>{apt.products?.name || 'Serviço'}</span>
                           </div>
                           {apt.notes && (
@@ -355,7 +355,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
             {selectedDayAppointments.length > 0 && (
               <div className="mt-4 pt-4 border-t">
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
-                  <Wine className="w-4 h-4" />
+                  <Wrench className="w-4 h-4" />
                   Serviços do Dia
                 </h4>
                 <div className="space-y-1">

@@ -16,7 +16,6 @@ import FinanceiroTab from "@/components/FinanceiroTab";
 import InstallmentsTab from "@/components/InstallmentsTab";
 import SalesTab from "@/components/SalesTab";
 import ChartsMetrics from "@/components/ChartsMetrics";
-import CalendarAgenda from "@/components/CalendarAgenda";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -112,8 +111,6 @@ export default function Index() {
         return <Dashboard />;
       case "appointments":
         return <AppointmentsTab />;
-      case "calendar":
-        return <CalendarAgenda />;
       case "clients":
         return <ClientsTab />;
       case "products":
@@ -143,7 +140,6 @@ export default function Index() {
     const titles: Record<string, string> = {
       dashboard: "Dashboard",
       appointments: "Agenda de Atendimentos",
-      calendar: "Calendário",
       clients: "Clientes",
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
