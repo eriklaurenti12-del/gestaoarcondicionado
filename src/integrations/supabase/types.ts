@@ -313,6 +313,71 @@ export type Database = {
         }
         Relationships: []
       }
+      quotes: {
+        Row: {
+          client_id: number | null
+          created_at: string
+          description: string | null
+          discount_percentage: number | null
+          discount_value: number | null
+          id: string
+          items: Json
+          notes: string | null
+          quote_number: number
+          status: string
+          subtotal: number
+          title: string
+          total: number
+          updated_at: string
+          user_id: string
+          validity_days: number | null
+        }
+        Insert: {
+          client_id?: number | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          quote_number?: number
+          status?: string
+          subtotal?: number
+          title: string
+          total?: number
+          updated_at?: string
+          user_id: string
+          validity_days?: number | null
+        }
+        Update: {
+          client_id?: number | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          id?: string
+          items?: Json
+          notes?: string | null
+          quote_number?: number
+          status?: string
+          subtotal?: number
+          title?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+          validity_days?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           client_id: number
