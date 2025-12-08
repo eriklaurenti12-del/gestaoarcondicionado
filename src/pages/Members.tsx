@@ -164,67 +164,73 @@ export default function Members() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-[#0a0a0f] p-6 relative overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-600/5 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px]"></div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto space-y-6 relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")}>
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 text-white">
               <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-500" />
               Painel Super Admin
             </h1>
           </div>
-          <Button onClick={loadMembers} variant="outline">
+          <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
             Atualizar Lista
           </Button>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
-          <Card>
+          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">Total Usuários</div>
+              <div className="text-xl sm:text-2xl font-bold text-white">{stats.total}</div>
+              <div className="text-xs sm:text-sm text-gray-400">Total Usuários</div>
             </CardContent>
           </Card>
-          <Card className="bg-green-50 dark:bg-green-950">
+          <Card className="bg-gradient-to-br from-green-900/30 to-green-950/30 border-green-800/50">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.aprovados}</div>
-              <div className="text-xs sm:text-sm">✓ Ativos</div>
+              <div className="text-xl sm:text-2xl font-bold text-green-400">{stats.aprovados}</div>
+              <div className="text-xs sm:text-sm text-green-300/70">✓ Ativos</div>
             </CardContent>
           </Card>
-          <Card className="bg-yellow-50 dark:bg-yellow-950">
+          <Card className="bg-gradient-to-br from-yellow-900/30 to-yellow-950/30 border-yellow-800/50">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{stats.aguardando}</div>
-              <div className="text-xs sm:text-sm">⏱ Aguardando</div>
+              <div className="text-xl sm:text-2xl font-bold text-yellow-400">{stats.aguardando}</div>
+              <div className="text-xs sm:text-sm text-yellow-300/70">⏱ Aguardando</div>
             </CardContent>
           </Card>
-          <Card className="bg-red-50 dark:bg-red-950">
+          <Card className="bg-gradient-to-br from-red-900/30 to-red-950/30 border-red-800/50">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-red-600">{stats.banidos}</div>
-              <div className="text-xs sm:text-sm">🚫 Banidos</div>
+              <div className="text-xl sm:text-2xl font-bold text-red-400">{stats.banidos}</div>
+              <div className="text-xs sm:text-sm text-red-300/70">🚫 Banidos</div>
             </CardContent>
           </Card>
-          <Card className="bg-cyan-50 dark:bg-cyan-950">
+          <Card className="bg-gradient-to-br from-cyan-900/30 to-cyan-950/30 border-cyan-800/50">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-cyan-600">{stats.vitalicio}</div>
-              <div className="text-xs sm:text-sm">∞ Vitalício</div>
+              <div className="text-xl sm:text-2xl font-bold text-cyan-400">{stats.vitalicio}</div>
+              <div className="text-xs sm:text-sm text-cyan-300/70">∞ Vitalício</div>
             </CardContent>
           </Card>
         </div>
 
-        <Card>
+        <Card className="bg-[#1a1a24] border-[#2a2a3a]">
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Gerenciar Usuários</CardTitle>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <CardTitle className="text-white">Gerenciar Usuários</CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                 <Input
                   placeholder="Buscar por email..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600"
                 />
               </div>
             </div>
@@ -233,47 +239,50 @@ export default function Members() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[200px]">Email</TableHead>
-                    <TableHead className="min-w-[120px]">Plano</TableHead>
-                    <TableHead className="min-w-[100px]">Status</TableHead>
-                    <TableHead className="min-w-[100px]">Cadastro</TableHead>
-                    <TableHead className="min-w-[120px]">Vencimento</TableHead>
-                    <TableHead className="min-w-[200px]">Ações</TableHead>
+                  <TableRow className="border-[#2a2a3a] hover:bg-[#1a1a24]">
+                    <TableHead className="min-w-[200px] text-gray-400">Email</TableHead>
+                    <TableHead className="min-w-[120px] text-gray-400">Plano</TableHead>
+                    <TableHead className="min-w-[100px] text-gray-400">Status</TableHead>
+                    <TableHead className="min-w-[100px] text-gray-400">Cadastro</TableHead>
+                    <TableHead className="min-w-[120px] text-gray-400">Vencimento</TableHead>
+                    <TableHead className="min-w-[200px] text-gray-400">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMembers.map((member) => (
-                    <TableRow key={member.id} className={member.subscription?.status === 'cancelado' ? 'bg-red-50 dark:bg-red-950/30' : ''}>
-                      <TableCell className="font-medium text-xs sm:text-sm">{member.email}</TableCell>
+                    <TableRow 
+                      key={member.id} 
+                      className={`border-[#2a2a3a] hover:bg-[#1a1a24]/50 ${member.subscription?.status === 'cancelado' ? 'bg-red-950/20' : ''}`}
+                    >
+                      <TableCell className="font-medium text-xs sm:text-sm text-white">{member.email}</TableCell>
                       <TableCell>
                         <Select
                           value={member.subscription?.plan || 'mensal'}
                           onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
                         >
-                          <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-background border-border">
+                          <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-[#0f0f17] border-[#2a2a3a] text-white">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent 
-                            className="bg-popover border-border min-w-[120px]"
+                            className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px]"
                             position="popper"
                             sideOffset={4}
                           >
-                            <SelectItem value="vitalicio">Vitalício</SelectItem>
-                            <SelectItem value="anual">1 Ano</SelectItem>
-                            <SelectItem value="trimestral">3 Meses</SelectItem>
-                            <SelectItem value="mensal">1 Mês</SelectItem>
-                            <SelectItem value="1dia">1 Dia</SelectItem>
+                            <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a]">Vitalício</SelectItem>
+                            <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a]">1 Ano</SelectItem>
+                            <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a]">3 Meses</SelectItem>
+                            <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a]">1 Mês</SelectItem>
+                            <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a]">1 Dia</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
                       <TableCell>
                         {member.subscription && getStatusBadge(member.subscription.status)}
                       </TableCell>
-                      <TableCell className="text-xs sm:text-sm">
+                      <TableCell className="text-xs sm:text-sm text-gray-300">
                         {format(new Date(member.created_at), 'dd/MM/yyyy')}
                       </TableCell>
-                      <TableCell className="text-xs sm:text-sm">
+                      <TableCell className="text-xs sm:text-sm text-gray-300">
                         {member.subscription?.end_date 
                           ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
                           : member.subscription?.plan === 'vitalicio' ? '∞' : '-'
@@ -289,7 +298,11 @@ export default function Members() {
                               member.subscription?.plan || 'mensal',
                               member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
                             )}
-                            className="text-xs whitespace-nowrap"
+                            className={`text-xs whitespace-nowrap ${
+                              member.subscription?.status === 'aprovado' 
+                                ? 'bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]' 
+                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white'
+                            }`}
                           >
                             {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
                           </Button>
@@ -297,7 +310,7 @@ export default function Members() {
                             size="sm"
                             variant="destructive"
                             onClick={() => banUser(member.id, member.email)}
-                            className="text-xs"
+                            className="text-xs bg-red-600 hover:bg-red-700"
                             title="Banir usuário"
                           >
                             <Ban className="w-3 h-3" />
