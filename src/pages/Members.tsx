@@ -249,76 +249,103 @@ export default function Members() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMembers.map((member) => (
-                    <TableRow 
-                      key={member.id} 
-                      className={`border-[#2a2a3a] hover:bg-[#1a1a24]/50 ${member.subscription?.status === 'cancelado' ? 'bg-red-950/20' : ''}`}
-                    >
-                      <TableCell className="font-medium text-xs sm:text-sm text-white">{member.email}</TableCell>
-                      <TableCell>
-                        <Select
-                          value={member.subscription?.plan || 'mensal'}
-                          onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
-                        >
-                          <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-[#0f0f17] border-[#2a2a3a] text-white">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent 
-                            className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px]"
-                            position="popper"
-                            sideOffset={4}
-                          >
-                            <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a]">Vitalício</SelectItem>
-                            <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a]">1 Ano</SelectItem>
-                            <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a]">3 Meses</SelectItem>
-                            <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a]">1 Mês</SelectItem>
-                            <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a]">1 Dia</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-                      <TableCell>
-                        {member.subscription && getStatusBadge(member.subscription.status)}
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm text-gray-300">
-                        {format(new Date(member.created_at), 'dd/MM/yyyy')}
-                      </TableCell>
-                      <TableCell className="text-xs sm:text-sm text-gray-300">
-                        {member.subscription?.end_date 
-                          ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
-                          : member.subscription?.plan === 'vitalicio' ? '∞' : '-'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
-                            onClick={() => updateSubscription(
-                              member.id, 
-                              member.subscription?.plan || 'mensal',
-                              member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
-                            )}
-                            className={`text-xs whitespace-nowrap ${
-                              member.subscription?.status === 'aprovado' 
-                                ? 'bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]' 
-                                : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white'
-                            }`}
-                          >
-                            {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => banUser(member.id, member.email)}
-                            className="text-xs bg-red-600 hover:bg-red-700"
-                            title="Banir usuário"
-                          >
-                            <Ban className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredMembers.map((member) => {
+                    const isSuperAdminUser = member.email === 'eriklaurenti09@gmail.com';
+                    
+                    return (
+                      <TableRow 
+                        key={member.id} 
+                        className={`border-[#2a2a3a] hover:bg-[#1a1a24]/50 ${member.subscription?.status === 'cancelado' ? 'bg-red-950/20' : ''} ${isSuperAdminUser ? 'bg-cyan-950/20 border-l-2 border-l-cyan-500' : ''}`}
+                      >
+                        <TableCell className="font-medium text-xs sm:text-sm text-white">
+                          <div className="flex items-center gap-2">
+                            {isSuperAdminUser && <Shield className="w-4 h-4 text-cyan-500" />}
+                            {member.email}
+                            {isSuperAdminUser && <Badge className="bg-cyan-600 text-white text-[10px]">SUPREMO</Badge>}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {isSuperAdminUser ? (
+                            <Badge className="bg-cyan-600 text-white">Vitalício</Badge>
+                          ) : (
+                            <Select
+                              value={member.subscription?.plan || 'mensal'}
+                              onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}
+                            >
+                              <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-[#0f0f17] border-[#2a2a3a] text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent 
+                                className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px]"
+                                position="popper"
+                                sideOffset={4}
+                              >
+                                <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a]">Vitalício</SelectItem>
+                                <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a]">1 Ano</SelectItem>
+                                <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a]">3 Meses</SelectItem>
+                                <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a]">1 Mês</SelectItem>
+                                <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a]">1 Dia</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isSuperAdminUser ? (
+                            <Badge className="bg-cyan-600 text-white">✓ Admin Supremo</Badge>
+                          ) : (
+                            member.subscription && getStatusBadge(member.subscription.status)
+                          )}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm text-gray-300">
+                          {format(new Date(member.created_at), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm text-gray-300">
+                          {isSuperAdminUser 
+                            ? '∞ Permanente' 
+                            : member.subscription?.end_date 
+                              ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
+                              : member.subscription?.plan === 'vitalicio' ? '∞' : '-'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {isSuperAdminUser ? (
+                            <Badge className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">
+                              <Shield className="w-3 h-3 mr-1" />
+                              Protegido
+                            </Badge>
+                          ) : (
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
+                                onClick={() => updateSubscription(
+                                  member.id, 
+                                  member.subscription?.plan || 'mensal',
+                                  member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
+                                )}
+                                className={`text-xs whitespace-nowrap ${
+                                  member.subscription?.status === 'aprovado' 
+                                    ? 'bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]' 
+                                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white'
+                                }`}
+                              >
+                                {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => banUser(member.id, member.email)}
+                                className="text-xs bg-red-600 hover:bg-red-700"
+                                title="Banir usuário"
+                              >
+                                <Ban className="w-3 h-3" />
+                              </Button>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>

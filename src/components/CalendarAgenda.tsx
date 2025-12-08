@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Scissors } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO } from 'date-fns';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wine, AlertCircle } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isPast, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -66,6 +66,12 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     );
   }, [selectedDate, appointments]);
 
+  // Check if selected date is in the past
+  const isSelectedDatePast = useMemo(() => {
+    if (!selectedDate) return false;
+    return isBefore(startOfDay(selectedDate), startOfDay(new Date()));
+  }, [selectedDate]);
+
   const navigate = (direction: 'prev' | 'next') => {
     if (viewMode === 'month') {
       setCurrentDate(direction === 'prev' ? subMonths(currentDate, 1) : addMonths(currentDate, 1));
@@ -94,21 +100,27 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     return <Badge variant={config.variant} className="text-xs">{config.label}</Badge>;
   };
 
+  // Check if a date is past
+  const isDayPast = (day: Date) => {
+    return isBefore(startOfDay(day), startOfDay(new Date()));
+  };
+
   // Custom day render for calendar
   const getDayContent = (day: Date) => {
     const dateKey = format(day, 'yyyy-MM-dd');
     const dayAppointments = appointmentsByDate[dateKey] || [];
     const hasAppointments = dayAppointments.length > 0;
+    const isPastDay = isDayPast(day);
     
     return (
-      <div className="relative w-full h-full flex flex-col items-center justify-center">
-        <span>{format(day, 'd')}</span>
+      <div className={`relative w-full h-full flex flex-col items-center justify-center ${isPastDay ? 'opacity-50' : ''}`}>
+        <span className={isPastDay ? 'text-muted-foreground line-through' : ''}>{format(day, 'd')}</span>
         {hasAppointments && (
           <div className="absolute bottom-0 flex gap-0.5">
             {dayAppointments.slice(0, 3).map((apt, i) => (
               <div 
                 key={i} 
-                className={`w-1.5 h-1.5 rounded-full ${getStatusColor(apt.status)}`} 
+                className={`w-1.5 h-1.5 rounded-full ${getStatusColor(apt.status)} ${isPastDay ? 'opacity-60' : ''}`} 
               />
             ))}
             {dayAppointments.length > 3 && (
@@ -184,7 +196,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 month={currentDate}
                 onMonthChange={setCurrentDate}
                 locale={ptBR}
-                className="rounded-md border w-full"
+                className="rounded-md border w-full pointer-events-auto"
                 classNames={{
                   months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 w-full",
                   month: "space-y-4 w-full",
@@ -213,6 +225,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                   const dateKey = format(day, 'yyyy-MM-dd');
                   const dayAppointments = appointmentsByDate[dateKey] || [];
                   const isSelected = selectedDate && isSameDay(day, selectedDate);
+                  const isPastDay = isDayPast(day);
                   
                   return (
                     <div
@@ -222,17 +235,19 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                         min-h-[100px] p-2 rounded-lg border cursor-pointer transition-all
                         ${isToday(day) ? 'border-primary bg-primary/5' : 'border-border'}
                         ${isSelected ? 'ring-2 ring-primary' : ''}
+                        ${isPastDay ? 'bg-muted/30 opacity-70' : ''}
                         hover:bg-muted/50
                       `}
                     >
-                      <div className={`text-sm font-medium mb-1 ${isToday(day) ? 'text-primary' : ''}`}>
+                      <div className={`text-sm font-medium mb-1 flex items-center gap-1 ${isToday(day) ? 'text-primary' : ''} ${isPastDay ? 'text-muted-foreground line-through' : ''}`}>
                         {format(day, 'd')}
+                        {isPastDay && <span className="text-[10px] text-muted-foreground">(passado)</span>}
                       </div>
                       <div className="space-y-1">
                         {dayAppointments.slice(0, 2).map((apt: any) => (
                           <div 
                             key={apt.id} 
-                            className={`text-xs p-1 rounded ${getStatusColor(apt.status)} text-white truncate`}
+                            className={`text-xs p-1 rounded ${getStatusColor(apt.status)} text-white truncate ${isPastDay ? 'opacity-60' : ''}`}
                           >
                             {format(parseISO(apt.appointment_date), 'HH:mm')} - {apt.clients?.name?.split(' ')[0]}
                           </div>
@@ -267,6 +282,10 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 <div className="w-3 h-3 rounded-full bg-red-500" />
                 <span className="text-sm text-muted-foreground">Cancelado</span>
               </div>
+              <div className="flex items-center gap-2 ml-auto">
+                <div className="w-3 h-3 rounded bg-muted/50 border border-dashed" />
+                <span className="text-sm text-muted-foreground">Dia Passado</span>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -274,25 +293,34 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
         {/* Selected Day Details */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">
+            <CardTitle className="text-lg flex items-center gap-2">
               {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : 'Selecione um dia'}
+              {isSelectedDatePast && (
+                <Badge variant="outline" className="text-xs text-amber-500 border-amber-500">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Dia Passado
+                </Badge>
+              )}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
               {selectedDayAppointments.length} agendamento(s)
             </p>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="h-[400px] pr-4">
+            <ScrollArea className="h-[300px] pr-4">
               {selectedDayAppointments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
                   <CalendarIcon className="w-12 h-12 mb-2 opacity-50" />
                   <p className="text-sm">Nenhum agendamento</p>
                   <p className="text-xs">neste dia</p>
+                  {isSelectedDatePast && (
+                    <p className="text-xs text-amber-500 mt-2">Este dia já passou</p>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-3">
                   {selectedDayAppointments.map((apt: any) => (
-                    <Card key={apt.id} className="transition-all hover:shadow-md">
+                    <Card key={apt.id} className={`transition-all hover:shadow-md ${isSelectedDatePast ? 'opacity-70' : ''}`}>
                       <CardContent className="p-3">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex items-center gap-2 text-primary font-semibold">
@@ -307,7 +335,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Scissors className="w-3 h-3" />
+                            <Wine className="w-3 h-3" />
                             <span>{apt.products?.name || 'Serviço'}</span>
                           </div>
                           {apt.notes && (
@@ -322,6 +350,43 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 </div>
               )}
             </ScrollArea>
+
+            {/* Services List for the day */}
+            {selectedDayAppointments.length > 0 && (
+              <div className="mt-4 pt-4 border-t">
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Wine className="w-4 h-4" />
+                  Serviços do Dia
+                </h4>
+                <div className="space-y-1">
+                  {[...new Set(selectedDayAppointments.map(apt => apt.products?.name).filter(Boolean))].map((serviceName, idx) => {
+                    const count = selectedDayAppointments.filter(apt => apt.products?.name === serviceName).length;
+                    const servicePrice = selectedDayAppointments.find(apt => apt.products?.name === serviceName)?.products?.price;
+                    return (
+                      <div key={idx} className="flex justify-between items-center text-sm p-2 bg-muted/30 rounded">
+                        <span>{serviceName}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-xs">{count}x</Badge>
+                          {servicePrice && (
+                            <span className="text-xs text-muted-foreground">
+                              R$ {(Number(servicePrice) * count).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {selectedDayAppointments.some(apt => apt.products?.price) && (
+                    <div className="flex justify-between items-center text-sm p-2 bg-primary/10 rounded font-semibold mt-2">
+                      <span>Total Estimado</span>
+                      <span>
+                        R$ {selectedDayAppointments.reduce((sum, apt) => sum + (Number(apt.products?.price) || 0), 0).toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
