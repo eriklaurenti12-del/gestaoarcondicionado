@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import CalendarAgenda from './CalendarAgenda';
 
 type Appointment = {
   id: string;
@@ -65,7 +66,7 @@ const AppointmentsTab: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
-  
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   // Payment fields
   const [paymentMethod, setPaymentMethod] = useState<string>("Dinheiro");
   const [installments, setInstallments] = useState<number>(1);
@@ -362,68 +363,97 @@ const AppointmentsTab: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      {/* View Toggle + Action Buttons */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div className="flex rounded-lg border overflow-hidden">
+          <Button 
+            variant={viewMode === 'list' ? 'default' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('list')}
+            className="rounded-none min-h-[44px] px-4"
+          >
+            <List className="w-4 h-4 mr-2" />
+            Lista
+          </Button>
+          <Button 
+            variant={viewMode === 'calendar' ? 'default' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('calendar')}
+            className="rounded-none min-h-[44px] px-4"
+          >
+            <CalendarRange className="w-4 h-4 mr-2" />
+            Calendário
+          </Button>
+        </div>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 sm:flex-none">
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Novo Agendamento
+          </Button>
+          <Button onClick={exportScheduledPDF} variant="outline" className="min-h-[44px]">
+            <FileDown className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Exportar PDF</span>
+            <span className="sm:hidden">PDF</span>
+          </Button>
+        </div>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold">{todayAppointments}</div>
-            <div className="text-xs text-muted-foreground">Hoje</div>
+          <CardContent className="p-4">
+            <div className="text-2xl sm:text-3xl font-bold">{todayAppointments}</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Hoje</div>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-yellow-500">
+          <CardContent className="p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-yellow-500">
               {appointments?.filter(a => a.status === 'agendado').length || 0}
             </div>
-            <div className="text-xs text-muted-foreground">Agendados</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Agendados</div>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-green-500">
+          <CardContent className="p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-green-500">
               {appointments?.filter(a => a.status === 'confirmado').length || 0}
             </div>
-            <div className="text-xs text-muted-foreground">Confirmados</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Confirmados</div>
           </CardContent>
         </Card>
         <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="pt-4">
-            <div className="text-2xl font-bold text-primary">
+          <CardContent className="p-4">
+            <div className="text-2xl sm:text-3xl font-bold text-primary">
               {appointments?.filter(a => a.status === 'concluido').length || 0}
             </div>
-            <div className="text-xs text-muted-foreground">Concluídos</div>
+            <div className="text-xs sm:text-sm text-muted-foreground">Concluídos</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Lista de Agendamentos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <span className="flex items-center gap-2">
-              <Calendar className="w-5 h-5" />
-              Agendamentos
-            </span>
-            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-              <Button onClick={() => setShowAddDialog(true)} size="sm">
-                <PlusCircle className="w-4 h-4 mr-1" />
-                <span className="hidden sm:inline">Novo Agendamento</span>
-                <span className="sm:hidden">Novo</span>
+      {/* Calendar View */}
+      {viewMode === 'calendar' && (
+        <CalendarAgenda className="animate-fade-in" />
+      )}
+
+      {/* List View */}
+      {viewMode === 'list' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <span className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Agendamentos
+              </span>
+              <Button onClick={exportAvailableTimesPDF} size="sm" variant="outline" className="min-h-[44px]">
+                <FileDown className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Horários Disponíveis</span>
+                <span className="sm:hidden">Horários</span>
               </Button>
-              <Button onClick={exportAvailableTimesPDF} size="sm" variant="outline" className="text-xs">
-                <FileDown className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Horários</span>
-                <span className="sm:hidden">Disp.</span>
-              </Button>
-              <Button onClick={exportScheduledPDF} size="sm" variant="outline" className="text-xs">
-                <FileDown className="w-3 h-3 mr-1" />
-                <span className="hidden sm:inline">Agenda</span>
-                <span className="sm:hidden">PDF</span>
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
+            </CardTitle>
+          </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
@@ -512,32 +542,32 @@ const AppointmentsTab: React.FC = () => {
                       <TableCell className="text-xs sm:text-sm">{appointment.products?.name || '-'}</TableCell>
                       <TableCell>{getStatusBadge(appointment.status)}</TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap gap-1.5">
                           {appointment.clients?.telefone && (
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-8 w-8 p-0"
+                              className="h-10 w-10 p-0 touch-target"
                               onClick={() => handleWhatsApp(appointment.clients?.telefone, appointment.clients?.name || '', appointment.appointment_date)}
                             >
-                              <Phone className="w-3 h-3" />
+                              <Phone className="w-4 h-4" />
                             </Button>
                           )}
                           {appointment.status === 'agendado' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-8 w-8 p-0"
+                              className="h-10 w-10 p-0 touch-target text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado', appointment })}
                             >
-                              <Check className="w-3 h-3" />
+                              <Check className="w-4 h-4" />
                             </Button>
                           )}
                           {appointment.status === 'confirmado' && (
                             <Button 
                               size="sm" 
                               variant="default" 
-                              className="h-8 px-2 text-xs"
+                              className="h-10 px-3 text-sm touch-target"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
                             >
                               Concluir
@@ -547,23 +577,23 @@ const AppointmentsTab: React.FC = () => {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-8 w-8 p-0"
+                              className="h-10 w-10 p-0 touch-target text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'cancelado', appointment })}
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-4 h-4" />
                             </Button>
                           )}
                           <Button 
                             size="sm" 
                             variant="outline" 
-                            className="h-8 w-8 p-0"
+                            className="h-10 w-10 p-0 touch-target text-destructive hover:bg-destructive/10"
                             onClick={() => {
                               if (window.confirm('Remover este agendamento?')) {
                                 deleteAppointmentMutation.mutate(appointment.id);
                               }
                             }}
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -574,7 +604,8 @@ const AppointmentsTab: React.FC = () => {
             </Table>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      )}
 
       {/* Dialog Novo Agendamento */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
