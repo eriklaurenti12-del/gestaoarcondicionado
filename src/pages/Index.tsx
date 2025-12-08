@@ -16,6 +16,7 @@ import FinanceiroTab from "@/components/FinanceiroTab";
 import InstallmentsTab from "@/components/InstallmentsTab";
 import SalesTab from "@/components/SalesTab";
 import ChartsMetrics from "@/components/ChartsMetrics";
+import QuotesTab from "@/components/QuotesTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -119,6 +120,8 @@ export default function Index() {
         return <SuppliersTab />;
       case "sales":
         return <SalesTab />;
+      case "quotes":
+        return <QuotesTab />;
       case "financeiro":
         return <FinanceiroTab />;
       case "installments":
@@ -144,6 +147,7 @@ export default function Index() {
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
       sales: "Ordens de Serviço",
+      quotes: "Orçamentos",
       financeiro: "Financeiro",
       installments: "Parcelas",
       charts: "Gráficos & Métricas",
