@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, ShoppingCart, FileDown, TrendingUp } from "lucide-react";
+import { Trash2, Search, PlusCircle, FileDown, TrendingUp, Wind, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -60,7 +60,6 @@ const SalesTab: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   
-  // Form states
   const [selectedClientId, setSelectedClientId] = useState("");
   const [selectedProductId, setSelectedProductId] = useState("");
   const [qty, setQty] = useState(1);
@@ -87,12 +86,12 @@ const SalesTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({ title: "Sucesso!", description: "Venda registrada." });
+      toast({ title: "Sucesso!", description: "Ordem de serviço registrada." });
       resetForm();
       setShowAddDialog(false);
     },
     onError: (error: any) => {
-      toast({ variant: "destructive", title: "Erro ao registrar venda.", description: error.message });
+      toast({ variant: "destructive", title: "Erro ao registrar.", description: error.message });
     }
   });
 
@@ -103,7 +102,7 @@ const SalesTab: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
-      toast({ title: "Venda removida!" });
+      toast({ title: "Ordem removida!" });
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -168,7 +167,7 @@ const SalesTab: React.FC = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text('Relatório de Vendas', 14, 22);
+    doc.text('Relatório de Ordens de Serviço - AC Service Pro', 14, 22);
     doc.setFontSize(11);
     doc.text(`Período: ${filterMonth}/${filterYear}`, 14, 30);
     doc.text(`Total: R$ ${totals.totalRevenue.toFixed(2)} | Lucro: R$ ${totals.totalProfit.toFixed(2)}`, 14, 38);
@@ -188,10 +187,10 @@ const SalesTab: React.FC = () => {
       head: [['Data', 'Cliente', 'Serviço', 'Qtd', 'Pagamento', 'Valor', 'Lucro']],
       body: tableData,
       styles: { fontSize: 9 },
-      headStyles: { fillColor: [147, 51, 234] },
+      headStyles: { fillColor: [0, 128, 192] },
     });
 
-    doc.save(`vendas-${filterMonth}-${filterYear}.pdf`);
+    doc.save(`ordens-servico-${filterMonth}-${filterYear}.pdf`);
     toast({ title: "PDF exportado!" });
   };
 
@@ -209,14 +208,14 @@ const SalesTab: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-200 dark:border-cyan-800">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-green-100 dark:bg-green-900">
-                <ShoppingCart className="w-5 h-5 text-green-600" />
+              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900">
+                <Wind className="w-5 h-5 text-cyan-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">R$ {totals.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-cyan-600">R$ {totals.totalRevenue.toFixed(2)}</p>
                 <p className="text-xs text-muted-foreground">Faturamento</p>
               </div>
             </div>
@@ -235,15 +234,15 @@ const SalesTab: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-200 dark:border-indigo-800">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
-                <ShoppingCart className="w-5 h-5 text-purple-600" />
+              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900">
+                <Wrench className="w-5 h-5 text-indigo-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-purple-600">{totals.count}</p>
-                <p className="text-xs text-muted-foreground">Vendas</p>
+                <p className="text-2xl font-bold text-indigo-600">{totals.count}</p>
+                <p className="text-xs text-muted-foreground">Ordens de Serviço</p>
               </div>
             </div>
           </CardContent>
@@ -255,13 +254,13 @@ const SalesTab: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <span className="flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5" />
-              Vendas
+              <Wrench className="w-5 h-5 text-cyan-500" />
+              Ordens de Serviço
             </span>
             <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setShowAddDialog(true)} size="sm">
+              <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
                 <PlusCircle className="w-4 h-4 mr-1" />
-                Nova Venda
+                Nova O.S.
               </Button>
               <Button onClick={exportToPDF} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-1" />
@@ -275,7 +274,7 @@ const SalesTab: React.FC = () => {
           <div className="flex flex-wrap gap-3">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+              <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
             </div>
             <Select value={filterMonth} onValueChange={setFilterMonth}>
               <SelectTrigger className="w-[130px]">
@@ -328,7 +327,7 @@ const SalesTab: React.FC = () => {
                 ) : filteredSales.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                      Nenhuma venda encontrada
+                      Nenhuma ordem de serviço encontrada
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -347,7 +346,7 @@ const SalesTab: React.FC = () => {
                           variant="outline" 
                           className="h-8 w-8 p-0"
                           onClick={() => {
-                            if (window.confirm('Remover esta venda?')) {
+                            if (window.confirm('Remover esta ordem de serviço?')) {
                               deleteSaleMutation.mutate(sale.id);
                             }
                           }}
@@ -368,7 +367,7 @@ const SalesTab: React.FC = () => {
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nova Venda</DialogTitle>
+            <DialogTitle>Nova Ordem de Serviço</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -385,7 +384,7 @@ const SalesTab: React.FC = () => {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label>Serviço/Produto *</Label>
+              <Label>Serviço/Peça *</Label>
               <Select value={selectedProductId} onValueChange={setSelectedProductId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o serviço" />
@@ -422,8 +421,8 @@ const SalesTab: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancelar</Button>
-            <Button onClick={handleAddSale} disabled={addSaleMutation.isPending}>
-              Registrar Venda
+            <Button onClick={handleAddSale} disabled={addSaleMutation.isPending} className="bg-gradient-to-r from-cyan-600 to-blue-600">
+              Registrar O.S.
             </Button>
           </DialogFooter>
         </DialogContent>

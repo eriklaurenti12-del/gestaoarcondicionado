@@ -6,17 +6,28 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Trash2, FileDown, Pencil, Scissors, Plus, X } from "lucide-react";
+import { Trash2, FileDown, Pencil, Wrench, Plus, X, Wind, Thermometer } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
 import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 type Product = Tables<'products'>;
 type Expense = { name: string; value: number };
+
+const serviceTypes = [
+  { value: 'instalacao', label: 'Instalação' },
+  { value: 'manutencao', label: 'Manutenção Preventiva' },
+  { value: 'corretiva', label: 'Manutenção Corretiva' },
+  { value: 'limpeza', label: 'Limpeza/Higienização' },
+  { value: 'desinstalacao', label: 'Desinstalação' },
+  { value: 'orcamento', label: 'Orçamento' },
+  { value: 'peca', label: 'Peça/Material' },
+];
 
 const fetchProducts = async (): Promise<Product[]> => {
   const { data, error } = await supabase.from('products').select('*').order('name');
@@ -48,6 +59,7 @@ const ProductsTab: React.FC = () => {
   const [minStockAlert, setMinStockAlert] = useState(5);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editQty, setEditQty] = useState(0);
+  const [serviceType, setServiceType] = useState('instalacao');
 
   // Expense tracking
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -64,18 +76,15 @@ const ProductsTab: React.FC = () => {
     getUserId();
   }, []);
 
-  // Calculate total expenses
   const totalExpenses = React.useMemo(() => {
     return expenses.reduce((sum, exp) => sum + exp.value, 0);
   }, [expenses]);
 
-  // Total cost = base cost + expenses
   const totalCost = React.useMemo(() => {
     const base = parseFloat(baseCostPrice) || 0;
     return base + totalExpenses;
   }, [baseCostPrice, totalExpenses]);
 
-  // Calculate sale price based on total cost and profit percentage
   const calculateSalePrice = React.useCallback((cost: number, percentage: string) => {
     const percentValue = parseFloat(percentage);
     if (!isNaN(cost) && !isNaN(percentValue) && cost > 0 && percentValue >= 0) {
@@ -84,14 +93,12 @@ const ProductsTab: React.FC = () => {
     }
   }, []);
 
-  // Update sale price when cost or percentage changes
   React.useEffect(() => {
     if (totalCost > 0 && profitPercentage) {
       calculateSalePrice(totalCost, profitPercentage);
     }
   }, [totalCost, profitPercentage, calculateSalePrice]);
 
-  // Net profit in reais
   const profitInReais = React.useMemo(() => {
     const price = parseFloat(productPrice);
     if (!isNaN(totalCost) && !isNaN(price)) {
@@ -107,7 +114,7 @@ const ProductsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast({ title: "Sucesso!", description: "Serviço/Produto adicionado." });
+      toast({ title: "Sucesso!", description: "Serviço/Peça adicionado." });
       setScannedBarcode("");
       setProductName("");
       setProductPrice("");
@@ -173,20 +180,20 @@ const ProductsTab: React.FC = () => {
         return;
     }
     
-    if (qty < 1) {
+    if (serviceType === 'peca' && qty < 1) {
         toast({ variant: "destructive", title: "Quantidade inválida", description: "A quantidade mínima é 1."});
         return;
     }
 
     const productData = {
       name: productName.trim(),
-      qty: Math.max(1, qty),
+      qty: serviceType === 'peca' ? Math.max(1, qty) : 999,
       price: parseFloat(productPrice),
       cost_price: totalCost,
       barcode: scannedBarcode?.trim() || null,
       supplier_id: null,
       warranty_months: 12,
-      min_stock: minStockAlert,
+      min_stock: serviceType === 'peca' ? minStockAlert : 0,
       date_added: new Date().toISOString().split('T')[0],
       user_id: userId,
     };
@@ -214,27 +221,35 @@ const ProductsTab: React.FC = () => {
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text('Catálogo de Serviços e Produtos', 14, 22);
+    doc.text('Catálogo de Serviços e Peças - AC Service Pro', 14, 22);
     doc.setFontSize(11);
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
     const tableData = products?.map(p => [
       p.name,
       p.barcode || 'N/A',
-      `${p.qty} un`,
+      p.qty < 999 ? `${p.qty} un` : 'Serviço',
       `R$ ${Number(p.cost_price).toFixed(2)}`,
       `R$ ${Number(p.price).toFixed(2)}`
     ]) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Serviço/Produto', 'Código', 'Qtd', 'Custo', 'Preço']],
+      head: [['Serviço/Peça', 'Código', 'Estoque', 'Custo', 'Preço']],
       body: tableData,
-      headStyles: { fillColor: [147, 51, 234] },
+      headStyles: { fillColor: [0, 128, 192] },
     });
 
-    doc.save('servicos-produtos.pdf');
+    doc.save('servicos-pecas-ac.pdf');
     toast({ title: "PDF exportado!", description: "Catálogo salvo." });
+  };
+
+  const getServiceIcon = (name: string) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('instalação') || lowerName.includes('instalacao')) return <Wind className="w-4 h-4 text-cyan-500" />;
+    if (lowerName.includes('manutenção') || lowerName.includes('manutencao')) return <Wrench className="w-4 h-4 text-amber-500" />;
+    if (lowerName.includes('limpeza') || lowerName.includes('higienização')) return <Thermometer className="w-4 h-4 text-green-500" />;
+    return <Wrench className="w-4 h-4 text-muted-foreground" />;
   };
 
   return (
@@ -243,8 +258,8 @@ const ProductsTab: React.FC = () => {
         <CardHeader>
           <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
             <span className="flex items-center gap-2">
-              <Scissors className="w-5 h-5" />
-              Serviços & Produtos
+              <Wind className="w-5 h-5 text-cyan-500" />
+              Serviços & Peças
             </span>
             <Button onClick={exportToPDF} size="sm" variant="outline">
               <FileDown className="w-4 h-4 mr-2" />
@@ -258,7 +273,7 @@ const ProductsTab: React.FC = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Serviço/Produto</TableHead>
+                    <TableHead>Serviço/Peça</TableHead>
                     <TableHead className="hidden sm:table-cell">Código</TableHead>
                     <TableHead>Estoque</TableHead>
                     <TableHead>Custo</TableHead>
@@ -270,15 +285,28 @@ const ProductsTab: React.FC = () => {
                   {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                   )) : products?.map((product) => (
-                    <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) ? "bg-orange-50 dark:bg-orange-950" : ""}>
-                      <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) && product.qty < 999 ? "bg-orange-50 dark:bg-orange-950" : ""}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {getServiceIcon(product.name)}
+                          {product.name}
+                        </div>
+                      </TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
-                      <TableCell><span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span></TableCell>
+                      <TableCell>
+                        {product.qty >= 999 ? (
+                          <span className="text-cyan-600 font-medium">Serviço</span>
+                        ) : (
+                          <span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span>
+                        )}
+                      </TableCell>
                       <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
                       <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
+                          {product.qty < 999 && (
+                            <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
+                          )}
                           <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
                         </div>
                       </TableCell>
@@ -292,20 +320,34 @@ const ProductsTab: React.FC = () => {
       </Card>
 
       <Card className="overflow-visible">
-        <CardHeader><CardTitle>Cadastrar Serviço ou Produto</CardTitle></CardHeader>
+        <CardHeader><CardTitle>Cadastrar Serviço ou Peça</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={serviceType} onValueChange={setServiceType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {serviceTypes.map(type => (
+                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="barcode">Código (Opcional)</Label>
             <div className="flex items-center gap-2">
-              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Código do serviço/produto (opcional)" />
+              <Input id="barcode" value={scannedBarcode} onChange={(e) => setScannedBarcode(e.target.value)} placeholder="Código do serviço/peça (opcional)" />
               <BarcodeScanner onBarcodeDetected={setScannedBarcode} />
             </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="product-name-barcode">Nome do Serviço/Produto</Label>
-              <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Ex: Corte Feminino, Escova, Tintura..."/>
+              <Label htmlFor="product-name-barcode">Nome do Serviço/Peça</Label>
+              <Input id="product-name-barcode" value={productName} onChange={(e) => setProductName(e.target.value)} placeholder="Ex: Instalação Split 12000 BTUs, Gás R410A..."/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="base-cost-price">Custo Base (R$)</Label>
@@ -321,7 +363,7 @@ const ProductsTab: React.FC = () => {
             <CardContent className="space-y-3">
               <div className="flex flex-col sm:flex-row gap-2">
                 <Input 
-                  placeholder="Nome do gasto (ex: Tinta, Shampoo)" 
+                  placeholder="Nome do gasto (ex: Tubo de cobre, Suporte)" 
                   value={newExpenseName} 
                   onChange={(e) => setNewExpenseName(e.target.value)} 
                   className="flex-1"
@@ -374,7 +416,7 @@ const ProductsTab: React.FC = () => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="product-price">Preço de Venda (R$)</Label>
+              <Label htmlFor="product-price">Preço Final (R$)</Label>
               <Input 
                 id="product-price" 
                 type="number" 
@@ -389,7 +431,7 @@ const ProductsTab: React.FC = () => {
 
           {/* Cost Summary */}
           {totalCost > 0 && (
-            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border-purple-200 dark:border-purple-800">
+            <Card className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 border-cyan-200 dark:border-cyan-800">
               <CardContent className="py-3">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
@@ -413,42 +455,52 @@ const ProductsTab: React.FC = () => {
             </Card>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="add-quantity-barcode">Quantidade</Label>
-              <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
+          {serviceType === 'peca' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="add-quantity-barcode">Quantidade</Label>
+                <Input id="add-quantity-barcode" type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1"/>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="min-stock">Estoque Mínimo</Label>
+                <Input id="min-stock" type="number" value={minStockAlert} onChange={(e) => setMinStockAlert(Number(e.target.value))} min="0"/>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="min-stock">Estoque Mínimo (para produtos)</Label>
-              <Input id="min-stock" type="number" value={minStockAlert} onChange={(e) => setMinStockAlert(Number(e.target.value))} min="0"/>
-            </div>
-          </div>
-          
-          <Button onClick={handleAddProduct} className="w-full" disabled={addMutation.isPending || !productName || !productPrice || totalCost <= 0}>
-            {addMutation.isPending ? "Cadastrando..." : "Cadastrar Serviço/Produto"}
+          )}
+
+          <Button 
+            onClick={handleAddProduct} 
+            disabled={addMutation.isPending}
+            className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            {addMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço/Peça'}
           </Button>
         </CardContent>
       </Card>
 
-      <Dialog open={!!editingProduct} onOpenChange={(open) => !open && setEditingProduct(null)}>
+      {/* Edit Qty Dialog */}
+      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Editar Quantidade - {editingProduct?.name}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="edit-qty">Quantidade em Estoque</Label>
-              <Input 
-                id="edit-qty" 
-                type="number" 
-                value={editQty} 
-                onChange={(e) => setEditQty(Number(e.target.value))} 
+              <Label>Quantidade em Estoque</Label>
+              <Input
+                type="number"
                 min="0"
+                value={editQty}
+                onChange={(e) => setEditQty(Number(e.target.value))}
               />
             </div>
-            <Button onClick={handleUpdateQty} className="w-full" disabled={updateQtyMutation.isPending}>
-              {updateQtyMutation.isPending ? "Atualizando..." : "Atualizar Quantidade"}
-            </Button>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" onClick={() => setEditingProduct(null)}>Cancelar</Button>
+              <Button onClick={handleUpdateQty} disabled={updateQtyMutation.isPending}>
+                {updateQtyMutation.isPending ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

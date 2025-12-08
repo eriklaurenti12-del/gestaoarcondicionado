@@ -24,32 +24,20 @@ import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Bell } from "lucide-react";
-import { differenceInDays, differenceInYears, isToday } from "date-fns";
+import { differenceInDays, isToday } from "date-fns";
 
 const fetchNotificationCount = async () => {
   const today = new Date();
   
   const [
-    { data: clients },
     { data: installments },
     { data: appointments }
   ] = await Promise.all([
-    supabase.from('clients').select('aniversario'),
     supabase.from('installments').select('due_date, is_paid').eq('is_paid', false),
     supabase.from('appointments').select('appointment_date, status').gte('appointment_date', today.toISOString().split('T')[0])
   ]);
 
   let count = 0;
-
-  // Count upcoming birthdays (7 days)
-  clients?.forEach((client: any) => {
-    if (!client.aniversario) return;
-    const birthday = new Date(client.aniversario);
-    const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
-    if (thisYearBirthday < today) thisYearBirthday.setFullYear(today.getFullYear() + 1);
-    const daysUntil = differenceInDays(thisYearBirthday, today);
-    if (daysUntil >= 0 && daysUntil <= 7) count++;
-  });
 
   // Count urgent installments (overdue or due in 7 days)
   installments?.forEach((inst: any) => {
@@ -154,18 +142,18 @@ export default function Index() {
   const getPageTitle = () => {
     const titles: Record<string, string> = {
       dashboard: "Dashboard",
-      appointments: "Agenda",
-      calendar: "Calendário Visual",
+      appointments: "Agenda de Atendimentos",
+      calendar: "Calendário",
       clients: "Clientes",
-      products: "Serviços & Produtos",
+      products: "Serviços & Peças",
       suppliers: "Fornecedores",
-      sales: "Vendas",
+      sales: "Ordens de Serviço",
       financeiro: "Financeiro",
       installments: "Parcelas",
       charts: "Gráficos & Métricas",
       reports: "Relatórios",
       backup: "Backup dos Dados",
-      company: "Meu Salão"
+      company: "Minha Empresa"
     };
     return titles[activeTab] || "Dashboard";
   };
