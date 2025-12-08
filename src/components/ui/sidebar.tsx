@@ -262,12 +262,20 @@ const SidebarTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentProps<typeof Button>
 >(({ className, onClick, ...props }, ref) => {
-  const { toggleSidebar, isMobile, openMobile, open } = useSidebar()
+  const { isMobile, openMobile, open, setOpenMobile, setOpen } = useSidebar()
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     console.log("SidebarTrigger clicked", { isMobile, openMobile, open })
     onClick?.(event)
-    toggleSidebar()
+    
+    // Directly toggle the correct state based on mobile detection
+    if (isMobile) {
+      console.log("Opening mobile sidebar")
+      setOpenMobile(!openMobile)
+    } else {
+      console.log("Toggling desktop sidebar")
+      setOpen(!open)
+    }
   }
 
   return (
