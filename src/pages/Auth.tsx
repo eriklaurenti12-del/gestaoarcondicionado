@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Scissors } from "lucide-react";
+import { Loader2, Mail, Lock, Wind } from "lucide-react";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -133,8 +133,8 @@ export default function Auth() {
     <div className="min-h-screen bg-[#0a0a0f] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-blue-600/10 rounded-full blur-[120px] animate-pulse"></div>
       </div>
 
       {/* Main content */}
@@ -142,22 +142,22 @@ export default function Auth() {
         {/* Header */}
         <div className="text-center mb-6 space-y-2 animate-fade-in">
           <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 border border-purple-500/30 hover:scale-110 transition-transform duration-300">
-              <Scissors className="w-10 h-10 text-purple-400" />
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30 hover:scale-110 transition-transform duration-300">
+              <Wind className="w-10 h-10 text-cyan-400" />
             </div>
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 bg-clip-text text-transparent">
-              Salão de Beleza
+            <span className="bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500 bg-clip-text text-transparent">
+              AC Service Pro
             </span>
           </h1>
-          <p className="text-gray-400 text-sm">Sistema Completo de Gestão</p>
+          <p className="text-gray-400 text-sm">Sistema de Gestão para Ar Condicionado</p>
           <p className="text-xs text-gray-500">Criado por Erik Laurenti</p>
         </div>
 
         {/* Show ONLY Recovery Card OR Login Card - never both */}
         {showForgotPassword ? (
-          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)] animate-scale-in">
+          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.15)] animate-scale-in">
             <CardContent className="p-6 space-y-4">
               <div className="text-center space-y-1 mb-4">
                 <h2 className="text-xl font-bold text-white">RECUPERAR SENHA</h2>
@@ -178,7 +178,7 @@ export default function Auth() {
                       value={forgotEmail} 
                       onChange={e => setForgotEmail(e.target.value)} 
                       required 
-                      className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all duration-200" 
+                      className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-lg transition-all duration-200" 
                     />
                   </div>
                 </div>
@@ -193,7 +193,7 @@ export default function Auth() {
                   </Button>
                   <Button 
                     type="submit" 
-                    className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-200 hover:scale-[1.02]" 
+                    className="flex-1 h-11 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02]" 
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR"}
@@ -203,14 +203,14 @@ export default function Auth() {
             </CardContent>
           </Card>
         ) : (
-          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(147,51,234,0.15)] animate-scale-in">
+          <Card className="backdrop-blur-xl bg-[#1a1a24]/80 border border-[#2a2a3a] rounded-2xl shadow-[0_0_50px_rgba(6,182,212,0.15)] animate-scale-in">
             <CardContent className="p-0">
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-transparent border-b border-[#2a2a3a] rounded-none h-12">
-                  <TabsTrigger value="login" className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all duration-200">
+                  <TabsTrigger value="login" className="rounded-none data-[state=active]:bg-cyan-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all duration-200">
                     Login
                   </TabsTrigger>
-                  <TabsTrigger value="signup" className="rounded-none data-[state=active]:bg-purple-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all duration-200">
+                  <TabsTrigger value="signup" className="rounded-none data-[state=active]:bg-cyan-600/20 data-[state=active]:text-white data-[state=active]:shadow-none text-gray-400 font-medium transition-all duration-200">
                     Cadastro
                   </TabsTrigger>
                 </TabsList>
@@ -236,7 +236,7 @@ export default function Auth() {
                           value={email} 
                           onChange={e => setEmail(e.target.value)} 
                           required 
-                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all duration-200" 
+                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-lg transition-all duration-200" 
                         />
                       </div>
                     </div>
@@ -254,7 +254,7 @@ export default function Auth() {
                           value={password} 
                           onChange={e => setPassword(e.target.value)} 
                           required 
-                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all duration-200" 
+                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-lg transition-all duration-200" 
                         />
                       </div>
                     </div>
@@ -263,7 +263,7 @@ export default function Auth() {
                       <button 
                         type="button" 
                         onClick={() => setShowForgotPassword(true)} 
-                        className="text-xs text-purple-400 hover:text-purple-300 transition-colors hover:underline"
+                        className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors hover:underline"
                       >
                         Esqueci minha senha
                       </button>
@@ -271,12 +271,12 @@ export default function Auth() {
 
                     <Button 
                       type="submit" 
-                      className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
+                      className="w-full h-11 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                         <>
-                          <Mail className="w-4 h-4" />
+                          <Wind className="w-4 h-4" />
                           ENTRAR
                         </>
                       )}
@@ -305,7 +305,7 @@ export default function Auth() {
                           value={email} 
                           onChange={e => setEmail(e.target.value)} 
                           required 
-                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all duration-200" 
+                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-lg transition-all duration-200" 
                         />
                       </div>
                     </div>
@@ -324,7 +324,7 @@ export default function Auth() {
                           onChange={e => setPassword(e.target.value)} 
                           required 
                           minLength={6} 
-                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 rounded-lg transition-all duration-200" 
+                          className="pl-10 h-11 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-lg transition-all duration-200" 
                         />
                       </div>
                       <p className="text-xs text-gray-500">Mínimo 6 caracteres</p>
@@ -332,12 +332,12 @@ export default function Auth() {
 
                     <Button 
                       type="submit" 
-                      className="w-full h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium rounded-lg shadow-lg hover:shadow-purple-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
+                      className="w-full h-11 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                         <>
-                          <Mail className="w-4 h-4" />
+                          <Wind className="w-4 h-4" />
                           CRIAR CONTA
                         </>
                       )}
