@@ -168,10 +168,10 @@ export default function Index() {
           
           <div className="flex-1 flex flex-col min-w-0">
             {/* Header */}
-            <header className="h-14 border-b border-border flex items-center justify-between px-4 bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+            <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
               <div className="flex items-center gap-3">
-                <SidebarTrigger className="h-8 w-8" />
-                <h1 className="text-lg font-semibold">{getPageTitle()}</h1>
+                <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target" />
+                <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
               </div>
               <div className="flex items-center gap-2">
                 {/* Notification Bell */}
@@ -180,7 +180,7 @@ export default function Index() {
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className={`relative h-9 w-9 transition-all duration-300 ${
+                      className={`relative h-11 w-11 min-h-[44px] min-w-[44px] transition-all duration-300 ${
                         notificationCount > 0 
                           ? 'text-primary hover:bg-primary/10' 
                           : 'hover:bg-muted'
@@ -191,15 +191,15 @@ export default function Index() {
                       }`} />
                       {notificationCount > 0 && (
                         <>
-                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
+                          <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
                             {notificationCount > 99 ? '99' : notificationCount}
                           </span>
-                          <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                          <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
                         </>
                       )}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
+                  <PopoverContent className="w-[90vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
                     <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
                   </PopoverContent>
                 </Popover>

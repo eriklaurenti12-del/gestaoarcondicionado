@@ -2,108 +2,108 @@
 @tailwind components;
 @tailwind utilities;
 
-/* AC Service Pro - Design System - Blue/Cyan Theme */
+/* AC Service Pro - Design System - Blue/Cyan Professional Theme */
 
 @layer base {
   :root {
     /* Modo Claro - Cyan/Blue Professional */
-    --background: 200 20% 98%;
-    --foreground: 200 30% 10%;
+    --background: 210 25% 97%;
+    --foreground: 210 40% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 200 30% 10%;
+    --card-foreground: 210 40% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 30% 10%;
+    --popover-foreground: 210 40% 10%;
 
-    --primary: 190 90% 45%;
+    --primary: 190 90% 42%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 80% 50%;
+    --secondary: 210 80% 48%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 200 15% 92%;
-    --muted-foreground: 200 20% 40%;
+    --muted: 210 20% 92%;
+    --muted-foreground: 210 15% 40%;
 
-    --accent: 190 85% 55%;
+    --accent: 190 85% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 20% 85%;
-    --input: 200 15% 90%;
-    --ring: 190 90% 45%;
+    --border: 210 25% 85%;
+    --input: 210 20% 90%;
+    --ring: 190 90% 42%;
 
     --radius: 0.75rem;
 
     /* Gradientes AC Service */
-    --gradient-primary: linear-gradient(135deg, hsl(190 90% 45%), hsl(210 80% 50%));
-    --gradient-secondary: linear-gradient(180deg, hsl(200 15% 95%), hsl(200 20% 98%));
-    --gradient-glow: linear-gradient(135deg, hsl(190 90% 45% / 0.15), hsl(210 80% 50% / 0.15));
+    --gradient-primary: linear-gradient(135deg, hsl(190 90% 42%), hsl(210 80% 48%));
+    --gradient-secondary: linear-gradient(180deg, hsl(210 20% 95%), hsl(210 25% 97%));
+    --gradient-glow: linear-gradient(135deg, hsl(190 90% 42% / 0.15), hsl(210 80% 48% / 0.15));
 
     /* Sombras para modo claro */
-    --shadow-glow-primary: 0 0 30px hsl(190 90% 45% / 0.2);
-    --shadow-glow-secondary: 0 0 30px hsl(210 80% 50% / 0.2);
-    --shadow-elegant: 0 10px 30px -10px hsl(190 90% 45% / 0.15);
+    --shadow-glow-primary: 0 0 30px hsl(190 90% 42% / 0.2);
+    --shadow-glow-secondary: 0 0 30px hsl(210 80% 48% / 0.2);
+    --shadow-elegant: 0 10px 30px -10px hsl(190 90% 42% / 0.15);
 
-    --sidebar-background: 200 15% 96%;
-    --sidebar-foreground: 200 30% 10%;
-    --sidebar-primary: 190 90% 45%;
+    --sidebar-background: 210 20% 96%;
+    --sidebar-foreground: 210 40% 10%;
+    --sidebar-primary: 190 90% 42%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 200 15% 90%;
-    --sidebar-accent-foreground: 200 30% 10%;
-    --sidebar-border: 200 20% 85%;
-    --sidebar-ring: 190 90% 45%;
+    --sidebar-accent: 210 20% 90%;
+    --sidebar-accent-foreground: 210 40% 10%;
+    --sidebar-border: 210 25% 85%;
+    --sidebar-ring: 190 90% 42%;
   }
 
   .dark {
-    /* Modo Escuro - Cyan/Blue Professional */
-    --background: 210 20% 6%;
-    --foreground: 200 10% 96%;
+    /* Modo Escuro - Cyan/Blue Professional - Deep Blue */
+    --background: 215 35% 8%;
+    --foreground: 200 15% 95%;
 
-    --card: 210 18% 10%;
-    --card-foreground: 200 10% 96%;
+    --card: 215 30% 12%;
+    --card-foreground: 200 15% 95%;
 
-    --popover: 210 18% 10%;
-    --popover-foreground: 200 10% 96%;
+    --popover: 215 30% 12%;
+    --popover-foreground: 200 15% 95%;
 
     --primary: 190 90% 50%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 215 35% 8%;
 
-    --secondary: 210 80% 60%;
+    --secondary: 210 80% 55%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 15% 15%;
-    --muted-foreground: 200 10% 65%;
+    --muted: 215 25% 18%;
+    --muted-foreground: 200 15% 65%;
 
-    --accent: 190 85% 60%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 85% 55%;
+    --accent-foreground: 215 35% 8%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 15% 18%;
-    --input: 210 15% 15%;
+    --border: 215 25% 20%;
+    --input: 215 25% 18%;
     --ring: 190 90% 50%;
 
     /* Gradientes AC Service - dark */
-    --gradient-primary: linear-gradient(135deg, hsl(190 90% 50%), hsl(210 80% 60%));
-    --gradient-secondary: linear-gradient(180deg, hsl(210 18% 10%), hsl(210 20% 6%));
-    --gradient-glow: linear-gradient(135deg, hsl(190 90% 50% / 0.2), hsl(210 80% 60% / 0.2));
+    --gradient-primary: linear-gradient(135deg, hsl(190 90% 50%), hsl(210 80% 55%));
+    --gradient-secondary: linear-gradient(180deg, hsl(215 30% 12%), hsl(215 35% 8%));
+    --gradient-glow: linear-gradient(135deg, hsl(190 90% 50% / 0.2), hsl(210 80% 55% / 0.2));
 
     /* Sombras com glow cyan */
-    --shadow-glow-primary: 0 0 40px hsl(190 90% 50% / 0.4);
-    --shadow-glow-secondary: 0 0 40px hsl(210 80% 60% / 0.4);
-    --shadow-elegant: 0 20px 40px -10px hsl(190 90% 50% / 0.3);
+    --shadow-glow-primary: 0 0 40px hsl(190 90% 50% / 0.35);
+    --shadow-glow-secondary: 0 0 40px hsl(210 80% 55% / 0.35);
+    --shadow-elegant: 0 20px 40px -10px hsl(190 90% 50% / 0.25);
 
-    --sidebar-background: 210 18% 10%;
-    --sidebar-foreground: 200 10% 96%;
+    --sidebar-background: 215 30% 10%;
+    --sidebar-foreground: 200 15% 95%;
     --sidebar-primary: 190 90% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 15% 15%;
-    --sidebar-accent-foreground: 200 10% 96%;
-    --sidebar-border: 210 15% 18%;
+    --sidebar-primary-foreground: 215 35% 8%;
+    --sidebar-accent: 215 25% 16%;
+    --sidebar-accent-foreground: 200 15% 95%;
+    --sidebar-border: 215 25% 18%;
     --sidebar-ring: 190 90% 50%;
   }
 }
@@ -136,6 +136,14 @@
 
 [data-radix-select-viewport] {
   max-height: 300px;
+}
+
+/* Ensure dropdowns have solid background */
+[data-radix-select-content],
+[data-radix-popover-content],
+[data-radix-dropdown-menu-content] {
+  background-color: hsl(var(--popover)) !important;
+  z-index: 9999 !important;
 }
 
 /* Prevent layout shifts from select */

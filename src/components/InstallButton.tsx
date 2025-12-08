@@ -113,10 +113,10 @@ const InstallButton: React.FC = () => {
         variant="default" 
         size="sm" 
         onClick={handleInstall}
-        className="h-8 sm:h-9 px-2 sm:px-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+        className="h-11 min-h-[44px] px-3 sm:px-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
       >
-        {isIOS ? <Share className="w-4 h-4" /> : <Download className="w-4 h-4" />}
-        <span className="hidden sm:inline ml-1.5 text-xs font-medium">Instalar</span>
+        {isIOS ? <Share className="w-5 h-5" /> : <Download className="w-5 h-5" />}
+        <span className="hidden sm:inline ml-2 text-sm font-medium">Instalar</span>
       </Button>
 
       {/* Banner flutuante de instalação */}
