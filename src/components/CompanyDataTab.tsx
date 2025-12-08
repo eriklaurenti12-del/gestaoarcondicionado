@@ -7,10 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
-import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe } from "lucide-react";
+import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe, Wind } from "lucide-react";
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
@@ -22,7 +21,6 @@ const CompanyDataTab: React.FC = () => {
   const [address, setAddress] = useState('');
   const [userId, setUserId] = useState<string>('');
   
-  // Novos campos
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
   const [facebook, setFacebook] = useState('');
@@ -99,7 +97,7 @@ const CompanyDataTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['company-data'] });
       toast({
         title: "Sucesso!",
-        description: "Dados do salão salvos com sucesso."
+        description: "Dados da empresa salvos com sucesso."
       });
     },
     onError: (error: Error) => {
@@ -115,7 +113,7 @@ const CompanyDataTab: React.FC = () => {
     if (!cnpjCpf || !companyName) {
       toast({
         title: "Aviso",
-        description: "Preencha pelo menos CNPJ/CPF e Nome do Salão",
+        description: "Preencha pelo menos CNPJ/CPF e Nome da Empresa",
         variant: "destructive"
       });
       return;
@@ -125,11 +123,11 @@ const CompanyDataTab: React.FC = () => {
     const pageWidth = doc.internal.pageSize.getWidth();
     
     // Header with gradient effect
-    doc.setFillColor(147, 51, 234);
+    doc.setFillColor(0, 128, 192);
     doc.rect(0, 0, pageWidth, 50, 'F');
     
     // Gradient overlay
-    doc.setFillColor(219, 39, 119);
+    doc.setFillColor(0, 102, 153);
     doc.rect(pageWidth / 2, 0, pageWidth / 2, 50, 'F');
     
     // Company name
@@ -141,7 +139,7 @@ const CompanyDataTab: React.FC = () => {
     // Subtitle
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Cartão de Apresentação', pageWidth / 2, 35, { align: 'center' });
+    doc.text('Serviços de Ar Condicionado', pageWidth / 2, 35, { align: 'center' });
     
     // CNPJ/CPF badge
     doc.setFontSize(9);
@@ -152,14 +150,14 @@ const CompanyDataTab: React.FC = () => {
     
     // Contact Info Box
     if (whatsapp || phone || email) {
-      doc.setFillColor(250, 245, 255);
+      doc.setFillColor(240, 248, 255);
       doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'F');
-      doc.setDrawColor(147, 51, 234);
+      doc.setDrawColor(0, 128, 192);
       doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'S');
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(147, 51, 234);
+      doc.setTextColor(0, 128, 192);
       doc.text('📞 CONTATO', 20, y + 5);
       
       doc.setFont('helvetica', 'normal');
@@ -184,12 +182,12 @@ const CompanyDataTab: React.FC = () => {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(34, 197, 94);
-      doc.text('🕐 HORÁRIO DE FUNCIONAMENTO', 20, y + 5);
+      doc.text('🕐 HORÁRIO DE ATENDIMENTO', 20, y + 5);
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(60, 60, 60);
       doc.setFontSize(10);
-      doc.text(`${workDays || 'Seg - Sáb'} • ${openingHours || '09:00'} às ${closingHours || '19:00'}`, 20, y + 18);
+      doc.text(`${workDays || 'Seg - Sáb'} • ${openingHours || '08:00'} às ${closingHours || '18:00'}`, 20, y + 18);
       
       y += 40;
     }
@@ -241,15 +239,15 @@ const CompanyDataTab: React.FC = () => {
     
     // Specialties Box
     if (specialties) {
-      doc.setFillColor(253, 242, 248);
+      doc.setFillColor(240, 248, 255);
       doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'F');
-      doc.setDrawColor(236, 72, 153);
+      doc.setDrawColor(0, 128, 192);
       doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'S');
       
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(236, 72, 153);
-      doc.text('✨ ESPECIALIDADES', 20, y + 5);
+      doc.setTextColor(0, 128, 192);
+      doc.text('❄️ SERVIÇOS', 20, y + 5);
       
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(60, 60, 60);
@@ -282,7 +280,7 @@ const CompanyDataTab: React.FC = () => {
     // Footer
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} • Sistema Salão de Beleza`, pageWidth / 2, 285, { align: 'center' });
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} • AC Service Pro`, pageWidth / 2, 285, { align: 'center' });
     
     doc.save(`cartao-${companyName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
     toast({
@@ -296,7 +294,7 @@ const CompanyDataTab: React.FC = () => {
       <div className="space-y-6 animate-fade-in">
         <Card>
           <CardHeader>
-            <CardTitle>Meu Salão</CardTitle>
+            <CardTitle>Minha Empresa</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <Skeleton className="h-10 w-full" />
@@ -314,11 +312,11 @@ const CompanyDataTab: React.FC = () => {
     <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-2">
-          <Building2 className="w-6 h-6 text-primary animate-pulse" />
-          <h2 className="text-2xl font-bold">Meu Salão</h2>
+          <Wind className="w-6 h-6 text-cyan-500 animate-pulse" />
+          <h2 className="text-2xl font-bold">Minha Empresa</h2>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="hover-scale">
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="hover-scale bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
             <Save className="w-4 h-4 mr-2" />
             {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
@@ -340,10 +338,10 @@ const CompanyDataTab: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="company">Nome do Salão *</Label>
+              <Label htmlFor="company">Nome da Empresa *</Label>
               <Input
                 id="company"
-                placeholder="Salão Beleza Total"
+                placeholder="AC Service Pro"
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
                 className="transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -362,10 +360,10 @@ const CompanyDataTab: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Descrição do Salão</Label>
+            <Label htmlFor="description">Descrição da Empresa</Label>
             <Textarea
               id="description"
-              placeholder="Conte um pouco sobre seu salão, sua história, diferenciais..."
+              placeholder="Conte sobre sua empresa, experiência e diferenciais..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -374,10 +372,10 @@ const CompanyDataTab: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="specialties">Especialidades</Label>
+            <Label htmlFor="specialties">Serviços Oferecidos</Label>
             <Input
               id="specialties"
-              placeholder="Ex: Cortes modernos, Coloração, Tratamentos capilares, Penteados para noivas..."
+              placeholder="Ex: Instalação, Manutenção Preventiva, Limpeza, Carga de Gás..."
               value={specialties}
               onChange={(e) => setSpecialties(e.target.value)}
               className="transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -427,7 +425,7 @@ const CompanyDataTab: React.FC = () => {
               <Input
                 id="email"
                 type="email"
-                placeholder="contato@meusalao.com"
+                placeholder="contato@minhaempresa.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -457,7 +455,7 @@ const CompanyDataTab: React.FC = () => {
                 </span>
                 <Input
                   id="instagram"
-                  placeholder="meusalao"
+                  placeholder="minhaempresa"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
                   className="rounded-l-none transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -470,7 +468,7 @@ const CompanyDataTab: React.FC = () => {
               </Label>
               <Input
                 id="facebook"
-                placeholder="facebook.com/meusalao"
+                placeholder="facebook.com/minhaempresa"
                 value={facebook}
                 onChange={(e) => setFacebook(e.target.value)}
                 className="transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -482,7 +480,7 @@ const CompanyDataTab: React.FC = () => {
               </Label>
               <Input
                 id="website"
-                placeholder="www.meusalao.com.br"
+                placeholder="www.minhaempresa.com.br"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
                 className="transition-all focus:scale-[1.02] focus:shadow-lg"
@@ -492,77 +490,58 @@ const CompanyDataTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Horário de Funcionamento */}
+      {/* Horário e Localização */}
       <Card className="hover-scale transition-all shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Clock className="w-5 h-5" />
-            Horário de Funcionamento
+            Horário e Localização
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="opening">Abertura</Label>
-              <Select value={openingHours} onValueChange={setOpeningHours}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Horário de abertura" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                      {`${i.toString().padStart(2, '0')}:00`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="closing">Fechamento</Label>
-              <Select value={closingHours} onValueChange={setClosingHours}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Horário de fechamento" />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {Array.from({ length: 24 }, (_, i) => (
-                    <SelectItem key={i} value={`${i.toString().padStart(2, '0')}:00`}>
-                      {`${i.toString().padStart(2, '0')}:00`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="workDays">Dias de Funcionamento</Label>
               <Input
                 id="workDays"
-                placeholder="Ex: Segunda a Sábado"
+                placeholder="Segunda a Sábado"
                 value={workDays}
                 onChange={(e) => setWorkDays(e.target.value)}
                 className="transition-all focus:scale-[1.02] focus:shadow-lg"
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="openingHours">Horário de Abertura</Label>
+              <Input
+                id="openingHours"
+                type="time"
+                value={openingHours}
+                onChange={(e) => setOpeningHours(e.target.value)}
+                className="transition-all focus:scale-[1.02] focus:shadow-lg"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="closingHours">Horário de Fechamento</Label>
+              <Input
+                id="closingHours"
+                type="time"
+                value={closingHours}
+                onChange={(e) => setClosingHours(e.target.value)}
+                className="transition-all focus:scale-[1.02] focus:shadow-lg"
+              />
+            </div>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* Endereço */}
-      <Card className="hover-scale transition-all shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5" />
-            Localização
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="address">Endereço Completo</Label>
+            <Label htmlFor="address" className="flex items-center gap-1">
+              <MapPin className="w-4 h-4" /> Endereço Completo
+            </Label>
             <Textarea
               id="address"
               placeholder="Rua, Número, Bairro, Cidade - Estado, CEP"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              rows={3}
+              rows={2}
               className="transition-all focus:scale-[1.01] focus:shadow-lg"
             />
           </div>

@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 
 type Member = {
@@ -53,7 +53,7 @@ export default function Members() {
       setMembers((data as Member[]) || []);
     } catch (error: any) {
       toast({
-        title: "Erro ao carregar membros",
+        title: "Erro ao carregar usuários",
         description: error.message,
         variant: "destructive"
       });
@@ -80,9 +80,6 @@ export default function Members() {
         }
       }
 
-      console.log('[Members] Updating subscription:', { targetUserId, plan, status });
-
-      // Use edge function for admin operations
       const { data, error } = await supabase.functions.invoke('admin-update-subscription', {
         body: {
           target_user_id: targetUserId,
@@ -95,8 +92,6 @@ export default function Members() {
         }
       });
 
-      console.log('[Members] Response:', { data, error });
-
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
@@ -104,15 +99,32 @@ export default function Members() {
         title: "Sucesso!",
         description: status === 'aprovado' 
           ? "Acesso liberado! O usuário já pode acessar o sistema."
-          : "Assinatura cancelada."
+          : "Assinatura atualizada."
       });
 
-      // Reload members list
       await loadMembers();
     } catch (error: any) {
-      console.error('[Members] Error updating subscription:', error);
       toast({
         title: "Erro",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const banUser = async (targetUserId: string, email: string) => {
+    if (!window.confirm(`Tem certeza que deseja BANIR o usuário ${email}? Ele perderá todo acesso ao sistema.`)) return;
+    
+    try {
+      await updateSubscription(targetUserId, 'mensal', 'cancelado');
+      toast({
+        title: "Usuário Banido",
+        description: `${email} foi banido do sistema.`,
+        variant: "destructive"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao banir usuário",
         description: error.message,
         variant: "destructive"
       });
@@ -126,7 +138,13 @@ export default function Members() {
       vencido: "destructive",
       cancelado: "outline"
     };
-    return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
+    const labels: Record<string, string> = {
+      aprovado: "✓ Ativo",
+      pendente: "⏳ Pendente",
+      vencido: "⚠️ Vencido",
+      cancelado: "🚫 Banido"
+    };
+    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
   };
 
   const filteredMembers = members.filter(m => 
@@ -137,12 +155,8 @@ export default function Members() {
     total: members.length,
     aprovados: members.filter(m => m.subscription?.status === 'aprovado').length,
     aguardando: members.filter(m => m.subscription?.status === 'pendente').length,
-    dia1: members.filter(m => {
-      const created = new Date(m.created_at);
-      const now = new Date();
-      return created.toDateString() === now.toDateString();
-    }).length,
-    completa: members.filter(m => m.subscription?.plan === 'vitalicio').length
+    banidos: members.filter(m => m.subscription?.status === 'cancelado').length,
+    vitalicio: members.filter(m => m.subscription?.plan === 'vitalicio').length
   };
 
   if (!isSuperAdmin || loading) {
@@ -158,8 +172,8 @@ export default function Members() {
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-              <Mail className="w-6 h-6 sm:w-8 sm:h-8" />
-              Membros
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-500" />
+              Painel Super Admin
             </h1>
           </div>
           <Button onClick={loadMembers} variant="outline">
@@ -171,13 +185,13 @@ export default function Members() {
           <Card>
             <CardContent className="pt-4 sm:pt-6">
               <div className="text-xl sm:text-2xl font-bold">{stats.total}</div>
-              <div className="text-xs sm:text-sm text-muted-foreground">Total</div>
+              <div className="text-xs sm:text-sm text-muted-foreground">Total Usuários</div>
             </CardContent>
           </Card>
           <Card className="bg-green-50 dark:bg-green-950">
             <CardContent className="pt-4 sm:pt-6">
               <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.aprovados}</div>
-              <div className="text-xs sm:text-sm">✓ Aprovados</div>
+              <div className="text-xs sm:text-sm">✓ Ativos</div>
             </CardContent>
           </Card>
           <Card className="bg-yellow-50 dark:bg-yellow-950">
@@ -186,16 +200,16 @@ export default function Members() {
               <div className="text-xs sm:text-sm">⏱ Aguardando</div>
             </CardContent>
           </Card>
-          <Card className="bg-blue-50 dark:bg-blue-950">
+          <Card className="bg-red-50 dark:bg-red-950">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-blue-600">{stats.dia1}</div>
-              <div className="text-xs sm:text-sm">Dia 1</div>
+              <div className="text-xl sm:text-2xl font-bold text-red-600">{stats.banidos}</div>
+              <div className="text-xs sm:text-sm">🚫 Banidos</div>
             </CardContent>
           </Card>
-          <Card className="bg-purple-50 dark:bg-purple-950">
+          <Card className="bg-cyan-50 dark:bg-cyan-950">
             <CardContent className="pt-4 sm:pt-6">
-              <div className="text-xl sm:text-2xl font-bold text-purple-600">{stats.completa}</div>
-              <div className="text-xs sm:text-sm">Vitalício</div>
+              <div className="text-xl sm:text-2xl font-bold text-cyan-600">{stats.vitalicio}</div>
+              <div className="text-xs sm:text-sm">∞ Vitalício</div>
             </CardContent>
           </Card>
         </div>
@@ -203,11 +217,11 @@ export default function Members() {
         <Card>
           <CardHeader>
             <div className="flex justify-between items-center">
-              <CardTitle>Lista de Membros</CardTitle>
+              <CardTitle>Gerenciar Usuários</CardTitle>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar..."
+                  placeholder="Buscar por email..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-10"
@@ -225,12 +239,12 @@ export default function Members() {
                     <TableHead className="min-w-[100px]">Status</TableHead>
                     <TableHead className="min-w-[100px]">Cadastro</TableHead>
                     <TableHead className="min-w-[120px]">Vencimento</TableHead>
-                    <TableHead className="min-w-[130px]">Ações</TableHead>
+                    <TableHead className="min-w-[200px]">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredMembers.map((member) => (
-                    <TableRow key={member.id}>
+                    <TableRow key={member.id} className={member.subscription?.status === 'cancelado' ? 'bg-red-50 dark:bg-red-950/30' : ''}>
                       <TableCell className="font-medium text-xs sm:text-sm">{member.email}</TableCell>
                       <TableCell>
                         <Select
@@ -266,18 +280,29 @@ export default function Members() {
                         }
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
-                          onClick={() => updateSubscription(
-                            member.id, 
-                            member.subscription?.plan || 'mensal',
-                            member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
-                          )}
-                          className="text-xs whitespace-nowrap"
-                        >
-                          {member.subscription?.status === 'aprovado' ? 'Cancelar' : 'Marcar Pago'}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
+                            onClick={() => updateSubscription(
+                              member.id, 
+                              member.subscription?.plan || 'mensal',
+                              member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado'
+                            )}
+                            className="text-xs whitespace-nowrap"
+                          >
+                            {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => banUser(member.id, member.email)}
+                            className="text-xs"
+                            title="Banir usuário"
+                          >
+                            <Ban className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

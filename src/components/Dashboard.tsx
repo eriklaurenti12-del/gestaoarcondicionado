@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Scissors, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, Gift, CreditCard, AlertCircle, Check, MessageCircle } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { format, isToday, startOfWeek, endOfWeek, addDays, isSameDay, differenceInDays } from 'date-fns';
+import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const fetchDashboardData = async () => {
@@ -25,7 +24,6 @@ const fetchDashboardData = async () => {
         throw new Error("Failed to fetch dashboard data");
     }
 
-    // Use empty arrays as defaults if data is null
     const productsList = products || [];
     const clientsList = clients || [];
     const salesList = sales || [];
@@ -38,7 +36,6 @@ const fetchDashboardData = async () => {
     const totalItems = salesList.reduce((sum, s) => sum + s.qty, 0);
     const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
-    // Appointment statistics
     const today = new Date();
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
@@ -53,21 +50,6 @@ const fetchDashboardData = async () => {
     const scheduledToday = todayAppointments.filter(a => a.status === 'agendado').length;
     const completedToday = todayAppointments.filter(a => a.status === 'concluído').length;
 
-    // Birthday reminders
-    const upcomingBirthdays = clientsList.filter(client => {
-        if (!client.aniversario) return false;
-        const birthday = new Date(client.aniversario);
-        const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
-        const daysUntil = differenceInDays(thisYearBirthday, today);
-        return daysUntil >= 0 && daysUntil <= 7;
-    }).map(client => {
-        const birthday = new Date(client.aniversario!);
-        const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
-        const daysUntil = differenceInDays(thisYearBirthday, today);
-        return { ...client, daysUntil };
-    });
-
-    // Pending installments with status
     const pendingInstallments = installmentsList.map((inst: any) => {
         const dueDate = new Date(inst.due_date);
         const daysUntilDue = differenceInDays(dueDate, today);
@@ -94,7 +76,6 @@ const fetchDashboardData = async () => {
             todayAppointments,
             weekAppointments
         },
-        upcomingBirthdays,
         pendingInstallments,
         totalPendingAmount
     };
@@ -107,12 +88,10 @@ const Dashboard: React.FC = () => {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
     useEffect(() => {
-        // Check notification permission
         if ('Notification' in window) {
             setNotificationsEnabled(Notification.permission === 'granted');
         }
 
-        // PWA install prompt
         const handleBeforeInstallPrompt = (e: Event) => {
             e.preventDefault();
             setDeferredPrompt(e);
@@ -151,7 +130,7 @@ const Dashboard: React.FC = () => {
             if (permission === 'granted') {
                 setNotificationsEnabled(true);
                 toast.success('Notificações ativadas! Você receberá lembretes.');
-                new Notification('Salão de Beleza', {
+                new Notification('AC Service Pro', {
                     body: 'Notificações ativadas com sucesso!',
                     icon: '/icon-192x192.png'
                 });
@@ -184,7 +163,6 @@ const Dashboard: React.FC = () => {
       lowStockProducts = [], 
       salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
       appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
-      upcomingBirthdays = [],
       pendingInstallments = [],
       totalPendingAmount = 0
     } = data;
@@ -229,7 +207,7 @@ const Dashboard: React.FC = () => {
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertTitle className="text-orange-800 dark:text-orange-200">Alerta de Estoque Baixo!</AlertTitle>
           <AlertDescription className="text-orange-700 dark:text-orange-300">
-            {lowStockProducts.length} produto(s) com estoque baixo: {lowStockProducts.map(p => p.name).join(", ")}
+            {lowStockProducts.length} peça(s)/material(is) com estoque baixo: {lowStockProducts.map(p => p.name).join(", ")}
           </AlertDescription>
         </Alert>
       )}
@@ -245,22 +223,6 @@ const Dashboard: React.FC = () => {
         </Alert>
       )}
 
-      {/* Birthday Reminders */}
-      {upcomingBirthdays.length > 0 && (
-        <Alert className="border-pink-200 bg-pink-50 dark:border-pink-800 dark:bg-pink-950">
-          <Gift className="h-4 w-4 text-pink-600" />
-          <AlertTitle className="text-pink-800 dark:text-pink-200">🎂 Aniversariantes Próximos!</AlertTitle>
-          <AlertDescription className="text-pink-700 dark:text-pink-300">
-            {upcomingBirthdays.map((c, i) => (
-              <span key={c.id}>
-                {c.name} ({c.daysUntil === 0 ? 'HOJE!' : `em ${c.daysUntil} dia(s)`})
-                {i < upcomingBirthdays.length - 1 ? ', ' : ''}
-              </span>
-            ))}
-          </AlertDescription>
-        </Alert>
-      )}
-
       {/* Appointment Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
@@ -270,7 +232,7 @@ const Dashboard: React.FC = () => {
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-blue-600">{appointmentStats.today}</div>
-            <p className="text-xs text-muted-foreground mt-1">agendamentos</p>
+            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
@@ -281,7 +243,7 @@ const Dashboard: React.FC = () => {
               <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-purple-600">{appointmentStats.week}</div>
-            <p className="text-xs text-muted-foreground mt-1">agendamentos</p>
+            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
@@ -310,10 +272,10 @@ const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Scissors className="w-5 h-5" />Serviços & Produtos</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold">{servicesCount}</div>
-            <p className="text-sm text-muted-foreground">{lowStockProducts.length} com estoque baixo</p>
+            <p className="text-sm text-muted-foreground">{lowStockProducts.length} peça(s) com estoque baixo</p>
           </CardContent>
         </Card>
         <Card>
@@ -327,7 +289,7 @@ const Dashboard: React.FC = () => {
           <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} atendimentos</p>
+            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Lucro Total</span>
@@ -345,7 +307,7 @@ const Dashboard: React.FC = () => {
       {/* Today's Appointments List */}
       {appointmentStats.todayAppointments.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" />Agendamentos de Hoje</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" />Atendimentos de Hoje</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               {appointmentStats.todayAppointments.map((apt: any) => (
@@ -376,115 +338,109 @@ const Dashboard: React.FC = () => {
 
       {/* Pending Installments List */}
       {pendingInstallments.length > 0 && (
-        <Card className="border-red-200 dark:border-red-800">
+        <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+            <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              Parcelas a Receber
+              Parcelas Pendentes
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {pendingInstallments.slice(0, 10).map((inst: any) => {
-                const clientName = inst.appointments?.clients?.name || 'Cliente';
-                const clientPhone = inst.appointments?.clients?.telefone?.replace(/\D/g, '') || '';
-                const whatsappUrl = clientPhone 
-                  ? `https://wa.me/55${clientPhone}?text=Olá+${encodeURIComponent(clientName)},+tudo+bem?+Passando+para+lembrar+da+parcela+${inst.installment_number}/${inst.total_installments}+no+valor+de+R$${Number(inst.amount).toFixed(2)}.`
-                  : null;
-
-                const handleMarkAsPaid = async () => {
-                  const { error } = await supabase
-                    .from('installments')
-                    .update({ is_paid: true, paid_date: new Date().toISOString().split('T')[0] })
-                    .eq('id', inst.id);
-                  
-                  if (error) {
-                    toast.error('Erro ao marcar como paga');
-                  } else {
-                    toast.success('Parcela marcada como paga!');
-                    queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-                  }
-                };
-
-                return (
-                  <div 
-                    key={inst.id} 
-                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-lg border gap-2 ${
-                      inst.status === 'overdue' ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700' :
-                      inst.status === 'urgent' ? 'bg-orange-100 dark:bg-orange-900/30 border-orange-300 dark:border-orange-700' :
-                      inst.status === 'warning' ? 'bg-yellow-100 dark:bg-yellow-900/30 border-yellow-300 dark:border-yellow-700' :
-                      'bg-muted/50 border-muted'
-                    }`}
-                  >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium">{clientName}</span>
-                        {whatsappUrl && (
-                          <a 
-                            href={whatsappUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-green-600 hover:text-green-700 transition-colors"
-                            title="Enviar mensagem no WhatsApp"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </a>
-                        )}
-                      </div>
-                      <span className="text-sm text-muted-foreground">Parcela {inst.installment_number}/{inst.total_installments}</span>
-                    </div>
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                      <div className="text-right">
-                        <span className="font-semibold text-green-600 dark:text-green-400">R$ {Number(inst.amount).toFixed(2)}</span>
-                        <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                          inst.status === 'overdue' ? 'bg-red-200 text-red-700 dark:bg-red-800 dark:text-red-200' :
-                          inst.status === 'urgent' ? 'bg-orange-200 text-orange-700 dark:bg-orange-800 dark:text-orange-200' :
-                          inst.status === 'warning' ? 'bg-yellow-200 text-yellow-700 dark:bg-yellow-800 dark:text-yellow-200' :
-                          'bg-muted text-muted-foreground'
-                        }`}>
-                          {inst.status === 'overdue' ? 'VENCIDA' : format(new Date(inst.due_date), 'dd/MM')}
-                        </span>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        onClick={handleMarkAsPaid}
-                        className="bg-green-500 hover:bg-green-600 text-white border-green-500 h-8"
-                        title="Marcar como paga"
-                      >
-                        <Check className="w-4 h-4" />
-                      </Button>
-                    </div>
+              {pendingInstallments.slice(0, 5).map((inst: any) => (
+                <div 
+                  key={inst.id} 
+                  className={`flex justify-between items-center p-3 rounded-lg ${
+                    inst.status === 'overdue' ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800' :
+                    inst.status === 'urgent' ? 'bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800' :
+                    'bg-muted/50'
+                  }`}
+                >
+                  <div>
+                    <span className="font-medium">
+                      {inst.appointments?.clients?.name || `Parcela ${inst.installment_number}/${inst.total_installments}`}
+                    </span>
+                    <span className="text-muted-foreground mx-2">•</span>
+                    <span className="text-sm text-muted-foreground">
+                      Vence: {format(new Date(inst.due_date), 'dd/MM/yyyy')}
+                    </span>
                   </div>
-                );
-              })}
-              {pendingInstallments.length > 10 && (
-                <p className="text-xs text-muted-foreground text-center mt-2">
-                  + {pendingInstallments.length - 10} parcela(s) a mais
-                </p>
-              )}
+                  <div className="text-right flex items-center gap-2">
+                    <span className={`font-semibold ${
+                      inst.status === 'overdue' ? 'text-red-600' :
+                      inst.status === 'urgent' ? 'text-orange-600' :
+                      'text-primary'
+                    }`}>
+                      R$ {Number(inst.amount).toFixed(2)}
+                    </span>
+                    {inst.status === 'overdue' && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                        Atrasada
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
       )}
 
-        <Card>
-          <CardHeader><CardTitle>Produtos com Estoque Baixo</CardTitle></CardHeader>
-          <CardContent>
-            {lowStockProducts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhum produto com estoque baixo</p>
-            ) : (
-              <div className="space-y-2">
-                {lowStockProducts.map((product, index) => (
-                  <div key={index} className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-950 rounded border border-orange-200 dark:border-orange-800">
-                    <span className="font-medium">{product.name}</span>
-                    <span className="text-orange-600 font-semibold">{product.qty} restantes</span>
-                  </div>
-                ))}
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-200 dark:border-cyan-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900">
+                <Wind className="w-5 h-5 text-cyan-600" />
               </div>
-            )}
+              <div>
+                <p className="text-sm font-medium text-cyan-700 dark:text-cyan-300">Instalações</p>
+                <p className="text-xs text-muted-foreground">Ar Condicionado</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-200 dark:border-indigo-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900">
+                <Thermometer className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Manutenção</p>
+                <p className="text-xs text-muted-foreground">Preventiva/Corretiva</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                <Wrench className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Limpeza</p>
+                <p className="text-xs text-muted-foreground">Higienização</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-200 dark:border-rose-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900">
+                <DollarSign className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-rose-700 dark:text-rose-300">Orçamentos</p>
+                <p className="text-xs text-muted-foreground">Propostas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

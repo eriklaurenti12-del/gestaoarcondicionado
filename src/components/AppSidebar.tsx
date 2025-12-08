@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Scissors, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, CalendarRange, Database, ShoppingCart, FolderOpen, Settings } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, CalendarRange, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, Ban } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -32,13 +32,13 @@ const mainItems = [
 // Cadastros
 const cadastrosItems = [
   { id: "clients", title: "Clientes", icon: Users },
-  { id: "products", title: "Serviços", icon: Scissors },
+  { id: "products", title: "Serviços", icon: Wrench },
   { id: "suppliers", title: "Fornecedores", icon: Building2 },
 ];
 
 // Vendas e Financeiro
 const vendasItems = [
-  { id: "sales", title: "Vendas", icon: ShoppingCart },
+  { id: "sales", title: "Ordens de Serviço", icon: ShoppingCart },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
   { id: "installments", title: "Parcelas", icon: CreditCard },
 ];
@@ -52,7 +52,7 @@ const toolsItems = [
 
 // Configurações
 const configItems = [
-  { id: "company", title: "Meu Salão", icon: Briefcase },
+  { id: "company", title: "Minha Empresa", icon: Briefcase },
 ];
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
@@ -87,13 +87,13 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
       <SidebarHeader className="p-4 border-b border-border transition-all duration-300">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 transition-transform duration-300 hover:scale-105">
-            <Scissors className="w-5 h-5 text-primary" />
+            <Wind className="w-5 h-5 text-primary" />
           </div>
           <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
             <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap">
-              Salão de Beleza
+              AC Service Pro
             </span>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão Completa</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão de Ar Condicionado</span>
           </div>
         </div>
       </SidebarHeader>
@@ -124,7 +124,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
         <SidebarGroup>
           <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
             <ShoppingCart className="w-3 h-3" />
-            Vendas
+            Operações
           </SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(vendasItems)}
@@ -156,18 +156,19 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
         {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-              Administração
+              <Shield className="w-3 h-3 mr-1" />
+              Super Admin
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={onNavigateMembers}
-                    tooltip="Gerenciar Membros"
+                    tooltip="Gerenciar Usuários"
                     className="hover:bg-muted hover:translate-x-1 transition-all duration-200"
                   >
                     <UserCog className="w-4 h-4" />
-                    <span>Membros</span>
+                    <span>Gerenciar Usuários</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
