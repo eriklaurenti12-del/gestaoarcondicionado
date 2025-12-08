@@ -82,7 +82,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="offcanvas" className="border-r border-border">
       <SidebarHeader className="p-4 border-b border-border transition-all duration-300">
         <div className="flex items-center gap-2 overflow-hidden">
           <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 transition-transform duration-300 hover:scale-105">
