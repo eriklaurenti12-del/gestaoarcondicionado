@@ -1,11 +1,11 @@
 {
-  "name": "Salão de Beleza",
-  "short_name": "Salão Beauty",
-  "description": "Sistema completo para gestão de salão de beleza",
+  "name": "AC Service Pro",
+  "short_name": "AC Service",
+  "description": "Sistema completo para gestão de serviços de ar condicionado",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1a0a10",
-  "theme_color": "#d64a7a",
+  "background_color": "#0a0a0f",
+  "theme_color": "#06b6d4",
   "orientation": "portrait-primary",
   "icons": [
     {
@@ -21,7 +21,7 @@
       "purpose": "maskable any"
     }
   ],
-  "categories": ["business", "productivity", "lifestyle"],
+  "categories": ["business", "productivity", "utilities"],
   "lang": "pt-BR",
   "scope": "/",
   "prefer_related_applications": false
