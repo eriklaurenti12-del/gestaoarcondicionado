@@ -1,0 +1,448 @@
+import React, { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign } from "lucide-react";
+import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
+import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+const fetchDashboardData = async () => {
+    const productsPromise = supabase.from('products').select('*');
+    const clientsPromise = supabase.from('clients').select('*');
+    const salesPromise = supabase.from('sales').select('sale_price, qty, total_profit');
+    const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
+    const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
+
+    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise]);
+
+    if (pError || cError || sError || aError) {
+        console.error(pError || cError || sError || aError || iError);
+        throw new Error("Failed to fetch dashboard data");
+    }
+
+    const productsList = products || [];
+    const clientsList = clients || [];
+    const salesList = sales || [];
+    const appointmentsList = appointments || [];
+    const installmentsList = installments || [];
+
+    const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0));
+    const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
+    const totalProfit = salesList.reduce((sum, s) => sum + Number(s.total_profit), 0);
+    const totalItems = salesList.reduce((sum, s) => sum + s.qty, 0);
+    const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
+
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 0 });
+    const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
+
+    const todayAppointments = appointmentsList.filter(a => isToday(new Date(a.appointment_date)));
+    const weekAppointments = appointmentsList.filter(a => {
+        const date = new Date(a.appointment_date);
+        return date >= weekStart && date <= weekEnd;
+    });
+
+    const confirmedToday = todayAppointments.filter(a => a.status === 'confirmado').length;
+    const scheduledToday = todayAppointments.filter(a => a.status === 'agendado').length;
+    const completedToday = todayAppointments.filter(a => a.status === 'concluído').length;
+
+    const pendingInstallments = installmentsList.map((inst: any) => {
+        const dueDate = new Date(inst.due_date);
+        const daysUntilDue = differenceInDays(dueDate, today);
+        let status = 'normal';
+        if (daysUntilDue < 0) status = 'overdue';
+        else if (daysUntilDue <= 3) status = 'urgent';
+        else if (daysUntilDue <= 7) status = 'warning';
+        return { ...inst, daysUntilDue, status };
+    });
+
+    const totalPendingAmount = pendingInstallments.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
+
+    return {
+        servicesCount: productsList.length,
+        clientsCount: clientsList.length,
+        lowStockProducts,
+        salesReport: { totalSales, totalItems, totalProfit, profitMargin },
+        appointmentStats: {
+            today: todayAppointments.length,
+            week: weekAppointments.length,
+            confirmedToday,
+            scheduledToday,
+            completedToday,
+            todayAppointments,
+            weekAppointments
+        },
+        pendingInstallments,
+        totalPendingAmount
+    };
+};
+
+const Dashboard: React.FC = () => {
+    const queryClient = useQueryClient();
+    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+    const [showInstallBanner, setShowInstallBanner] = useState(false);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        if ('Notification' in window) {
+            setNotificationsEnabled(Notification.permission === 'granted');
+        }
+
+        const handleBeforeInstallPrompt = (e: Event) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+            const dismissed = localStorage.getItem('dashboard-pwa-dismissed');
+            if (!dismissed) {
+                setShowInstallBanner(true);
+            }
+        };
+
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setShowInstallBanner(false);
+        }
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        };
+    }, []);
+
+    const handleInstall = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            toast.success('App instalado com sucesso!');
+            setShowInstallBanner(false);
+            localStorage.setItem('dashboard-pwa-dismissed', 'true');
+        }
+        setDeferredPrompt(null);
+    };
+
+    const requestNotifications = async () => {
+        if ('Notification' in window) {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                setNotificationsEnabled(true);
+                toast.success('Notificações ativadas! Você receberá lembretes.');
+                new Notification('AC Service Pro', {
+                    body: 'Notificações ativadas com sucesso!',
+                    icon: '/icon-192x192.png'
+                });
+            } else {
+                toast.error('Permissão negada para notificações');
+            }
+        }
+    };
+
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ['dashboard'],
+        queryFn: fetchDashboardData
+    });
+
+    if (isLoading || !data) return (
+      <div className="space-y-6">
+        <Skeleton className="h-16 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full" />
+        </div>
+      </div>
+    );
+    if (isError) return <div>Error loading dashboard: {(error as Error).message}</div>
+
+    const { 
+      servicesCount = 0, 
+      clientsCount = 0, 
+      lowStockProducts = [], 
+      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
+      appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
+      pendingInstallments = [],
+      totalPendingAmount = 0
+    } = data;
+
+    return (
+    <div className="space-y-6">
+      {/* App Installation & Notifications */}
+      {(showInstallBanner || !notificationsEnabled) && (
+        <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-primary/10">
+                  <Bell className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Configure seu App</h3>
+                  <p className="text-xs text-muted-foreground">Instale e ative notificações para não perder nada</p>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {showInstallBanner && deferredPrompt && (
+                  <Button size="sm" onClick={handleInstall} className="bg-green-600 hover:bg-green-700">
+                    <Download className="w-4 h-4 mr-1" />
+                    Instalar App
+                  </Button>
+                )}
+                {!notificationsEnabled && (
+                  <Button size="sm" variant="outline" onClick={requestNotifications}>
+                    <BellRing className="w-4 h-4 mr-1" />
+                    Ativar Notificações
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {lowStockProducts.length > 0 && (
+        <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+          <AlertTriangle className="h-4 w-4 text-orange-600" />
+          <AlertTitle className="text-orange-800 dark:text-orange-200">Alerta de Estoque Baixo!</AlertTitle>
+          <AlertDescription className="text-orange-700 dark:text-orange-300">
+            {lowStockProducts.length} peça(s)/material(is) com estoque baixo: {lowStockProducts.map(p => p.name).join(", ")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Pending Installments Alert */}
+      {pendingInstallments.length > 0 && (
+        <Alert className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+          <CreditCard className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 dark:text-red-200">💰 Parcelas a Receber</AlertTitle>
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            Você tem {pendingInstallments.length} parcela(s) pendente(s) totalizando R$ {totalPendingAmount.toFixed(2)}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Appointment Statistics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarDays className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600">{appointmentStats.today}</div>
+            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarCheck className="w-4 h-4 text-purple-600" />
+              <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600">{appointmentStats.week}</div>
+            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-4 h-4 text-green-600" />
+              <span className="text-xs font-medium text-green-700 dark:text-green-300">Confirmados</span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">{appointmentStats.confirmedToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">para hoje</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CalendarDays className="w-4 h-4 text-amber-600" />
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-600">{appointmentStats.scheduledToday}</div>
+            <p className="text-xs text-muted-foreground mt-1">aguardando</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl sm:text-3xl font-bold">{servicesCount}</div>
+            <p className="text-sm text-muted-foreground">{lowStockProducts.length} peça(s) com estoque baixo</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />Total de Clientes</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl sm:text-3xl font-bold">{clientsCount}</div>
+            <p className="text-sm text-muted-foreground">Clientes cadastrados</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento</CardTitle></CardHeader>
+          <CardContent>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços</p>
+             <div className="mt-4 space-y-2">
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Lucro Total</span>
+                    <span className="font-bold text-blue-600">R$ {salesReport.totalProfit.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Margem de Lucro</span>
+                    <span className="font-bold">{salesReport.profitMargin.toFixed(2)}%</span>
+                </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Today's Appointments List */}
+      {appointmentStats.todayAppointments.length > 0 && (
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" />Atendimentos de Hoje</CardTitle></CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {appointmentStats.todayAppointments.map((apt: any) => (
+                <div key={apt.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
+                  <div>
+                    <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
+                    <span className="text-muted-foreground mx-2">•</span>
+                    <span className="text-sm text-muted-foreground">{apt.products?.name || 'Serviço'}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-semibold text-primary">
+                      {format(new Date(apt.appointment_date), 'HH:mm')}
+                    </span>
+                    <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
+                      apt.status === 'confirmado' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                      apt.status === 'concluído' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                      'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
+                    }`}>
+                      {apt.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pending Installments List */}
+      {pendingInstallments.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CreditCard className="w-5 h-5" />
+              Parcelas Pendentes
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {pendingInstallments.slice(0, 5).map((inst: any) => (
+                <div 
+                  key={inst.id} 
+                  className={`flex justify-between items-center p-3 rounded-lg ${
+                    inst.status === 'overdue' ? 'bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800' :
+                    inst.status === 'urgent' ? 'bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800' :
+                    'bg-muted/50'
+                  }`}
+                >
+                  <div>
+                    <span className="font-medium">
+                      {inst.appointments?.clients?.name || `Parcela ${inst.installment_number}/${inst.total_installments}`}
+                    </span>
+                    <span className="text-muted-foreground mx-2">•</span>
+                    <span className="text-sm text-muted-foreground">
+                      Vence: {format(new Date(inst.due_date), 'dd/MM/yyyy')}
+                    </span>
+                  </div>
+                  <div className="text-right flex items-center gap-2">
+                    <span className={`font-semibold ${
+                      inst.status === 'overdue' ? 'text-red-600' :
+                      inst.status === 'urgent' ? 'text-orange-600' :
+                      'text-primary'
+                    }`}>
+                      R$ {Number(inst.amount).toFixed(2)}
+                    </span>
+                    {inst.status === 'overdue' && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                        Atrasada
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-200 dark:border-cyan-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900">
+                <Wind className="w-5 h-5 text-cyan-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-cyan-700 dark:text-cyan-300">Instalações</p>
+                <p className="text-xs text-muted-foreground">Ar Condicionado</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-200 dark:border-indigo-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900">
+                <Thermometer className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Manutenção</p>
+                <p className="text-xs text-muted-foreground">Preventiva/Corretiva</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900">
+                <Wrench className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Limpeza</p>
+                <p className="text-xs text-muted-foreground">Higienização</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-200 dark:border-rose-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900">
+                <DollarSign className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-rose-700 dark:text-rose-300">Orçamentos</p>
+                <p className="text-xs text-muted-foreground">Propostas</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;
