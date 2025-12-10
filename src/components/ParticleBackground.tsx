@@ -29,84 +29,82 @@ export function ParticleBackground({ className = "" }: ParticleBackgroundProps) 
     class Particle {
       x: number;
       y: number;
-      size: number; // Length of the shard
-      width: number; // Width of the shard
+      size: number;
       speedX: number;
       speedY: number;
       color: string;
-      rotation: number;
-      rotationSpeed: number;
 
       constructor() {
         this.x = Math.random() * canvas!.width;
         this.y = Math.random() * canvas!.height;
-        // Make them look like small shards/confetti
-        this.size = Math.random() * 8 + 4; // Length 4-12px
-        this.width = Math.random() * 2 + 1; // Width 1-3px
+        // Snow size: mostly small, some variation
+        this.size = Math.random() * 3 + 1;
 
-        this.speedX = Math.random() * 0.4 - 0.2;
-        this.speedY = Math.random() * 0.4 - 0.2;
+        // Gentle floating movement 
+        this.speedX = Math.random() * 0.5 - 0.25; // Gentle horizontal drift
+        this.speedY = Math.random() * 0.5 + 0.2;  // Always falling down (positive Y) but slowly
 
-        // Colors from the Antigravity aesthetic (Blues, Cyans, slight Purple)
-        // Adjusted to pop on dark background
+        // Snow colors: Mostly white, some slight cyan/blue for depth
         const colors = [
-          'rgba(66, 133, 244, 0.6)', // Google Blue
-          'rgba(34, 211, 238, 0.6)', // Cyan
-          'rgba(139, 92, 246, 0.5)', // Violet
-          'rgba(255, 255, 255, 0.4)'  // White/Grey
+          'rgba(255, 255, 255, 0.9)',  // Bright White
+          'rgba(255, 255, 255, 0.5)',  // Translucent White
+          'rgba(165, 243, 252, 0.7)', // Cyan-200 (Ice)
+          'rgba(207, 250, 254, 0.6)'  // Cyan-50
         ];
         this.color = colors[Math.floor(Math.random() * colors.length)];
-
-        this.rotation = Math.random() * Math.PI * 2;
-        this.rotationSpeed = (Math.random() - 0.5) * 0.02;
       }
 
       update() {
         this.x += this.speedX;
         this.y += this.speedY;
-        this.rotation += this.rotationSpeed;
 
+        // Wrap around screen - Snow falls from top
+        if (this.y > canvas!.height) {
+          this.y = 0 - 10;
+          this.x = Math.random() * canvas!.width;
+        }
+        // Horizontal wrap
         if (this.x > canvas!.width) this.x = 0;
         if (this.x < 0) this.x = canvas!.width;
-        if (this.y > canvas!.height) this.y = 0;
-        if (this.y < 0) this.y = canvas!.height;
 
-        // Mouse interaction
+        // Mouse interaction - "Wind" effect
         const dx = mouseX - this.x;
         const dy = mouseY - this.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        const maxDistance = 200; // Slightly larger radius for 'field' effect
+        const maxDistance = 200;
 
         if (distance < maxDistance) {
           const forceDirectionX = dx / distance;
           const forceDirectionY = dy / distance;
           const force = (maxDistance - distance) / maxDistance;
 
-          // Repulse smoothly
-          const strength = 4;
+          // Repulse smoothly (Wind blows snow away)
+          // Stronger X repulsion for "parting" effect, weaker Y to keep falling
+          const strength = 6;
           this.x -= forceDirectionX * force * strength;
-          this.y -= forceDirectionY * force * strength;
-
-          // Add some spin when interacting
-          this.rotation += 0.1 * force;
+          this.y -= forceDirectionY * force * strength * 0.5;
         }
       }
 
       draw() {
         if (!ctx) return;
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.rotation);
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
-        // Draw rectangle centered on coordinate
-        ctx.fillRect(-this.size / 2, -this.width / 2, this.size, this.width);
-        ctx.restore();
+
+        // Add a soft glow to the snow
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = this.color;
+
+        ctx.fill();
+
+        // Reset shadow for performance
+        ctx.shadowBlur = 0;
       }
     }
 
     const initParticles = () => {
       particles = [];
-      // Higher density for the 'confetti' look
       const numberOfParticles = Math.min((canvas.width * canvas.height) / 8000, 200);
       for (let i = 0; i < numberOfParticles; i++) {
         particles.push(new Particle());
@@ -148,7 +146,7 @@ export function ParticleBackground({ className = "" }: ParticleBackgroundProps) 
       style={{
         width: '100%',
         height: '100%',
-        zIndex: 0 // Default, can be overridden by className/parent
+        zIndex: 0
       }}
     />
   );
