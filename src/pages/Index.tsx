@@ -25,10 +25,11 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Bell } from "lucide-react";
 import { differenceInDays, isToday } from "date-fns";
+import { ParticleBackground } from "@/components/ParticleBackground";
 
 const fetchNotificationCount = async () => {
   const today = new Date();
-  
+
   const [
     { data: installments },
     { data: appointments }
@@ -84,7 +85,7 @@ export default function Index() {
       .from('user_roles')
       .select('role')
       .eq('user_id', session.user.id);
-    
+
     setIsSuperAdmin(roles?.some(r => r.role === 'super_admin') || false);
     setLoading(false);
 
@@ -161,63 +162,66 @@ export default function Index() {
   return (
     <SubscriptionGate>
       <SidebarProvider>
-        <div className="min-h-screen flex w-full bg-background">
-          <AppSidebar 
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isSuperAdmin={isSuperAdmin}
-            onNavigateMembers={() => navigate("/members")}
-            onSignOut={handleSignOut}
-          />
-          
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Header */}
-            <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
-              <div className="flex items-center gap-3">
-                <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target relative z-50" />
-                <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Notification Bell */}
-                <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
-                  <PopoverTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className={`relative h-11 w-11 min-h-[44px] min-w-[44px] transition-all duration-300 ${
-                        notificationCount > 0 
-                          ? 'text-primary hover:bg-primary/10' 
-                          : 'hover:bg-muted'
-                      }`}
-                    >
-                      <Bell className={`h-5 w-5 transition-transform ${
-                        notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
-                      }`} />
-                      {notificationCount > 0 && (
-                        <>
-                          <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
-                            {notificationCount > 99 ? '99' : notificationCount}
-                          </span>
-                          <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
-                        </>
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[90vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
-                    <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
-                  </PopoverContent>
-                </Popover>
-                
-                <InstallButton />
-              </div>
-            </header>
+        <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
+          <ParticleBackground className="z-0 opacity-50 pointer-events-none" />
 
-            {/* Main Content */}
-            <main className="flex-1 p-4 sm:p-6 overflow-auto">
-              <div className="max-w-7xl mx-auto">
-                {renderContent()}
-              </div>
-            </main>
+          {/* Main layout wrapper - z-index to sit above particles */}
+          <div className="flex w-full relative z-10">
+            <AppSidebar
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              isSuperAdmin={isSuperAdmin}
+              onNavigateMembers={() => navigate("/members")}
+              onSignOut={handleSignOut}
+            />
+
+            <div className="flex-1 flex flex-col min-w-0">
+              {/* Header */}
+              <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
+                <div className="flex items-center gap-3">
+                  <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target relative z-50" />
+                  <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
+                </div>
+                <div className="flex items-center gap-2">
+                  {/* Notification Bell */}
+                  <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`relative h-11 w-11 min-h-[44px] min-w-[44px] transition-all duration-300 ${notificationCount > 0
+                            ? 'text-primary hover:bg-primary/10'
+                            : 'hover:bg-muted'
+                          }`}
+                      >
+                        <Bell className={`h-5 w-5 transition-transform ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
+                          }`} />
+                        {notificationCount > 0 && (
+                          <>
+                            <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
+                              {notificationCount > 99 ? '99' : notificationCount}
+                            </span>
+                            <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                          </>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[90vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
+                      <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
+                    </PopoverContent>
+                  </Popover>
+
+                  <InstallButton />
+                </div>
+              </header>
+
+              {/* Main Content */}
+              <main className="flex-1 p-4 sm:p-6 overflow-auto">
+                <div className="max-w-7xl mx-auto">
+                  {renderContent()}
+                </div>
+              </main>
+            </div>
           </div>
 
           <SupportButton />

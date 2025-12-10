@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, Wind } from "lucide-react";
+import { ParticleBackground } from "@/components/ParticleBackground";
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export default function Auth() {
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const type = hashParams.get('type');
     const accessToken = hashParams.get('access_token');
-    
+
     if (type === 'recovery' || accessToken) {
       // Redirect to reset-password with tokens
       navigate(`/reset-password${window.location.hash}`);
@@ -132,22 +133,18 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#0a1628] flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Background effects - AC theme */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Glow effects */}
-        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-500/15 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-blue-500/15 rounded-full blur-[120px] animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-cyan-400/5 rounded-full blur-[150px]"></div>
-        
+      {/* Background effects - AC theme */}
+      <ParticleBackground className="z-0" />
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Glow effects - kept for atmosphere but reduced */}
+        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px] animate-pulse"></div>
+        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-[120px] animate-pulse"></div>
+
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: `linear-gradient(rgba(6,182,212,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.3) 1px, transparent 1px)`,
           backgroundSize: '50px 50px'
         }}></div>
-        
-        {/* Floating particles */}
-        <div className="absolute top-20 left-[20%] w-2 h-2 bg-cyan-400/40 rounded-full animate-bounce" style={{ animationDuration: '3s' }}></div>
-        <div className="absolute top-40 right-[25%] w-3 h-3 bg-blue-400/30 rounded-full animate-bounce" style={{ animationDuration: '4s', animationDelay: '1s' }}></div>
-        <div className="absolute bottom-32 left-[30%] w-2 h-2 bg-cyan-300/40 rounded-full animate-bounce" style={{ animationDuration: '3.5s', animationDelay: '0.5s' }}></div>
       </div>
 
       {/* Main content */}
@@ -184,29 +181,29 @@ export default function Auth() {
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50" />
-                    <Input 
-                      id="forgot-email" 
-                      type="email" 
-                      placeholder="seu@email.com" 
-                      value={forgotEmail} 
-                      onChange={e => setForgotEmail(e.target.value)} 
-                      required 
-                      className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200" 
+                    <Input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      required
+                      className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200"
                     />
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <Button 
-                    type="button" 
-                    onClick={() => setShowForgotPassword(false)} 
+                  <Button
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
                     className="flex-1 h-12 bg-[#1a3a5c] hover:bg-[#234b75] text-white font-medium rounded-lg transition-all duration-200 hover:scale-[1.02]"
                   >
                     VOLTAR
                   </Button>
-                  <Button 
-                    type="submit" 
-                    className="flex-1 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02]" 
+                  <Button
+                    type="submit"
+                    className="flex-1 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02]"
                     disabled={loading}
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "ENVIAR"}
@@ -242,14 +239,14 @@ export default function Auth() {
                       </Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50" />
-                        <Input 
-                          id="login-email" 
-                          type="email" 
-                          placeholder="seu@email.com" 
-                          value={email} 
-                          onChange={e => setEmail(e.target.value)} 
-                          required 
-                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200" 
+                        <Input
+                          id="login-email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          required
+                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200"
                         />
                       </div>
                     </div>
@@ -260,31 +257,31 @@ export default function Auth() {
                       </Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50" />
-                        <Input 
-                          id="login-password" 
-                          type="password" 
-                          placeholder="••••••••" 
-                          value={password} 
-                          onChange={e => setPassword(e.target.value)} 
-                          required 
-                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200" 
+                        <Input
+                          id="login-password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200"
                         />
                       </div>
                     </div>
 
                     <div className="text-center">
-                      <button 
-                        type="button" 
-                        onClick={() => setShowForgotPassword(true)} 
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
                         className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors hover:underline"
                       >
                         Esqueci minha senha
                       </button>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
+                    <Button
+                      type="submit"
+                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2"
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
@@ -311,14 +308,14 @@ export default function Auth() {
                       </Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50" />
-                        <Input 
-                          id="signup-email" 
-                          type="email" 
-                          placeholder="seu@email.com" 
-                          value={email} 
-                          onChange={e => setEmail(e.target.value)} 
-                          required 
-                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200" 
+                        <Input
+                          id="signup-email"
+                          type="email"
+                          placeholder="seu@email.com"
+                          value={email}
+                          onChange={e => setEmail(e.target.value)}
+                          required
+                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200"
                         />
                       </div>
                     </div>
@@ -329,23 +326,23 @@ export default function Auth() {
                       </Label>
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-500/50" />
-                        <Input 
-                          id="signup-password" 
-                          type="password" 
-                          placeholder="••••••••" 
-                          value={password} 
-                          onChange={e => setPassword(e.target.value)} 
-                          required 
-                          minLength={6} 
-                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200" 
+                        <Input
+                          id="signup-password"
+                          type="password"
+                          placeholder="••••••••"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          className="pl-10 h-12 bg-[#0a1628] border-cyan-500/20 text-white placeholder:text-cyan-200/30 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/50 rounded-lg transition-all duration-200"
                         />
                       </div>
                       <p className="text-xs text-cyan-200/40">Mínimo 6 caracteres</p>
                     </div>
 
-                    <Button 
-                      type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2" 
+                    <Button
+                      type="submit"
+                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium rounded-lg shadow-lg hover:shadow-cyan-500/25 transition-all duration-200 hover:scale-[1.02] flex items-center justify-center gap-2"
                       disabled={loading}
                     >
                       {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
@@ -355,7 +352,7 @@ export default function Auth() {
                         </>
                       )}
                     </Button>
-                    
+
                     <p className="text-xs text-center text-cyan-200/40">
                       Acesso imediato após cadastro - sem confirmação de email
                     </p>
