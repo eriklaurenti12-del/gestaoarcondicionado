@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, FileText, Store } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, FileText, Store, Fuel } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -42,12 +42,12 @@ const vendasItems = [
   { id: "quotes", title: "Orçamentos", icon: FileText },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
   { id: "installments", title: "Parcelas", icon: CreditCard },
+  { id: "expenses", title: "Gastos Fixos", icon: Fuel },
 ];
 
 // Ferramentas
 const toolsItems = [
-  { id: "charts", title: "Gráficos", icon: PieChart },
-  { id: "reports", title: "Relatórios", icon: TrendingUp },
+  { id: "reports", title: "Relatórios & Gráficos", icon: TrendingUp },
   { id: "backup", title: "Backup", icon: Database },
 ];
 

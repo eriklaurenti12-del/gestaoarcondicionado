@@ -19,6 +19,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
   const [name, setName] = useState("");
   const [telefone, setTelefone] = useState("");
   const [aniversario, setAniversario] = useState("");
+  const [address, setAddress] = useState("");
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -38,6 +39,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
         name: name.trim(),
         telefone: telefone || null,
         aniversario: aniversario || null,
+        address: address || null,
         user_id: session.user.id
       });
 
@@ -49,6 +51,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
       setName("");
       setTelefone("");
       setAniversario("");
+      setAddress("");
       onOpenChange(false);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -91,6 +94,16 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
               type="date"
               value={aniversario}
               onChange={(e) => setAniversario(e.target.value)}
+              className="transition-all duration-200"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="client-address">Endereço</Label>
+            <Input
+              id="client-address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Rua, número, bairro, cidade"
               className="transition-all duration-200"
             />
           </div>

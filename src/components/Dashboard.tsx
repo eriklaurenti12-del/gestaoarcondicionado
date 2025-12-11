@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -13,7 +13,7 @@ import { ptBR } from 'date-fns/locale';
 const fetchDashboardData = async () => {
     const productsPromise = supabase.from('products').select('*');
     const clientsPromise = supabase.from('clients').select('*');
-    const salesPromise = supabase.from('sales').select('sale_price, qty, total_profit');
+    const salesPromise = supabase.from('sales').select('*, clients(name), products(name)');
     const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
     const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
 
@@ -30,7 +30,7 @@ const fetchDashboardData = async () => {
     const appointmentsList = appointments || [];
     const installmentsList = installments || [];
 
-    const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0));
+    const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0) && p.qty < 999);
     const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
     const totalProfit = salesList.reduce((sum, s) => sum + Number(s.total_profit), 0);
     const totalItems = salesList.reduce((sum, s) => sum + s.qty, 0);
@@ -62,6 +62,47 @@ const fetchDashboardData = async () => {
 
     const totalPendingAmount = pendingInstallments.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
 
+    // Calculate top clients by revenue
+    const clientRevenue: { [key: string]: { name: string; revenue: number; count: number } } = {};
+    salesList.forEach((sale: any) => {
+      const clientName = sale.clients?.name || 'Desconhecido';
+      if (!clientRevenue[clientName]) {
+        clientRevenue[clientName] = { name: clientName, revenue: 0, count: 0 };
+      }
+      clientRevenue[clientName].revenue += Number(sale.sale_price) * sale.qty;
+      clientRevenue[clientName].count += sale.qty;
+    });
+    const topClients = Object.values(clientRevenue).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+    // Calculate top services
+    const serviceCount: { [key: string]: { name: string; count: number; revenue: number } } = {};
+    appointmentsList.filter(a => a.status === 'concluido').forEach((apt: any) => {
+      const name = apt.products?.name || 'Serviço';
+      if (!serviceCount[name]) {
+        serviceCount[name] = { name, count: 0, revenue: 0 };
+      }
+      serviceCount[name].count += 1;
+    });
+    salesList.forEach((sale: any) => {
+      const name = sale.products?.name || 'Produto';
+      if (!serviceCount[name]) {
+        serviceCount[name] = { name, count: 0, revenue: 0 };
+      }
+      serviceCount[name].count += sale.qty;
+      serviceCount[name].revenue += Number(sale.sale_price) * sale.qty;
+    });
+    const topServices = Object.values(serviceCount).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    // Calculate top products (pieces only)
+    const pieceProducts = productsList.filter(p => p.qty < 999);
+    const topProducts = pieceProducts
+      .map(p => {
+        const salesCount = salesList.filter((s: any) => s.products?.name === p.name).reduce((sum, s) => sum + s.qty, 0);
+        return { name: p.name, count: salesCount, stock: p.qty };
+      })
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
     return {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
@@ -77,7 +118,10 @@ const fetchDashboardData = async () => {
             weekAppointments
         },
         pendingInstallments,
-        totalPendingAmount
+        totalPendingAmount,
+        topClients,
+        topServices,
+        topProducts
     };
 };
 
@@ -157,14 +201,17 @@ const Dashboard: React.FC = () => {
     );
     if (isError) return <div>Error loading dashboard: {(error as Error).message}</div>
 
-    const { 
+  const { 
       servicesCount = 0, 
       clientsCount = 0, 
       lowStockProducts = [], 
       salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
       appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
       pendingInstallments = [],
-      totalPendingAmount = 0
+      totalPendingAmount = 0,
+      topClients = [],
+      topServices = [],
+      topProducts = []
     } = data;
 
     return (
@@ -386,58 +433,76 @@ const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-cyan-500/10 to-cyan-600/5 border-cyan-200 dark:border-cyan-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-100 dark:bg-cyan-900">
-                <Wind className="w-5 h-5 text-cyan-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-cyan-700 dark:text-cyan-300">Instalações</p>
-                <p className="text-xs text-muted-foreground">Ar Condicionado</p>
-              </div>
-            </div>
+      {/* Top Rankings */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Top Clients */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-500" />
+              Melhores Clientes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {topClients.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum dado</p>
+            ) : (
+              topClients.map((client: any, i: number) => (
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <span className="flex items-center gap-2">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold ${i === 0 ? 'bg-amber-100 text-amber-700' : 'bg-muted'}`}>
+                      {i + 1}
+                    </span>
+                    <span className="truncate max-w-[100px]">{client.name}</span>
+                  </span>
+                  <span className="font-semibold text-green-600">R$ {client.revenue.toFixed(0)}</span>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-200 dark:border-indigo-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900">
-                <Thermometer className="w-5 h-5 text-indigo-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300">Manutenção</p>
-                <p className="text-xs text-muted-foreground">Preventiva/Corretiva</p>
-              </div>
-            </div>
+
+        {/* Top Services */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Star className="w-4 h-4 text-blue-500" />
+              Serviços Mais Realizados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {topServices.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum dado</p>
+            ) : (
+              topServices.map((service: any, i: number) => (
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <span className="truncate max-w-[120px]">{service.name}</span>
+                  <span className="font-semibold">{service.count}x</span>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-200 dark:border-emerald-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900">
-                <Wrench className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Limpeza</p>
-                <p className="text-xs text-muted-foreground">Higienização</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-rose-500/10 to-rose-600/5 border-rose-200 dark:border-rose-800">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-rose-100 dark:bg-rose-900">
-                <DollarSign className="w-5 h-5 text-rose-600" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-rose-700 dark:text-rose-300">Orçamentos</p>
-                <p className="text-xs text-muted-foreground">Propostas</p>
-              </div>
-            </div>
+
+        {/* Top Products */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Package className="w-4 h-4 text-purple-500" />
+              Peças Mais Vendidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {topProducts.length === 0 ? (
+              <p className="text-xs text-muted-foreground">Nenhum dado</p>
+            ) : (
+              topProducts.map((product: any, i: number) => (
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <span className="truncate max-w-[120px]">{product.name}</span>
+                  <span className="font-semibold">{product.count}x</span>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

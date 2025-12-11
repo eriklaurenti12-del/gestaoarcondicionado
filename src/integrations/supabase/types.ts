@@ -67,6 +67,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          address: string | null
           aniversario: string | null
           created_at: string
           id: number
@@ -76,6 +77,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
           aniversario?: string | null
           created_at?: string
           id?: number
@@ -85,6 +87,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
           aniversario?: string | null
           created_at?: string
           id?: number
@@ -173,6 +176,53 @@ export type Database = {
         }
         Relationships: []
       }
+      fixed_expenses: {
+        Row: {
+          amount: number
+          appointment_id: string | null
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          helper_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          appointment_id?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          helper_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          helper_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_expenses_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       installments: {
         Row: {
           amount: number
@@ -252,6 +302,7 @@ export type Database = {
           qty: number
           service_duration: number | null
           supplier_id: number | null
+          type: string | null
           user_id: string
           warranty_months: number | null
         }
@@ -267,6 +318,7 @@ export type Database = {
           qty?: number
           service_duration?: number | null
           supplier_id?: number | null
+          type?: string | null
           user_id: string
           warranty_months?: number | null
         }
@@ -282,6 +334,7 @@ export type Database = {
           qty?: number
           service_duration?: number | null
           supplier_id?: number | null
+          type?: string | null
           user_id?: string
           warranty_months?: number | null
         }
