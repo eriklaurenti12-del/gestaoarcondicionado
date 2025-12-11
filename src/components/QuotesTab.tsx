@@ -50,6 +50,12 @@ export default function QuotesTab() {
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleNotes, setScheduleNotes] = useState('');
   
+  // New client creation
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
+  
   const [formData, setFormData] = useState({
     client_id: "",
     title: "",
@@ -217,6 +223,52 @@ export default function QuotesTab() {
       discount_percentage: 0,
     });
     setItems([{ description: "", quantity: 1, unit_price: 0, total: 0 }]);
+    setIsCreatingNewClient(false);
+    setNewClientName("");
+    setNewClientPhone("");
+    setNewClientAddress("");
+  };
+  
+  // Create new client mutation
+  const createClientMutation = useMutation({
+    mutationFn: async (clientData: { name: string; telefone: string; address: string }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({ 
+          user_id: userData.user.id, 
+          name: clientData.name, 
+          telefone: clientData.telefone || null,
+          address: clientData.address || null
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setFormData(prev => ({ ...prev, client_id: String(data.id) }));
+      setIsCreatingNewClient(false);
+      toast.success(`Cliente ${data.name} cadastrado!`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao cadastrar cliente: " + error.message);
+    }
+  });
+  
+  const handleCreateNewClient = () => {
+    if (!newClientName.trim()) {
+      toast.error("Digite o nome do cliente");
+      return;
+    }
+    createClientMutation.mutate({
+      name: newClientName.trim(),
+      telefone: newClientPhone,
+      address: newClientAddress
+    });
   };
 
   const addItem = () => {
@@ -406,31 +458,85 @@ export default function QuotesTab() {
                 <DialogTitle>Criar Orçamento</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Cliente</Label>
+                {/* Client Section with New Client Option */}
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Cliente</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsCreatingNewClient(!isCreatingNewClient)}
+                      className="text-xs"
+                    >
+                      {isCreatingNewClient ? "Selecionar existente" : "+ Novo cliente"}
+                    </Button>
+                  </div>
+                  
+                  {isCreatingNewClient ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <div>
+                        <Label className="text-sm">Nome do cliente *</Label>
+                        <Input 
+                          value={newClientName}
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          placeholder="Digite o nome completo"
+                          className="min-h-[44px]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm">Telefone</Label>
+                          <Input 
+                            value={newClientPhone}
+                            onChange={(e) => setNewClientPhone(e.target.value)}
+                            placeholder="(00) 00000-0000"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">Endereço</Label>
+                          <Input 
+                            value={newClientAddress}
+                            onChange={(e) => setNewClientAddress(e.target.value)}
+                            placeholder="Endereço completo"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={handleCreateNewClient}
+                        disabled={!newClientName.trim() || createClientMutation.isPending}
+                        className="w-full min-h-[44px]"
+                      >
+                        {createClientMutation.isPending ? "Cadastrando..." : "Cadastrar e Selecionar"}
+                      </Button>
+                    </div>
+                  ) : (
                     <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
                       <SelectTrigger className="min-h-[44px]">
-                        <SelectValue placeholder="Selecione" />
+                        <SelectValue placeholder="Selecione o cliente" />
                       </SelectTrigger>
                       <SelectContent>
                         {clients?.map((client) => (
                           <SelectItem key={client.id} value={client.id.toString()}>
-                            {client.name}
+                            {client.name} {client.telefone && `- ${client.telefone}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label>Validade (dias)</Label>
-                    <Input
-                      type="number"
-                      value={formData.validity_days}
-                      onChange={(e) => setFormData({ ...formData, validity_days: parseInt(e.target.value) || 30 })}
-                      className="min-h-[44px]"
-                    />
-                  </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Validade (dias)</Label>
+                  <Input
+                    type="number"
+                    value={formData.validity_days}
+                    onChange={(e) => setFormData({ ...formData, validity_days: parseInt(e.target.value) || 30 })}
+                    className="min-h-[44px]"
+                  />
                 </div>
 
                 <div>
