@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Send, X, Search, User, Package } from "lucide-react";
+import { ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Send, X, Search, User, Package, MessageCircle, Printer, Eye, Edit } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -19,6 +19,7 @@ interface CartItem {
   price: number;
   cost_price: number;
   quantity: number;
+  type?: string;
 }
 
 interface PaymentSplit {
@@ -42,6 +43,7 @@ export default function PDVTab() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedClientName, setSelectedClientName] = useState('');
   const [selectedClientPhone, setSelectedClientPhone] = useState('');
+  const [customerName, setCustomerName] = useState(''); // Nome manual para venda balcão
   
   // Payment state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
@@ -52,7 +54,7 @@ export default function PDVTab() {
   const [showQuickProduct, setShowQuickProduct] = useState(false);
   const [quickProductName, setQuickProductName] = useState('');
   const [quickProductPrice, setQuickProductPrice] = useState('');
-  const [quickProductCost, setQuickProductCost] = useState('');
+  const [editingProduct, setEditingProduct] = useState<any>(null);
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -77,6 +79,16 @@ export default function PDVTab() {
     queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await supabase.from('clients').select('id, name, telefone').order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  // Fetch company data
+  const { data: companyData } = useQuery({
+    queryKey: ['company-data'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('company_data').select('*').maybeSingle();
       if (error) throw error;
       return data;
     }
@@ -121,7 +133,8 @@ export default function PDVTab() {
         name: product.name,
         price: Number(product.price),
         cost_price: Number(product.cost_price),
-        quantity: 1
+        quantity: 1,
+        type: product.type
       }]);
     }
     setProductSearch('');
@@ -146,6 +159,7 @@ export default function PDVTab() {
     setSelectedClientName(client.name);
     setSelectedClientPhone(client.telefone || '');
     setClientSearch('');
+    setCustomerName('');
   };
 
   const clearClient = () => {
@@ -180,8 +194,9 @@ export default function PDVTab() {
   // Sale mutation
   const saleMutation = useMutation({
     mutationFn: async () => {
+      if (!userId) throw new Error('Usuário não autenticado');
+      
       for (const item of cart) {
-        // Map payment method to valid enum
         const primaryMethod = paymentSplits[0]?.method || 'Dinheiro';
         const validMethod = ['Dinheiro', 'PIX', 'Débito', 'Crédito'].includes(primaryMethod) 
           ? primaryMethod as 'Dinheiro' | 'PIX' | 'Débito' | 'Crédito'
@@ -202,10 +217,10 @@ export default function PDVTab() {
 
         // Update product stock if it's a physical product
         const product = products?.find(p => p.id === item.id);
-        if (product && product.qty < 999) {
+        if (product && product.type === 'piece' && product.qty > 0) {
           await supabase
             .from('products')
-            .update({ qty: product.qty - item.quantity })
+            .update({ qty: Math.max(0, product.qty - item.quantity) })
             .eq('id', item.id);
         }
       }
@@ -213,43 +228,57 @@ export default function PDVTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      
-      // Send WhatsApp receipt if client has phone
-      if (selectedClientPhone) {
-        sendReceipt();
-      }
-      
       toast.success('Venda finalizada com sucesso!');
-      resetSale();
     },
     onError: (error: any) => {
       toast.error('Erro ao finalizar venda: ' + error.message);
     }
   });
 
-  // Quick product add mutation
+  // Quick product mutation
   const addProductMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('products').insert({
-        user_id: userId,
-        name: quickProductName,
-        price: parseFloat(quickProductPrice),
-        cost_price: parseFloat(quickProductCost) || 0,
-        qty: 1,
-        min_stock: 0,
-        date_added: new Date().toISOString().split('T')[0]
-      });
-      if (error) throw error;
+      if (editingProduct) {
+        const { error } = await supabase.from('products')
+          .update({
+            name: quickProductName,
+            price: parseFloat(quickProductPrice)
+          })
+          .eq('id', editingProduct.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('products').insert({
+          user_id: userId,
+          name: quickProductName,
+          price: parseFloat(quickProductPrice),
+          cost_price: 0,
+          qty: 999,
+          type: 'service',
+          min_stock: 0
+        });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Produto adicionado!');
-      setShowQuickProduct(false);
-      setQuickProductName('');
-      setQuickProductPrice('');
-      setQuickProductCost('');
+      toast.success(editingProduct ? 'Produto atualizado!' : 'Produto adicionado!');
+      closeQuickProduct();
     }
   });
+
+  const closeQuickProduct = () => {
+    setShowQuickProduct(false);
+    setQuickProductName('');
+    setQuickProductPrice('');
+    setEditingProduct(null);
+  };
+
+  const openEditProduct = (product: any) => {
+    setEditingProduct(product);
+    setQuickProductName(product.name);
+    setQuickProductPrice(product.price.toString());
+    setShowQuickProduct(true);
+  };
 
   const resetSale = () => {
     setCart([]);
@@ -257,20 +286,35 @@ export default function PDVTab() {
     setPaymentSplits([{ method: 'Dinheiro', amount: 0 }]);
     setCashReceived(0);
     clearClient();
+    setCustomerName('');
   };
 
-  const sendReceipt = () => {
-    const phone = selectedClientPhone.replace(/\D/g, '');
-    if (!phone) return;
+  const getDisplayName = () => {
+    if (selectedClientName) return selectedClientName;
+    if (customerName) return customerName;
+    return 'Balcão';
+  };
+
+  const sendWhatsApp = (phone?: string) => {
+    const targetPhone = phone || selectedClientPhone;
+    const cleanPhone = targetPhone?.replace(/\D/g, '') || '';
+    
+    if (!cleanPhone) {
+      toast.error('Nenhum telefone informado');
+      return;
+    }
 
     const itemsList = cart.map(item => 
       `• ${item.name} x${item.quantity} = R$ ${(item.price * item.quantity).toFixed(2)}`
     ).join('\n');
 
+    const companyName = companyData?.company_name || 'AC Service Pro';
+    const displayName = getDisplayName();
+
     const message = `✅ *COMPROVANTE DE VENDA*\n\n` +
-      `📋 *AC Service Pro*\n` +
+      `📋 *${companyName}*\n` +
       `━━━━━━━━━━━━━━━━\n\n` +
-      `👤 *Cliente:* ${selectedClientName || 'Balcão'}\n` +
+      `👤 *Cliente:* ${displayName}\n` +
       `📅 *Data:* ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n\n` +
       `🛒 *Itens:*\n${itemsList}\n\n` +
       `💰 *TOTAL:* R$ ${cartTotal.toFixed(2)}\n` +
@@ -278,7 +322,9 @@ export default function PDVTab() {
       `\n━━━━━━━━━━━━━━━━\n` +
       `Agradecemos a preferência! 🙏`;
 
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    // Format: https://wa.me/55DD9XXXXXXXX?text=message
+    const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const finalizeSale = () => {
@@ -286,7 +332,16 @@ export default function PDVTab() {
       toast.error('Valor pago insuficiente!');
       return;
     }
-    saleMutation.mutate();
+    
+    saleMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Show options for receipt
+        if (selectedClientPhone) {
+          sendWhatsApp();
+        }
+        resetSale();
+      }
+    });
   };
 
   const openPayment = () => {
@@ -325,27 +380,39 @@ export default function PDVTab() {
                 </div>
                 <Button onClick={() => setShowQuickProduct(true)} variant="outline" className="min-h-[44px]">
                   <Plus className="w-4 h-4 mr-2" />
-                  Rápido
+                  Novo
                 </Button>
               </div>
 
               {/* Product List */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[400px] overflow-y-auto">
                 {filteredProducts.slice(0, 20).map((product) => (
-                  <Button
-                    key={product.id}
-                    variant="outline"
-                    className="h-auto p-3 flex flex-col items-start text-left hover:bg-primary/10"
-                    onClick={() => addToCart(product)}
-                  >
-                    <span className="text-sm font-medium truncate w-full">{product.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {product.qty < 999 ? `Est: ${product.qty}` : 'Serviço'}
-                    </span>
-                    <span className="text-sm font-bold text-primary">
-                      R$ {Number(product.price).toFixed(2)}
-                    </span>
-                  </Button>
+                  <div key={product.id} className="relative group">
+                    <Button
+                      variant="outline"
+                      className="w-full h-auto p-3 flex flex-col items-start text-left hover:bg-primary/10"
+                      onClick={() => addToCart(product)}
+                    >
+                      <span className="text-sm font-medium truncate w-full">{product.name}</span>
+                      <Badge variant="secondary" className="text-[10px] mt-1">
+                        {product.type === 'piece' ? 'Peça' : 'Serviço'}
+                      </Badge>
+                      <span className="text-sm font-bold text-primary mt-1">
+                        R$ {Number(product.price).toFixed(2)}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditProduct(product);
+                      }}
+                    >
+                      <Edit className="w-3 h-3" />
+                    </Button>
+                  </div>
                 ))}
               </div>
             </CardContent>
@@ -356,11 +423,12 @@ export default function PDVTab() {
         <div className="space-y-4">
           {/* Client Selection */}
           <Card>
-            <CardContent className="pt-4">
-              <Label className="text-sm font-medium flex items-center gap-2 mb-2">
+            <CardContent className="pt-4 space-y-3">
+              <Label className="text-sm font-medium flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Cliente (opcional)
+                Cliente
               </Label>
+              
               {selectedClientId ? (
                 <div className="flex items-center justify-between p-2 bg-muted rounded-md">
                   <div>
@@ -372,28 +440,37 @@ export default function PDVTab() {
                   </Button>
                 </div>
               ) : (
-                <div className="relative">
+                <>
+                  <div className="relative">
+                    <Input
+                      placeholder="Buscar cliente cadastrado..."
+                      value={clientSearch}
+                      onChange={(e) => setClientSearch(e.target.value)}
+                      className="min-h-[44px]"
+                    />
+                    {filteredClients.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 bg-popover border rounded-md shadow-lg mt-1">
+                        {filteredClients.map((client) => (
+                          <button
+                            key={client.id}
+                            className="w-full p-2 text-left hover:bg-muted transition-colors"
+                            onClick={() => selectClient(client)}
+                          >
+                            <p className="font-medium">{client.name}</p>
+                            {client.telefone && <p className="text-xs text-muted-foreground">{client.telefone}</p>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center text-xs text-muted-foreground">ou</div>
                   <Input
-                    placeholder="Buscar cliente..."
-                    value={clientSearch}
-                    onChange={(e) => setClientSearch(e.target.value)}
+                    placeholder="Nome do cliente (balcão)"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
                     className="min-h-[44px]"
                   />
-                  {filteredClients.length > 0 && (
-                    <div className="absolute top-full left-0 right-0 z-50 bg-background border rounded-md shadow-lg mt-1">
-                      {filteredClients.map((client) => (
-                        <button
-                          key={client.id}
-                          className="w-full p-2 text-left hover:bg-muted transition-colors"
-                          onClick={() => selectClient(client)}
-                        >
-                          <p className="font-medium">{client.name}</p>
-                          {client.telefone && <p className="text-xs text-muted-foreground">{client.telefone}</p>}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                </>
               )}
             </CardContent>
           </Card>
@@ -437,14 +514,6 @@ export default function PDVTab() {
                   </div>
 
                   <div className="border-t pt-3 space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span>Subtotal:</span>
-                      <span>R$ {cartTotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm text-green-600">
-                      <span>Lucro:</span>
-                      <span>R$ {cartProfit.toFixed(2)}</span>
-                    </div>
                     <div className="flex justify-between text-lg font-bold text-primary">
                       <span>TOTAL:</span>
                       <span>R$ {cartTotal.toFixed(2)}</span>
@@ -478,6 +547,14 @@ export default function PDVTab() {
           </DialogHeader>
           
           <div className="space-y-4">
+            {/* Customer display */}
+            {(selectedClientName || customerName) && (
+              <div className="p-2 bg-muted rounded-md text-center">
+                <p className="text-xs text-muted-foreground">Cliente</p>
+                <p className="font-medium">{getDisplayName()}</p>
+              </div>
+            )}
+
             <div className="text-center p-4 bg-muted rounded-lg">
               <p className="text-sm text-muted-foreground">Total a pagar</p>
               <p className="text-3xl font-bold text-primary">R$ {cartTotal.toFixed(2)}</p>
@@ -560,66 +637,65 @@ export default function PDVTab() {
             </div>
           </div>
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="min-h-[44px]">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={finalizeSale} 
-              disabled={remaining > 0.01 || saleMutation.isPending}
-              className="min-h-[44px] bg-green-600 hover:bg-green-700"
-            >
-              {saleMutation.isPending ? 'Processando...' : 'Finalizar Venda'}
-            </Button>
+          <DialogFooter className="flex-col gap-2">
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="flex-1 min-h-[44px]">
+                Cancelar
+              </Button>
+              <Button 
+                onClick={finalizeSale} 
+                disabled={remaining > 0.01 || saleMutation.isPending}
+                className="flex-1 min-h-[44px] bg-green-600 hover:bg-green-700"
+              >
+                {saleMutation.isPending ? 'Processando...' : 'Finalizar'}
+              </Button>
+            </div>
+            {selectedClientPhone && (
+              <Button 
+                variant="outline" 
+                className="w-full min-h-[44px] text-green-600 border-green-600"
+                onClick={() => sendWhatsApp()}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar Comprovante WhatsApp
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Quick Product Dialog */}
-      <Dialog open={showQuickProduct} onOpenChange={setShowQuickProduct}>
+      <Dialog open={showQuickProduct} onOpenChange={(open) => !open && closeQuickProduct()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cadastro Rápido de Produto</DialogTitle>
+            <DialogTitle>{editingProduct ? 'Editar Produto' : 'Cadastro Rápido'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Nome do Produto</Label>
+              <Label>Nome</Label>
               <Input 
                 value={quickProductName} 
                 onChange={(e) => setQuickProductName(e.target.value)}
-                placeholder="Ex: Gás R22 500g"
+                placeholder="Ex: Limpeza de Split"
                 className="min-h-[44px]"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Custo (R$)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={quickProductCost} 
-                  onChange={(e) => setQuickProductCost(e.target.value)}
-                  placeholder="0.00"
-                  className="min-h-[44px]"
-                />
-              </div>
-              <div>
-                <Label>Preço Venda (R$)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={quickProductPrice} 
-                  onChange={(e) => setQuickProductPrice(e.target.value)}
-                  placeholder="0.00"
-                  className="min-h-[44px]"
-                />
-              </div>
+            <div>
+              <Label>Preço (R$)</Label>
+              <Input 
+                type="number" 
+                step="0.01"
+                value={quickProductPrice} 
+                onChange={(e) => setQuickProductPrice(e.target.value)}
+                placeholder="0.00"
+                className="min-h-[44px]"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuickProduct(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={closeQuickProduct}>Cancelar</Button>
             <Button onClick={() => addProductMutation.mutate()} disabled={!quickProductName || !quickProductPrice}>
-              Adicionar
+              {editingProduct ? 'Salvar' : 'Adicionar'}
             </Button>
           </DialogFooter>
         </DialogContent>

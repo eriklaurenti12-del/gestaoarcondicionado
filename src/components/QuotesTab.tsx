@@ -8,10 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, FileText, Send, Eye, Printer } from "lucide-react";
+import { Plus, Trash2, FileText, Send, Calendar, Printer, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -39,13 +39,17 @@ interface Quote {
   status: string;
   notes: string | null;
   created_at: string;
-  clients?: { name: string; telefone: string | null } | null;
+  clients?: { name: string; telefone: string | null; address: string | null } | null;
 }
 
 export default function QuotesTab() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null);
+  const [viewQuote, setViewQuote] = useState<Quote | null>(null);
+  const [scheduleQuote, setScheduleQuote] = useState<Quote | null>(null);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleNotes, setScheduleNotes] = useState('');
+  
   const [formData, setFormData] = useState({
     client_id: "",
     title: "",
@@ -67,7 +71,7 @@ export default function QuotesTab() {
 
       const { data, error } = await supabase
         .from("quotes")
-        .select(`*, clients(name, telefone)`)
+        .select(`*, clients(name, telefone, address)`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -133,12 +137,12 @@ export default function QuotesTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
-      toast.success("Orçamento criado com sucesso!");
+      toast.success("Orçamento criado!");
       resetForm();
       setIsDialogOpen(false);
     },
     onError: (error) => {
-      toast.error("Erro ao criar orçamento: " + error.message);
+      toast.error("Erro: " + error.message);
     },
   });
 
@@ -166,6 +170,40 @@ export default function QuotesTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success("Orçamento excluído!");
+    },
+  });
+
+  // Schedule appointment from quote
+  const createAppointment = useMutation({
+    mutationFn: async () => {
+      if (!scheduleQuote || !scheduleDate) throw new Error("Dados incompletos");
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+
+      const { error } = await supabase.from("appointments").insert({
+        user_id: userData.user.id,
+        client_id: scheduleQuote.client_id,
+        appointment_date: scheduleDate,
+        notes: `Orçamento #${scheduleQuote.quote_number}: ${scheduleQuote.title}\n${scheduleNotes}`,
+        status: 'agendado'
+      });
+
+      if (error) throw error;
+
+      // Update quote status to approved
+      await supabase.from("quotes").update({ status: 'aprovado' }).eq("id", scheduleQuote.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento criado!");
+      setScheduleQuote(null);
+      setScheduleDate('');
+      setScheduleNotes('');
+    },
+    onError: (error) => {
+      toast.error("Erro: " + error.message);
     },
   });
 
@@ -213,40 +251,53 @@ export default function QuotesTab() {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
 
-    // Header
-    doc.setFillColor(0, 150, 200);
-    doc.rect(0, 0, pageWidth, 40, "F");
+    // Header with company info
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 45, "F");
     
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text(companyData?.company_name || "AC Service Pro", 14, 20);
+    doc.text(companyData?.company_name || "AC Service Pro", 14, 18);
     
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    if (companyData?.whatsapp) doc.text(`WhatsApp: ${companyData.whatsapp}`, 14, 30);
-    if (companyData?.email) doc.text(`Email: ${companyData.email}`, 14, 36);
+    doc.setTextColor(180, 180, 180);
+    if (companyData?.whatsapp) doc.text(`WhatsApp: ${companyData.whatsapp}`, 14, 26);
+    if (companyData?.email) doc.text(`Email: ${companyData.email}`, 14, 32);
+    if (companyData?.cnpj_cpf) doc.text(`CNPJ/CPF: ${companyData.cnpj_cpf}`, 14, 38);
 
-    doc.text(`Orçamento Nº ${quote.quote_number}`, pageWidth - 14, 20, { align: "right" });
-    doc.text(`Data: ${format(new Date(quote.created_at), "dd/MM/yyyy", { locale: ptBR })}`, pageWidth - 14, 30, { align: "right" });
-
-    // Client info
-    doc.setTextColor(0, 0, 0);
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text("Cliente:", 14, 55);
+    doc.text(`ORÇAMENTO Nº ${quote.quote_number}`, pageWidth - 14, 18, { align: "right" });
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Data: ${format(new Date(quote.created_at), "dd/MM/yyyy", { locale: ptBR })}`, pageWidth - 14, 26, { align: "right" });
+    doc.text(`Validade: ${quote.validity_days} dias`, pageWidth - 14, 32, { align: "right" });
+
+    // Client info
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("CLIENTE:", 14, 55);
     doc.setFont("helvetica", "normal");
     doc.text(quote.clients?.name || "Não informado", 40, 55);
+    
+    if (quote.clients?.address) {
+      doc.text(quote.clients.address, 40, 61);
+    }
 
     // Title
-    doc.setFontSize(14);
+    doc.setFontSize(13);
     doc.setFont("helvetica", "bold");
-    doc.text(quote.title, 14, 70);
+    doc.text(quote.title, 14, 75);
     
     if (quote.description) {
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      doc.text(quote.description, 14, 78);
+      doc.setTextColor(100, 100, 100);
+      doc.text(quote.description, 14, 82);
     }
 
     // Items table
@@ -258,56 +309,56 @@ export default function QuotesTab() {
     ]);
 
     autoTable(doc, {
-      startY: 85,
+      startY: 90,
       head: [["Descrição", "Qtd", "Valor Unit.", "Total"]],
       body: tableData,
-      theme: "grid",
-      headStyles: { fillColor: [0, 150, 200] },
+      theme: "striped",
+      headStyles: { fillColor: [24, 24, 27], textColor: [255, 255, 255] },
       styles: { fontSize: 10 },
     });
 
     const finalY = (doc as any).lastAutoTable.finalY + 10;
 
     // Totals
-    doc.setFontSize(11);
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
     doc.text(`Subtotal: R$ ${quote.subtotal.toFixed(2)}`, pageWidth - 14, finalY, { align: "right" });
     
     if (quote.discount_percentage > 0) {
-      doc.text(`Desconto (${quote.discount_percentage}%): -R$ ${quote.discount_value.toFixed(2)}`, pageWidth - 14, finalY + 7, { align: "right" });
+      doc.text(`Desconto (${quote.discount_percentage}%): -R$ ${quote.discount_value.toFixed(2)}`, pageWidth - 14, finalY + 6, { align: "right" });
     }
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
-    doc.text(`TOTAL: R$ ${quote.total.toFixed(2)}`, pageWidth - 14, finalY + 18, { align: "right" });
-
-    // Validity
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.text(`Validade: ${quote.validity_days} dias`, 14, finalY + 30);
+    doc.text(`TOTAL: R$ ${quote.total.toFixed(2)}`, pageWidth - 14, finalY + 16, { align: "right" });
 
     if (quote.notes) {
-      doc.text("Observações:", 14, finalY + 40);
-      doc.text(quote.notes, 14, finalY + 47);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text("Observações:", 14, finalY + 30);
+      doc.text(quote.notes, 14, finalY + 36);
     }
 
     // Footer
     doc.setFontSize(8);
-    doc.setTextColor(128, 128, 128);
-    doc.text("Este orçamento foi gerado pelo sistema AC Service Pro", pageWidth / 2, 285, { align: "center" });
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, pageWidth / 2, 285, { align: "center" });
 
     doc.save(`orcamento-${quote.quote_number}.pdf`);
-    toast.success("PDF gerado com sucesso!");
+    toast.success("PDF gerado!");
   };
 
   const sendWhatsApp = (quote: Quote) => {
     if (!quote.clients?.telefone) {
-      toast.error("Cliente não possui telefone cadastrado");
+      toast.error("Cliente sem telefone");
       return;
     }
 
     const phone = quote.clients.telefone.replace(/\D/g, "");
-    const message = encodeURIComponent(
-      `Olá! Segue o orçamento Nº ${quote.quote_number}:\n\n` +
+    const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`;
+    
+    const message = `Olá! Segue o orçamento Nº ${quote.quote_number}:\n\n` +
       `*${quote.title}*\n` +
       `${quote.description || ""}\n\n` +
       `*Itens:*\n` +
@@ -318,10 +369,9 @@ export default function QuotesTab() {
       (quote.discount_percentage > 0 ? `\n*Desconto:* ${quote.discount_percentage}%` : "") +
       `\n*TOTAL:* R$ ${quote.total.toFixed(2)}` +
       `\n\nValidade: ${quote.validity_days} dias` +
-      `\n\n_${companyData?.company_name || "AC Service Pro"}_`
-    );
+      `\n\n_${companyData?.company_name || "AC Service Pro"}_`;
 
-    window.open(`https://wa.me/55${phone}?text=${message}`, "_blank");
+    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, "_blank");
   };
 
   const getStatusBadge = (status: string) => {
@@ -361,7 +411,7 @@ export default function QuotesTab() {
                     <Label>Cliente</Label>
                     <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
                       <SelectTrigger className="min-h-[44px]">
-                        <SelectValue placeholder="Selecione um cliente" />
+                        <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
                       <SelectContent>
                         {clients?.map((client) => (
@@ -384,7 +434,7 @@ export default function QuotesTab() {
                 </div>
 
                 <div>
-                  <Label>Título do Orçamento</Label>
+                  <Label>Título</Label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -405,9 +455,9 @@ export default function QuotesTab() {
 
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <Label>Itens do Orçamento</Label>
+                    <Label>Itens</Label>
                     <Button type="button" variant="outline" size="sm" onClick={addItem}>
-                      <Plus className="w-4 h-4 mr-1" /> Adicionar Item
+                      <Plus className="w-4 h-4 mr-1" /> Item
                     </Button>
                   </div>
                   <div className="space-y-2">
@@ -434,7 +484,7 @@ export default function QuotesTab() {
                           value={item.unit_price}
                           onChange={(e) => updateItem(index, "unit_price", parseFloat(e.target.value) || 0)}
                         />
-                        <div className="col-span-2 text-right font-medium">
+                        <div className="col-span-2 text-right font-medium text-sm">
                           R$ {item.total.toFixed(2)}
                         </div>
                         <Button
@@ -462,7 +512,7 @@ export default function QuotesTab() {
                       className="min-h-[44px]"
                     />
                   </div>
-                  <div className="text-right space-y-1">
+                  <div className="text-right space-y-1 pt-4">
                     <div className="text-sm text-muted-foreground">Subtotal: R$ {totals.subtotal.toFixed(2)}</div>
                     {formData.discount_percentage > 0 && (
                       <div className="text-sm text-muted-foreground">Desconto: -R$ {totals.discountValue.toFixed(2)}</div>
@@ -476,7 +526,7 @@ export default function QuotesTab() {
                   <Textarea
                     value={formData.notes}
                     onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    placeholder="Observações adicionais..."
+                    placeholder="Observações..."
                     rows={2}
                   />
                 </div>
@@ -497,7 +547,7 @@ export default function QuotesTab() {
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : quotes?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhum orçamento cadastrado
+              Nenhum orçamento
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -509,7 +559,6 @@ export default function QuotesTab() {
                     <TableHead>Cliente</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Data</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -525,19 +574,15 @@ export default function QuotesTab() {
                           value={quote.status}
                           onValueChange={(value) => updateStatus.mutate({ id: quote.id, status: value })}
                         >
-                          <SelectTrigger className="w-32 h-8">
+                          <SelectTrigger className="w-28 h-8">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="aprovado">Aprovado</SelectItem>
                             <SelectItem value="recusado">Recusado</SelectItem>
-                            <SelectItem value="expirado">Expirado</SelectItem>
                           </SelectContent>
                         </Select>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(quote.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-end gap-1">
@@ -545,8 +590,26 @@ export default function QuotesTab() {
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9"
+                            onClick={() => setViewQuote(quote)}
+                            title="Visualizar"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => setScheduleQuote(quote)}
+                            title="Agendar"
+                          >
+                            <Calendar className="w-4 h-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
                             onClick={() => generatePDF(quote)}
-                            title="Gerar PDF"
+                            title="PDF"
                           >
                             <Printer className="w-4 h-4" />
                           </Button>
@@ -555,7 +618,7 @@ export default function QuotesTab() {
                             size="icon"
                             className="h-9 w-9 text-green-600"
                             onClick={() => sendWhatsApp(quote)}
-                            title="Enviar WhatsApp"
+                            title="WhatsApp"
                           >
                             <Send className="w-4 h-4" />
                           </Button>
@@ -582,6 +645,105 @@ export default function QuotesTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* View Quote Dialog */}
+      <Dialog open={!!viewQuote} onOpenChange={() => setViewQuote(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Orçamento #{viewQuote?.quote_number}</DialogTitle>
+          </DialogHeader>
+          {viewQuote && (
+            <div className="space-y-4">
+              <div className="p-3 bg-muted rounded-lg">
+                <h3 className="font-bold">{viewQuote.title}</h3>
+                {viewQuote.description && <p className="text-sm text-muted-foreground mt-1">{viewQuote.description}</p>}
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Cliente</p>
+                  <p className="font-medium">{viewQuote.clients?.name || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Data</p>
+                  <p className="font-medium">{format(new Date(viewQuote.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                </div>
+              </div>
+
+              <div className="border rounded-lg divide-y">
+                {(viewQuote.items as QuoteItem[]).map((item, i) => (
+                  <div key={i} className="p-2 flex justify-between text-sm">
+                    <span>{item.description} x{item.quantity}</span>
+                    <span className="font-medium">R$ {item.total.toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-right space-y-1">
+                <p className="text-sm">Subtotal: R$ {viewQuote.subtotal.toFixed(2)}</p>
+                {viewQuote.discount_percentage > 0 && (
+                  <p className="text-sm text-green-600">Desconto: -{viewQuote.discount_percentage}%</p>
+                )}
+                <p className="text-lg font-bold">Total: R$ {viewQuote.total.toFixed(2)}</p>
+              </div>
+
+              {viewQuote.notes && (
+                <div className="p-2 bg-muted/50 rounded text-sm">
+                  <p className="text-muted-foreground">Obs:</p>
+                  <p>{viewQuote.notes}</p>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => viewQuote && generatePDF(viewQuote)}>
+              <Printer className="w-4 h-4 mr-2" /> PDF
+            </Button>
+            <Button onClick={() => viewQuote && setScheduleQuote(viewQuote)}>
+              <Calendar className="w-4 h-4 mr-2" /> Agendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Dialog */}
+      <Dialog open={!!scheduleQuote} onOpenChange={() => setScheduleQuote(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agendar Orçamento #{scheduleQuote?.quote_number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="font-medium">{scheduleQuote?.title}</p>
+              <p className="text-sm text-muted-foreground">Cliente: {scheduleQuote?.clients?.name || '-'}</p>
+            </div>
+            <div>
+              <Label>Data e Hora</Label>
+              <Input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="min-h-[44px]"
+              />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                value={scheduleNotes}
+                onChange={(e) => setScheduleNotes(e.target.value)}
+                placeholder="Informações adicionais..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleQuote(null)}>Cancelar</Button>
+            <Button onClick={() => createAppointment.mutate()} disabled={!scheduleDate}>
+              Criar Agendamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
