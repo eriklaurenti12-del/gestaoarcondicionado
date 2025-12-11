@@ -74,6 +74,16 @@ const AppointmentsTab: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>("Dinheiro");
   const [installments, setInstallments] = useState<number>(1);
   const [firstDueDate, setFirstDueDate] = useState<string>("");
+  
+  // New client creation
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  
+  // Multiple services
+  const [selectedServices, setSelectedServices] = useState<Array<{ id: number; name: string; price: number; qty: number }>>([]);
+  const [workDescription, setWorkDescription] = useState("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -206,7 +216,64 @@ const AppointmentsTab: React.FC = () => {
     setPaymentMethod("Dinheiro");
     setInstallments(1);
     setFirstDueDate("");
+    setNewClientName("");
+    setNewClientPhone("");
+    setNewClientAddress("");
+    setIsCreatingNewClient(false);
+    setSelectedServices([]);
+    setWorkDescription("");
   };
+  
+  // Create new client mutation
+  const createClientMutation = useMutation({
+    mutationFn: async (clientData: { name: string; telefone: string; address: string }) => {
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({ 
+          user_id: userId, 
+          name: clientData.name, 
+          telefone: clientData.telefone || null,
+          address: clientData.address || null
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['clients-list'] });
+      setSelectedClientId(String(data.id));
+      setIsCreatingNewClient(false);
+      toast({ title: "Cliente cadastrado!", description: `${data.name} foi adicionado.` });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro ao cadastrar cliente", description: error.message });
+    }
+  });
+  
+  // Add service to list
+  const addServiceToList = (serviceId: string) => {
+    const service = services?.find(s => s.id === parseInt(serviceId));
+    if (service && !selectedServices.find(s => s.id === service.id)) {
+      setSelectedServices([...selectedServices, { id: service.id, name: service.name, price: service.price, qty: 1 }]);
+    }
+    setSelectedServiceId("");
+  };
+  
+  // Remove service from list
+  const removeServiceFromList = (serviceId: number) => {
+    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
+  };
+  
+  // Update service quantity
+  const updateServiceQty = (serviceId: number, qty: number) => {
+    setSelectedServices(selectedServices.map(s => 
+      s.id === serviceId ? { ...s, qty: Math.max(1, qty) } : s
+    ));
+  };
+  
+  // Calculate total services
+  const servicesTotal = selectedServices.reduce((sum, s) => sum + (s.price * s.qty), 0);
 
   const handleAddAppointment = async () => {
     if (!selectedClientId || !appointmentDate || !appointmentTime) {
@@ -216,22 +283,44 @@ const AppointmentsTab: React.FC = () => {
 
     const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     
+    // Use first selected service or legacy single service
+    const mainServiceId = selectedServices.length > 0 ? selectedServices[0].id : (selectedServiceId ? parseInt(selectedServiceId) : null);
+    
+    // Build notes with work description and services
+    let fullNotes = workDescription || notes || "";
+    if (selectedServices.length > 0) {
+      const servicesText = selectedServices.map(s => `${s.name} x${s.qty} - R$ ${(s.price * s.qty).toFixed(2)}`).join("; ");
+      fullNotes = `${fullNotes}\n\nServiços: ${servicesText}\nTotal: R$ ${servicesTotal.toFixed(2)}`.trim();
+    }
+    
     // Get service price for installments
-    const service = services?.find(s => s.id === parseInt(selectedServiceId));
-    const servicePrice = service?.price || 0;
-    const installmentAmount = servicePrice / installments;
+    const totalPrice = selectedServices.length > 0 ? servicesTotal : (services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0);
+    const installmentAmount = totalPrice / installments;
     
     addAppointmentMutation.mutate({
       user_id: userId,
       client_id: parseInt(selectedClientId),
-      service_id: selectedServiceId ? parseInt(selectedServiceId) : null,
+      service_id: mainServiceId,
       appointment_date: dateTime.toISOString(),
-      notes: notes || null,
+      notes: fullNotes || null,
       status: 'agendado',
       payment_method: paymentMethod,
       installments: installments,
       first_due_date: firstDueDate || null,
       installment_amount: installmentAmount
+    });
+  };
+  
+  // Handle creating new client before scheduling
+  const handleCreateNewClient = () => {
+    if (!newClientName.trim()) {
+      toast({ variant: "destructive", title: "Nome obrigatório", description: "Digite o nome do cliente." });
+      return;
+    }
+    createClientMutation.mutate({
+      name: newClientName.trim(),
+      telefone: newClientPhone,
+      address: newClientAddress
     });
   };
 
@@ -834,59 +923,104 @@ const AppointmentsTab: React.FC = () => {
 
       {/* Dialog Novo Agendamento */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Novo Agendamento
+              Novo Agendamento Completo
             </DialogTitle>
             <DialogDescription>
-              Preencha os dados do novo agendamento
+              Preencha os dados do agendamento com serviços inclusos
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Cliente *</Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients?.map((client) => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.name} {client.telefone && `- ${client.telefone}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Client Section */}
+            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold">Cliente *</Label>
+                <Button 
+                  type="button" 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setIsCreatingNewClient(!isCreatingNewClient)}
+                  className="text-xs"
+                >
+                  {isCreatingNewClient ? "Selecionar existente" : "+ Novo cliente"}
+                </Button>
+              </div>
+              
+              {isCreatingNewClient ? (
+                <div className="space-y-3 animate-fade-in">
+                  <div>
+                    <Label className="text-sm">Nome do cliente *</Label>
+                    <Input 
+                      value={newClientName}
+                      onChange={(e) => setNewClientName(e.target.value)}
+                      placeholder="Digite o nome completo"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <Label className="text-sm">Telefone</Label>
+                      <Input 
+                        value={newClientPhone}
+                        onChange={(e) => setNewClientPhone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-sm">Endereço</Label>
+                      <Input 
+                        value={newClientAddress}
+                        onChange={(e) => setNewClientAddress(e.target.value)}
+                        placeholder="Endereço completo"
+                        className="min-h-[44px]"
+                      />
+                    </div>
+                  </div>
+                  <Button 
+                    type="button" 
+                    onClick={handleCreateNewClient}
+                    disabled={!newClientName.trim() || createClientMutation.isPending}
+                    className="w-full min-h-[44px]"
+                  >
+                    {createClientMutation.isPending ? "Cadastrando..." : "Cadastrar e Selecionar Cliente"}
+                  </Button>
+                </div>
+              ) : (
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue placeholder="Selecione o cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients?.map((client) => (
+                      <SelectItem key={client.id} value={String(client.id)}>
+                        {client.name} {client.telefone && `- ${client.telefone}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            <div className="space-y-2">
-              <Label>Serviço</Label>
-              <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o serviço (opcional)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {services?.map((service) => (
-                    <SelectItem key={service.id} value={String(service.id)}>
-                      {service.name} - R$ {Number(service.price).toFixed(2)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
+            {/* Date/Time */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Data *</Label>
-                <Input type="date" value={appointmentDate} onChange={(e) => setAppointmentDate(e.target.value)} />
+                <Input 
+                  type="date" 
+                  value={appointmentDate} 
+                  onChange={(e) => setAppointmentDate(e.target.value)} 
+                  className="min-h-[44px]"
+                />
               </div>
               <div className="space-y-2">
                 <Label>Horário *</Label>
                 <Select value={appointmentTime} onValueChange={setAppointmentTime}>
-                  <SelectTrigger>
+                  <SelectTrigger className="min-h-[44px]">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
@@ -908,9 +1042,80 @@ const AppointmentsTab: React.FC = () => {
               </div>
             </div>
 
+            {/* Services Section - Multiple */}
+            <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+              <div className="flex items-center justify-between">
+                <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                  <FileText className="w-4 h-4" />
+                  Serviços (O.S.)
+                </Label>
+              </div>
+              
+              <div className="flex gap-2">
+                <Select value={selectedServiceId} onValueChange={addServiceToList}>
+                  <SelectTrigger className="min-h-[44px] flex-1">
+                    <SelectValue placeholder="Adicionar serviço..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {services?.map((service) => (
+                      <SelectItem key={service.id} value={String(service.id)}>
+                        {service.name} - R$ {Number(service.price).toFixed(2)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedServices.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {selectedServices.map((service) => (
+                    <div key={service.id} className="flex items-center justify-between p-2 bg-background rounded border">
+                      <div className="flex-1">
+                        <span className="font-medium text-sm">{service.name}</span>
+                        <span className="text-xs text-muted-foreground ml-2">R$ {service.price.toFixed(2)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Input 
+                          type="number" 
+                          min="1"
+                          value={service.qty}
+                          onChange={(e) => updateServiceQty(service.id, parseInt(e.target.value) || 1)}
+                          className="w-16 h-8 text-center"
+                        />
+                        <span className="text-sm font-medium w-20 text-right">
+                          R$ {(service.price * service.qty).toFixed(2)}
+                        </span>
+                        <Button 
+                          type="button" 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => removeServiceFromList(service.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-right font-bold text-blue-700 dark:text-blue-400">
+                    Total: R$ {servicesTotal.toFixed(2)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Work Description */}
             <div className="space-y-2">
-              <Label>Observações</Label>
-              <Input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Notas adicionais..." />
+              <Label>Descrição do Trabalho / Observações</Label>
+              <Input 
+                value={workDescription || notes} 
+                onChange={(e) => {
+                  setWorkDescription(e.target.value);
+                  setNotes(e.target.value);
+                }} 
+                placeholder="Descreva o serviço a ser realizado..." 
+                className="min-h-[44px]"
+              />
             </div>
 
             {/* Payment Section */}
@@ -920,7 +1125,7 @@ const AppointmentsTab: React.FC = () => {
                 <div className="space-y-2">
                   <Label>Forma de Pagamento</Label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger>
+                    <SelectTrigger className="min-h-[44px]">
                       <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
                     <SelectContent>
@@ -934,7 +1139,7 @@ const AppointmentsTab: React.FC = () => {
                 <div className="space-y-2">
                   <Label>Parcelas</Label>
                   <Select value={String(installments)} onValueChange={(v) => setInstallments(parseInt(v))}>
-                    <SelectTrigger>
+                    <SelectTrigger className="min-h-[44px]">
                       <SelectValue placeholder="Parcelas" />
                     </SelectTrigger>
                     <SelectContent>
@@ -958,10 +1163,13 @@ const AppointmentsTab: React.FC = () => {
                     type="date" 
                     value={firstDueDate} 
                     onChange={(e) => setFirstDueDate(e.target.value)}
+                    className="min-h-[44px]"
                   />
-                  {selectedServiceId && (
+                  {(selectedServices.length > 0 || selectedServiceId) && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Valor por parcela: R$ {((services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0) / installments).toFixed(2)}
+                      Valor por parcela: R$ {(
+                        (selectedServices.length > 0 ? servicesTotal : (services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0)) / installments
+                      ).toFixed(2)}
                     </p>
                   )}
                 </div>
@@ -973,7 +1181,11 @@ const AppointmentsTab: React.FC = () => {
             <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
               Cancelar
             </Button>
-            <Button onClick={handleAddAppointment} disabled={addAppointmentMutation.isPending}>
+            <Button 
+              onClick={handleAddAppointment} 
+              disabled={addAppointmentMutation.isPending || (!selectedClientId && !isCreatingNewClient)}
+              className="min-h-[44px]"
+            >
               <PlusCircle className="mr-2 h-4 w-4" />
               {addAppointmentMutation.isPending ? "Salvando..." : "Agendar"}
             </Button>
