@@ -17,6 +17,7 @@ import InstallmentsTab from "@/components/InstallmentsTab";
 import SalesTab from "@/components/SalesTab";
 import ChartsMetrics from "@/components/ChartsMetrics";
 import QuotesTab from "@/components/QuotesTab";
+import PDVTab from "@/components/PDVTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -119,6 +120,8 @@ export default function Index() {
         return <ProductsTab />;
       case "suppliers":
         return <SuppliersTab />;
+      case "pdv":
+        return <PDVTab />;
       case "sales":
         return <SalesTab />;
       case "quotes":
@@ -147,6 +150,7 @@ export default function Index() {
       clients: "Clientes",
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
+      pdv: "PDV - Ponto de Venda",
       sales: "Ordens de Serviço",
       quotes: "Orçamentos",
       financeiro: "Financeiro",
