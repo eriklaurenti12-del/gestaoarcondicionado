@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, FileText, Send, Printer, Eye, PenTool, Wrench, Package } from "lucide-react";
+import { Plus, Trash2, FileText, Send, Printer, Eye, PenTool, Wrench, Package, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -52,8 +52,17 @@ export default function ServiceOrdersTab() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [viewOrder, setViewOrder] = useState<ServiceOrder | null>(null);
   const [signatureOrder, setSignatureOrder] = useState<ServiceOrder | null>(null);
+  const [scheduleOrder, setScheduleOrder] = useState<ServiceOrder | null>(null);
+  const [scheduleDate, setScheduleDate] = useState('');
+  const [scheduleNotes, setScheduleNotes] = useState('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
+  
+  // New client creation
+  const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
 
   const [formData, setFormData] = useState({
     client_id: "",
@@ -229,7 +238,87 @@ export default function ServiceOrdersTab() {
     });
     setServices([{ description: "", quantity: 1, unit_price: 0, total: 0 }]);
     setParts([]);
+    setIsCreatingNewClient(false);
+    setNewClientName("");
+    setNewClientPhone("");
+    setNewClientAddress("");
   };
+  
+  // Create new client mutation
+  const createClientMutation = useMutation({
+    mutationFn: async (clientData: { name: string; telefone: string; address: string }) => {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .insert({ 
+          user_id: userData.user.id, 
+          name: clientData.name, 
+          telefone: clientData.telefone || null,
+          address: clientData.address || null
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setFormData(prev => ({ ...prev, client_id: String(data.id) }));
+      setIsCreatingNewClient(false);
+      toast.success(`Cliente ${data.name} cadastrado!`);
+    },
+    onError: (error: any) => {
+      toast.error("Erro ao cadastrar cliente: " + error.message);
+    }
+  });
+  
+  const handleCreateNewClient = () => {
+    if (!newClientName.trim()) {
+      toast.error("Digite o nome do cliente");
+      return;
+    }
+    createClientMutation.mutate({
+      name: newClientName.trim(),
+      telefone: newClientPhone,
+      address: newClientAddress
+    });
+  };
+  
+  // Schedule appointment from O.S.
+  const createAppointment = useMutation({
+    mutationFn: async () => {
+      if (!scheduleOrder || !scheduleDate) throw new Error("Dados incompletos");
+      
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+
+      const { error } = await supabase.from("appointments").insert({
+        user_id: userData.user.id,
+        client_id: scheduleOrder.client_id,
+        appointment_date: scheduleDate,
+        notes: `O.S. #${scheduleOrder.order_number}: ${scheduleOrder.title}\nTotal: R$ ${scheduleOrder.total.toFixed(2)}\n${scheduleNotes}`,
+        status: 'agendado'
+      });
+
+      if (error) throw error;
+
+      // Update order status to em_andamento
+      await supabase.from("service_orders").update({ status: 'em_andamento' }).eq("id", scheduleOrder.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["service-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      toast.success("Agendamento criado!");
+      setScheduleOrder(null);
+      setScheduleDate('');
+      setScheduleNotes('');
+    },
+    onError: (error) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
 
   const addService = () => {
     setServices([...services, { description: "", quantity: 1, unit_price: 0, total: 0 }]);
@@ -583,31 +672,85 @@ export default function ServiceOrdersTab() {
                 <DialogTitle>Criar Ordem de Serviço</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label>Cliente</Label>
+                {/* Client Section with New Client Option */}
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Cliente</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsCreatingNewClient(!isCreatingNewClient)}
+                      className="text-xs"
+                    >
+                      {isCreatingNewClient ? "Selecionar existente" : "+ Novo cliente"}
+                    </Button>
+                  </div>
+                  
+                  {isCreatingNewClient ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <div>
+                        <Label className="text-sm">Nome do cliente *</Label>
+                        <Input 
+                          value={newClientName}
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          placeholder="Digite o nome completo"
+                          className="min-h-[44px]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm">Telefone</Label>
+                          <Input 
+                            value={newClientPhone}
+                            onChange={(e) => setNewClientPhone(e.target.value)}
+                            placeholder="(00) 00000-0000"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">Endereço</Label>
+                          <Input 
+                            value={newClientAddress}
+                            onChange={(e) => setNewClientAddress(e.target.value)}
+                            placeholder="Endereço completo"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={handleCreateNewClient}
+                        disabled={!newClientName.trim() || createClientMutation.isPending}
+                        className="w-full min-h-[44px]"
+                      >
+                        {createClientMutation.isPending ? "Cadastrando..." : "Cadastrar e Selecionar"}
+                      </Button>
+                    </div>
+                  ) : (
                     <Select value={formData.client_id} onValueChange={(v) => setFormData({ ...formData, client_id: v })}>
                       <SelectTrigger className="min-h-[44px]">
-                        <SelectValue placeholder="Selecione" />
+                        <SelectValue placeholder="Selecione o cliente" />
                       </SelectTrigger>
                       <SelectContent>
                         {clients?.map((client) => (
                           <SelectItem key={client.id} value={client.id.toString()}>
-                            {client.name}
+                            {client.name} {client.telefone && `- ${client.telefone}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-                  <div>
-                    <Label>Título</Label>
-                    <Input
-                      value={formData.title}
-                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      placeholder="Ex: Manutenção Split 12000 BTUs"
-                      className="min-h-[44px]"
-                    />
-                  </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label>Título</Label>
+                  <Input
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    placeholder="Ex: Manutenção Split 12000 BTUs"
+                    className="min-h-[44px]"
+                  />
                 </div>
 
                 <div>
@@ -852,6 +995,15 @@ export default function ServiceOrdersTab() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-9 w-9 text-blue-600"
+                            onClick={() => setScheduleOrder(order)}
+                            title="Agendar"
+                          >
+                            <Calendar className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className="h-9 w-9"
                             onClick={() => setSignatureOrder(order)}
                             title="Assinar"
@@ -1018,6 +1170,21 @@ export default function ServiceOrdersTab() {
             {!viewOrder?.signature_data && (
               <Button 
                 size="sm"
+                variant="outline"
+                className="w-full sm:w-auto text-blue-600 border-blue-600/30"
+                onClick={() => {
+                  if (viewOrder) {
+                    setScheduleOrder(viewOrder);
+                    setViewOrder(null);
+                  }
+                }}
+              >
+                <Calendar className="w-4 h-4 mr-2" /> Agendar
+              </Button>
+            )}
+            {!viewOrder?.signature_data && (
+              <Button 
+                size="sm"
                 className="w-full sm:w-auto"
                 onClick={() => {
                   if (viewOrder) {
@@ -1029,6 +1196,46 @@ export default function ServiceOrdersTab() {
                 <PenTool className="w-4 h-4 mr-2" /> Assinar
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Dialog */}
+      <Dialog open={!!scheduleOrder} onOpenChange={() => setScheduleOrder(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agendar O.S. #{scheduleOrder?.order_number}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-3 bg-muted rounded-lg">
+              <p className="font-medium">{scheduleOrder?.title}</p>
+              <p className="text-sm text-muted-foreground">Cliente: {scheduleOrder?.clients?.name || '-'}</p>
+              <p className="font-bold mt-2">Total: R$ {scheduleOrder?.total.toFixed(2)}</p>
+            </div>
+            <div>
+              <Label>Data e Hora *</Label>
+              <Input
+                type="datetime-local"
+                value={scheduleDate}
+                onChange={(e) => setScheduleDate(e.target.value)}
+                className="min-h-[44px]"
+              />
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                value={scheduleNotes}
+                onChange={(e) => setScheduleNotes(e.target.value)}
+                placeholder="Informações adicionais..."
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setScheduleOrder(null)}>Cancelar</Button>
+            <Button onClick={() => createAppointment.mutate()} disabled={!scheduleDate}>
+              <Calendar className="w-4 h-4 mr-2" /> Criar Agendamento
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
