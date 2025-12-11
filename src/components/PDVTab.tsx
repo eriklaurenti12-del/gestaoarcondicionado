@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, Send, X, Search, User, Package, MessageCircle, Printer, Eye, Edit } from "lucide-react";
-import { format } from 'date-fns';
+import { ShoppingCart, Plus, Minus, Trash2, CreditCard, Banknote, QrCode, X, Search, User, Package, MessageCircle, Edit, Wallet } from "lucide-react";
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface CartItem {
   id: number;
@@ -25,6 +27,7 @@ interface CartItem {
 interface PaymentSplit {
   method: string;
   amount: number;
+  installments?: number;
 }
 
 const paymentMethods = [
@@ -32,6 +35,7 @@ const paymentMethods = [
   { value: 'PIX', label: 'PIX', icon: QrCode },
   { value: 'Débito', label: 'Débito', icon: CreditCard },
   { value: 'Crédito', label: 'Crédito', icon: CreditCard },
+  { value: 'Fiado', label: 'Fiado', icon: Wallet },
 ];
 
 export default function PDVTab() {
@@ -43,14 +47,15 @@ export default function PDVTab() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedClientName, setSelectedClientName] = useState('');
   const [selectedClientPhone, setSelectedClientPhone] = useState('');
-  const [customerName, setCustomerName] = useState(''); // Nome manual para venda balcão
+  const [customerName, setCustomerName] = useState('');
   
   // Payment state
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([{ method: 'Dinheiro', amount: 0 }]);
   const [cashReceived, setCashReceived] = useState<number>(0);
+  const [fiadoInstallments, setFiadoInstallments] = useState<number>(1);
   
-  // Quick product add
+  // Quick product
   const [showQuickProduct, setShowQuickProduct] = useState(false);
   const [quickProductName, setQuickProductName] = useState('');
   const [quickProductPrice, setQuickProductPrice] = useState('');
@@ -64,7 +69,6 @@ export default function PDVTab() {
     getUserId();
   }, []);
 
-  // Fetch products
   const { data: products } = useQuery({
     queryKey: ['products'],
     queryFn: async () => {
@@ -74,7 +78,6 @@ export default function PDVTab() {
     }
   });
 
-  // Fetch clients
   const { data: clients } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
@@ -84,7 +87,6 @@ export default function PDVTab() {
     }
   });
 
-  // Fetch company data
   const { data: companyData } = useQuery({
     queryKey: ['company-data'],
     queryFn: async () => {
@@ -94,7 +96,6 @@ export default function PDVTab() {
     }
   });
 
-  // Filtered products
   const filteredProducts = useMemo(() => {
     if (!products) return [];
     return products.filter(p => 
@@ -103,7 +104,6 @@ export default function PDVTab() {
     );
   }, [products, productSearch]);
 
-  // Filtered clients
   const filteredClients = useMemo(() => {
     if (!clients || !clientSearch) return [];
     return clients.filter(c => 
@@ -112,14 +112,14 @@ export default function PDVTab() {
     ).slice(0, 5);
   }, [clients, clientSearch]);
 
-  // Cart calculations
   const cartTotal = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
   const cartProfit = useMemo(() => cart.reduce((sum, item) => sum + (item.price - item.cost_price) * item.quantity, 0), [cart]);
-  
-  // Payment calculations
   const totalPaid = useMemo(() => paymentSplits.reduce((sum, p) => sum + p.amount, 0), [paymentSplits]);
   const remaining = cartTotal - totalPaid;
   const change = cashReceived > cartTotal ? cashReceived - cartTotal : 0;
+  
+  const hasFiado = useMemo(() => paymentSplits.some(p => p.method === 'Fiado'), [paymentSplits]);
+  const fiadoAmount = useMemo(() => paymentSplits.filter(p => p.method === 'Fiado').reduce((sum, p) => sum + p.amount, 0), [paymentSplits]);
 
   const addToCart = (product: any) => {
     const existing = cart.find(item => item.id === product.id);
@@ -191,13 +191,26 @@ export default function PDVTab() {
     setPaymentSplits(updated);
   };
 
+  const addFiadoRemaining = () => {
+    if (remaining > 0) {
+      setPaymentSplits([...paymentSplits, { method: 'Fiado', amount: remaining }]);
+    }
+  };
+
   // Sale mutation
   const saleMutation = useMutation({
     mutationFn: async () => {
       if (!userId) throw new Error('Usuário não autenticado');
       
+      // For fiado, client is required
+      if (hasFiado && !selectedClientId) {
+        throw new Error('Selecione um cliente para venda fiado');
+      }
+      
+      const saleIds: number[] = [];
+      
       for (const item of cart) {
-        const primaryMethod = paymentSplits[0]?.method || 'Dinheiro';
+        const primaryMethod = paymentSplits.find(p => p.method !== 'Fiado')?.method || paymentSplits[0]?.method || 'Dinheiro';
         const validMethod = ['Dinheiro', 'PIX', 'Débito', 'Crédito'].includes(primaryMethod) 
           ? primaryMethod as 'Dinheiro' | 'PIX' | 'Débito' | 'Crédito'
           : 'Dinheiro';
@@ -212,10 +225,11 @@ export default function PDVTab() {
           payment_method: validMethod
         };
         
-        const { error } = await supabase.from('sales').insert([saleData]);
+        const { data: saleResult, error } = await supabase.from('sales').insert([saleData]).select('id').single();
         if (error) throw error;
+        if (saleResult) saleIds.push(saleResult.id);
 
-        // Update product stock if it's a physical product
+        // Update stock for pieces
         const product = products?.find(p => p.id === item.id);
         if (product && product.type === 'piece' && product.qty > 0) {
           await supabase
@@ -224,26 +238,44 @@ export default function PDVTab() {
             .eq('id', item.id);
         }
       }
+      
+      // Create installments for fiado
+      if (hasFiado && fiadoAmount > 0 && selectedClientId) {
+        const installmentAmount = fiadoAmount / fiadoInstallments;
+        const today = new Date();
+        
+        for (let i = 0; i < fiadoInstallments; i++) {
+          const dueDate = addMonths(today, i + 1);
+          
+          await supabase.from('installments').insert({
+            user_id: userId,
+            sale_id: saleIds[0] || null,
+            installment_number: i + 1,
+            total_installments: fiadoInstallments,
+            amount: installmentAmount,
+            due_date: format(dueDate, 'yyyy-MM-dd'),
+            is_paid: false,
+            notes: `Venda PDV - ${getDisplayName()}`
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Venda finalizada com sucesso!');
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
+      toast.success('Venda finalizada!');
     },
     onError: (error: any) => {
-      toast.error('Erro ao finalizar venda: ' + error.message);
+      toast.error('Erro: ' + error.message);
     }
   });
 
-  // Quick product mutation
   const addProductMutation = useMutation({
     mutationFn: async () => {
       if (editingProduct) {
         const { error } = await supabase.from('products')
-          .update({
-            name: quickProductName,
-            price: parseFloat(quickProductPrice)
-          })
+          .update({ name: quickProductName, price: parseFloat(quickProductPrice) })
           .eq('id', editingProduct.id);
         if (error) throw error;
       } else {
@@ -285,6 +317,7 @@ export default function PDVTab() {
     setShowPaymentDialog(false);
     setPaymentSplits([{ method: 'Dinheiro', amount: 0 }]);
     setCashReceived(0);
+    setFiadoInstallments(1);
     clearClient();
     setCustomerName('');
   };
@@ -293,6 +326,68 @@ export default function PDVTab() {
     if (selectedClientName) return selectedClientName;
     if (customerName) return customerName;
     return 'Balcão';
+  };
+
+  const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyData?.company_name || 'AC Service Pro', 14, 18);
+    
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    if (companyData?.whatsapp) doc.text(`WhatsApp: ${companyData.whatsapp}`, 14, 26);
+    if (companyData?.cnpj_cpf) doc.text(`CNPJ/CPF: ${companyData.cnpj_cpf}`, 14, 32);
+    
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Data: ${format(new Date(), "dd/MM/yyyy HH:mm", { locale: ptBR })}`, pageWidth - 14, 26, { align: 'right' });
+    
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('COMPROVANTE DE VENDA', pageWidth / 2, 52, { align: 'center' });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Cliente: ${getDisplayName()}`, 14, 62);
+    
+    const tableData = cart.map(item => [
+      item.name,
+      item.quantity.toString(),
+      `R$ ${item.price.toFixed(2)}`,
+      `R$ ${(item.price * item.quantity).toFixed(2)}`
+    ]);
+    
+    autoTable(doc, {
+      startY: 70,
+      head: [['Item', 'Qtd', 'Valor', 'Total']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [24, 24, 27] },
+      styles: { fontSize: 10 }
+    });
+    
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`TOTAL: R$ ${cartTotal.toFixed(2)}`, pageWidth - 14, finalY, { align: 'right' });
+    
+    if (hasFiado && fiadoAmount > 0) {
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(200, 100, 0);
+      doc.text(`Fiado: R$ ${fiadoAmount.toFixed(2)} em ${fiadoInstallments}x`, pageWidth - 14, finalY + 8, { align: 'right' });
+    }
+    
+    doc.save(`venda-${format(new Date(), 'yyyyMMdd-HHmm')}.pdf`);
+    toast.success('PDF gerado!');
   };
 
   const sendWhatsApp = (phone?: string) => {
@@ -309,20 +404,25 @@ export default function PDVTab() {
     ).join('\n');
 
     const companyName = companyData?.company_name || 'AC Service Pro';
-    const displayName = getDisplayName();
 
-    const message = `✅ *COMPROVANTE DE VENDA*\n\n` +
+    let message = `✅ *COMPROVANTE DE VENDA*\n\n` +
       `📋 *${companyName}*\n` +
       `━━━━━━━━━━━━━━━━\n\n` +
-      `👤 *Cliente:* ${displayName}\n` +
+      `👤 *Cliente:* ${getDisplayName()}\n` +
       `📅 *Data:* ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}\n\n` +
       `🛒 *Itens:*\n${itemsList}\n\n` +
-      `💰 *TOTAL:* R$ ${cartTotal.toFixed(2)}\n` +
-      (change > 0 ? `💵 *Troco:* R$ ${change.toFixed(2)}\n` : '') +
-      `\n━━━━━━━━━━━━━━━━\n` +
-      `Agradecemos a preferência! 🙏`;
+      `💰 *TOTAL:* R$ ${cartTotal.toFixed(2)}\n`;
+    
+    if (hasFiado && fiadoAmount > 0) {
+      message += `\n📝 *Fiado:* R$ ${fiadoAmount.toFixed(2)} em ${fiadoInstallments}x\n`;
+    }
+    
+    if (change > 0) {
+      message += `💵 *Troco:* R$ ${change.toFixed(2)}\n`;
+    }
+    
+    message += `\n━━━━━━━━━━━━━━━━\nAgradecemos a preferência! 🙏`;
 
-    // Format: https://wa.me/55DD9XXXXXXXX?text=message
     const formattedPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
     window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -333,9 +433,13 @@ export default function PDVTab() {
       return;
     }
     
+    if (hasFiado && !selectedClientId) {
+      toast.error('Selecione um cliente para venda fiado');
+      return;
+    }
+    
     saleMutation.mutate(undefined, {
       onSuccess: () => {
-        // Show options for receipt
         if (selectedClientPhone) {
           sendWhatsApp();
         }
@@ -351,6 +455,7 @@ export default function PDVTab() {
     }
     setPaymentSplits([{ method: 'Dinheiro', amount: cartTotal }]);
     setCashReceived(0);
+    setFiadoInstallments(1);
     setShowPaymentDialog(true);
   };
 
@@ -367,12 +472,11 @@ export default function PDVTab() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Product Search */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar produto por nome ou código..."
+                    placeholder="Buscar produto..."
                     value={productSearch}
                     onChange={(e) => setProductSearch(e.target.value)}
                     className="pl-10 min-h-[44px]"
@@ -384,7 +488,6 @@ export default function PDVTab() {
                 </Button>
               </div>
 
-              {/* Product List */}
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-[400px] overflow-y-auto">
                 {filteredProducts.slice(0, 20).map((product) => (
                   <div key={product.id} className="relative group">
@@ -421,7 +524,6 @@ export default function PDVTab() {
 
         {/* Cart Panel */}
         <div className="space-y-4">
-          {/* Client Selection */}
           <Card>
             <CardContent className="pt-4 space-y-3">
               <Label className="text-sm font-medium flex items-center gap-2">
@@ -475,7 +577,6 @@ export default function PDVTab() {
             </CardContent>
           </Card>
 
-          {/* Cart */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -513,7 +614,7 @@ export default function PDVTab() {
                     ))}
                   </div>
 
-                  <div className="border-t pt-3 space-y-1">
+                  <div className="border-t pt-3">
                     <div className="flex justify-between text-lg font-bold text-primary">
                       <span>TOTAL:</span>
                       <span>R$ {cartTotal.toFixed(2)}</span>
@@ -547,7 +648,6 @@ export default function PDVTab() {
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Customer display */}
             {(selectedClientName || customerName) && (
               <div className="p-2 bg-muted rounded-md text-center">
                 <p className="text-xs text-muted-foreground">Cliente</p>
@@ -556,17 +656,16 @@ export default function PDVTab() {
             )}
 
             <div className="text-center p-4 bg-muted rounded-lg">
-              <p className="text-sm text-muted-foreground">Total a pagar</p>
+              <p className="text-sm text-muted-foreground">Total</p>
               <p className="text-3xl font-bold text-primary">R$ {cartTotal.toFixed(2)}</p>
             </div>
 
-            {/* Payment Splits */}
             <div className="space-y-3">
               <Label className="font-medium">Formas de Pagamento</Label>
               {paymentSplits.map((split, index) => (
                 <div key={index} className="flex gap-2 items-center">
                   <Select value={split.method} onValueChange={(v) => updatePaymentSplit(index, 'method', v)}>
-                    <SelectTrigger className="w-[120px] min-h-[44px]">
+                    <SelectTrigger className="w-[110px] min-h-[44px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -593,13 +692,43 @@ export default function PDVTab() {
                   )}
                 </div>
               ))}
-              <Button variant="outline" size="sm" onClick={addPaymentSplit} className="w-full">
-                <Plus className="w-4 h-4 mr-2" />
-                Dividir Pagamento
-              </Button>
+              
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={addPaymentSplit} className="flex-1">
+                  <Plus className="w-4 h-4 mr-1" /> Dividir
+                </Button>
+                {remaining > 0 && (
+                  <Button variant="outline" size="sm" onClick={addFiadoRemaining} className="flex-1 text-orange-600 border-orange-600">
+                    <Wallet className="w-4 h-4 mr-1" /> Restante Fiado
+                  </Button>
+                )}
+              </div>
             </div>
 
-            {/* Cash handling */}
+            {/* Fiado installments */}
+            {hasFiado && (
+              <div className="p-3 bg-orange-500/10 border border-orange-500/30 rounded-lg space-y-2">
+                <Label className="text-orange-600 font-medium">Parcelamento do Fiado</Label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">R$ {fiadoAmount.toFixed(2)} em</span>
+                  <Select value={fiadoInstallments.toString()} onValueChange={(v) => setFiadoInstallments(parseInt(v))}>
+                    <SelectTrigger className="w-20 min-h-[40px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((n) => (
+                        <SelectItem key={n} value={n.toString()}>{n}x</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm">= R$ {(fiadoAmount / fiadoInstallments).toFixed(2)}/mês</span>
+                </div>
+                {!selectedClientId && (
+                  <p className="text-xs text-red-500">⚠️ Selecione um cliente para fiado</p>
+                )}
+              </div>
+            )}
+
             {paymentSplits.some(p => p.method === 'Dinheiro') && (
               <div className="space-y-2">
                 <Label>Valor recebido em dinheiro</Label>
@@ -620,7 +749,6 @@ export default function PDVTab() {
               </div>
             )}
 
-            {/* Summary */}
             <div className="border-t pt-3 space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Total pago:</span>
@@ -644,22 +772,26 @@ export default function PDVTab() {
               </Button>
               <Button 
                 onClick={finalizeSale} 
-                disabled={remaining > 0.01 || saleMutation.isPending}
+                disabled={remaining > 0.01 || saleMutation.isPending || (hasFiado && !selectedClientId)}
                 className="flex-1 min-h-[44px] bg-green-600 hover:bg-green-700"
               >
                 {saleMutation.isPending ? 'Processando...' : 'Finalizar'}
               </Button>
             </div>
-            {selectedClientPhone && (
-              <Button 
-                variant="outline" 
-                className="w-full min-h-[44px] text-green-600 border-green-600"
-                onClick={() => sendWhatsApp()}
-              >
-                <MessageCircle className="w-4 h-4 mr-2" />
-                Enviar Comprovante WhatsApp
+            <div className="flex gap-2 w-full">
+              <Button variant="outline" className="flex-1 min-h-[44px]" onClick={generatePDF}>
+                PDF
               </Button>
-            )}
+              {selectedClientPhone && (
+                <Button 
+                  variant="outline" 
+                  className="flex-1 min-h-[44px] text-green-600 border-green-600"
+                  onClick={() => sendWhatsApp()}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" /> WhatsApp
+                </Button>
+              )}
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
