@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CalendarAgenda from './CalendarAgenda';
 import ScheduleBoard from './ScheduleBoard';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Appointment = {
   id: string;
@@ -31,6 +32,43 @@ type Appointment = {
   clients?: { name: string; telefone: string | null; address?: string | null } | null;
   products?: { name: string; price: number; service_duration?: number } | null;
 };
+
+interface QuoteItem {
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+interface Quote {
+  id: string;
+  quote_number: number;
+  client_id: number | null;
+  title: string;
+  total: number;
+  status: string;
+  created_at: string;
+  clients?: { name: string; telefone: string | null; address: string | null } | null;
+}
+
+interface ServiceItem {
+  id?: number;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
+interface ServiceOrder {
+  id: string;
+  order_number: number;
+  client_id: number | null;
+  title: string;
+  total: number;
+  status: string;
+  created_at: string;
+  clients?: { name: string; telefone: string | null; address: string | null } | null;
+}
 
 const fetchAppointments = async (): Promise<Appointment[]> => {
   const { data, error } = await supabase
@@ -51,6 +89,26 @@ const fetchServices = async () => {
   const { data, error } = await supabase.from('products').select('id, name, price').order('name');
   if (error) throw new Error(error.message);
   return data;
+};
+
+const fetchPendingQuotes = async (): Promise<Quote[]> => {
+  const { data, error } = await supabase
+    .from('quotes')
+    .select(`id, quote_number, client_id, title, total, status, created_at, clients(name, telefone, address)`)
+    .eq('status', 'pendente')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data as Quote[];
+};
+
+const fetchPendingOrders = async (): Promise<ServiceOrder[]> => {
+  const { data, error } = await supabase
+    .from('service_orders')
+    .select(`id, order_number, client_id, title, total, status, created_at, clients(name, telefone, address)`)
+    .eq('status', 'pendente')
+    .order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data as ServiceOrder[];
 };
 
 const AppointmentsTab: React.FC = () => {
@@ -75,15 +133,16 @@ const AppointmentsTab: React.FC = () => {
   const [installments, setInstallments] = useState<number>(1);
   const [firstDueDate, setFirstDueDate] = useState<string>("");
   
-  // New client creation
+  // Source selection - quote or service order
+  const [sourceType, setSourceType] = useState<'quote' | 'order' | 'manual'>('quote');
+  const [selectedQuoteId, setSelectedQuoteId] = useState<string>("");
+  const [selectedOrderId, setSelectedOrderId] = useState<string>("");
+  
+  // New client creation (for manual mode)
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
-  
-  // Multiple services
-  const [selectedServices, setSelectedServices] = useState<Array<{ id: number; name: string; price: number; qty: number }>>([]);
-  const [workDescription, setWorkDescription] = useState("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -101,6 +160,8 @@ const AppointmentsTab: React.FC = () => {
   });
   const { data: clients } = useQuery({ queryKey: ['clients-list'], queryFn: fetchClients });
   const { data: services } = useQuery({ queryKey: ['services-list'], queryFn: fetchServices });
+  const { data: pendingQuotes } = useQuery({ queryKey: ['pending-quotes'], queryFn: fetchPendingQuotes });
+  const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
 
   const addAppointmentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -220,8 +281,9 @@ const AppointmentsTab: React.FC = () => {
     setNewClientPhone("");
     setNewClientAddress("");
     setIsCreatingNewClient(false);
-    setSelectedServices([]);
-    setWorkDescription("");
+    setSourceType('quote');
+    setSelectedQuoteId("");
+    setSelectedOrderId("");
   };
   
   // Create new client mutation
@@ -251,56 +313,70 @@ const AppointmentsTab: React.FC = () => {
     }
   });
   
-  // Add service to list
-  const addServiceToList = (serviceId: string) => {
-    const service = services?.find(s => s.id === parseInt(serviceId));
-    if (service && !selectedServices.find(s => s.id === service.id)) {
-      setSelectedServices([...selectedServices, { id: service.id, name: service.name, price: service.price, qty: 1 }]);
+  // Get selected quote or order details
+  const selectedQuote = pendingQuotes?.find(q => q.id === selectedQuoteId);
+  const selectedOrder = pendingOrders?.find(o => o.id === selectedOrderId);
+  
+  // Get total based on source
+  const getSelectedTotal = () => {
+    if (sourceType === 'quote' && selectedQuote) return selectedQuote.total;
+    if (sourceType === 'order' && selectedOrder) return selectedOrder.total;
+    if (sourceType === 'manual' && selectedServiceId) {
+      const service = services?.find(s => s.id === parseInt(selectedServiceId));
+      return service?.price || 0;
     }
-    setSelectedServiceId("");
+    return 0;
   };
   
-  // Remove service from list
-  const removeServiceFromList = (serviceId: number) => {
-    setSelectedServices(selectedServices.filter(s => s.id !== serviceId));
-  };
-  
-  // Update service quantity
-  const updateServiceQty = (serviceId: number, qty: number) => {
-    setSelectedServices(selectedServices.map(s => 
-      s.id === serviceId ? { ...s, qty: Math.max(1, qty) } : s
-    ));
-  };
-  
-  // Calculate total services
-  const servicesTotal = selectedServices.reduce((sum, s) => sum + (s.price * s.qty), 0);
+  const selectedTotal = getSelectedTotal();
 
   const handleAddAppointment = async () => {
-    if (!selectedClientId || !appointmentDate || !appointmentTime) {
-      toast({ variant: "destructive", title: "Campos obrigatórios", description: "Cliente, data e horário são obrigatórios." });
+    // Validate based on source type
+    if (sourceType === 'quote' && !selectedQuoteId) {
+      toast({ variant: "destructive", title: "Selecione um orçamento" });
+      return;
+    }
+    if (sourceType === 'order' && !selectedOrderId) {
+      toast({ variant: "destructive", title: "Selecione uma O.S." });
+      return;
+    }
+    if (sourceType === 'manual' && !selectedClientId) {
+      toast({ variant: "destructive", title: "Selecione um cliente" });
+      return;
+    }
+    
+    if (!appointmentDate || !appointmentTime) {
+      toast({ variant: "destructive", title: "Data e horário são obrigatórios" });
       return;
     }
 
     const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     
-    // Use first selected service or legacy single service
-    const mainServiceId = selectedServices.length > 0 ? selectedServices[0].id : (selectedServiceId ? parseInt(selectedServiceId) : null);
+    // Get client_id and notes based on source
+    let clientId: number | null = null;
+    let fullNotes = notes || "";
     
-    // Build notes with work description and services
-    let fullNotes = workDescription || notes || "";
-    if (selectedServices.length > 0) {
-      const servicesText = selectedServices.map(s => `${s.name} x${s.qty} - R$ ${(s.price * s.qty).toFixed(2)}`).join("; ");
-      fullNotes = `${fullNotes}\n\nServiços: ${servicesText}\nTotal: R$ ${servicesTotal.toFixed(2)}`.trim();
+    if (sourceType === 'quote' && selectedQuote) {
+      clientId = selectedQuote.client_id;
+      fullNotes = `Orçamento #${selectedQuote.quote_number} - ${selectedQuote.title}\nTotal: R$ ${Number(selectedQuote.total).toFixed(2)}\n${notes || ""}`.trim();
+    } else if (sourceType === 'order' && selectedOrder) {
+      clientId = selectedOrder.client_id;
+      fullNotes = `O.S. #${selectedOrder.order_number} - ${selectedOrder.title}\nTotal: R$ ${Number(selectedOrder.total).toFixed(2)}\n${notes || ""}`.trim();
+    } else if (sourceType === 'manual') {
+      clientId = parseInt(selectedClientId);
     }
     
-    // Get service price for installments
-    const totalPrice = selectedServices.length > 0 ? servicesTotal : (services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0);
-    const installmentAmount = totalPrice / installments;
+    if (!clientId) {
+      toast({ variant: "destructive", title: "Cliente não encontrado" });
+      return;
+    }
+    
+    const installmentAmount = selectedTotal / installments;
     
     addAppointmentMutation.mutate({
       user_id: userId,
-      client_id: parseInt(selectedClientId),
-      service_id: mainServiceId,
+      client_id: clientId,
+      service_id: selectedServiceId ? parseInt(selectedServiceId) : null,
       appointment_date: dateTime.toISOString(),
       notes: fullNotes || null,
       status: 'agendado',
@@ -309,6 +385,18 @@ const AppointmentsTab: React.FC = () => {
       first_due_date: firstDueDate || null,
       installment_amount: installmentAmount
     });
+    
+    // Update quote/order status to "agendado"
+    if (sourceType === 'quote' && selectedQuoteId) {
+      await supabase.from('quotes').update({ status: 'agendado' }).eq('id', selectedQuoteId);
+      queryClient.invalidateQueries({ queryKey: ['pending-quotes'] });
+      queryClient.invalidateQueries({ queryKey: ['quotes'] });
+    }
+    if (sourceType === 'order' && selectedOrderId) {
+      await supabase.from('service_orders').update({ status: 'agendado' }).eq('id', selectedOrderId);
+      queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    }
   };
   
   // Handle creating new client before scheduling
@@ -935,76 +1023,176 @@ const AppointmentsTab: React.FC = () => {
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Client Section */}
-            <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
-              <div className="flex items-center justify-between">
-                <Label className="font-semibold">Cliente *</Label>
-                <Button 
-                  type="button" 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => setIsCreatingNewClient(!isCreatingNewClient)}
-                  className="text-xs"
-                >
-                  {isCreatingNewClient ? "Selecionar existente" : "+ Novo cliente"}
-                </Button>
-              </div>
+            {/* Source Type Selection */}
+            <Tabs value={sourceType} onValueChange={(v) => setSourceType(v as 'quote' | 'order' | 'manual')} className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="quote" className="flex items-center gap-1">
+                  <Receipt className="w-4 h-4" />
+                  <span className="hidden sm:inline">Orçamento</span>
+                </TabsTrigger>
+                <TabsTrigger value="order" className="flex items-center gap-1">
+                  <ClipboardList className="w-4 h-4" />
+                  <span className="hidden sm:inline">O.S.</span>
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="flex items-center gap-1">
+                  <PlusCircle className="w-4 h-4" />
+                  <span className="hidden sm:inline">Manual</span>
+                </TabsTrigger>
+              </TabsList>
               
-              {isCreatingNewClient ? (
-                <div className="space-y-3 animate-fade-in">
-                  <div>
-                    <Label className="text-sm">Nome do cliente *</Label>
-                    <Input 
-                      value={newClientName}
-                      onChange={(e) => setNewClientName(e.target.value)}
-                      placeholder="Digite o nome completo"
-                      className="min-h-[44px]"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label className="text-sm">Telefone</Label>
-                      <Input 
-                        value={newClientPhone}
-                        onChange={(e) => setNewClientPhone(e.target.value)}
-                        placeholder="(00) 00000-0000"
-                        className="min-h-[44px]"
-                      />
+              <TabsContent value="quote" className="mt-4">
+                <div className="space-y-3 p-4 border rounded-lg bg-amber-50/50 dark:bg-amber-950/20">
+                  <Label className="font-semibold flex items-center gap-2 text-amber-700 dark:text-amber-400">
+                    <Receipt className="w-4 h-4" />
+                    Selecionar Orçamento Pendente
+                  </Label>
+                  {pendingQuotes && pendingQuotes.length > 0 ? (
+                    <Select value={selectedQuoteId} onValueChange={setSelectedQuoteId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione um orçamento..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingQuotes.map((quote) => (
+                          <SelectItem key={quote.id} value={quote.id}>
+                            #{quote.quote_number} - {quote.title} ({quote.clients?.name || 'Sem cliente'}) - R$ {Number(quote.total).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum orçamento pendente disponível</p>
+                  )}
+                  {selectedQuote && (
+                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
+                      <p className="font-medium">{selectedQuote.title}</p>
+                      <p className="text-sm text-muted-foreground">Cliente: {selectedQuote.clients?.name || 'N/A'}</p>
+                      <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Total: R$ {Number(selectedQuote.total).toFixed(2)}</p>
                     </div>
-                    <div>
-                      <Label className="text-sm">Endereço</Label>
-                      <Input 
-                        value={newClientAddress}
-                        onChange={(e) => setNewClientAddress(e.target.value)}
-                        placeholder="Endereço completo"
-                        className="min-h-[44px]"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    type="button" 
-                    onClick={handleCreateNewClient}
-                    disabled={!newClientName.trim() || createClientMutation.isPending}
-                    className="w-full min-h-[44px]"
-                  >
-                    {createClientMutation.isPending ? "Cadastrando..." : "Cadastrar e Selecionar Cliente"}
-                  </Button>
+                  )}
                 </div>
-              ) : (
-                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                  <SelectTrigger className="min-h-[44px]">
-                    <SelectValue placeholder="Selecione o cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients?.map((client) => (
-                      <SelectItem key={client.id} value={String(client.id)}>
-                        {client.name} {client.telefone && `- ${client.telefone}`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+              </TabsContent>
+              
+              <TabsContent value="order" className="mt-4">
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                  <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <ClipboardList className="w-4 h-4" />
+                    Selecionar O.S. Pendente
+                  </Label>
+                  {pendingOrders && pendingOrders.length > 0 ? (
+                    <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione uma O.S..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingOrders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            #{order.order_number} - {order.title} ({order.clients?.name || 'Sem cliente'}) - R$ {Number(order.total).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhuma O.S. pendente disponível</p>
+                  )}
+                  {selectedOrder && (
+                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
+                      <p className="font-medium">{selectedOrder.title}</p>
+                      <p className="text-sm text-muted-foreground">Cliente: {selectedOrder.clients?.name || 'N/A'}</p>
+                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Total: R$ {Number(selectedOrder.total).toFixed(2)}</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="manual" className="mt-4">
+                <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Cliente *</Label>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setIsCreatingNewClient(!isCreatingNewClient)}
+                      className="text-xs"
+                    >
+                      {isCreatingNewClient ? "Selecionar existente" : "+ Novo cliente"}
+                    </Button>
+                  </div>
+                  
+                  {isCreatingNewClient ? (
+                    <div className="space-y-3 animate-fade-in">
+                      <div>
+                        <Label className="text-sm">Nome do cliente *</Label>
+                        <Input 
+                          value={newClientName}
+                          onChange={(e) => setNewClientName(e.target.value)}
+                          placeholder="Digite o nome completo"
+                          className="min-h-[44px]"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-sm">Telefone</Label>
+                          <Input 
+                            value={newClientPhone}
+                            onChange={(e) => setNewClientPhone(e.target.value)}
+                            placeholder="(00) 00000-0000"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-sm">Endereço</Label>
+                          <Input 
+                            value={newClientAddress}
+                            onChange={(e) => setNewClientAddress(e.target.value)}
+                            placeholder="Endereço completo"
+                            className="min-h-[44px]"
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        type="button" 
+                        onClick={handleCreateNewClient}
+                        disabled={!newClientName.trim() || createClientMutation.isPending}
+                        className="w-full min-h-[44px]"
+                      >
+                        {createClientMutation.isPending ? "Cadastrando..." : "Cadastrar e Selecionar Cliente"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione o cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients?.map((client) => (
+                          <SelectItem key={client.id} value={String(client.id)}>
+                            {client.name} {client.telefone && `- ${client.telefone}`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  
+                  {/* Service selection for manual mode */}
+                  <div className="mt-3">
+                    <Label className="text-sm">Serviço (opcional)</Label>
+                    <Select value={selectedServiceId} onValueChange={setSelectedServiceId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione um serviço..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {services?.map((service) => (
+                          <SelectItem key={service.id} value={String(service.id)}>
+                            {service.name} - R$ {Number(service.price).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
 
             {/* Date/Time */}
             <div className="grid grid-cols-2 gap-4">
@@ -1042,139 +1230,74 @@ const AppointmentsTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Services Section - Multiple */}
-            <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-              <div className="flex items-center justify-between">
-                <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                  <FileText className="w-4 h-4" />
-                  Serviços (O.S.)
-                </Label>
-              </div>
-              
-              <div className="flex gap-2">
-                <Select value={selectedServiceId} onValueChange={addServiceToList}>
-                  <SelectTrigger className="min-h-[44px] flex-1">
-                    <SelectValue placeholder="Adicionar serviço..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {services?.map((service) => (
-                      <SelectItem key={service.id} value={String(service.id)}>
-                        {service.name} - R$ {Number(service.price).toFixed(2)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {selectedServices.length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {selectedServices.map((service) => (
-                    <div key={service.id} className="flex items-center justify-between p-2 bg-background rounded border">
-                      <div className="flex-1">
-                        <span className="font-medium text-sm">{service.name}</span>
-                        <span className="text-xs text-muted-foreground ml-2">R$ {service.price.toFixed(2)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Input 
-                          type="number" 
-                          min="1"
-                          value={service.qty}
-                          onChange={(e) => updateServiceQty(service.id, parseInt(e.target.value) || 1)}
-                          className="w-16 h-8 text-center"
-                        />
-                        <span className="text-sm font-medium w-20 text-right">
-                          R$ {(service.price * service.qty).toFixed(2)}
-                        </span>
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => removeServiceFromList(service.id)}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  <div className="text-right font-bold text-blue-700 dark:text-blue-400">
-                    Total: R$ {servicesTotal.toFixed(2)}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Work Description */}
+            {/* Notes */}
             <div className="space-y-2">
-              <Label>Descrição do Trabalho / Observações</Label>
+              <Label>Observações</Label>
               <Input 
-                value={workDescription || notes} 
-                onChange={(e) => {
-                  setWorkDescription(e.target.value);
-                  setNotes(e.target.value);
-                }} 
-                placeholder="Descreva o serviço a ser realizado..." 
+                value={notes} 
+                onChange={(e) => setNotes(e.target.value)} 
+                placeholder="Observações adicionais..." 
                 className="min-h-[44px]"
               />
             </div>
 
-            {/* Payment Section */}
-            <div className="border-t pt-4 mt-4">
-              <Label className="text-sm font-semibold text-muted-foreground mb-3 block">Pagamento</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Forma de Pagamento</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
-                      <SelectItem value="PIX">📱 PIX</SelectItem>
-                      <SelectItem value="Débito">💳 Débito</SelectItem>
-                      <SelectItem value="Crédito">💳 Crédito</SelectItem>
-                    </SelectContent>
-                  </Select>
+            {/* Payment Section - Only show if there's a total */}
+            {selectedTotal > 0 && (
+              <div className="border-t pt-4 mt-4">
+                <Label className="text-sm font-semibold text-muted-foreground mb-3 block">
+                  Pagamento - Total: R$ {selectedTotal.toFixed(2)}
+                </Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Forma de Pagamento</Label>
+                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                        <SelectItem value="PIX">📱 PIX</SelectItem>
+                        <SelectItem value="Débito">💳 Débito</SelectItem>
+                        <SelectItem value="Crédito">💳 Crédito</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Parcelas</Label>
+                    <Select value={String(installments)} onValueChange={(v) => setInstallments(parseInt(v))}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Parcelas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">À vista</SelectItem>
+                        <SelectItem value="2">2x</SelectItem>
+                        <SelectItem value="3">3x</SelectItem>
+                        <SelectItem value="4">4x</SelectItem>
+                        <SelectItem value="5">5x</SelectItem>
+                        <SelectItem value="6">6x</SelectItem>
+                        <SelectItem value="10">10x</SelectItem>
+                        <SelectItem value="12">12x</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Parcelas</Label>
-                  <Select value={String(installments)} onValueChange={(v) => setInstallments(parseInt(v))}>
-                    <SelectTrigger className="min-h-[44px]">
-                      <SelectValue placeholder="Parcelas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">À vista</SelectItem>
-                      <SelectItem value="2">2x</SelectItem>
-                      <SelectItem value="3">3x</SelectItem>
-                      <SelectItem value="4">4x</SelectItem>
-                      <SelectItem value="5">5x</SelectItem>
-                      <SelectItem value="6">6x</SelectItem>
-                      <SelectItem value="10">10x</SelectItem>
-                      <SelectItem value="12">12x</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              {installments > 1 && (
-                <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-lg animate-fade-in">
-                  <Label>Data do 1º Vencimento *</Label>
-                  <Input 
-                    type="date" 
-                    value={firstDueDate} 
-                    onChange={(e) => setFirstDueDate(e.target.value)}
-                    className="min-h-[44px]"
-                  />
-                  {(selectedServices.length > 0 || selectedServiceId) && (
+                
+                {installments > 1 && (
+                  <div className="space-y-2 mt-4 p-3 bg-muted/50 rounded-lg animate-fade-in">
+                    <Label>Data do 1º Vencimento *</Label>
+                    <Input 
+                      type="date" 
+                      value={firstDueDate} 
+                      onChange={(e) => setFirstDueDate(e.target.value)}
+                      className="min-h-[44px]"
+                    />
                     <p className="text-xs text-muted-foreground mt-2">
-                      Valor por parcela: R$ {(
-                        (selectedServices.length > 0 ? servicesTotal : (services?.find(s => s.id === parseInt(selectedServiceId))?.price || 0)) / installments
-                      ).toFixed(2)}
+                      Valor por parcela: R$ {(selectedTotal / installments).toFixed(2)}
                     </p>
-                  )}
-                </div>
-              )}
-            </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <DialogFooter className="gap-2">
@@ -1183,7 +1306,14 @@ const AppointmentsTab: React.FC = () => {
             </Button>
             <Button 
               onClick={handleAddAppointment} 
-              disabled={addAppointmentMutation.isPending || (!selectedClientId && !isCreatingNewClient)}
+              disabled={
+                addAppointmentMutation.isPending || 
+                !appointmentDate || 
+                !appointmentTime ||
+                (sourceType === 'quote' && !selectedQuoteId) ||
+                (sourceType === 'order' && !selectedOrderId) ||
+                (sourceType === 'manual' && !selectedClientId && !isCreatingNewClient)
+              }
               className="min-h-[44px]"
             >
               <PlusCircle className="mr-2 h-4 w-4" />
