@@ -8,13 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { FileDown, TrendingUp, Users, Receipt, Target, BarChart3 } from "lucide-react";
-import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileDown, TrendingUp, Users, Receipt, Target, BarChart3, PieChart } from "lucide-react";
+import { format, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from "@/components/ui/use-toast";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Badge } from "@/components/ui/badge";
+import ChartsMetrics from './ChartsMetrics';
 
 interface SaleWithDetails {
   id: number;
@@ -375,28 +377,47 @@ const ReportsTab: React.FC = () => {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-primary" />
-            Relatórios
+            Relatórios & Gráficos
           </h2>
-          <p className="text-muted-foreground text-sm">{getPeriodText()}</p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={period} onValueChange={(val) => { setPeriod(val); setUseCustomDates(false); }}>
-            <SelectTrigger className="w-[180px] transition-all bg-background border-border">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover border-border">
-              <SelectItem value="all">Todos os períodos</SelectItem>
-              <SelectItem value="thisMonth">Este mês</SelectItem>
-              <SelectItem value="lastMonth">Mês passado</SelectItem>
-              <SelectItem value="thisYear">Este ano</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button onClick={exportStatementPDF} size="sm" className="bg-gradient-to-r from-primary to-accent">
-            <FileDown className="w-4 h-4 mr-2" />
-            Exportar Extrato
-          </Button>
+          <p className="text-muted-foreground text-sm">Análise completa do seu negócio</p>
         </div>
       </div>
+
+      <Tabs defaultValue="reports" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="reports" className="flex items-center gap-2">
+            <Receipt className="w-4 h-4" />
+            Relatórios
+          </TabsTrigger>
+          <TabsTrigger value="charts" className="flex items-center gap-2">
+            <PieChart className="w-4 h-4" />
+            Gráficos
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="charts" className="mt-6">
+          <ChartsMetrics />
+        </TabsContent>
+
+        <TabsContent value="reports" className="mt-6 space-y-6">
+          <div className="flex flex-wrap gap-2">
+            <Select value={period} onValueChange={(val) => { setPeriod(val); setUseCustomDates(false); }}>
+              <SelectTrigger className="w-[180px] transition-all bg-background border-border">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-popover border-border">
+                <SelectItem value="all">Todos os períodos</SelectItem>
+                <SelectItem value="thisMonth">Este mês</SelectItem>
+                <SelectItem value="lastMonth">Mês passado</SelectItem>
+                <SelectItem value="thisYear">Este ano</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button onClick={exportStatementPDF} size="sm" className="bg-gradient-to-r from-primary to-accent">
+              <FileDown className="w-4 h-4 mr-2" />
+              Exportar Extrato
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground">{getPeriodText()}</p>
 
       <Card>
         <CardHeader>
@@ -577,6 +598,8 @@ const ReportsTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -28,21 +28,21 @@ type Appointment = {
   status: string;
   notes: string | null;
   created_at: string;
-  clients?: { name: string; telefone: string | null } | null;
-  products?: { name: string; price: number } | null;
+  clients?: { name: string; telefone: string | null; address?: string | null } | null;
+  products?: { name: string; price: number; service_duration?: number } | null;
 };
 
 const fetchAppointments = async (): Promise<Appointment[]> => {
   const { data, error } = await supabase
     .from('appointments')
-    .select(`*, clients(name, telefone), products(name, price)`)
+    .select(`*, clients(name, telefone, address), products(name, price, service_duration)`)
     .order('appointment_date', { ascending: true });
   if (error) throw new Error(error.message);
   return data as Appointment[];
 };
 
 const fetchClients = async () => {
-  const { data, error } = await supabase.from('clients').select('id, name, telefone').order('name');
+  const { data, error } = await supabase.from('clients').select('id, name, telefone, address').order('name');
   if (error) throw new Error(error.message);
   return data;
 };
@@ -290,6 +290,16 @@ const AppointmentsTab: React.FC = () => {
     const formattedDate = format(new Date(date), "HH:mm", { locale: ptBR });
     const message = `Olá ${clientName}! Estamos a caminho para o serviço agendado às ${formattedDate}. Aguarde nossa chegada! 🚗`;
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  // Open Google Maps with client address
+  const openGoogleMaps = (address: string | null | undefined) => {
+    if (!address) {
+      toast({ variant: "destructive", title: "Endereço não cadastrado", description: "Cadastre o endereço do cliente primeiro." });
+      return;
+    }
+    const encodedAddress = encodeURIComponent(address);
+    window.open(`https://www.google.com/maps/search/?api=1&query=${encodedAddress}`, '_blank');
   };
 
   // Generate service receipt and send via WhatsApp
@@ -736,6 +746,17 @@ const AppointmentsTab: React.FC = () => {
                           )}
                           {appointment.status === 'confirmado' && (
                             <>
+                              {(appointment.clients as any)?.address && (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="h-10 w-10 p-0 touch-target text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                                  onClick={() => openGoogleMaps((appointment.clients as any)?.address)}
+                                  title="Abrir no Google Maps"
+                                >
+                                  <Navigation className="w-4 h-4" />
+                                </Button>
+                              )}
                               <Button 
                                 size="sm" 
                                 variant="outline" 

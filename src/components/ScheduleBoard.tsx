@@ -77,13 +77,29 @@ export default function ScheduleBoard() {
     );
   }, [appointments, selectedDate]);
 
-  // Map appointments to time slots
+  // Map appointments to time slots with duration blocking
   const slotMap = useMemo(() => {
-    const map: Record<string, Appointment> = {};
+    const map: Record<string, { appointment: Appointment; isBlocked: boolean }> = {};
+    
     dayAppointments.forEach(apt => {
-      const time = format(new Date(apt.appointment_date), 'HH:mm');
-      map[time] = apt;
+      const aptTime = new Date(apt.appointment_date);
+      const time = format(aptTime, 'HH:mm');
+      const duration = apt.products?.service_duration || 60; // default 60 min
+      const slots = Math.ceil(duration / 30); // each slot is 30 min
+      
+      // Mark the main slot
+      map[time] = { appointment: apt, isBlocked: false };
+      
+      // Block subsequent slots based on duration
+      for (let i = 1; i < slots; i++) {
+        const blockedTime = new Date(aptTime.getTime() + i * 30 * 60000);
+        const blockedSlot = format(blockedTime, 'HH:mm');
+        if (!map[blockedSlot]) {
+          map[blockedSlot] = { appointment: apt, isBlocked: true };
+        }
+      }
     });
+    
     return map;
   }, [dayAppointments]);
 
@@ -179,7 +195,9 @@ export default function ScheduleBoard() {
           ) : (
             <div className="divide-y">
               {timeSlots.map((time) => {
-                const appointment = slotMap[time];
+                const slotData = slotMap[time];
+                const appointment = slotData?.appointment;
+                const isBlocked = slotData?.isBlocked;
                 const isPast = isSlotPast(time);
                 const isCurrent = isCurrentSlot(time);
                 
@@ -189,6 +207,7 @@ export default function ScheduleBoard() {
                     className={`flex items-stretch transition-colors ${
                       isCurrent ? 'bg-primary/20 border-l-4 border-primary' :
                       isPast ? 'bg-muted/50 opacity-60' :
+                      isBlocked ? 'bg-orange-50 dark:bg-orange-950/20' :
                       appointment ? 'bg-green-50 dark:bg-green-950/20' : ''
                     }`}
                   >
@@ -201,7 +220,9 @@ export default function ScheduleBoard() {
                     
                     {/* Appointment Column */}
                     <div className="flex-1 p-2 min-h-[48px]">
-                      {appointment ? (
+                      {isBlocked && !slotData?.appointment ? (
+                        <span className="text-xs text-orange-600 dark:text-orange-400">⏳ Em serviço</span>
+                      ) : appointment && !isBlocked ? (
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2 min-w-0">
                             <div className={`w-2 h-2 rounded-full ${getStatusColor(appointment.status)}`} />
@@ -213,6 +234,9 @@ export default function ScheduleBoard() {
                               <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
                                 <Wrench className="w-3 h-3" />
                                 {appointment.products?.name || 'Serviço'}
+                                {appointment.products?.service_duration && (
+                                  <span className="ml-1 text-orange-500">({appointment.products.service_duration}min)</span>
+                                )}
                               </p>
                             </div>
                           </div>
