@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,19 +7,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
-import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe, Wind } from "lucide-react";
+import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe, Upload, X, Image } from "lucide-react";
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
   const [cnpjCpf, setCnpjCpf] = useState('');
   const [companyName, setCompanyName] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [userId, setUserId] = useState<string>('');
+  const [logoBase64, setLogoBase64] = useState<string>('');
   
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -109,6 +112,32 @@ const CompanyDataTab: React.FC = () => {
     }
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "Arquivo muito grande",
+        description: "A imagem deve ter no máximo 2MB",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setLogoBase64(event.target?.result as string);
+      toast({ title: "Logo carregado!" });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const removeLogo = () => {
+    setLogoBase64('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const exportToPDF = () => {
     if (!cnpjCpf || !companyName) {
       toast({
@@ -122,431 +151,411 @@ const CompanyDataTab: React.FC = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     
-    // Header with gradient effect
-    doc.setFillColor(0, 128, 192);
-    doc.rect(0, 0, pageWidth, 50, 'F');
+    // Clean header
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 55, 'F');
     
-    // Gradient overlay
-    doc.setFillColor(0, 102, 153);
-    doc.rect(pageWidth / 2, 0, pageWidth / 2, 50, 'F');
+    let headerY = 20;
+    
+    // Add logo if exists
+    if (logoBase64) {
+      try {
+        doc.addImage(logoBase64, 'PNG', 15, 10, 35, 35);
+        headerY = 20;
+      } catch (e) {
+        console.error('Erro ao adicionar logo:', e);
+      }
+    }
     
     // Company name
     doc.setTextColor(255, 255, 255);
-    doc.setFontSize(28);
+    doc.setFontSize(24);
     doc.setFont('helvetica', 'bold');
-    doc.text(companyName, pageWidth / 2, 25, { align: 'center' });
+    const nameX = logoBase64 ? 55 : 15;
+    doc.text(companyName, nameX, headerY);
     
     // Subtitle
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Serviços de Ar Condicionado', pageWidth / 2, 35, { align: 'center' });
+    doc.setTextColor(180, 180, 180);
+    doc.text('Serviços de Ar Condicionado', nameX, headerY + 8);
     
-    // CNPJ/CPF badge
+    // CNPJ/CPF
     doc.setFontSize(9);
-    doc.text(`CNPJ/CPF: ${cnpjCpf}`, pageWidth / 2, 44, { align: 'center' });
+    doc.text(`CNPJ/CPF: ${cnpjCpf}`, nameX, headerY + 16);
     
-    let y = 65;
-    doc.setTextColor(60, 60, 60);
+    let y = 70;
+    doc.setTextColor(40, 40, 40);
     
-    // Contact Info Box
-    if (whatsapp || phone || email) {
-      doc.setFillColor(240, 248, 255);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'F');
-      doc.setDrawColor(0, 128, 192);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 40, 3, 3, 'S');
+    // Section helper
+    const addSection = (title: string, icon: string, content: string[], startY: number) => {
+      if (content.filter(c => c).length === 0) return startY;
       
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 128, 192);
-      doc.text('📞 CONTATO', 20, y + 5);
+      doc.setTextColor(24, 24, 27);
+      doc.text(`${icon} ${title}`, 15, startY);
+      
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, startY + 3, pageWidth - 15, startY + 3);
       
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
+      doc.setTextColor(75, 85, 99);
       doc.setFontSize(10);
       
-      let contactY = y + 15;
-      if (whatsapp) { doc.text(`WhatsApp: ${whatsapp}`, 20, contactY); contactY += 8; }
-      if (phone) { doc.text(`Telefone: ${phone}`, 20, contactY); contactY += 8; }
-      if (email) { doc.text(`Email: ${email}`, 20, contactY); }
+      let contentY = startY + 12;
+      content.forEach(line => {
+        if (line) {
+          doc.text(line, 15, contentY);
+          contentY += 7;
+        }
+      });
       
-      y += 50;
-    }
+      return contentY + 8;
+    };
     
-    // Schedule Box
+    // Contact
+    y = addSection('Contato', '📞', [
+      whatsapp ? `WhatsApp: ${whatsapp}` : '',
+      phone ? `Telefone: ${phone}` : '',
+      email ? `Email: ${email}` : ''
+    ], y);
+    
+    // Schedule
     if (openingHours || closingHours || workDays) {
-      doc.setFillColor(240, 253, 244);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'F');
-      doc.setDrawColor(34, 197, 94);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'S');
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(34, 197, 94);
-      doc.text('🕐 HORÁRIO DE ATENDIMENTO', 20, y + 5);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      doc.setFontSize(10);
-      doc.text(`${workDays || 'Seg - Sáb'} • ${openingHours || '08:00'} às ${closingHours || '18:00'}`, 20, y + 18);
-      
-      y += 40;
+      y = addSection('Horário de Atendimento', '🕐', [
+        `${workDays || 'Segunda a Sábado'} • ${openingHours || '08:00'} às ${closingHours || '18:00'}`
+      ], y);
     }
     
-    // Social Media Box
-    if (instagram || facebook || website) {
-      doc.setFillColor(239, 246, 255);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'F');
-      doc.setDrawColor(59, 130, 246);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'S');
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(59, 130, 246);
-      doc.text('🌐 REDES SOCIAIS', 20, y + 5);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      doc.setFontSize(10);
-      
-      let socialY = y + 15;
-      if (instagram) { doc.text(`Instagram: @${instagram}`, 20, socialY); socialY += 8; }
-      if (facebook) { doc.text(`Facebook: ${facebook}`, 20, socialY); socialY += 8; }
-      if (website) { doc.text(`Site: ${website}`, 20, socialY); }
-      
-      y += 45;
-    }
+    // Social
+    y = addSection('Redes Sociais', '🌐', [
+      instagram ? `Instagram: @${instagram}` : '',
+      facebook ? `Facebook: ${facebook}` : '',
+      website ? `Site: ${website}` : ''
+    ], y);
     
-    // Address Box
+    // Address
     if (address) {
-      doc.setFillColor(254, 252, 232);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'F');
-      doc.setDrawColor(234, 179, 8);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 35, 3, 3, 'S');
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(161, 98, 7);
-      doc.text('📍 LOCALIZAÇÃO', 20, y + 5);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      doc.setFontSize(10);
-      const splitAddress = doc.splitTextToSize(address, 170);
-      doc.text(splitAddress, 20, y + 15);
-      
-      y += 45;
+      y = addSection('Localização', '📍', [address], y);
     }
     
-    // Specialties Box
+    // Services
     if (specialties) {
-      doc.setFillColor(240, 248, 255);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'F');
-      doc.setDrawColor(0, 128, 192);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 30, 3, 3, 'S');
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(0, 128, 192);
-      doc.text('❄️ SERVIÇOS', 20, y + 5);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
-      doc.setFontSize(10);
-      const splitSpecialties = doc.splitTextToSize(specialties, 170);
-      doc.text(splitSpecialties, 20, y + 15);
-      
-      y += 40;
+      y = addSection('Serviços', '❄️', [specialties], y);
     }
     
-    // Description Box
+    // Description
     if (description) {
-      doc.setFillColor(248, 250, 252);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 45, 3, 3, 'F');
-      doc.setDrawColor(100, 116, 139);
-      doc.roundedRect(14, y - 5, pageWidth - 28, 45, 3, 3, 'S');
-      
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(71, 85, 105);
-      doc.text('📝 SOBRE NÓS', 20, y + 5);
+      doc.setTextColor(24, 24, 27);
+      doc.text('📝 Sobre Nós', 15, y);
+      
+      doc.setDrawColor(229, 231, 235);
+      doc.line(15, y + 3, pageWidth - 15, y + 3);
       
       doc.setFont('helvetica', 'normal');
-      doc.setTextColor(60, 60, 60);
+      doc.setTextColor(75, 85, 99);
       doc.setFontSize(10);
-      const splitDesc = doc.splitTextToSize(description, 170);
-      doc.text(splitDesc, 20, y + 15);
+      const splitDesc = doc.splitTextToSize(description, pageWidth - 30);
+      doc.text(splitDesc, 15, y + 12);
     }
     
     // Footer
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} • AC Service Pro`, pageWidth / 2, 285, { align: 'center' });
+    doc.setTextColor(156, 163, 175);
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 285, { align: 'center' });
     
-    doc.save(`cartao-${companyName.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
-    toast({
-      title: "PDF Exportado!",
-      description: "Cartão de apresentação salvo."
-    });
+    doc.save(`empresa-${companyName.toLowerCase().replace(/\s+/g, '-')}.pdf`);
+    toast({ title: "PDF exportado!" });
   };
 
   if (isLoading) {
     return (
       <div className="space-y-6 animate-fade-in">
-        <Card>
-          <CardHeader>
-            <CardTitle>Minha Empresa</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
+        <Skeleton className="h-12 w-48" />
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-48 w-full" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Wind className="w-6 h-6 text-cyan-500 animate-pulse" />
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Building2 className="w-6 h-6 text-primary" />
+          </div>
           <h2 className="text-2xl font-bold">Minha Empresa</h2>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="hover-scale bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
+          <Button 
+            onClick={() => saveMutation.mutate()} 
+            disabled={saveMutation.isPending}
+          >
             <Save className="w-4 h-4 mr-2" />
             {saveMutation.isPending ? 'Salvando...' : 'Salvar'}
           </Button>
-          <Button onClick={exportToPDF} variant="outline" className="hover-scale">
+          <Button onClick={exportToPDF} variant="outline">
             <FileDown className="w-4 h-4 mr-2" />
             Exportar PDF
           </Button>
         </div>
       </div>
 
-      {/* Informações Básicas */}
-      <Card className="hover-scale transition-all shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="w-5 h-5" />
-            Informações Básicas
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="company">Nome da Empresa *</Label>
-              <Input
-                id="company"
-                placeholder="AC Service Pro"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Logo and Basic Info */}
+        <div className="lg:col-span-1 space-y-6">
+          {/* Logo Upload */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Image className="w-4 h-4" />
+                Logo da Empresa
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="hidden"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="cnpj">CNPJ / CPF *</Label>
-              <Input
-                id="cnpj"
-                placeholder="00.000.000/0000-00"
-                value={cnpjCpf}
-                onChange={(e) => setCnpjCpf(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-          </div>
+              
+              {logoBase64 ? (
+                <div className="relative">
+                  <img 
+                    src={logoBase64} 
+                    alt="Logo" 
+                    className="w-full h-40 object-contain rounded-lg border bg-muted"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2 h-8 w-8"
+                    onClick={removeLogo}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full h-40 border-2 border-dashed border-muted-foreground/25 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                >
+                  <Upload className="w-8 h-8 text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Clique para enviar</span>
+                  <span className="text-xs text-muted-foreground/60">PNG, JPG até 2MB</span>
+                </button>
+              )}
+              <p className="text-xs text-muted-foreground mt-2 text-center">
+                Aparecerá no PDF exportado
+              </p>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição da Empresa</Label>
-            <Textarea
-              id="description"
-              placeholder="Conte sobre sua empresa, experiência e diferenciais..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
-              className="transition-all focus:scale-[1.01] focus:shadow-lg"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="specialties">Serviços Oferecidos</Label>
-            <Input
-              id="specialties"
-              placeholder="Ex: Instalação, Manutenção Preventiva, Limpeza, Carga de Gás..."
-              value={specialties}
-              onChange={(e) => setSpecialties(e.target.value)}
-              className="transition-all focus:scale-[1.02] focus:shadow-lg"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Contato */}
-      <Card className="hover-scale transition-all shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Phone className="w-5 h-5" />
-            Contato
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="whatsapp" className="flex items-center gap-1">
-                <Phone className="w-4 h-4" /> WhatsApp
-              </Label>
-              <Input
-                id="whatsapp"
-                placeholder="(00) 00000-0000"
-                value={whatsapp}
-                onChange={(e) => setWhatsapp(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone" className="flex items-center gap-1">
-                <Phone className="w-4 h-4" /> Telefone Fixo
-              </Label>
-              <Input
-                id="phone"
-                placeholder="(00) 0000-0000"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email" className="flex items-center gap-1">
-                <Mail className="w-4 h-4" /> Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="contato@minhaempresa.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Redes Sociais */}
-      <Card className="hover-scale transition-all shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Instagram className="w-5 h-5" />
-            Redes Sociais
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="instagram" className="flex items-center gap-1">
-                <Instagram className="w-4 h-4" /> Instagram
-              </Label>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
-                  @
-                </span>
+          {/* Schedule */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                Horário de Funcionamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Dias de Trabalho</Label>
                 <Input
-                  id="instagram"
-                  placeholder="minhaempresa"
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                  className="rounded-l-none transition-all focus:scale-[1.02] focus:shadow-lg"
+                  placeholder="Seg - Sáb"
+                  value={workDays}
+                  onChange={(e) => setWorkDays(e.target.value)}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="facebook" className="flex items-center gap-1">
-                <Facebook className="w-4 h-4" /> Facebook
-              </Label>
-              <Input
-                id="facebook"
-                placeholder="facebook.com/minhaempresa"
-                value={facebook}
-                onChange={(e) => setFacebook(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website" className="flex items-center gap-1">
-                <Globe className="w-4 h-4" /> Site
-              </Label>
-              <Input
-                id="website"
-                placeholder="www.minhaempresa.com.br"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Abertura</Label>
+                  <Input
+                    type="time"
+                    value={openingHours}
+                    onChange={(e) => setOpeningHours(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Fechamento</Label>
+                  <Input
+                    type="time"
+                    value={closingHours}
+                    onChange={(e) => setClosingHours(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Horário e Localização */}
-      <Card className="hover-scale transition-all shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Horário e Localização
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="workDays">Dias de Funcionamento</Label>
-              <Input
-                id="workDays"
-                placeholder="Segunda a Sábado"
-                value={workDays}
-                onChange={(e) => setWorkDays(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="openingHours">Horário de Abertura</Label>
-              <Input
-                id="openingHours"
-                type="time"
-                value={openingHours}
-                onChange={(e) => setOpeningHours(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="closingHours">Horário de Fechamento</Label>
-              <Input
-                id="closingHours"
-                type="time"
-                value={closingHours}
-                onChange={(e) => setClosingHours(e.target.value)}
-                className="transition-all focus:scale-[1.02] focus:shadow-lg"
-              />
-            </div>
-          </div>
+        {/* Right Column - Forms */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Basic Info */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Informações Básicas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nome da Empresa *</Label>
+                  <Input
+                    placeholder="AC Service Pro"
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">CNPJ / CPF *</Label>
+                  <Input
+                    placeholder="00.000.000/0000-00"
+                    value={cnpjCpf}
+                    onChange={(e) => setCnpjCpf(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Serviços Oferecidos</Label>
+                <Input
+                  placeholder="Instalação, Manutenção, Limpeza, Carga de Gás..."
+                  value={specialties}
+                  onChange={(e) => setSpecialties(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Descrição</Label>
+                <Textarea
+                  placeholder="Conte sobre sua empresa..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" /> Endereço Completo
-            </Label>
-            <Textarea
-              id="address"
-              placeholder="Rua, Número, Bairro, Cidade - Estado, CEP"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              rows={2}
-              className="transition-all focus:scale-[1.01] focus:shadow-lg"
-            />
-          </div>
-        </CardContent>
-      </Card>
+          {/* Contact */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Phone className="w-4 h-4" />
+                Contato
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">WhatsApp</Label>
+                  <Input
+                    placeholder="(00) 00000-0000"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Telefone Fixo</Label>
+                  <Input
+                    placeholder="(00) 0000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Email</Label>
+                  <Input
+                    type="email"
+                    placeholder="contato@empresa.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Social Media */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Redes Sociais
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Instagram className="w-3 h-3" /> Instagram
+                  </Label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-2.5 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+                      @
+                    </span>
+                    <Input
+                      placeholder="usuario"
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="rounded-l-none"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Facebook className="w-3 h-3" /> Facebook
+                  </Label>
+                  <Input
+                    placeholder="facebook.com/pagina"
+                    value={facebook}
+                    onChange={(e) => setFacebook(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Globe className="w-3 h-3" /> Site
+                  </Label>
+                  <Input
+                    placeholder="www.site.com.br"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Address */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MapPin className="w-4 h-4" />
+                Endereço
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Endereço Completo</Label>
+                <Input
+                  placeholder="Rua, Número, Bairro - Cidade/UF"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

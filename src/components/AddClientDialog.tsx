@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
+import { User, Phone, Calendar, MapPin, FileText } from 'lucide-react';
 
 interface AddClientDialogProps {
   isOpen: boolean;
@@ -20,6 +22,19 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
   const [telefone, setTelefone] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [address, setAddress] = useState("");
+  const [preferences, setPreferences] = useState("");
+
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+    return value;
+  };
+
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTelefone(formatPhone(e.target.value));
+  };
 
   const handleSave = async () => {
     if (!name.trim()) {
@@ -40,18 +55,16 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
         telefone: telefone || null,
         aniversario: aniversario || null,
         address: address || null,
+        preferences: preferences || null,
         user_id: session.user.id
       });
 
       if (error) throw error;
 
-      toast({ title: "Cliente cadastrado!" });
+      toast({ title: "Cliente cadastrado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['clients-list'] });
-      setName("");
-      setTelefone("");
-      setAniversario("");
-      setAddress("");
+      resetForm();
       onOpenChange(false);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -60,60 +73,118 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
     }
   };
 
+  const resetForm = () => {
+    setName("");
+    setTelefone("");
+    setAniversario("");
+    setAddress("");
+    setPreferences("");
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md animate-scale-in">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Novo Cliente</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <User className="w-5 h-5" />
+            Novo Cliente
+          </DialogTitle>
+          <DialogDescription>
+            Preencha os dados do cliente. Campos com * são obrigatórios.
+          </DialogDescription>
         </DialogHeader>
+        
         <div className="space-y-4 py-4">
+          {/* Nome */}
           <div className="space-y-2">
-            <Label htmlFor="client-name">Nome *</Label>
+            <Label htmlFor="client-name" className="flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-muted-foreground" />
+              Nome Completo *
+            </Label>
             <Input
               id="client-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Nome do cliente"
-              className="transition-all duration-200"
+              autoFocus
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-phone">WhatsApp</Label>
-            <Input
-              id="client-phone"
-              value={telefone}
-              onChange={(e) => setTelefone(e.target.value)}
-              placeholder="(00) 00000-0000"
-              className="transition-all duration-200"
-            />
+
+          {/* Telefone e Aniversário */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="client-phone" className="flex items-center gap-1.5">
+                <Phone className="w-3.5 h-3.5 text-muted-foreground" />
+                WhatsApp
+              </Label>
+              <Input
+                id="client-phone"
+                value={telefone}
+                onChange={handlePhoneChange}
+                placeholder="(00) 00000-0000"
+                maxLength={15}
+              />
+              <p className="text-xs text-muted-foreground">
+                Para envio de mensagens e lembretes
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="client-birthday" className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                Aniversário
+              </Label>
+              <Input
+                id="client-birthday"
+                type="date"
+                value={aniversario}
+                onChange={(e) => setAniversario(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Alerta automático 7 dias antes
+              </p>
+            </div>
           </div>
+
+          {/* Endereço */}
           <div className="space-y-2">
-            <Label htmlFor="client-birthday">Aniversário</Label>
-            <Input
-              id="client-birthday"
-              type="date"
-              value={aniversario}
-              onChange={(e) => setAniversario(e.target.value)}
-              className="transition-all duration-200"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="client-address">Endereço</Label>
-            <Input
+            <Label htmlFor="client-address" className="flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+              Endereço Completo
+            </Label>
+            <Textarea
               id="client-address"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Rua, número, bairro, cidade"
-              className="transition-all duration-200"
+              placeholder="Rua, número, complemento, bairro, cidade - UF"
+              rows={2}
+            />
+            <p className="text-xs text-muted-foreground">
+              Usado para navegação no Google Maps
+            </p>
+          </div>
+
+          {/* Observações */}
+          <div className="space-y-2">
+            <Label htmlFor="client-preferences" className="flex items-center gap-1.5">
+              <FileText className="w-3.5 h-3.5 text-muted-foreground" />
+              Observações
+            </Label>
+            <Textarea
+              id="client-preferences"
+              value={preferences}
+              onChange={(e) => setPreferences(e.target.value)}
+              placeholder="Preferências, equipamentos, informações importantes..."
+              rows={2}
             />
           </div>
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={loading} className="transition-all duration-200 hover:scale-[1.02]">
-            {loading ? "Salvando..." : "Salvar"}
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? "Salvando..." : "Salvar Cliente"}
           </Button>
         </DialogFooter>
       </DialogContent>
