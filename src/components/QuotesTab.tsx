@@ -430,10 +430,20 @@ export default function QuotesTab() {
     const styles: Record<string, string> = {
       pendente: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30",
       aprovado: "bg-green-500/20 text-green-600 border-green-500/30",
+      agendado: "bg-blue-500/20 text-blue-600 border-blue-500/30",
+      concluido: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
       recusado: "bg-red-500/20 text-red-600 border-red-500/30",
       expirado: "bg-gray-500/20 text-gray-600 border-gray-500/30",
     };
-    return <Badge className={styles[status] || styles.pendente}>{status}</Badge>;
+    const labels: Record<string, string> = {
+      pendente: "Pendente",
+      aprovado: "Aprovado",
+      agendado: "Agendado",
+      concluido: "Concluído",
+      recusado: "Recusado",
+      expirado: "Expirado",
+    };
+    return <Badge className={styles[status] || styles.pendente}>{labels[status] || status}</Badge>;
   };
 
   const totals = calculateTotals();
@@ -686,6 +696,8 @@ export default function QuotesTab() {
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="aprovado">Aprovado</SelectItem>
+                            <SelectItem value="agendado">Agendado</SelectItem>
+                            <SelectItem value="concluido">Concluído</SelectItem>
                             <SelectItem value="recusado">Recusado</SelectItem>
                           </SelectContent>
                         </Select>
