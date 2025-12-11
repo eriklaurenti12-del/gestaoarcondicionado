@@ -654,6 +654,15 @@ export default function QuotesTab() {
           </DialogHeader>
           {viewQuote && (
             <div className="space-y-4">
+              {/* Company Header */}
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20">
+                <h3 className="font-bold text-primary">{companyData?.company_name || "AC Service Pro"}</h3>
+                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  {companyData?.whatsapp && <p>WhatsApp: {companyData.whatsapp}</p>}
+                  {companyData?.cnpj_cpf && <p>CNPJ/CPF: {companyData.cnpj_cpf}</p>}
+                </div>
+              </div>
+
               <div className="p-3 bg-muted rounded-lg">
                 <h3 className="font-bold">{viewQuote.title}</h3>
                 {viewQuote.description && <p className="text-sm text-muted-foreground mt-1">{viewQuote.description}</p>}
@@ -663,10 +672,14 @@ export default function QuotesTab() {
                 <div>
                   <p className="text-muted-foreground">Cliente</p>
                   <p className="font-medium">{viewQuote.clients?.name || '-'}</p>
+                  {viewQuote.clients?.telefone && (
+                    <p className="text-xs text-muted-foreground">{viewQuote.clients.telefone}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-muted-foreground">Data</p>
                   <p className="font-medium">{format(new Date(viewQuote.created_at), "dd/MM/yyyy", { locale: ptBR })}</p>
+                  <p className="text-xs text-muted-foreground">Validade: {viewQuote.validity_days} dias</p>
                 </div>
               </div>
 
@@ -695,11 +708,35 @@ export default function QuotesTab() {
               )}
             </div>
           )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => viewQuote && generatePDF(viewQuote)}>
-              <Printer className="w-4 h-4 mr-2" /> PDF
-            </Button>
-            <Button onClick={() => viewQuote && setScheduleQuote(viewQuote)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex-1 sm:flex-none text-green-600 border-green-600/30 hover:bg-green-50"
+                onClick={() => viewQuote && sendWhatsApp(viewQuote)}
+              >
+                <Send className="w-4 h-4 mr-2" /> WhatsApp
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="flex-1 sm:flex-none"
+                onClick={() => viewQuote && generatePDF(viewQuote)}
+              >
+                <Printer className="w-4 h-4 mr-2" /> PDF
+              </Button>
+            </div>
+            <Button 
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={() => {
+                if (viewQuote) {
+                  setScheduleQuote(viewQuote);
+                  setViewQuote(null);
+                }
+              }}
+            >
               <Calendar className="w-4 h-4 mr-2" /> Agendar
             </Button>
           </DialogFooter>
