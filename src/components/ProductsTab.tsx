@@ -20,13 +20,13 @@ type Product = Tables<'products'>;
 type Expense = { name: string; value: number };
 
 const serviceTypes = [
-  { value: 'instalacao', label: 'Instalação' },
-  { value: 'manutencao', label: 'Manutenção Preventiva' },
-  { value: 'corretiva', label: 'Manutenção Corretiva' },
-  { value: 'limpeza', label: 'Limpeza/Higienização' },
-  { value: 'desinstalacao', label: 'Desinstalação' },
-  { value: 'orcamento', label: 'Orçamento' },
-  { value: 'peca', label: 'Peça/Material' },
+  { value: 'instalacao', label: 'Instalação', type: 'service' },
+  { value: 'manutencao', label: 'Manutenção Preventiva', type: 'service' },
+  { value: 'corretiva', label: 'Manutenção Corretiva', type: 'service' },
+  { value: 'limpeza', label: 'Limpeza/Higienização', type: 'service' },
+  { value: 'desinstalacao', label: 'Desinstalação', type: 'service' },
+  { value: 'orcamento', label: 'Orçamento', type: 'service' },
+  { value: 'peca', label: 'Peça/Material', type: 'piece' },
 ];
 
 const fetchProducts = async (): Promise<Product[]> => {
@@ -60,6 +60,7 @@ const ProductsTab: React.FC = () => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editQty, setEditQty] = useState(0);
   const [serviceType, setServiceType] = useState('instalacao');
+  const [serviceDuration, setServiceDuration] = useState(60);
 
   // Expense tracking
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -185,17 +186,21 @@ const ProductsTab: React.FC = () => {
         return;
     }
 
+    const isService = serviceTypes.find(t => t.value === serviceType)?.type === 'service';
+    
     const productData = {
       name: productName.trim(),
-      qty: serviceType === 'peca' ? Math.max(1, qty) : 999,
+      qty: isService ? 999 : Math.max(1, qty),
       price: parseFloat(productPrice),
       cost_price: totalCost,
       barcode: scannedBarcode?.trim() || null,
       supplier_id: null,
       warranty_months: 12,
-      min_stock: serviceType === 'peca' ? minStockAlert : 0,
+      min_stock: isService ? 0 : minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
       user_id: userId,
+      service_duration: isService ? serviceDuration : null,
+      type: isService ? 'service' : 'piece',
     };
 
     addMutation.mutate(productData);
@@ -455,7 +460,24 @@ const ProductsTab: React.FC = () => {
             </Card>
           )}
 
-          {serviceType === 'peca' && (
+          {serviceTypes.find(t => t.value === serviceType)?.type === 'service' && (
+            <div className="space-y-2">
+              <Label htmlFor="service-duration">Tempo de Serviço (minutos)</Label>
+              <Input 
+                id="service-duration" 
+                type="number" 
+                value={serviceDuration} 
+                onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))} 
+                min="15"
+                step="15"
+              />
+              <p className="text-xs text-muted-foreground">
+                Duração estimada do serviço (afeta bloqueio de horários na agenda)
+              </p>
+            </div>
+          )}
+
+          {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="add-quantity-barcode">Quantidade</Label>

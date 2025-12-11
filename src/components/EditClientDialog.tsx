@@ -12,6 +12,7 @@ const clientSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório.' }),
   telefone: z.string().optional().nullable(),
   aniversario: z.string().optional().nullable(),
+  address: z.string().optional().nullable(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -30,6 +31,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
       name: '',
       telefone: '',
       aniversario: '',
+      address: '',
     },
   });
 
@@ -39,6 +41,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
         name: client.name,
         telefone: client.telefone || '',
         aniversario: client.aniversario || '',
+        address: (client as any).address || '',
       });
     }
   }, [client, form]);
@@ -48,6 +51,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
       ...data,
       aniversario: data.aniversario || null,
       telefone: data.telefone || null,
+      address: data.address || null,
     });
   };
 
@@ -106,6 +110,26 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
                   </FormControl>
                   <p className="text-xs text-muted-foreground">
                     Você receberá alertas 7 dias antes do aniversário
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="address"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Endereço</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Rua, número, bairro, cidade" 
+                      {...field} 
+                      value={field.value || ''} 
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Usado para navegação e comprovantes
                   </p>
                   <FormMessage />
                 </FormItem>
