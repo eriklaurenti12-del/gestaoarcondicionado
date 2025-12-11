@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +67,8 @@ const AppointmentsTab: React.FC = () => {
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [clientSearch, setClientSearch] = useState('');
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   // Payment fields
   const [paymentMethod, setPaymentMethod] = useState<string>("Dinheiro");
   const [installments, setInstallments] = useState<number>(1);
@@ -277,6 +279,18 @@ const AppointmentsTab: React.FC = () => {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  // Send "On my way" message
+  const sendOnMyWay = (phone: string | null | undefined, clientName: string, date: string) => {
+    if (!phone) {
+      toast({ variant: "destructive", title: "Telefone não cadastrado" });
+      return;
+    }
+    const cleanPhone = phone.replace(/\D/g, '');
+    const formattedDate = format(new Date(date), "HH:mm", { locale: ptBR });
+    const message = `Olá ${clientName}! Estamos a caminho para o serviço agendado às ${formattedDate}. Aguarde nossa chegada! 🚗`;
+    window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   // Generate service receipt and send via WhatsApp
   const sendServiceReceipt = (appointment: Appointment) => {
     const phone = appointment.clients?.telefone;
@@ -404,16 +418,49 @@ const AppointmentsTab: React.FC = () => {
 
   const timeSlots = generateTimeSlots();
 
-  // Get booked times for a specific date
-  const getBookedTimes = (date: string) => {
+  // Get booked times for a specific date with service duration
+  const getBookedTimesWithDetails = (date: string) => {
     if (!appointments) return [];
     return appointments
       .filter(a => {
-        const appointmentDate = new Date(a.appointment_date);
-        return appointmentDate.toISOString().split('T')[0] === date && a.status !== 'cancelado';
+        const appointmentDateObj = new Date(a.appointment_date);
+        return appointmentDateObj.toISOString().split('T')[0] === date && a.status !== 'cancelado';
       })
-      .map(a => format(new Date(a.appointment_date), 'HH:mm'));
+      .map(a => ({
+        time: format(new Date(a.appointment_date), 'HH:mm'),
+        clientName: a.clients?.name || 'Ocupado'
+      }));
   };
+
+  // Get minimum date for scheduling (today)
+  const getMinDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
+  // Check if a time slot is in the past for today
+  const isTimePast = (time: string, date: string) => {
+    if (date !== getMinDate()) return false;
+    const now = new Date();
+    const [hours, minutes] = time.split(':').map(Number);
+    const slotTime = new Date();
+    slotTime.setHours(hours, minutes, 0, 0);
+    return slotTime <= now;
+  };
+
+  // Get booked times for a specific date (simple list)
+  const getBookedTimes = (date: string) => {
+    return getBookedTimesWithDetails(date).map(b => b.time);
+  };
+
+  // Filter clients based on search
+  const filteredClients = useMemo(() => {
+    if (!clients || !clientSearch.trim()) return [];
+    const term = clientSearch.toLowerCase();
+    return clients.filter(c => 
+      c.name.toLowerCase().includes(term) ||
+      (c.telefone && c.telefone.includes(term))
+    ).slice(0, 8);
+  }, [clients, clientSearch]);
 
   // Export PDF with available times
   const exportAvailableTimesPDF = () => {

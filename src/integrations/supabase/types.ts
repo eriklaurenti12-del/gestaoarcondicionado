@@ -250,6 +250,7 @@ export type Database = {
           name: string
           price: number
           qty: number
+          service_duration: number | null
           supplier_id: number | null
           user_id: string
           warranty_months: number | null
@@ -264,6 +265,7 @@ export type Database = {
           name: string
           price: number
           qty?: number
+          service_duration?: number | null
           supplier_id?: number | null
           user_id: string
           warranty_months?: number | null
@@ -278,6 +280,7 @@ export type Database = {
           name?: string
           price?: number
           qty?: number
+          service_duration?: number | null
           supplier_id?: number | null
           user_id?: string
           warranty_months?: number | null
