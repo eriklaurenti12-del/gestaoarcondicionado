@@ -17,6 +17,7 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CalendarAgenda from './CalendarAgenda';
+import ScheduleBoard from './ScheduleBoard';
 
 type Appointment = {
   id: string;
@@ -66,7 +67,7 @@ const AppointmentsTab: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'board'>('list');
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   // Payment fields
@@ -533,6 +534,15 @@ const AppointmentsTab: React.FC = () => {
             Lista
           </Button>
           <Button 
+            variant={viewMode === 'board' ? 'default' : 'ghost'} 
+            size="sm"
+            onClick={() => setViewMode('board')}
+            className="rounded-none min-h-[44px] px-4"
+          >
+            <Clock className="w-4 h-4 mr-2" />
+            Horários
+          </Button>
+          <Button 
             variant={viewMode === 'calendar' ? 'default' : 'ghost'} 
             size="sm"
             onClick={() => setViewMode('calendar')}
@@ -592,6 +602,11 @@ const AppointmentsTab: React.FC = () => {
       {/* Calendar View */}
       {viewMode === 'calendar' && (
         <CalendarAgenda className="animate-fade-in" />
+      )}
+
+      {/* Board View - Time Slots */}
+      {viewMode === 'board' && (
+        <ScheduleBoard />
       )}
 
       {/* List View */}
@@ -720,14 +735,25 @@ const AppointmentsTab: React.FC = () => {
                             </Button>
                           )}
                           {appointment.status === 'confirmado' && (
-                            <Button 
-                              size="sm" 
-                              variant="default" 
-                              className="h-10 px-3 text-sm touch-target"
-                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
-                            >
-                              Concluir
-                            </Button>
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="h-10 w-10 p-0 touch-target text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                onClick={() => sendOnMyWay(appointment.clients?.telefone, appointment.clients?.name || '', appointment.appointment_date)}
+                                title="Avisar que está a caminho"
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="default" 
+                                className="h-10 px-3 text-sm touch-target"
+                                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
+                              >
+                                Concluir
+                              </Button>
+                            </>
                           )}
                           {appointment.status === 'concluido' && (
                             <>

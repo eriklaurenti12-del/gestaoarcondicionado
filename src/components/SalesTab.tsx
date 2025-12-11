@@ -117,8 +117,8 @@ const SalesTab: React.FC = () => {
   };
 
   const handleAddSale = () => {
-    if (!selectedClientId || !selectedProductId) {
-      toast({ variant: "destructive", title: "Campos obrigatórios", description: "Selecione cliente e serviço." });
+    if (!selectedProductId) {
+      toast({ variant: "destructive", title: "Campos obrigatórios", description: "Selecione o serviço/produto." });
       return;
     }
 
@@ -129,14 +129,17 @@ const SalesTab: React.FC = () => {
     const costPrice = Number(product.cost_price) * qty;
     const profit = salePrice - costPrice;
 
+    // Use client_id 0 or null for "balcão" sales, otherwise use selected client
+    const clientId = selectedClientId && selectedClientId !== "0" ? parseInt(selectedClientId) : null;
+
     addSaleMutation.mutate({
       user_id: userId,
-      client_id: parseInt(selectedClientId),
+      client_id: clientId || 1, // Default to 1 if null for RLS compatibility
       product_id: parseInt(selectedProductId),
       qty,
       sale_price: salePrice,
       total_profit: profit,
-      payment_method: paymentMethod
+      payment_method: paymentMethod as 'Dinheiro' | 'PIX' | 'Débito' | 'Crédito'
     });
   };
 
@@ -371,12 +374,13 @@ const SalesTab: React.FC = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Cliente *</Label>
+              <Label>Cliente (opcional)</Label>
               <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
+                  <SelectValue placeholder="Venda balcão (sem cliente)" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="0">👤 Venda Balcão (sem cliente)</SelectItem>
                   {clients?.map(c => (
                     <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                   ))}

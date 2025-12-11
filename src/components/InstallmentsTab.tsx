@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { CreditCard, Search, FileText, MessageCircle, Check, Calendar, DollarSign, Clock, AlertTriangle, CalendarPlus, CalendarMinus, MoreHorizontal } from "lucide-react";
+import { CreditCard, Search, FileText, MessageCircle, Check, Calendar, DollarSign, Clock, AlertTriangle, CalendarPlus, CalendarMinus, MoreHorizontal, Plus, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
-import { format, differenceInDays, addDays } from 'date-fns';
+import { format, differenceInDays, addDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import jsPDF from 'jspdf';
@@ -30,12 +30,19 @@ const fetchInstallments = async () => {
   return data || [];
 };
 
+const fetchClients = async () => {
+  const { data, error } = await supabase.from('clients').select('id, name, telefone').order('name');
+  if (error) throw error;
+  return data;
+};
+
 const InstallmentsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterMonth, setFilterMonth] = useState<string>('all');
   const [filterYear, setFilterYear] = useState<string>(new Date().getFullYear().toString());
+  const [userId, setUserId] = useState<string>("");
   
   // Dialog states
   const [editingInstallment, setEditingInstallment] = useState<any>(null);
@@ -43,10 +50,88 @@ const InstallmentsTab: React.FC = () => {
   const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
   const [dateDialogMode, setDateDialogMode] = useState<'extend' | 'early'>('extend');
   const [notes, setNotes] = useState('');
+  
+  // New installment (fiado) dialog
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [newClientId, setNewClientId] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newTotalAmount, setNewTotalAmount] = useState('');
+  const [newNumInstallments, setNewNumInstallments] = useState('1');
+  const [newFirstDueDate, setNewFirstDueDate] = useState('');
+
+  React.useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) setUserId(session.user.id);
+    };
+    getUserId();
+  }, []);
 
   const { data: installments = [], isLoading } = useQuery({
     queryKey: ['installments'],
     queryFn: fetchInstallments
+  });
+
+  const { data: clients } = useQuery({
+    queryKey: ['clients'],
+    queryFn: fetchClients
+  });
+
+  // Create new installment (fiado) mutation
+  const createInstallmentMutation = useMutation({
+    mutationFn: async () => {
+      const total = parseFloat(newTotalAmount);
+      const numInst = parseInt(newNumInstallments);
+      const amount = total / numInst;
+      const baseDate = new Date(newFirstDueDate);
+      
+      const installmentRecords = [];
+      for (let i = 0; i < numInst; i++) {
+        const dueDate = addMonths(baseDate, i);
+        installmentRecords.push({
+          user_id: userId,
+          installment_number: i + 1,
+          total_installments: numInst,
+          amount,
+          due_date: dueDate.toISOString().split('T')[0],
+          is_paid: false,
+          payment_method: 'Fiado',
+          notes: newDescription || `Fiado - ${clients?.find(c => c.id === parseInt(newClientId))?.name || 'Cliente'}`
+        });
+      }
+      
+      const { error } = await supabase.from('installments').insert(installmentRecords);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
+      toast.success('Parcelas criadas com sucesso!');
+      setShowNewDialog(false);
+      resetNewForm();
+    },
+    onError: (error: any) => {
+      toast.error('Erro ao criar parcelas: ' + error.message);
+    }
+  });
+
+  const resetNewForm = () => {
+    setNewClientId('');
+    setNewDescription('');
+    setNewTotalAmount('');
+    setNewNumInstallments('1');
+    setNewFirstDueDate('');
+  };
+
+  // Delete installment mutation
+  const deleteInstallmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('installments').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['installments'] });
+      toast.success('Parcela removida!');
+    }
   });
 
   const today = new Date();
@@ -299,10 +384,16 @@ const InstallmentsTab: React.FC = () => {
           </h2>
           <p className="text-muted-foreground text-sm">Gerencie todas as parcelas a receber</p>
         </div>
-        <Button onClick={exportToPDF} className="bg-primary hover:bg-primary/90">
-          <FileText className="w-4 h-4 mr-2" />
-          Exportar PDF
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setShowNewDialog(true)} className="bg-green-600 hover:bg-green-700">
+            <Plus className="w-4 h-4 mr-2" />
+            Novo Fiado
+          </Button>
+          <Button onClick={exportToPDF} variant="outline">
+            <FileText className="w-4 h-4 mr-2" />
+            PDF
+          </Button>
+        </div>
       </div>
 
       {/* Summary Cards */}
@@ -616,6 +707,100 @@ const InstallmentsTab: React.FC = () => {
             </Button>
             <Button onClick={handleUpdateDueDate} disabled={!newDueDate}>
               Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* New Installment (Fiado) Dialog */}
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent className="sm:max-w-[450px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-green-600" />
+              Novo Fiado / Parcelamento
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={newClientId} onValueChange={setNewClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients?.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Descrição (opcional)</Label>
+              <Input
+                placeholder="Ex: Compra de peças, Serviço de manutenção..."
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Valor Total (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newTotalAmount}
+                  onChange={(e) => setNewTotalAmount(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Nº Parcelas</Label>
+                <Select value={newNumInstallments} onValueChange={setNewNumInstallments}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
+                      <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>1º Vencimento</Label>
+              <Input
+                type="date"
+                value={newFirstDueDate}
+                onChange={(e) => setNewFirstDueDate(e.target.value)}
+              />
+            </div>
+
+            {newTotalAmount && newNumInstallments && (
+              <div className="p-3 bg-muted rounded-lg text-center">
+                <p className="text-sm text-muted-foreground">Valor por parcela:</p>
+                <p className="text-xl font-bold text-primary">
+                  R$ {(parseFloat(newTotalAmount) / parseInt(newNumInstallments)).toFixed(2)}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowNewDialog(false); resetNewForm(); }}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => createInstallmentMutation.mutate()}
+              disabled={!newClientId || !newTotalAmount || !newFirstDueDate || createInstallmentMutation.isPending}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {createInstallmentMutation.isPending ? 'Salvando...' : 'Criar Parcelas'}
             </Button>
           </DialogFooter>
         </DialogContent>
