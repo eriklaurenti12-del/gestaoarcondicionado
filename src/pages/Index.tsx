@@ -16,6 +16,7 @@ import FinanceiroTab from "@/components/FinanceiroTab";
 import InstallmentsTab from "@/components/InstallmentsTab";
 import SalesTab from "@/components/SalesTab";
 import QuotesTab from "@/components/QuotesTab";
+import ServiceOrdersTab from "@/components/ServiceOrdersTab";
 import PDVTab from "@/components/PDVTab";
 import FixedExpensesTab from "@/components/FixedExpensesTab";
 import DataBackup from "@/components/DataBackup";
@@ -126,6 +127,8 @@ export default function Index() {
         return <SalesTab />;
       case "quotes":
         return <QuotesTab />;
+      case "service-orders":
+        return <ServiceOrdersTab />;
       case "financeiro":
         return <FinanceiroTab />;
       case "installments":
@@ -151,8 +154,9 @@ export default function Index() {
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
       pdv: "PDV - Ponto de Venda",
-      sales: "Ordens de Serviço",
+      sales: "Vendas",
       quotes: "Orçamentos",
+      "service-orders": "Ordens de Serviço",
       financeiro: "Financeiro",
       installments: "Parcelas",
       expenses: "Gastos Fixos",

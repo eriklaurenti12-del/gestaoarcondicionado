@@ -488,6 +488,90 @@ export type Database = {
           },
         ]
       }
+      service_orders: {
+        Row: {
+          client_id: number | null
+          created_at: string
+          description: string | null
+          discount_percentage: number | null
+          discount_value: number | null
+          id: string
+          notes: string | null
+          order_number: number
+          parts: Json
+          parts_total: number
+          quote_id: string | null
+          services: Json
+          services_total: number
+          signature_data: string | null
+          signed_at: string | null
+          status: string
+          title: string
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id?: number | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          parts?: Json
+          parts_total?: number
+          quote_id?: string | null
+          services?: Json
+          services_total?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          title: string
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: number | null
+          created_at?: string
+          description?: string | null
+          discount_percentage?: number | null
+          discount_value?: number | null
+          id?: string
+          notes?: string | null
+          order_number?: number
+          parts?: Json
+          parts_total?: number
+          quote_id?: string | null
+          services?: Json
+          services_total?: number
+          signature_data?: string | null
+          signed_at?: string | null
+          status?: string
+          title?: string
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_orders_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_orders_quote_id_fkey"
+            columns: ["quote_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string | null
