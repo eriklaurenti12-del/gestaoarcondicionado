@@ -14,8 +14,7 @@ import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
 import PDVUnifiedTab from "@/components/PDVUnifiedTab";
 import FinanceiroUnifiedTab from "@/components/FinanceiroUnifiedTab";
-import QuotesTab from "@/components/QuotesTab";
-import ServiceOrdersTab from "@/components/ServiceOrdersTab";
+import DocumentsUnifiedTab from "@/components/DocumentsUnifiedTab";
 import RemindersTab from "@/components/RemindersTab";
 
 import DataBackup from "@/components/DataBackup";
@@ -142,10 +141,8 @@ export default function Index() {
         return <SuppliersTab />;
       case "pdv":
         return <PDVUnifiedTab />;
-      case "quotes":
-        return <QuotesTab />;
-      case "service-orders":
-        return <ServiceOrdersTab />;
+      case "documents":
+        return <DocumentsUnifiedTab />;
       case "financeiro":
         return <FinanceiroUnifiedTab />;
       case "reminders":
@@ -169,8 +166,7 @@ export default function Index() {
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
       pdv: "PDV / Vendas / Parcelas",
-      quotes: "Orçamentos",
-      "service-orders": "Ordens de Serviço",
+      documents: "Orçamentos / Ordens de Serviço",
       financeiro: "Financeiro",
       reminders: "Lembretes & Mensagens",
       reports: "Relatórios & Gráficos",
