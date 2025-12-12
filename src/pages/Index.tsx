@@ -6,9 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import SupportButton from "@/components/SupportButton";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import Dashboard from "@/components/Dashboard";
-import ClientsTab from "@/components/ClientsTab";
-import ProductsTab from "@/components/ProductsTab";
-import SuppliersTab from "@/components/SuppliersTab";
+import CadastrosUnifiedTab from "@/components/CadastrosUnifiedTab";
 import ReportsTab from "@/components/ReportsTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
@@ -133,12 +131,8 @@ export default function Index() {
         return <Dashboard />;
       case "appointments":
         return <AppointmentsTab />;
-      case "clients":
-        return <ClientsTab />;
-      case "products":
-        return <ProductsTab />;
-      case "suppliers":
-        return <SuppliersTab />;
+      case "cadastros":
+        return <CadastrosUnifiedTab />;
       case "pdv":
         return <PDVUnifiedTab />;
       case "documents":
@@ -162,9 +156,7 @@ export default function Index() {
     const titles: Record<string, string> = {
       dashboard: "Dashboard",
       appointments: "Agenda de Atendimentos",
-      clients: "Clientes",
-      products: "Serviços & Peças",
-      suppliers: "Fornecedores",
+      cadastros: "Cadastros",
       pdv: "PDV / Vendas / Parcelas",
       documents: "Orçamentos / Ordens de Serviço",
       financeiro: "Financeiro",

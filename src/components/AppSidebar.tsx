@@ -30,9 +30,7 @@ const mainItems = [
 
 // Cadastros
 const cadastrosItems = [
-  { id: "clients", title: "Clientes", icon: Users },
-  { id: "products", title: "Serviços", icon: Wrench },
-  { id: "suppliers", title: "Fornecedores", icon: Building2 },
+  { id: "cadastros", title: "Cadastros", icon: FolderOpen },
 ];
 
 // Vendas e Financeiro
@@ -110,10 +108,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
 
         {/* Cadastros */}
         <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <FolderOpen className="w-3 h-3" />
-            Cadastros
-          </SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(cadastrosItems)}
           </SidebarGroupContent>
