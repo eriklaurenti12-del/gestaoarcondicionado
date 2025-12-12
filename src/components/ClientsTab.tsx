@@ -54,8 +54,12 @@ const ClientsTab: React.FC = () => {
     return clients.filter((c) => 
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.telefone?.includes(search) ||
-      c.preferences?.toLowerCase().includes(search.toLowerCase())
-    );
+      c.preferences?.toLowerCase().includes(search.toLowerCase()) ||
+      c.email?.toLowerCase().includes(search.toLowerCase())
+    ).map(c => ({
+      ...c,
+      sales: c.sales || []
+    }));
   }, [clients, search]);
   
   const onDeleteClient = async (clientId: number) => {
@@ -87,8 +91,9 @@ const ClientsTab: React.FC = () => {
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
 
     const tableData = clients?.map(c => {
-      const total = c.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-      return [c.name, c.telefone || '-', c.preferences || '-', `${c.sales.length}`, `R$ ${total.toFixed(2)}`];
+      const sales = c.sales || [];
+      const total = sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
+      return [c.name, c.telefone || '-', c.preferences || '-', `${sales.length}`, `R$ ${total.toFixed(2)}`];
     }) || [];
 
     autoTable(doc, {
