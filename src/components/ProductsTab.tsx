@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Trash2, FileDown, Pencil, Wrench, Plus, X, Wind, Thermometer } from "lucide-react";
+import { Trash2, FileDown, Pencil, Wrench, Plus, X, Wind, Thermometer, ImagePlus, Loader2 } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
@@ -61,6 +61,9 @@ const ProductsTab: React.FC = () => {
   const [editQty, setEditQty] = useState(0);
   const [serviceType, setServiceType] = useState('instalacao');
   const [serviceDuration, setServiceDuration] = useState(60);
+  const [productImage, setProductImage] = useState<File | null>(null);
+  const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Expense tracking
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -125,6 +128,8 @@ const ProductsTab: React.FC = () => {
       setExpenses([]);
       setNewExpenseName("");
       setNewExpenseValue("");
+      setProductImage(null);
+      setProductImagePreview(null);
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
@@ -175,7 +180,51 @@ const ProductsTab: React.FC = () => {
     setExpenses(expenses.filter((_, i) => i !== index));
   };
 
-  const handleAddProduct = () => {
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ variant: "destructive", title: "Arquivo muito grande", description: "A imagem deve ter no máximo 5MB." });
+        return;
+      }
+      setProductImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProductImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadProductImage = async (): Promise<string | null> => {
+    if (!productImage || !userId) return null;
+    
+    setUploadingImage(true);
+    try {
+      const fileExt = productImage.name.split('.').pop();
+      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, productImage);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast({ variant: "destructive", title: "Erro ao enviar imagem", description: error.message });
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleAddProduct = async () => {
     if (!productName || !productPrice || totalCost <= 0) {
         toast({ variant: "destructive", title: "Campos obrigatórios", description: "Nome, preço e custo são obrigatórios."});
         return;
@@ -184,6 +233,11 @@ const ProductsTab: React.FC = () => {
     if (serviceType === 'peca' && qty < 1) {
         toast({ variant: "destructive", title: "Quantidade inválida", description: "A quantidade mínima é 1."});
         return;
+    }
+
+    let imageUrl: string | null = null;
+    if (productImage) {
+      imageUrl = await uploadProductImage();
     }
 
     const isService = serviceTypes.find(t => t.value === serviceType)?.type === 'service';
@@ -201,9 +255,10 @@ const ProductsTab: React.FC = () => {
       user_id: userId,
       service_duration: isService ? serviceDuration : null,
       type: isService ? 'service' : 'piece',
+      image_url: imageUrl,
     };
 
-    addMutation.mutate(productData);
+    addMutation.mutate(productData as any);
   };
 
   const handleDeleteProduct = (productId: number) => {
@@ -293,7 +348,11 @@ const ProductsTab: React.FC = () => {
                     <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) && product.qty < 999 ? "bg-orange-50 dark:bg-orange-950" : ""}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
-                          {getServiceIcon(product.name)}
+                          {(product as any).image_url ? (
+                            <img src={(product as any).image_url} alt={product.name} className="w-8 h-8 rounded object-cover" />
+                          ) : (
+                            getServiceIcon(product.name)
+                          )}
                           {product.name}
                         </div>
                       </TableCell>
@@ -357,6 +416,37 @@ const ProductsTab: React.FC = () => {
             <div className="space-y-2">
               <Label htmlFor="base-cost-price">Custo Base (R$)</Label>
               <Input id="base-cost-price" type="number" step="0.01" value={baseCostPrice} onChange={(e) => setBaseCostPrice(e.target.value)} placeholder="0.00"/>
+            </div>
+          </div>
+
+          {/* Image Upload */}
+          <div className="space-y-2">
+            <Label>Imagem (Opcional)</Label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-muted-foreground/50 rounded-lg cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors">
+                <ImagePlus className="w-5 h-5 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Selecionar imagem</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+              </label>
+              {productImagePreview && (
+                <div className="relative">
+                  <img src={productImagePreview} alt="Preview" className="w-16 h-16 rounded-lg object-cover border" />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute -top-2 -right-2 w-5 h-5 rounded-full"
+                    onClick={() => { setProductImage(null); setProductImagePreview(null); }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -492,11 +582,15 @@ const ProductsTab: React.FC = () => {
 
           <Button 
             onClick={handleAddProduct} 
-            disabled={addMutation.isPending}
+            disabled={addMutation.isPending || uploadingImage}
             className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700"
           >
-            <Plus className="w-4 h-4 mr-2" />
-            {addMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço/Peça'}
+            {(addMutation.isPending || uploadingImage) ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
+            {uploadingImage ? 'Enviando imagem...' : addMutation.isPending ? 'Adicionando...' : 'Adicionar Serviço/Peça'}
           </Button>
         </CardContent>
       </Card>
