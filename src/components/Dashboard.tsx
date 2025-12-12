@@ -4,11 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useSubscription } from './SubscriptionGate';
 
 const fetchDashboardData = async () => {
     const productsPromise = supabase.from('products').select('*');
@@ -156,6 +158,7 @@ const fetchDashboardData = async () => {
 };
 
 const Dashboard: React.FC = () => {
+    const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -252,6 +255,84 @@ const Dashboard: React.FC = () => {
 
     return (
     <div className="space-y-6">
+      {/* License/Subscription Status Card */}
+      {subscriptionData && (
+        <Card className={`border-2 ${
+          subscriptionData.isTrial 
+            ? 'border-cyan-500/50 bg-gradient-to-r from-cyan-500/10 to-blue-500/10' 
+            : subscriptionData.isExpiringSoon 
+              ? 'border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10'
+              : subscriptionData.subscription?.plan === 'vitalicio'
+                ? 'border-green-500/50 bg-gradient-to-r from-green-500/10 to-emerald-500/10'
+                : 'border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5'
+        }`}>
+          <CardContent className="p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-full ${
+                  subscriptionData.isTrial ? 'bg-cyan-500/20' :
+                  subscriptionData.isExpiringSoon ? 'bg-amber-500/20' :
+                  subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-500/20' : 'bg-primary/10'
+                }`}>
+                  {subscriptionData.subscription?.plan === 'vitalicio' ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : subscriptionData.isTrial ? (
+                    <Clock className="w-5 h-5 text-cyan-500" />
+                  ) : subscriptionData.isExpiringSoon ? (
+                    <AlertTriangle className="w-5 h-5 text-amber-500" />
+                  ) : (
+                    <Shield className="w-5 h-5 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm">
+                      {subscriptionData.isTrial 
+                        ? '⏰ Período de Teste' 
+                        : subscriptionData.subscription?.plan === 'vitalicio'
+                          ? '🏆 Licença Vitalícia'
+                          : subscriptionData.isExpiringSoon
+                            ? '⚠️ Renovação Necessária'
+                            : '✅ Licença Ativa'
+                      }
+                    </h3>
+                    <Badge className={`text-[10px] ${
+                      subscriptionData.isTrial ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300' :
+                      subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                      subscriptionData.isExpiringSoon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                      'bg-primary/10 text-primary'
+                    }`}>
+                      {subscriptionData.subscription?.plan?.toUpperCase() || 'TRIAL'}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null
+                      ? `Restam ${subscriptionData.hoursRemaining} hora${subscriptionData.hoursRemaining !== 1 ? 's' : ''} de teste`
+                      : subscriptionData.subscription?.plan === 'vitalicio'
+                        ? 'Acesso ilimitado ao sistema'
+                        : subscriptionData.daysRemaining !== null && subscriptionData.daysRemaining > 0
+                          ? `Vence em ${subscriptionData.daysRemaining} dia${subscriptionData.daysRemaining !== 1 ? 's' : ''}`
+                          : 'Licença ativa'
+                    }
+                  </p>
+                </div>
+              </div>
+              {(subscriptionData.isTrial || subscriptionData.isExpiringSoon) && (
+                <a
+                  href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar/renovar%20minha%20licença%20AC%20Service%20Pro"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                    Ativar Licença
+                  </Button>
+                </a>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* App Installation & Notifications */}
       {(showInstallBanner || !notificationsEnabled) && (
         <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5">
