@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -17,11 +17,13 @@ const fetchDashboardData = async () => {
     const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
     const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
     const fixedExpensesPromise = supabase.from('fixed_expenses').select('*');
+    const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']);
+    const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'agendado']);
 
-    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise]);
+    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise]);
 
-    if (pError || cError || sError || aError) {
-        console.error(pError || cError || sError || aError || iError || feError);
+    if (pError || cError || sError || aError || iError || feError || qError || soError) {
+        console.error(pError || cError || sError || aError || iError || feError || qError || soError);
         throw new Error("Failed to fetch dashboard data");
     }
 
@@ -31,7 +33,8 @@ const fetchDashboardData = async () => {
     const appointmentsList = appointments || [];
     const installmentsList = installments || [];
     const fixedExpensesList = fixedExpenses || [];
-
+    const quotesList = quotes || [];
+    const serviceOrdersList = serviceOrders || [];
     const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0) && p.qty < 999);
     const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
     const totalProfit = salesList.reduce((sum, s) => sum + Number(s.total_profit), 0);
@@ -146,7 +149,9 @@ const fetchDashboardData = async () => {
         todayExpenses,
         todayExpensesTotal,
         monthlyExpensesTotal,
-        expensesByCategory
+        expensesByCategory,
+        pendingQuotes: quotesList,
+        pendingServiceOrders: serviceOrdersList
     };
 };
 
@@ -238,9 +243,11 @@ const Dashboard: React.FC = () => {
       topServices = [],
       topProducts = [],
       todayExpenses = [],
-      todayExpensesTotal = 0,
-      monthlyExpensesTotal = 0,
-      expensesByCategory = {}
+        todayExpensesTotal = 0,
+        monthlyExpensesTotal = 0,
+        expensesByCategory = {},
+        pendingQuotes = [],
+        pendingServiceOrders = []
     } = data;
 
     return (
@@ -295,6 +302,28 @@ const Dashboard: React.FC = () => {
           <AlertTitle className="text-red-800 dark:text-red-200">💰 Parcelas a Receber</AlertTitle>
           <AlertDescription className="text-red-700 dark:text-red-300">
             Você tem {pendingInstallments.length} parcela(s) pendente(s) totalizando R$ {totalPendingAmount.toFixed(2)}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Pending Quotes Alert */}
+      {pendingQuotes.length > 0 && (
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+          <FileText className="h-4 w-4 text-blue-600" />
+          <AlertTitle className="text-blue-800 dark:text-blue-200">📋 Orçamentos Pendentes</AlertTitle>
+          <AlertDescription className="text-blue-700 dark:text-blue-300">
+            Você tem {pendingQuotes.length} orçamento(s) aguardando aprovação
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Pending Service Orders Alert */}
+      {pendingServiceOrders.length > 0 && (
+        <Alert className="border-purple-200 bg-purple-50 dark:border-purple-800 dark:bg-purple-950">
+          <ClipboardList className="h-4 w-4 text-purple-600" />
+          <AlertTitle className="text-purple-800 dark:text-purple-200">🔧 Ordens de Serviço Pendentes</AlertTitle>
+          <AlertDescription className="text-purple-700 dark:text-purple-300">
+            Você tem {pendingServiceOrders.length} ordem(s) de serviço pendente(s)
           </AlertDescription>
         </Alert>
       )}
