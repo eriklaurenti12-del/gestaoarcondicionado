@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,8 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
-import { Plus, Trash2, Fuel, Utensils, Users, MoreHorizontal, Calendar, FileDown } from "lucide-react";
-import { format } from 'date-fns';
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Fuel, Utensils, Users, MoreHorizontal, Calendar, FileDown, RefreshCw, Copy } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -26,7 +28,7 @@ const categories = [
 const fetchExpenses = async () => {
   const { data, error } = await supabase
     .from('fixed_expenses')
-    .select('*, appointments(clients(name), products(name))')
+    .select('*')
     .order('expense_date', { ascending: false });
   if (error) throw error;
   return data;
@@ -36,6 +38,7 @@ const FixedExpensesTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isCopyDialogOpen, setIsCopyDialogOpen] = useState(false);
   const [category, setCategory] = useState('combustivel');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
@@ -43,6 +46,8 @@ const FixedExpensesTab: React.FC = () => {
   const [expenseDate, setExpenseDate] = useState(new Date().toISOString().split('T')[0]);
   const [helpers, setHelpers] = useState<{ name: string; amount: string }[]>([]);
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [copyToMonth, setCopyToMonth] = useState(format(addMonths(new Date(), 1), 'yyyy-MM'));
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['fixed-expenses'],
@@ -84,6 +89,62 @@ const FixedExpensesTab: React.FC = () => {
     }
   });
 
+  const copyMutation = useMutation({
+    mutationFn: async ({ fromMonth, toMonth }: { fromMonth: string; toMonth: string }) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Não autenticado');
+
+      // Get recurring expenses from source month
+      const startDate = `${fromMonth}-01`;
+      const endDate = format(endOfMonth(parseISO(startDate)), 'yyyy-MM-dd');
+      
+      const { data: recurringExpenses, error: fetchError } = await supabase
+        .from('fixed_expenses')
+        .select('*')
+        .eq('is_recurring', true)
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate);
+
+      if (fetchError) throw fetchError;
+
+      if (!recurringExpenses || recurringExpenses.length === 0) {
+        throw new Error('Nenhum gasto recorrente encontrado neste mês');
+      }
+
+      // Create copies for target month
+      const targetStartDate = parseISO(`${toMonth}-01`);
+      const copies = recurringExpenses.map(exp => {
+        const originalDate = parseISO(exp.expense_date);
+        const dayOfMonth = originalDate.getDate();
+        const targetDate = new Date(targetStartDate);
+        targetDate.setDate(Math.min(dayOfMonth, endOfMonth(targetStartDate).getDate()));
+        
+        return {
+          category: exp.category,
+          description: exp.description,
+          amount: exp.amount,
+          helper_name: exp.helper_name,
+          expense_date: format(targetDate, 'yyyy-MM-dd'),
+          is_recurring: true,
+          user_id: session.user.id
+        };
+      });
+
+      const { error: insertError } = await supabase.from('fixed_expenses').insert(copies);
+      if (insertError) throw insertError;
+
+      return copies.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      toast({ title: `${count} gasto(s) copiado(s) para o mês!` });
+      setIsCopyDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Erro", description: error.message });
+    }
+  });
+
   const resetForm = () => {
     setCategory('combustivel');
     setDescription('');
@@ -91,6 +152,7 @@ const FixedExpensesTab: React.FC = () => {
     setHelperName('');
     setHelpers([]);
     setExpenseDate(new Date().toISOString().split('T')[0]);
+    setIsRecurring(false);
     setIsDialogOpen(false);
   };
 
@@ -107,14 +169,14 @@ const FixedExpensesTab: React.FC = () => {
 
   const handleSave = async () => {
     if (category === 'ajudante') {
-      // Save multiple helpers
       for (const helper of helpers) {
         await addMutation.mutateAsync({
           category,
           description: `Ajudante: ${helper.name}`,
           amount: parseFloat(helper.amount),
           helper_name: helper.name,
-          expense_date: expenseDate
+          expense_date: expenseDate,
+          is_recurring: isRecurring
         });
       }
     } else {
@@ -126,15 +188,23 @@ const FixedExpensesTab: React.FC = () => {
         category,
         description,
         amount: parseFloat(amount),
-        expense_date: expenseDate
+        expense_date: expenseDate,
+        is_recurring: isRecurring
       });
     }
+  };
+
+  const handleCopyToNextMonth = () => {
+    copyMutation.mutate({ fromMonth: filterMonth, toMonth: copyToMonth });
   };
 
   const filteredExpenses = expenses?.filter(exp => {
     const expMonth = format(new Date(exp.expense_date), 'yyyy-MM');
     return expMonth === filterMonth;
   }) || [];
+
+  const recurringExpenses = filteredExpenses.filter(exp => (exp as any).is_recurring);
+  const nonRecurringExpenses = filteredExpenses.filter(exp => !(exp as any).is_recurring);
 
   const totalByCategory = filteredExpenses.reduce((acc: any, exp) => {
     acc[exp.category] = (acc[exp.category] || 0) + Number(exp.amount);
@@ -155,14 +225,15 @@ const FixedExpensesTab: React.FC = () => {
       categories.find(c => c.value === exp.category)?.label || exp.category,
       exp.description || '-',
       exp.helper_name || '-',
+      (exp as any).is_recurring ? 'Sim' : 'Não',
       `R$ ${Number(exp.amount).toFixed(2)}`
     ]);
 
     autoTable(doc, {
       startY: 35,
-      head: [['Data', 'Categoria', 'Descrição', 'Ajudante', 'Valor']],
+      head: [['Data', 'Categoria', 'Descrição', 'Ajudante', 'Recorrente', 'Valor']],
       body: tableData,
-      foot: [['', '', '', 'TOTAL:', `R$ ${grandTotal.toFixed(2)}`]],
+      foot: [['', '', '', '', 'TOTAL:', `R$ ${grandTotal.toFixed(2)}`]],
       headStyles: { fillColor: [0, 128, 192] },
       footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
     });
@@ -211,21 +282,29 @@ const FixedExpensesTab: React.FC = () => {
             <CardTitle className="flex items-center gap-2">
               <Fuel className="w-5 h-5 text-amber-500" />
               Gastos Fixos
+              {recurringExpenses.length > 0 && (
+                <Badge variant="secondary" className="ml-2">
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  {recurringExpenses.length} recorrente(s)
+                </Badge>
+              )}
             </CardTitle>
             <div className="flex gap-2 flex-wrap">
               <Input
                 type="month"
                 value={filterMonth}
                 onChange={(e) => setFilterMonth(e.target.value)}
-                className="w-[160px]"
+                className="w-[140px]"
               />
+              <Button onClick={() => setIsCopyDialogOpen(true)} size="sm" variant="outline" title="Copiar recorrentes">
+                <Copy className="w-4 h-4" />
+              </Button>
               <Button onClick={exportToPDF} size="sm" variant="outline">
-                <FileDown className="w-4 h-4 mr-1" />
-                PDF
+                <FileDown className="w-4 h-4" />
               </Button>
               <Button onClick={() => setIsDialogOpen(true)} size="sm">
                 <Plus className="w-4 h-4 mr-1" />
-                Novo Gasto
+                Novo
               </Button>
             </div>
           </div>
@@ -244,7 +323,6 @@ const FixedExpensesTab: React.FC = () => {
                   <TableHead>Data</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Ajudante</TableHead>
                   <TableHead>Valor</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -252,22 +330,28 @@ const FixedExpensesTab: React.FC = () => {
               <TableBody>
                 {filteredExpenses.map((exp) => (
                   <TableRow key={exp.id}>
-                    <TableCell>{format(new Date(exp.expense_date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{format(new Date(exp.expense_date), 'dd/MM')}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getCategoryIcon(exp.category)}
-                        {categories.find(c => c.value === exp.category)?.label}
+                        <span className="text-sm">{categories.find(c => c.value === exp.category)?.label}</span>
+                        {(exp as any).is_recurring && (
+                          <span title="Recorrente">
+                            <RefreshCw className="w-3 h-3 text-blue-500" />
+                          </span>
+                        )}
                       </div>
                     </TableCell>
-                    <TableCell>{exp.description || '-'}</TableCell>
-                    <TableCell>{exp.helper_name || '-'}</TableCell>
+                    <TableCell className="text-sm">
+                      {exp.helper_name ? `${exp.helper_name}` : exp.description || '-'}
+                    </TableCell>
                     <TableCell className="font-semibold text-red-600">
                       R$ {Number(exp.amount).toFixed(2)}
                     </TableCell>
                     <TableCell>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="ghost"
                         onClick={() => deleteMutation.mutate(exp.id)}
                         disabled={deleteMutation.isPending}
                       >
@@ -382,6 +466,23 @@ const FixedExpensesTab: React.FC = () => {
                 </div>
               </>
             )}
+
+            <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800">
+              <Checkbox
+                id="recurring"
+                checked={isRecurring}
+                onCheckedChange={(checked) => setIsRecurring(checked === true)}
+              />
+              <div>
+                <Label htmlFor="recurring" className="cursor-pointer font-medium flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 text-blue-500" />
+                  Gasto Recorrente (Mensal)
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Pode ser copiado para outros meses
+                </p>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={resetForm}>Cancelar</Button>
@@ -390,6 +491,41 @@ const FixedExpensesTab: React.FC = () => {
               disabled={addMutation.isPending || (category === 'ajudante' ? helpers.length === 0 : !amount)}
             >
               {addMutation.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Copy Dialog */}
+      <Dialog open={isCopyDialogOpen} onOpenChange={setIsCopyDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Copy className="w-5 h-5" />
+              Copiar Gastos Recorrentes
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Copiar os {recurringExpenses.length} gasto(s) recorrente(s) de{' '}
+              <strong>{format(parseISO(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}</strong> para outro mês.
+            </p>
+            <div className="space-y-2">
+              <Label>Mês de Destino</Label>
+              <Input
+                type="month"
+                value={copyToMonth}
+                onChange={(e) => setCopyToMonth(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCopyDialogOpen(false)}>Cancelar</Button>
+            <Button 
+              onClick={handleCopyToNextMonth} 
+              disabled={copyMutation.isPending || recurringExpenses.length === 0}
+            >
+              {copyMutation.isPending ? "Copiando..." : "Copiar"}
             </Button>
           </DialogFooter>
         </DialogContent>

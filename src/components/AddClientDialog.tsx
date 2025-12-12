@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
-import { User, Phone, Calendar, MapPin, FileText } from 'lucide-react';
+import { User, Phone, Calendar, MapPin, FileText, Mail } from 'lucide-react';
 
 interface AddClientDialogProps {
   isOpen: boolean;
@@ -20,6 +20,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [telefone, setTelefone] = useState("");
+  const [email, setEmail] = useState("");
   const [aniversario, setAniversario] = useState("");
   const [address, setAddress] = useState("");
   const [preferences, setPreferences] = useState("");
@@ -53,6 +54,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
       const { error } = await supabase.from('clients').insert({
         name: name.trim(),
         telefone: telefone || null,
+        email: email || null,
         aniversario: aniversario || null,
         address: address || null,
         preferences: preferences || null,
@@ -64,6 +66,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
       toast({ title: "Cliente cadastrado com sucesso!" });
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       queryClient.invalidateQueries({ queryKey: ['clients-list'] });
+      queryClient.invalidateQueries({ queryKey: ['all-clients-reminders'] });
       resetForm();
       onOpenChange(false);
     } catch (error: any) {
@@ -76,6 +79,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
   const resetForm = () => {
     setName("");
     setTelefone("");
+    setEmail("");
     setAniversario("");
     setAddress("");
     setPreferences("");
@@ -110,7 +114,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
             />
           </div>
 
-          {/* Telefone e Aniversário */}
+          {/* Telefone e Email */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="client-phone" className="flex items-center gap-1.5">
@@ -124,25 +128,37 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
                 placeholder="(00) 00000-0000"
                 maxLength={15}
               />
-              <p className="text-xs text-muted-foreground">
-                Para envio de mensagens e lembretes
-              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="client-birthday" className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                Aniversário
+              <Label htmlFor="client-email" className="flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                Email
               </Label>
               <Input
-                id="client-birthday"
-                type="date"
-                value={aniversario}
-                onChange={(e) => setAniversario(e.target.value)}
+                id="client-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="email@exemplo.com"
               />
-              <p className="text-xs text-muted-foreground">
-                Alerta automático 7 dias antes
-              </p>
             </div>
+          </div>
+
+          {/* Aniversário */}
+          <div className="space-y-2">
+            <Label htmlFor="client-birthday" className="flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+              Aniversário
+            </Label>
+            <Input
+              id="client-birthday"
+              type="date"
+              value={aniversario}
+              onChange={(e) => setAniversario(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Alerta automático 7 dias antes
+            </p>
           </div>
 
           {/* Endereço */}

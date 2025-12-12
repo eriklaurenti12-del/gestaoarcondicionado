@@ -8,11 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
-import { User, Phone, Calendar, MapPin, FileText } from 'lucide-react';
+import { User, Phone, Calendar, MapPin, FileText, Mail } from 'lucide-react';
 
 const clientSchema = z.object({
   name: z.string().min(1, { message: 'O nome é obrigatório.' }),
   telefone: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
   aniversario: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
   preferences: z.string().optional().nullable(),
@@ -33,6 +34,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
     defaultValues: {
       name: '',
       telefone: '',
+      email: '',
       aniversario: '',
       address: '',
       preferences: '',
@@ -44,6 +46,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
       form.reset({
         name: client.name,
         telefone: client.telefone || '',
+        email: (client as any).email || '',
         aniversario: client.aniversario || '',
         address: client.address || '',
         preferences: client.preferences || '',
@@ -64,6 +67,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
       ...data,
       aniversario: data.aniversario || null,
       telefone: data.telefone || null,
+      email: data.email || null,
       address: data.address || null,
       preferences: data.preferences || null,
     });
@@ -99,7 +103,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
               )}
             />
 
-            {/* Telefone e Aniversário */}
+            {/* Telefone e Email */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -119,37 +123,57 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
                         maxLength={15}
                       />
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Para mensagens e lembretes
-                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="aniversario"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-                      Aniversário
+                      <Mail className="w-3.5 h-3.5 text-muted-foreground" />
+                      Email
                     </FormLabel>
                     <FormControl>
                       <Input 
-                        type="date" 
+                        type="email"
+                        placeholder="email@exemplo.com" 
                         {...field} 
                         value={field.value || ''} 
                       />
                     </FormControl>
-                    <p className="text-xs text-muted-foreground">
-                      Alerta 7 dias antes
-                    </p>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+
+            {/* Aniversário */}
+            <FormField
+              control={form.control}
+              name="aniversario"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    Aniversário
+                  </FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      {...field} 
+                      value={field.value || ''} 
+                    />
+                  </FormControl>
+                  <p className="text-xs text-muted-foreground">
+                    Alerta 7 dias antes
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {/* Endereço */}
             <FormField
