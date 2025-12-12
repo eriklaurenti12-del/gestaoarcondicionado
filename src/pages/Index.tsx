@@ -12,13 +12,10 @@ import SuppliersTab from "@/components/SuppliersTab";
 import ReportsTab from "@/components/ReportsTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
-import FinanceiroTab from "@/components/FinanceiroTab";
-import InstallmentsTab from "@/components/InstallmentsTab";
-import SalesTab from "@/components/SalesTab";
+import PDVUnifiedTab from "@/components/PDVUnifiedTab";
+import FinanceiroUnifiedTab from "@/components/FinanceiroUnifiedTab";
 import QuotesTab from "@/components/QuotesTab";
 import ServiceOrdersTab from "@/components/ServiceOrdersTab";
-import PDVTab from "@/components/PDVTab";
-import FixedExpensesTab from "@/components/FixedExpensesTab";
 import RemindersTab from "@/components/RemindersTab";
 
 import DataBackup from "@/components/DataBackup";
@@ -144,19 +141,13 @@ export default function Index() {
       case "suppliers":
         return <SuppliersTab />;
       case "pdv":
-        return <PDVTab />;
-      case "sales":
-        return <SalesTab />;
+        return <PDVUnifiedTab />;
       case "quotes":
         return <QuotesTab />;
       case "service-orders":
         return <ServiceOrdersTab />;
       case "financeiro":
-        return <FinanceiroTab />;
-      case "installments":
-        return <InstallmentsTab />;
-      case "expenses":
-        return <FixedExpensesTab />;
+        return <FinanceiroUnifiedTab />;
       case "reminders":
         return <RemindersTab />;
       case "reports":
@@ -177,14 +168,10 @@ export default function Index() {
       clients: "Clientes",
       products: "Serviços & Peças",
       suppliers: "Fornecedores",
-      pdv: "PDV - Ponto de Venda",
-      sales: "Vendas",
+      pdv: "PDV / Vendas / Parcelas",
       quotes: "Orçamentos",
       "service-orders": "Ordens de Serviço",
       financeiro: "Financeiro",
-      installments: "Parcelas",
-      expenses: "Gastos Fixos",
-      
       reminders: "Lembretes & Mensagens",
       reports: "Relatórios & Gráficos",
       backup: "Backup dos Dados",

@@ -3,13 +3,19 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, BarChart3, PieChart as PieChartIcon, Activity } from 'lucide-react';
-import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { TrendingUp, TrendingDown, BarChart3, PieChart as PieChartIcon, Activity, Calendar, FileDown, Trophy } from 'lucide-react';
+import { format, subMonths, startOfMonth, endOfMonth, parseISO, getDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
+
+const DAY_NAMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+const DAY_COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const fetchChartData = async () => {
   const [salesRes, appointmentsRes, productsRes] = await Promise.all([
@@ -70,6 +76,49 @@ const ChartsMetrics: React.FC<ChartsMetricsProps> = ({ className }) => {
         atendimentos: values.count
       }));
   }, [data?.sales, selectedYear]);
+
+  // Best days of week data
+  const bestDaysOfWeek = useMemo(() => {
+    if (!data?.sales) return [];
+
+    const dayData: { [key: number]: { revenue: number; profit: number; count: number; services: number } } = {};
+    
+    // Initialize all 7 days
+    for (let i = 0; i < 7; i++) {
+      dayData[i] = { revenue: 0, profit: 0, count: 0, services: 0 };
+    }
+
+    data.sales.forEach((sale: any) => {
+      const saleDate = parseISO(sale.sale_date);
+      if (saleDate.getFullYear() === parseInt(selectedYear)) {
+        const dayOfWeek = getDay(saleDate);
+        dayData[dayOfWeek].revenue += Number(sale.sale_price) * sale.qty;
+        dayData[dayOfWeek].profit += Number(sale.total_profit);
+        dayData[dayOfWeek].count += 1;
+        dayData[dayOfWeek].services += sale.qty;
+      }
+    });
+
+    // Convert to array with day names - reorder to start from Monday (1) to Sunday (0)
+    const orderedDays = [1, 2, 3, 4, 5, 6, 0]; // Monday to Sunday
+    return orderedDays.map(dayIndex => ({
+      day: DAY_NAMES[dayIndex],
+      shortDay: DAY_NAMES[dayIndex].substring(0, 3),
+      faturamento: dayData[dayIndex].revenue,
+      lucro: dayData[dayIndex].profit,
+      quantidade: dayData[dayIndex].count,
+      servicos: dayData[dayIndex].services,
+      dayIndex
+    }));
+  }, [data?.sales, selectedYear]);
+
+  // Best day calculation
+  const bestDay = useMemo(() => {
+    if (bestDaysOfWeek.length === 0) return null;
+    return bestDaysOfWeek.reduce((best, current) => 
+      current.lucro > best.lucro ? current : best
+    , bestDaysOfWeek[0]);
+  }, [bestDaysOfWeek]);
 
   // Top services
   const topServices = useMemo(() => {
@@ -143,6 +192,67 @@ const ChartsMetrics: React.FC<ChartsMetricsProps> = ({ className }) => {
     return years.sort((a, b) => b - a);
   }, [data?.sales]);
 
+  // Export best days to PDF
+  const exportBestDaysPDF = () => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, 220, 45, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ANÁLISE POR DIA DA SEMANA', 105, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Ano: ${selectedYear}`, 105, 32, { align: 'center' });
+    
+    // Best day highlight
+    if (bestDay) {
+      doc.setFillColor(34, 197, 94);
+      doc.roundedRect(14, 55, 182, 25, 3, 3, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text('🏆 MELHOR DIA DA SEMANA', 20, 63);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${bestDay.day} - Lucro: R$ ${bestDay.lucro.toFixed(2)}`, 20, 74);
+    }
+
+    // Table
+    const tableData = bestDaysOfWeek.map(d => [
+      d.day,
+      d.quantidade.toString(),
+      d.servicos.toString(),
+      `R$ ${d.faturamento.toFixed(2)}`,
+      `R$ ${d.lucro.toFixed(2)}`
+    ]);
+
+    autoTable(doc, {
+      startY: 90,
+      head: [['Dia', 'Vendas', 'Serviços', 'Faturamento', 'Lucro']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 10 },
+      columnStyles: {
+        3: { halign: 'right' },
+        4: { halign: 'right' }
+      },
+      didParseCell: (data) => {
+        // Highlight best day row
+        if (data.section === 'body' && bestDay && data.row.index === bestDaysOfWeek.findIndex(d => d.day === bestDay.day)) {
+          data.cell.styles.fillColor = [209, 250, 229];
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    });
+
+    doc.save(`analise-dias-semana-${selectedYear}.pdf`);
+  };
+
   if (isLoading) {
     return (
       <div className={`space-y-6 ${className}`}>
@@ -209,6 +319,88 @@ const ChartsMetrics: React.FC<ChartsMetricsProps> = ({ className }) => {
         </Card>
       </div>
 
+      {/* Best Day of Week Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+            <div className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Melhor Dia da Semana
+              </CardTitle>
+              {bestDay && (
+                <div className="flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900 rounded-full">
+                  <Trophy className="w-3 h-3 text-green-600" />
+                  <span className="text-xs font-medium text-green-700 dark:text-green-300">{bestDay.day}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Select value={selectedYear} onValueChange={setSelectedYear}>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={exportBestDaysPDF} variant="outline" size="sm">
+                <FileDown className="w-4 h-4 mr-1" />
+                PDF
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={bestDaysOfWeek}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="shortDay" tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `R$${v}`} />
+                <Tooltip 
+                  formatter={(value: number, name: string) => [
+                    `R$ ${value.toFixed(2)}`, 
+                    name === 'faturamento' ? 'Faturamento' : 'Lucro'
+                  ]}
+                  labelFormatter={(label, payload) => {
+                    if (payload && payload.length > 0) {
+                      const dayData = payload[0].payload;
+                      return `${dayData.day} - ${dayData.quantidade} vendas, ${dayData.servicos} serviços`;
+                    }
+                    return label;
+                  }}
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                />
+                <Legend />
+                <Bar dataKey="faturamento" name="Faturamento" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="lucro" name="Lucro" fill="#10b981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {/* Best day summary */}
+          {bestDay && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {bestDaysOfWeek.slice(0, 4).map((day, index) => (
+                <div 
+                  key={day.day}
+                  className={`p-3 rounded-lg ${day.day === bestDay.day ? 'bg-green-100 dark:bg-green-900/50 border-2 border-green-500' : 'bg-muted/50'}`}
+                >
+                  <div className="flex items-center gap-1 mb-1">
+                    {day.day === bestDay.day && <Trophy className="w-3 h-3 text-green-600" />}
+                    <span className="text-xs font-medium">{day.day}</span>
+                  </div>
+                  <p className="text-sm font-bold text-green-600">R$ {day.lucro.toFixed(2)}</p>
+                  <p className="text-xs text-muted-foreground">{day.servicos} serviços</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Monthly Revenue Chart */}
       <Card>
         <CardHeader>
@@ -217,16 +409,6 @@ const ChartsMetrics: React.FC<ChartsMetricsProps> = ({ className }) => {
               <BarChart3 className="w-5 h-5" />
               Faturamento Mensal
             </CardTitle>
-            <Select value={selectedYear} onValueChange={setSelectedYear}>
-              <SelectTrigger className="w-[100px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </CardHeader>
         <CardContent>
