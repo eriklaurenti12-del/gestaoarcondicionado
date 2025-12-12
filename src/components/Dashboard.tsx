@@ -253,6 +253,11 @@ const Dashboard: React.FC = () => {
         pendingServiceOrders = []
     } = data;
 
+    // Calculate trial progress percentage for visual indicator
+    const trialProgressPercent = subscriptionData?.isTrial && subscriptionData?.hoursRemaining !== null 
+      ? Math.max(0, Math.min(100, (subscriptionData.hoursRemaining / 24) * 100))
+      : 0;
+
     return (
     <div className="space-y-6">
       {/* License/Subscription Status Card */}
@@ -267,66 +272,98 @@ const Dashboard: React.FC = () => {
                 : 'border-primary/30 bg-gradient-to-r from-primary/5 to-accent/5'
         }`}>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-full ${
-                  subscriptionData.isTrial ? 'bg-cyan-500/20' :
-                  subscriptionData.isExpiringSoon ? 'bg-amber-500/20' :
-                  subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-500/20' : 'bg-primary/10'
-                }`}>
-                  {subscriptionData.subscription?.plan === 'vitalicio' ? (
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                  ) : subscriptionData.isTrial ? (
-                    <Clock className="w-5 h-5 text-cyan-500" />
-                  ) : subscriptionData.isExpiringSoon ? (
-                    <AlertTriangle className="w-5 h-5 text-amber-500" />
-                  ) : (
-                    <Shield className="w-5 h-5 text-primary" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-sm">
-                      {subscriptionData.isTrial 
-                        ? '⏰ Período de Teste' 
-                        : subscriptionData.subscription?.plan === 'vitalicio'
-                          ? '🏆 Licença Vitalícia'
-                          : subscriptionData.isExpiringSoon
-                            ? '⚠️ Renovação Necessária'
-                            : '✅ Licença Ativa'
-                      }
-                    </h3>
-                    <Badge className={`text-[10px] ${
-                      subscriptionData.isTrial ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300' :
-                      subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      subscriptionData.isExpiringSoon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
-                      'bg-primary/10 text-primary'
-                    }`}>
-                      {subscriptionData.subscription?.plan?.toUpperCase() || 'TRIAL'}
-                    </Badge>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${
+                    subscriptionData.isTrial ? 'bg-cyan-500/20' :
+                    subscriptionData.isExpiringSoon ? 'bg-amber-500/20' :
+                    subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-500/20' : 'bg-primary/10'
+                  }`}>
+                    {subscriptionData.subscription?.plan === 'vitalicio' ? (
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                    ) : subscriptionData.isTrial ? (
+                      <Clock className="w-5 h-5 text-cyan-500 animate-pulse" />
+                    ) : subscriptionData.isExpiringSoon ? (
+                      <AlertTriangle className="w-5 h-5 text-amber-500" />
+                    ) : (
+                      <Shield className="w-5 h-5 text-primary" />
+                    )}
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null
-                      ? `Restam ${subscriptionData.hoursRemaining} hora${subscriptionData.hoursRemaining !== 1 ? 's' : ''} de teste`
-                      : subscriptionData.subscription?.plan === 'vitalicio'
-                        ? 'Acesso ilimitado ao sistema'
-                        : subscriptionData.daysRemaining !== null && subscriptionData.daysRemaining > 0
-                          ? `Vence em ${subscriptionData.daysRemaining} dia${subscriptionData.daysRemaining !== 1 ? 's' : ''}`
-                          : 'Licença ativa'
-                    }
-                  </p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-sm">
+                        {subscriptionData.isTrial 
+                          ? '⏰ Período de Teste' 
+                          : subscriptionData.subscription?.plan === 'vitalicio'
+                            ? '🏆 Licença Vitalícia'
+                            : subscriptionData.isExpiringSoon
+                              ? '⚠️ Renovação Necessária'
+                              : '✅ Licença Ativa'
+                        }
+                      </h3>
+                      <Badge className={`text-[10px] ${
+                        subscriptionData.isTrial ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300' :
+                        subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                        subscriptionData.isExpiringSoon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                        'bg-primary/10 text-primary'
+                      }`}>
+                        {subscriptionData.subscription?.plan?.toUpperCase() || 'TRIAL'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null
+                        ? `Restam ${subscriptionData.hoursRemaining} hora${subscriptionData.hoursRemaining !== 1 ? 's' : ''} de teste`
+                        : subscriptionData.subscription?.plan === 'vitalicio'
+                          ? 'Acesso ilimitado ao sistema'
+                          : subscriptionData.daysRemaining !== null && subscriptionData.daysRemaining > 0
+                            ? `Vence em ${subscriptionData.daysRemaining} dia${subscriptionData.daysRemaining !== 1 ? 's' : ''}`
+                            : 'Licença ativa'
+                      }
+                    </p>
+                  </div>
                 </div>
+                {(subscriptionData.isTrial || subscriptionData.isExpiringSoon) && (
+                  <a
+                    href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar/renovar%20minha%20licença%20AC%20Service%20Pro"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                      Ativar Licença
+                    </Button>
+                  </a>
+                )}
               </div>
-              {(subscriptionData.isTrial || subscriptionData.isExpiringSoon) && (
-                <a
-                  href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar/renovar%20minha%20licença%20AC%20Service%20Pro"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                    Ativar Licença
-                  </Button>
-                </a>
+              
+              {/* Visual Trial Counter */}
+              {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">Tempo restante do trial</span>
+                    <span className={`font-bold text-lg ${
+                      subscriptionData.hoursRemaining <= 6 ? 'text-red-500 animate-pulse' :
+                      subscriptionData.hoursRemaining <= 12 ? 'text-amber-500' :
+                      'text-cyan-500'
+                    }`}>
+                      {subscriptionData.hoursRemaining}h
+                    </span>
+                  </div>
+                  <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        subscriptionData.hoursRemaining <= 6 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                        subscriptionData.hoursRemaining <= 12 ? 'bg-gradient-to-r from-amber-400 to-amber-500' :
+                        'bg-gradient-to-r from-cyan-400 to-blue-500'
+                      }`}
+                      style={{ width: `${trialProgressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span>0h</span>
+                    <span>24h</span>
+                  </div>
+                </div>
               )}
             </div>
           </CardContent>
