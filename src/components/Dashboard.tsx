@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -16,11 +16,12 @@ const fetchDashboardData = async () => {
     const salesPromise = supabase.from('sales').select('*, clients(name), products(name)');
     const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
     const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
+    const fixedExpensesPromise = supabase.from('fixed_expenses').select('*');
 
-    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise]);
+    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise]);
 
     if (pError || cError || sError || aError) {
-        console.error(pError || cError || sError || aError || iError);
+        console.error(pError || cError || sError || aError || iError || feError);
         throw new Error("Failed to fetch dashboard data");
     }
 
@@ -29,6 +30,7 @@ const fetchDashboardData = async () => {
     const salesList = sales || [];
     const appointmentsList = appointments || [];
     const installmentsList = installments || [];
+    const fixedExpensesList = fixedExpenses || [];
 
     const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0) && p.qty < 999);
     const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
@@ -61,6 +63,25 @@ const fetchDashboardData = async () => {
     });
 
     const totalPendingAmount = pendingInstallments.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
+
+    // Calculate today's fixed expenses
+    const todayStr = format(today, 'yyyy-MM-dd');
+    const todayExpenses = fixedExpensesList.filter(e => e.expense_date === todayStr);
+    const todayExpensesTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+    // Calculate monthly expenses
+    const currentMonth = format(today, 'yyyy-MM');
+    const monthlyExpenses = fixedExpensesList.filter(e => e.expense_date.startsWith(currentMonth));
+    const monthlyExpensesTotal = monthlyExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+
+    // Expenses by category for today
+    const expensesByCategory: { [key: string]: number } = {};
+    todayExpenses.forEach(e => {
+      if (!expensesByCategory[e.category]) {
+        expensesByCategory[e.category] = 0;
+      }
+      expensesByCategory[e.category] += Number(e.amount);
+    });
 
     // Calculate top clients by revenue
     const clientRevenue: { [key: string]: { name: string; revenue: number; count: number } } = {};
@@ -121,7 +142,11 @@ const fetchDashboardData = async () => {
         totalPendingAmount,
         topClients,
         topServices,
-        topProducts
+        topProducts,
+        todayExpenses,
+        todayExpensesTotal,
+        monthlyExpensesTotal,
+        expensesByCategory
     };
 };
 
@@ -211,7 +236,11 @@ const Dashboard: React.FC = () => {
       totalPendingAmount = 0,
       topClients = [],
       topServices = [],
-      topProducts = []
+      topProducts = [],
+      todayExpenses = [],
+      todayExpensesTotal = 0,
+      monthlyExpensesTotal = 0,
+      expensesByCategory = {}
     } = data;
 
     return (
@@ -317,7 +346,8 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Main Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>
           <CardContent>
@@ -346,6 +376,36 @@ const Dashboard: React.FC = () => {
                     <span className="text-muted-foreground">Margem de Lucro</span>
                     <span className="font-bold">{salesReport.profitMargin.toFixed(2)}%</span>
                 </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Today's Fixed Expenses */}
+        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200 dark:border-red-800">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
+              <Fuel className="w-5 h-5" />
+              Gastos do Dia
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl sm:text-3xl font-bold text-red-600">R$ {todayExpensesTotal.toFixed(2)}</div>
+            <p className="text-sm text-muted-foreground">Hoje ({todayExpenses.length} lançamento{todayExpenses.length !== 1 ? 's' : ''})</p>
+            {Object.keys(expensesByCategory).length > 0 && (
+              <div className="mt-3 space-y-1">
+                {Object.entries(expensesByCategory).map(([category, amount]) => (
+                  <div key={category} className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground capitalize">{category}</span>
+                    <span className="font-medium text-red-600">R$ {(amount as number).toFixed(2)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="mt-3 pt-3 border-t border-border">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-muted-foreground">Gastos do mês</span>
+                <span className="font-bold text-red-600">R$ {monthlyExpensesTotal.toFixed(2)}</span>
+              </div>
             </div>
           </CardContent>
         </Card>
