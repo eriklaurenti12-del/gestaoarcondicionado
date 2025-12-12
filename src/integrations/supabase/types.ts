@@ -70,6 +70,7 @@ export type Database = {
           address: string | null
           aniversario: string | null
           created_at: string
+          email: string | null
           id: number
           name: string
           preferences: string | null
@@ -80,6 +81,7 @@ export type Database = {
           address?: string | null
           aniversario?: string | null
           created_at?: string
+          email?: string | null
           id?: number
           name: string
           preferences?: string | null
@@ -90,6 +92,7 @@ export type Database = {
           address?: string | null
           aniversario?: string | null
           created_at?: string
+          email?: string | null
           id?: number
           name?: string
           preferences?: string | null
@@ -186,6 +189,7 @@ export type Database = {
           expense_date: string
           helper_name: string | null
           id: string
+          is_recurring: boolean | null
           updated_at: string
           user_id: string
         }
@@ -198,6 +202,7 @@ export type Database = {
           expense_date?: string
           helper_name?: string | null
           id?: string
+          is_recurring?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -210,6 +215,7 @@ export type Database = {
           expense_date?: string
           helper_name?: string | null
           id?: string
+          is_recurring?: boolean | null
           updated_at?: string
           user_id?: string
         }
