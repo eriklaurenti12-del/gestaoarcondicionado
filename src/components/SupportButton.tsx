@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { MessageCircle, ChevronDown, ChevronUp, Lightbulb, X, Send, AlertTriangle, Wrench, Snowflake, Activity, User, Image } from "lucide-react";
+import { MessageCircle, ChevronDown, ChevronUp, Lightbulb, X, Send, AlertTriangle, Wrench, Snowflake, Activity, User, Image, ImagePlus, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -149,9 +149,13 @@ export default function SupportButton() {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [attachImage, setAttachImage] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [sendMode, setSendMode] = useState<'client' | 'custom'>('client');
   const [customPhone, setCustomPhone] = useState("");
   const [customName, setCustomName] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: clients } = useQuery({
     queryKey: ['clients-support'],
@@ -221,9 +225,59 @@ export default function SupportButton() {
     setSelectedClientId("");
     setCustomMessage("");
     setAttachImage(false);
+    setSelectedImage(null);
+    setImagePreview(null);
     setCustomPhone("");
     setCustomName("");
     setSendMode('client');
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Imagem muito grande. Máximo 5MB.');
+        return;
+      }
+      setSelectedImage(file);
+      setAttachImage(true);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadTipImage = async (): Promise<string | null> => {
+    if (!selectedImage) return null;
+    
+    setUploadingImage(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      const fileExt = selectedImage.name.split('.').pop();
+      const fileName = `${user.id}/tips/${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('service-photos')
+        .upload(fileName, selectedImage);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from('service-photos')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast.error('Erro ao enviar imagem: ' + error.message);
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   if (isCollapsed) {
@@ -435,24 +489,59 @@ export default function SupportButton() {
               />
             </div>
 
-            <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-              <input
-                type="checkbox"
-                id="attach-image"
-                checked={attachImage}
-                onChange={(e) => setAttachImage(e.target.checked)}
-                className="rounded"
-              />
-              <Label htmlFor="attach-image" className="text-sm flex items-center gap-2 cursor-pointer">
-                <Image className="w-4 h-4" />
-                Mencionar imagem em anexo
+            {/* Image Upload Section */}
+            <div className="space-y-3">
+              <Label className="flex items-center gap-2">
+                <ImagePlus className="w-4 h-4" />
+                Anexar Imagem (Opcional)
               </Label>
+              <div className="flex items-center gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <ImagePlus className="w-4 h-4" />
+                  Selecionar Imagem
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {imagePreview && (
+                  <div className="relative">
+                    <img src={imagePreview} alt="Preview" className="w-12 h-12 rounded object-cover border" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute -top-2 -right-2 w-5 h-5 rounded-full"
+                      onClick={() => { setSelectedImage(null); setImagePreview(null); setAttachImage(false); }}
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {attachImage && (
+            {attachImage && !selectedImage && (
               <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
                 <p className="text-xs text-amber-700 dark:text-amber-300">
                   📸 <strong>Dica:</strong> Após abrir o WhatsApp, anexe a foto manualmente antes de enviar a mensagem.
+                </p>
+              </div>
+            )}
+
+            {selectedImage && (
+              <div className="p-3 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  ✅ Imagem selecionada: {selectedImage.name}
                 </p>
               </div>
             )}
@@ -464,11 +553,15 @@ export default function SupportButton() {
             </Button>
             <Button 
               onClick={sendTipToClient}
-              disabled={sendMode === 'client' ? !selectedClientId : customPhone.replace(/\D/g, '').length < 10}
+              disabled={(sendMode === 'client' ? !selectedClientId : customPhone.replace(/\D/g, '').length < 10) || uploadingImage}
               className="bg-green-600 hover:bg-green-700"
             >
-              <Send className="w-4 h-4 mr-2" />
-              Enviar via WhatsApp
+              {uploadingImage ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
+              {uploadingImage ? 'Enviando...' : 'Enviar via WhatsApp'}
             </Button>
           </DialogFooter>
         </DialogContent>
