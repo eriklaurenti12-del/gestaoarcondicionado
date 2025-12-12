@@ -19,6 +19,7 @@ import QuotesTab from "@/components/QuotesTab";
 import ServiceOrdersTab from "@/components/ServiceOrdersTab";
 import PDVTab from "@/components/PDVTab";
 import FixedExpensesTab from "@/components/FixedExpensesTab";
+import RemindersTab from "@/components/RemindersTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -135,6 +136,8 @@ export default function Index() {
         return <InstallmentsTab />;
       case "expenses":
         return <FixedExpensesTab />;
+      case "reminders":
+        return <RemindersTab />;
       case "reports":
         return <ReportsTab />;
       case "backup":
@@ -160,6 +163,7 @@ export default function Index() {
       financeiro: "Financeiro",
       installments: "Parcelas",
       expenses: "Gastos Fixos",
+      reminders: "Lembretes & Mensagens",
       reports: "Relatórios & Gráficos",
       backup: "Backup dos Dados",
       company: "Minha Empresa"
