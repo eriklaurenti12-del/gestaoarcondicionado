@@ -1,10 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Wind, AlertCircle } from "lucide-react";
-import { differenceInDays } from "date-fns";
+import { differenceInDays, differenceInHours, addDays } from "date-fns";
+
+// Context to share subscription data
+interface SubscriptionContextType {
+  subscription: any;
+  daysRemaining: number | null;
+  hoursRemaining: number | null;
+  isTrial: boolean;
+  isExpiringSoon: boolean;
+}
+
+const SubscriptionContext = createContext<SubscriptionContextType | null>(null);
+
+export const useSubscription = () => {
+  const context = useContext(SubscriptionContext);
+  return context;
+};
 
 export default function SubscriptionGate({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -12,6 +28,8 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
   const [loading, setLoading] = useState(true);
   const [subscription, setSubscription] = useState<any>(null);
   const [daysUntilExpiry, setDaysUntilExpiry] = useState<number | null>(null);
+  const [hoursRemaining, setHoursRemaining] = useState<number | null>(null);
+  const [isTrial, setIsTrial] = useState(false);
 
   useEffect(() => {
     checkSubscription();
@@ -34,12 +52,34 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
       if (error) throw error;
 
       setSubscription(data);
-      setHasAccess(data?.is_active && data?.status === 'aprovado');
-
-      // Calcular dias até vencimento
-      if (data?.end_date && data.plan !== 'vitalicio') {
-        const days = differenceInDays(new Date(data.end_date), new Date());
-        setDaysUntilExpiry(days);
+      
+      // Check if it's a trial (pending status = 1 day trial)
+      const now = new Date();
+      const createdAt = new Date(data?.created_at);
+      const trialEndDate = addDays(createdAt, 1); // 1 day trial
+      const hoursLeft = differenceInHours(trialEndDate, now);
+      const daysLeft = differenceInDays(trialEndDate, now);
+      
+      if (data?.status === 'pendente') {
+        // User is in trial period
+        setIsTrial(true);
+        setHoursRemaining(Math.max(0, hoursLeft));
+        
+        // Trial expired - block access
+        if (hoursLeft <= 0) {
+          setHasAccess(false);
+        } else {
+          setHasAccess(true); // Allow trial access
+        }
+      } else {
+        // Regular subscription
+        setHasAccess(data?.is_active && data?.status === 'aprovado');
+        
+        // Calculate days until expiry for approved subscriptions
+        if (data?.end_date && data.plan !== 'vitalicio') {
+          const days = differenceInDays(new Date(data.end_date), now);
+          setDaysUntilExpiry(days);
+        }
       }
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -79,9 +119,11 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
           </CardHeader>
           <CardContent className="text-center space-y-4">
             <p className="text-gray-400 text-sm md:text-base">
-              {subscription?.status === 'pendente' 
-                ? 'Sua assinatura está aguardando aprovação do administrador.'
-                : 'Sua assinatura expirou ou está inativa.'
+              {isTrial && hoursRemaining !== null && hoursRemaining <= 0
+                ? 'Seu período de teste de 1 dia expirou. Para continuar usando o sistema, entre em contato para ativar sua licença.'
+                : subscription?.status === 'pendente' 
+                  ? 'Sua assinatura está aguardando aprovação do administrador.'
+                  : 'Sua assinatura expirou ou está inativa.'
               }
             </p>
             <p className="text-xs md:text-sm font-medium text-gray-300">
@@ -113,12 +155,47 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
     );
   }
 
-  // Mostrar alerta 7 dias antes do vencimento
+  // Mostrar alerta 7 dias antes do vencimento ou durante trial
   const showExpiryWarning = daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+  const showTrialBanner = isTrial && hoursRemaining !== null && hoursRemaining > 0;
+
+  const subscriptionContextValue: SubscriptionContextType = {
+    subscription,
+    daysRemaining: daysUntilExpiry,
+    hoursRemaining,
+    isTrial,
+    isExpiringSoon: showExpiryWarning
+  };
 
   return (
-    <>
-      {showExpiryWarning && (
+    <SubscriptionContext.Provider value={subscriptionContextValue}>
+      {/* Trial Banner */}
+      {showTrialBanner && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-3 text-center shadow-lg">
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-5 h-5" />
+              <span className="font-bold text-lg">
+                ⏰ Período de Teste: Restam {hoursRemaining} hora{hoursRemaining !== 1 ? 's' : ''}!
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-sm">
+              <span>Para liberar acesso completo:</span>
+              <a 
+                href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar%20minha%20licença%20AC%20Service%20Pro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-bold hover:opacity-80"
+              >
+                Fale com Suporte
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Expiry Warning Banner */}
+      {showExpiryWarning && !showTrialBanner && (
         <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-amber-500 to-orange-500 text-black p-3 text-center shadow-lg">
           <div className="flex flex-col items-center justify-center gap-2">
             <div className="flex items-center gap-2">
@@ -143,9 +220,9 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
           </div>
         </div>
       )}
-      <div className={showExpiryWarning ? 'pt-24' : ''}>
+      <div className={(showExpiryWarning || showTrialBanner) ? 'pt-24' : ''}>
         {children}
       </div>
-    </>
+    </SubscriptionContext.Provider>
   );
 }
