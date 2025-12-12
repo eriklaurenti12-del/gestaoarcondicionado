@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, FileText, Store, Fuel, Bell } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, PieChart, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, FileText, Store, Fuel, Bell, CalendarClock } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -48,6 +48,7 @@ const vendasItems = [
 
 // Ferramentas
 const toolsItems = [
+  { id: "maintenance", title: "Manutenções", icon: CalendarClock },
   { id: "reminders", title: "Lembretes", icon: Bell },
   { id: "reports", title: "Relatórios & Gráficos", icon: TrendingUp },
   { id: "backup", title: "Backup", icon: Database },

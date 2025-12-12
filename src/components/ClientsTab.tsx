@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone } from "lucide-react";
+import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone, Wind } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
 import EditClientDialog from './EditClientDialog';
 import AddClientDialog from './AddClientDialog';
 import ClientHistoryDialog from './ClientHistoryDialog';
+import ClientEquipmentDialog from './ClientEquipmentDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, parseISO, isValid } from 'date-fns';
@@ -31,6 +32,7 @@ const ClientsTab: React.FC = () => {
   const [editingClient, setEditingClient] = useState<ClientWithSales | null>(null);
   const [showAddClient, setShowAddClient] = useState(false);
   const [historyClient, setHistoryClient] = useState<ClientWithSales | null>(null);
+  const [equipmentClient, setEquipmentClient] = useState<ClientWithSales | null>(null);
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({ queryKey: ['clients'], queryFn: fetchClients });
   const updateClientMutation = useMutation({
@@ -171,6 +173,9 @@ const ClientsTab: React.FC = () => {
                         <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="flex gap-1">
+                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-cyan-500 hover:text-cyan-600 transition-all duration-200 hover:scale-110" onClick={() => setEquipmentClient(client)} title="Equipamentos">
+                              <Wind className="w-3 h-3" />
+                            </Button>
                             <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-primary hover:text-primary/80 transition-all duration-200 hover:scale-110" onClick={() => setHistoryClient(client)} title="Ver histórico">
                               <History className="w-3 h-3" />
                             </Button>
@@ -212,6 +217,15 @@ const ClientsTab: React.FC = () => {
         isOpen={!!historyClient}
         onOpenChange={(open) => !open && setHistoryClient(null)}
       />
+
+      {equipmentClient && (
+        <ClientEquipmentDialog
+          open={!!equipmentClient}
+          onOpenChange={(open) => !open && setEquipmentClient(null)}
+          clientId={equipmentClient.id}
+          clientName={equipmentClient.name}
+        />
+      )}
     </div>
   );
 };
