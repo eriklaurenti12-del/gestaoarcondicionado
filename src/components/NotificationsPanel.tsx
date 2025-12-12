@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, Gift, CreditCard, Calendar, TrendingUp, X, MessageCircle, Check, BellRing, Sparkles, Clock, AlertTriangle } from "lucide-react";
+import { Bell, Gift, CreditCard, Calendar, TrendingUp, X, MessageCircle, Check, BellRing, Sparkles, Clock, AlertTriangle, FileText, ClipboardList } from "lucide-react";
 import { toast } from 'sonner';
 import { format, differenceInDays, differenceInYears, isToday, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Notification {
   id: string;
-  type: 'birthday' | 'installment' | 'appointment' | 'month_close';
+  type: 'birthday' | 'installment' | 'appointment' | 'month_close' | 'quote' | 'service_order';
   title: string;
   message: string;
   priority: 'high' | 'medium' | 'low';
@@ -28,14 +28,24 @@ const fetchNotificationData = async () => {
   const [
     { data: clients },
     { data: installments },
-    { data: appointments }
+    { data: appointments },
+    { data: quotes },
+    { data: serviceOrders }
   ] = await Promise.all([
     supabase.from('clients').select('*'),
     supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false),
-    supabase.from('appointments').select('*, clients(name, telefone), products(name)').gte('appointment_date', today.toISOString().split('T')[0])
+    supabase.from('appointments').select('*, clients(name, telefone), products(name)').gte('appointment_date', today.toISOString().split('T')[0]),
+    supabase.from('quotes').select('*, clients(name, telefone)').in('status', ['pendente', 'enviado']),
+    supabase.from('service_orders').select('*, clients(name, telefone)').in('status', ['pendente', 'agendado'])
   ]);
 
-  return { clients: clients || [], installments: installments || [], appointments: appointments || [] };
+  return { 
+    clients: clients || [], 
+    installments: installments || [], 
+    appointments: appointments || [],
+    quotes: quotes || [],
+    serviceOrders: serviceOrders || []
+  };
 };
 
 const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
@@ -221,6 +231,56 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       });
     }
 
+    // Pending quotes notifications
+    data.quotes.forEach((quote: any) => {
+      const createdAt = new Date(quote.created_at);
+      const daysSinceCreated = differenceInDays(today, createdAt);
+      
+      let priority: 'high' | 'medium' | 'low' = 'low';
+      if (daysSinceCreated >= 7) priority = 'high';
+      else if (daysSinceCreated >= 3) priority = 'medium';
+
+      notifications.push({
+        id: `quote-${quote.id}`,
+        type: 'quote',
+        title: `📋 Orçamento #${quote.quote_number} pendente`,
+        message: `${quote.clients?.name || 'Cliente'} - R$ ${Number(quote.total).toFixed(2)} (há ${daysSinceCreated} dia${daysSinceCreated !== 1 ? 's' : ''})`,
+        priority,
+        data: quote,
+        action: quote.clients?.telefone ? () => {
+          const phone = quote.clients.telefone.replace(/\D/g, '');
+          const message = `Olá ${quote.clients.name}! Passando para saber se teve tempo de analisar o orçamento que enviamos. Posso ajudar com alguma dúvida?`;
+          window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        } : undefined
+      });
+    });
+
+    // Pending service orders notifications
+    data.serviceOrders.forEach((order: any) => {
+      const createdAt = new Date(order.created_at);
+      const daysSinceCreated = differenceInDays(today, createdAt);
+      
+      let priority: 'high' | 'medium' | 'low' = 'low';
+      if (order.status === 'agendado') priority = 'medium';
+      if (daysSinceCreated >= 7) priority = 'high';
+
+      notifications.push({
+        id: `service-order-${order.id}`,
+        type: 'service_order',
+        title: `🔧 O.S. #${order.order_number} ${order.status}`,
+        message: `${order.clients?.name || 'Cliente'} - ${order.title} (há ${daysSinceCreated} dia${daysSinceCreated !== 1 ? 's' : ''})`,
+        priority,
+        data: order,
+        action: order.clients?.telefone ? () => {
+          const phone = order.clients.telefone.replace(/\D/g, '');
+          const message = order.status === 'agendado' 
+            ? `Olá ${order.clients.name}! Confirmando a ordem de serviço "${order.title}". Aguardamos você!`
+            : `Olá ${order.clients.name}! Sobre a ordem de serviço "${order.title}", gostaria de agendar a visita. Qual a melhor data?`;
+          window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+        } : undefined
+      });
+    });
+
     const priorityOrder = { high: 0, medium: 1, low: 2 };
     return notifications.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
   };
@@ -236,6 +296,8 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
     birthday: notifications.filter(n => n.type === 'birthday').length,
     installment: notifications.filter(n => n.type === 'installment').length,
     appointment: notifications.filter(n => n.type === 'appointment').length,
+    quote: notifications.filter(n => n.type === 'quote').length,
+    service_order: notifications.filter(n => n.type === 'service_order').length,
   };
 
   const highPriorityCount = notifications.filter(n => n.priority === 'high').length;
@@ -277,6 +339,8 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       case 'installment': return <CreditCard className={iconClass} />;
       case 'appointment': return <Calendar className={iconClass} />;
       case 'month_close': return <TrendingUp className={iconClass} />;
+      case 'quote': return <FileText className={iconClass} />;
+      case 'service_order': return <ClipboardList className={iconClass} />;
       default: return <Bell className={iconClass} />;
     }
   };
@@ -287,6 +351,8 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       case 'installment': return 'text-green-500 bg-green-100 dark:bg-green-900/30';
       case 'appointment': return 'text-blue-500 bg-blue-100 dark:bg-blue-900/30';
       case 'month_close': return 'text-purple-500 bg-purple-100 dark:bg-purple-900/30';
+      case 'quote': return 'text-cyan-500 bg-cyan-100 dark:bg-cyan-900/30';
+      case 'service_order': return 'text-orange-500 bg-orange-100 dark:bg-orange-900/30';
       default: return 'text-muted-foreground bg-muted';
     }
   };
@@ -324,22 +390,30 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         </div>
 
         {/* Quick stats */}
-        <div className="grid grid-cols-4 gap-2 mb-3">
-          <div className="text-center p-2 rounded-lg bg-pink-100 dark:bg-pink-900/30">
-            <Gift className="w-4 h-4 mx-auto text-pink-500" />
-            <span className="text-xs font-bold">{counts.birthday}</span>
+        <div className="grid grid-cols-6 gap-1 mb-3">
+          <div className="text-center p-1.5 rounded-lg bg-pink-100 dark:bg-pink-900/30">
+            <Gift className="w-3 h-3 mx-auto text-pink-500" />
+            <span className="text-[10px] font-bold">{counts.birthday}</span>
           </div>
-          <div className="text-center p-2 rounded-lg bg-green-100 dark:bg-green-900/30">
-            <CreditCard className="w-4 h-4 mx-auto text-green-500" />
-            <span className="text-xs font-bold">{counts.installment}</span>
+          <div className="text-center p-1.5 rounded-lg bg-green-100 dark:bg-green-900/30">
+            <CreditCard className="w-3 h-3 mx-auto text-green-500" />
+            <span className="text-[10px] font-bold">{counts.installment}</span>
           </div>
-          <div className="text-center p-2 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-            <Calendar className="w-4 h-4 mx-auto text-blue-500" />
-            <span className="text-xs font-bold">{counts.appointment}</span>
+          <div className="text-center p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+            <Calendar className="w-3 h-3 mx-auto text-blue-500" />
+            <span className="text-[10px] font-bold">{counts.appointment}</span>
           </div>
-          <div className="text-center p-2 rounded-lg bg-red-100 dark:bg-red-900/30">
-            <AlertTriangle className="w-4 h-4 mx-auto text-red-500" />
-            <span className="text-xs font-bold">{highPriorityCount}</span>
+          <div className="text-center p-1.5 rounded-lg bg-cyan-100 dark:bg-cyan-900/30">
+            <FileText className="w-3 h-3 mx-auto text-cyan-500" />
+            <span className="text-[10px] font-bold">{counts.quote}</span>
+          </div>
+          <div className="text-center p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/30">
+            <ClipboardList className="w-3 h-3 mx-auto text-orange-500" />
+            <span className="text-[10px] font-bold">{counts.service_order}</span>
+          </div>
+          <div className="text-center p-1.5 rounded-lg bg-red-100 dark:bg-red-900/30">
+            <AlertTriangle className="w-3 h-3 mx-auto text-red-500" />
+            <span className="text-[10px] font-bold">{highPriorityCount}</span>
           </div>
         </div>
 
