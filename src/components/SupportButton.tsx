@@ -149,15 +149,26 @@ export default function SupportButton() {
   const [selectedClientId, setSelectedClientId] = useState("");
   const [customMessage, setCustomMessage] = useState("");
   const [attachImage, setAttachImage] = useState(false);
+  const [sendMode, setSendMode] = useState<'client' | 'custom'>('client');
+  const [customPhone, setCustomPhone] = useState("");
+  const [customName, setCustomName] = useState("");
 
   const { data: clients } = useQuery({
     queryKey: ['clients-support'],
     queryFn: fetchClients
   });
 
+  const formatPhone = (value: string) => {
+    const numbers = value.replace(/\D/g, '');
+    if (numbers.length <= 11) {
+      return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+    }
+    return value;
+  };
+
   const handleSupportClick = () => {
     const whatsappUrl = "https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+Gestão+de+Negócios+e+preciso+de+suporte";
-    window.open(whatsappUrl, '_blank');
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
   };
 
   const openSendDialog = (tip: { question: string; answer: string }) => {
@@ -167,14 +178,28 @@ export default function SupportButton() {
   };
 
   const sendTipToClient = () => {
-    const client = clients?.find(c => c.id === parseInt(selectedClientId));
-    if (!client || !client.telefone) {
-      toast.error('Cliente não possui telefone cadastrado');
-      return;
+    let phone = "";
+    let name = "";
+
+    if (sendMode === 'client') {
+      const client = clients?.find(c => c.id === parseInt(selectedClientId));
+      if (!client || !client.telefone) {
+        toast.error('Cliente não possui telefone cadastrado');
+        return;
+      }
+      phone = client.telefone.replace(/\D/g, '');
+      name = client.name;
+    } else {
+      // Custom phone number
+      phone = customPhone.replace(/\D/g, '');
+      if (phone.length < 10) {
+        toast.error('Número de telefone inválido');
+        return;
+      }
+      name = customName || 'Cliente';
     }
 
-    const phone = client.telefone.replace(/\D/g, '');
-    let message = `Olá ${client.name}!\n\n${customMessage}`;
+    let message = `Olá ${name}!\n\n${customMessage}`;
     
     if (attachImage) {
       message += "\n\n📸 *Veja a imagem em anexo para mais detalhes.*";
@@ -183,13 +208,22 @@ export default function SupportButton() {
     message += "\n\n_Enviado por AC Service Pro_";
 
     const encodedMessage = encodeURIComponent(message);
-    window.open(`https://wa.me/55${phone}?text=${encodedMessage}`, '_blank');
+    // Use wa.me which works better across platforms
+    const url = `https://wa.me/55${phone}?text=${encodedMessage}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
     
-    toast.success(`Dica enviada para ${client.name}!`);
+    toast.success(`Dica enviada para ${name}!`);
     setShowSendDialog(false);
+    resetSendForm();
+  };
+
+  const resetSendForm = () => {
     setSelectedClientId("");
     setCustomMessage("");
     setAttachImage(false);
+    setCustomPhone("");
+    setCustomName("");
+    setSendMode('client');
   };
 
   if (isCollapsed) {
@@ -326,39 +360,70 @@ export default function SupportButton() {
       </div>
 
       {/* Send Tip to Client Dialog */}
-      <Dialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+      <Dialog open={showSendDialog} onOpenChange={(open) => { setShowSendDialog(open); if (!open) resetSendForm(); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="w-5 h-5 text-green-600" />
-              Enviar Dica para Cliente
+              Enviar Dica via WhatsApp
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Selecionar Cliente
-              </Label>
-              <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Escolha um cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients?.filter(c => c.telefone).map(client => (
-                    <SelectItem key={client.id} value={String(client.id)}>
-                      {client.name} - {client.telefone}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {clients?.filter(c => !c.telefone).length ? (
-                <p className="text-xs text-muted-foreground">
-                  {clients.filter(c => !c.telefone).length} cliente(s) sem telefone cadastrado
-                </p>
-              ) : null}
-            </div>
+            {/* Send Mode Tabs */}
+            <Tabs value={sendMode} onValueChange={(v) => setSendMode(v as 'client' | 'custom')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="client">Cliente Cadastrado</TabsTrigger>
+                <TabsTrigger value="custom">Número Avulso</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="client" className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Selecionar Cliente
+                  </Label>
+                  <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Escolha um cliente..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients?.filter(c => c.telefone).map(client => (
+                        <SelectItem key={client.id} value={String(client.id)}>
+                          {client.name} - {client.telefone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="custom" className="mt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4" />
+                    Número de WhatsApp
+                  </Label>
+                  <Input
+                    value={customPhone}
+                    onChange={(e) => setCustomPhone(formatPhone(e.target.value))}
+                    placeholder="(00) 00000-0000"
+                    maxLength={15}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Nome (opcional)
+                  </Label>
+                  <Input
+                    value={customName}
+                    onChange={(e) => setCustomName(e.target.value)}
+                    placeholder="Nome da pessoa"
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <div className="space-y-2">
               <Label>Mensagem</Label>
@@ -399,7 +464,7 @@ export default function SupportButton() {
             </Button>
             <Button 
               onClick={sendTipToClient}
-              disabled={!selectedClientId}
+              disabled={sendMode === 'client' ? !selectedClientId : customPhone.replace(/\D/g, '').length < 10}
               className="bg-green-600 hover:bg-green-700"
             >
               <Send className="w-4 h-4 mr-2" />
