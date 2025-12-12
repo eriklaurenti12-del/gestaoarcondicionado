@@ -53,15 +53,25 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
 
       setSubscription(data);
       
-      // Check if it's a trial (pending status = 1 day trial)
       const now = new Date();
-      const createdAt = new Date(data?.created_at);
-      const trialEndDate = addDays(createdAt, 1); // 1 day trial
-      const hoursLeft = differenceInHours(trialEndDate, now);
-      const daysLeft = differenceInDays(trialEndDate, now);
       
-      if (data?.status === 'pendente') {
-        // User is in trial period
+      // Check if subscription is approved and active
+      if (data?.is_active && data?.status === 'aprovado') {
+        setHasAccess(true);
+        setIsTrial(false);
+        
+        // Calculate days until expiry for non-lifetime plans
+        if (data?.end_date && data.plan !== 'vitalicio') {
+          const days = differenceInDays(new Date(data.end_date), now);
+          setDaysUntilExpiry(days);
+        }
+      } 
+      // Check if it's a trial (pending status = 1 day trial from start_date or created_at)
+      else if (data?.status === 'pendente') {
+        const startDate = data?.start_date ? new Date(data.start_date) : new Date(data?.created_at);
+        const trialEndDate = addDays(startDate, 1); // 1 day trial
+        const hoursLeft = differenceInHours(trialEndDate, now);
+        
         setIsTrial(true);
         setHoursRemaining(Math.max(0, hoursLeft));
         
@@ -72,14 +82,8 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
           setHasAccess(true); // Allow trial access
         }
       } else {
-        // Regular subscription
-        setHasAccess(data?.is_active && data?.status === 'aprovado');
-        
-        // Calculate days until expiry for approved subscriptions
-        if (data?.end_date && data.plan !== 'vitalicio') {
-          const days = differenceInDays(new Date(data.end_date), now);
-          setDaysUntilExpiry(days);
-        }
+        // Other statuses (vencido, cancelado) - no access
+        setHasAccess(false);
       }
     } catch (error) {
       console.error('Error checking subscription:', error);
