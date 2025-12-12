@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel } from "lucide-react";
 import { format, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -70,6 +70,24 @@ export default function FinanceiroTab() {
       return data as Sale[];
     }
   });
+
+  // Fetch fixed expenses for the month
+  const { data: fixedExpenses } = useQuery({
+    queryKey: ["fixed-expenses-summary", selectedMonth],
+    queryFn: async () => {
+      const startDate = `${selectedMonth}-01`;
+      const endDate = `${selectedMonth}-31`;
+      const { data, error } = await supabase
+        .from("fixed_expenses")
+        .select("amount")
+        .gte("expense_date", startDate)
+        .lte("expense_date", endDate);
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
 
   useEffect(() => {
     fetchRecords();
@@ -442,7 +460,7 @@ export default function FinanceiroTab() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -481,6 +499,20 @@ export default function FinanceiroTab() {
           <CardContent>
             <p className="text-lg sm:text-xl font-bold text-teal-500">
               R$ {totalEntradas.toFixed(2)}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Fuel className="h-3 w-3 text-orange-500" />
+              Gastos Fixos
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-lg sm:text-xl font-bold text-orange-500">
+              R$ {totalGastosFixos.toFixed(2)}
             </p>
           </CardContent>
         </Card>
