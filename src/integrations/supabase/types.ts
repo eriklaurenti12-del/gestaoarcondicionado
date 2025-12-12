@@ -21,6 +21,7 @@ export type Database = {
           created_at: string
           id: string
           notes: string | null
+          photos: Json | null
           service_id: number | null
           status: string
           updated_at: string
@@ -32,6 +33,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          photos?: Json | null
           service_id?: number | null
           status?: string
           updated_at?: string
@@ -43,6 +45,7 @@ export type Database = {
           created_at?: string
           id?: string
           notes?: string | null
+          photos?: Json | null
           service_id?: number | null
           status?: string
           updated_at?: string
@@ -61,6 +64,62 @@ export type Database = {
             columns: ["service_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      client_equipment: {
+        Row: {
+          brand: string
+          btus: number | null
+          client_id: number
+          created_at: string
+          id: string
+          installation_date: string | null
+          location: string | null
+          model: string | null
+          notes: string | null
+          serial_number: string | null
+          updated_at: string
+          user_id: string
+          warranty_end_date: string | null
+        }
+        Insert: {
+          brand: string
+          btus?: number | null
+          client_id: number
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          location?: string | null
+          model?: string | null
+          notes?: string | null
+          serial_number?: string | null
+          updated_at?: string
+          user_id: string
+          warranty_end_date?: string | null
+        }
+        Update: {
+          brand?: string
+          btus?: number | null
+          client_id?: number
+          created_at?: string
+          id?: string
+          installation_date?: string | null
+          location?: string | null
+          model?: string | null
+          notes?: string | null
+          serial_number?: string | null
+          updated_at?: string
+          user_id?: string
+          warranty_end_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_equipment_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
@@ -490,6 +549,66 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_maintenance: {
+        Row: {
+          client_id: number
+          completed_date: string | null
+          created_at: string
+          equipment_id: string | null
+          id: string
+          interval_months: number
+          is_completed: boolean | null
+          maintenance_type: string
+          notes: string | null
+          scheduled_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_id: number
+          completed_date?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          id?: string
+          interval_months?: number
+          is_completed?: boolean | null
+          maintenance_type?: string
+          notes?: string | null
+          scheduled_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: number
+          completed_date?: string | null
+          created_at?: string
+          equipment_id?: string | null
+          id?: string
+          interval_months?: number
+          is_completed?: boolean | null
+          maintenance_type?: string
+          notes?: string | null
+          scheduled_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_maintenance_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_maintenance_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "client_equipment"
             referencedColumns: ["id"]
           },
         ]
