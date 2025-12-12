@@ -21,7 +21,41 @@ export default function ResetPassword() {
     let timeoutId: NodeJS.Timeout;
     let isHandled = false;
 
-    // Setup auth listener FIRST - this is critical
+    // Check for tokens in URL (both hash and query params)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const refreshToken = hashParams.get('refresh_token');
+    const type = hashParams.get('type');
+    
+    const queryParams = new URLSearchParams(window.location.search);
+    const code = queryParams.get('code');
+
+    console.log('ResetPassword: accessToken:', !!accessToken, 'type:', type, 'code:', !!code);
+
+    // If we have tokens in URL, manually set the session
+    if (accessToken && refreshToken) {
+      console.log('Setting session from tokens...');
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken
+      }).then(({ data, error }) => {
+        if (error) {
+          console.error('Error setting session:', error);
+          toast({
+            title: "Link expirado",
+            description: "O link de recuperação expirou. Solicite um novo.",
+            variant: "destructive",
+          });
+          navigate("/auth");
+        } else if (data.session) {
+          console.log('Session set successfully');
+          setIsReady(true);
+        }
+      });
+      return;
+    }
+
+    // Setup auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth event:', event, 'Session:', !!session);
       
@@ -31,7 +65,6 @@ export default function ResetPassword() {
         setIsReady(true);
         clearTimeout(timeoutId);
       } else if (event === 'SIGNED_IN' && session) {
-        // User might have come from recovery and already signed in
         console.log('SIGNED_IN event with session');
         isHandled = true;
         setIsReady(true);
@@ -39,74 +72,39 @@ export default function ResetPassword() {
       }
     });
 
-    // Check for tokens in URL (both hash and query params)
-    const checkUrlTokens = () => {
-      // Check hash params (most common for recovery)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const type = hashParams.get('type');
-      
-      // Check query params (alternative format)
-      const queryParams = new URLSearchParams(window.location.search);
-      const code = queryParams.get('code');
-      const queryType = queryParams.get('type');
-      
-      if ((type === 'recovery' && accessToken) || (queryType === 'recovery' && code)) {
-        console.log('Recovery tokens found in URL');
-        return true;
+    // Check if there's an existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log('Existing session check:', !!session);
+      if (session) {
+        setIsReady(true);
+      } else if (!accessToken && !code) {
+        // No tokens and no session - redirect to auth
+        toast({
+          title: "Acesso negado",
+          description: "Use o link enviado por email para redefinir sua senha.",
+          variant: "destructive",
+        });
+        navigate("/auth");
       }
-      
-      // Check for any access token (might be recovery)
-      if (accessToken || code) {
-        console.log('Access token found in URL');
-        return true;
-      }
-      
-      return false;
-    };
+    });
 
-    const hasTokens = checkUrlTokens();
-    
-    if (hasTokens) {
-      // Tokens found - wait for auth event or session
-      console.log('Waiting for Supabase to process tokens...');
-      
-      // Give Supabase time to process the tokens
-      timeoutId = setTimeout(async () => {
-        if (isHandled) return;
-        
-        // Check if session was established
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Timeout check - session:', !!session);
-        
-        if (session) {
-          setIsReady(true);
-        } else {
-          // Still no session - might need more time or there's an issue
-          toast({
-            title: "Erro na verificação",
-            description: "Não foi possível verificar o link. Tente novamente.",
-            variant: "destructive",
-          });
-          navigate("/auth");
-        }
-      }, 3000);
-    } else {
-      // No tokens in URL - check for existing session
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log('No tokens, checking session:', !!session);
-        if (session) {
-          setIsReady(true);
-        } else {
-          toast({
-            title: "Acesso negado",
-            description: "Use o link enviado por email para redefinir sua senha.",
-            variant: "destructive",
-          });
-          navigate("/auth");
-        }
-      });
-    }
+    // Timeout for token processing
+    timeoutId = setTimeout(() => {
+      if (!isHandled) {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session) {
+            setIsReady(true);
+          } else {
+            toast({
+              title: "Erro na verificação",
+              description: "Não foi possível verificar o link. Solicite um novo.",
+              variant: "destructive",
+            });
+            navigate("/auth");
+          }
+        });
+      }
+    }, 5000);
 
     return () => {
       subscription.unsubscribe();

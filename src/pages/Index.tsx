@@ -74,7 +74,35 @@ export default function Index() {
   });
 
   useEffect(() => {
+    // Check for recovery tokens in URL FIRST - redirect to reset-password
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (accessToken) {
+      // Has token - redirect to reset-password with the hash
+      console.log('Recovery token detected, redirecting to reset-password');
+      navigate(`/reset-password${window.location.hash}`);
+      return;
+    }
+
+    // Setup auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Index auth event:', event);
+      
+      if (event === 'PASSWORD_RECOVERY') {
+        navigate("/reset-password");
+        return;
+      }
+      
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
     checkAuth();
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const checkAuth = async () => {
@@ -91,14 +119,6 @@ export default function Index() {
 
     setIsSuperAdmin(roles?.some(r => r.role === 'super_admin') || false);
     setLoading(false);
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!session) {
-        navigate("/auth");
-      }
-    });
-
-    return () => subscription.unsubscribe();
   };
 
   const handleSignOut = async () => {
