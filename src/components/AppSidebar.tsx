@@ -38,8 +38,7 @@ const cadastrosItems = [
 // Vendas e Financeiro
 const vendasItems = [
   { id: "pdv", title: "PDV / Vendas", icon: Store },
-  { id: "quotes", title: "Orçamentos", icon: FileText },
-  { id: "service-orders", title: "Ordens de Serviço", icon: Briefcase },
+  { id: "documents", title: "Orçamentos / O.S.", icon: FileText },
   { id: "financeiro", title: "Financeiro", icon: Wallet },
 ];
 
