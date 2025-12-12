@@ -148,9 +148,12 @@ export default function ResetPassword() {
         description: "Sua senha foi alterada com sucesso.",
       });
       
+      // Sign out first, then redirect to login
+      await supabase.auth.signOut();
+      
       setTimeout(() => {
-        navigate("/");
-      }, 3000);
+        navigate("/auth");
+      }, 2000);
     } catch (error: any) {
       toast({
         title: "Erro ao alterar senha",
@@ -195,7 +198,7 @@ export default function ResetPassword() {
                 <CheckCircle className="h-12 w-12 text-green-500" />
               </div>
               <h2 className="text-2xl font-bold text-white">Senha Alterada!</h2>
-              <p className="text-gray-400">Redirecionando para o sistema...</p>
+              <p className="text-gray-400">Redirecionando para login...</p>
               <Loader2 className="h-6 w-6 animate-spin text-purple-500" />
             </div>
           </CardContent>
