@@ -151,6 +151,51 @@
   overflow: visible !important;
 }
 
+/* Table text overflow fixes */
+table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+table th,
+table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Card title overflow */
+[class*="CardTitle"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Badge text overflow */
+[class*="Badge"] {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Ensure tabs don't overflow */
+[data-radix-collection-item] {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Fix sidebar text overflow */
+[data-sidebar="menu-button"] span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dialog content max width fix */
+[data-radix-dialog-content] {
+  max-width: calc(100vw - 2rem);
+}
+
 /* Ocultar badges e referências do Lovable */
 a[href*="lovable.dev"],
 iframe[src*="lovable.dev"],

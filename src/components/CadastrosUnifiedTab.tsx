@@ -12,17 +12,17 @@ const CadastrosUnifiedTab: React.FC = () => {
     <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3 max-w-md">
-          <TabsTrigger value="clients" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Clientes</span>
+          <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
+            <Users className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Clientes</span>
           </TabsTrigger>
-          <TabsTrigger value="products" className="flex items-center gap-2">
-            <Snowflake className="w-4 h-4" />
-            <span className="hidden sm:inline">Serviços AC</span>
+          <TabsTrigger value="products" className="flex items-center gap-1 px-2">
+            <Snowflake className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Serviços AC</span>
           </TabsTrigger>
-          <TabsTrigger value="suppliers" className="flex items-center gap-2">
-            <Building2 className="w-4 h-4" />
-            <span className="hidden sm:inline">Fornecedores</span>
+          <TabsTrigger value="suppliers" className="flex items-center gap-1 px-2">
+            <Building2 className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Fornecedores</span>
           </TabsTrigger>
         </TabsList>
 
