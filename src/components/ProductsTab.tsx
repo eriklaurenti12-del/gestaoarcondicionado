@@ -278,30 +278,87 @@ const ProductsTab: React.FC = () => {
     }
   };
 
-  const exportToPDF = () => {
+  // Calculate profit margin percentage
+  const calculateProfitMargin = (costPrice: number, salePrice: number) => {
+    if (costPrice <= 0) return 0;
+    return ((salePrice - costPrice) / costPrice) * 100;
+  };
+
+  const exportToPDF = (includeInternalInfo: boolean = true) => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Catálogo de Serviços e Peças - AC Service Pro', 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+    
+    if (includeInternalInfo) {
+      // Internal PDF with all info (cost, margin)
+      doc.setFontSize(18);
+      doc.text('Catálogo Interno - Serviços e Peças', 14, 22);
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text('DOCUMENTO INTERNO - NÃO COMPARTILHAR', 14, 28);
+      doc.setTextColor(0);
+      doc.setFontSize(11);
+      doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 35);
 
-    const tableData = products?.map(p => [
-      p.name,
-      p.barcode || 'N/A',
-      p.qty < 999 ? `${p.qty} un` : 'Serviço',
-      `R$ ${Number(p.cost_price).toFixed(2)}`,
-      `R$ ${Number(p.price).toFixed(2)}`
-    ]) || [];
+      const tableData = products?.map(p => {
+        const margin = calculateProfitMargin(Number(p.cost_price), Number(p.price));
+        const profit = Number(p.price) - Number(p.cost_price);
+        return [
+          p.name,
+          p.barcode || '-',
+          p.qty < 999 ? `${p.qty} un` : 'Serviço',
+          `R$ ${Number(p.cost_price).toFixed(2)}`,
+          `R$ ${Number(p.price).toFixed(2)}`,
+          `${margin.toFixed(1)}%`,
+          `R$ ${profit.toFixed(2)}`
+        ];
+      }) || [];
 
-    autoTable(doc, {
-      startY: 35,
-      head: [['Serviço/Peça', 'Código', 'Estoque', 'Custo', 'Preço']],
-      body: tableData,
-      headStyles: { fillColor: [0, 128, 192] },
-    });
+      autoTable(doc, {
+        startY: 40,
+        head: [['Serviço/Peça', 'Código', 'Estoque', 'Custo', 'Preço', 'Margem', 'Lucro']],
+        body: tableData,
+        headStyles: { fillColor: [0, 128, 192] },
+        columnStyles: {
+          5: { halign: 'center' },
+          6: { halign: 'right' }
+        }
+      });
 
-    doc.save('servicos-pecas-ac.pdf');
-    toast({ title: "PDF exportado!", description: "Catálogo salvo." });
+      // Summary
+      const totalCost = products?.reduce((sum, p) => sum + Number(p.cost_price), 0) || 0;
+      const totalPrice = products?.reduce((sum, p) => sum + Number(p.price), 0) || 0;
+      const avgMargin = totalCost > 0 ? ((totalPrice - totalCost) / totalCost) * 100 : 0;
+      
+      const finalY = (doc as any).lastAutoTable?.finalY || 40;
+      doc.setFontSize(10);
+      doc.text(`Total de itens: ${products?.length || 0}`, 14, finalY + 10);
+      doc.text(`Margem média: ${avgMargin.toFixed(1)}%`, 14, finalY + 16);
+
+      doc.save('catalogo-interno-servicos-pecas.pdf');
+      toast({ title: "PDF Interno exportado!", description: "Catálogo com custos e margens salvo." });
+    } else {
+      // Client PDF - without cost info
+      doc.setFontSize(18);
+      doc.text('Catálogo de Serviços e Peças', 14, 22);
+      doc.setFontSize(11);
+      doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
+
+      const tableData = products?.map(p => [
+        p.name,
+        p.barcode || '-',
+        p.qty < 999 ? 'Disponível' : 'Serviço',
+        `R$ ${Number(p.price).toFixed(2)}`
+      ]) || [];
+
+      autoTable(doc, {
+        startY: 35,
+        head: [['Serviço/Peça', 'Código', 'Disponibilidade', 'Preço']],
+        body: tableData,
+        headStyles: { fillColor: [0, 128, 192] },
+      });
+
+      doc.save('catalogo-cliente-servicos-pecas.pdf');
+      toast({ title: "PDF Cliente exportado!", description: "Catálogo para cliente salvo (sem custos)." });
+    }
   };
 
   const getServiceIcon = (name: string) => {
@@ -321,15 +378,21 @@ const ProductsTab: React.FC = () => {
               <Wind className="w-5 h-5 text-cyan-500" />
               Serviços & Peças
             </span>
-            <Button onClick={exportToPDF} size="sm" variant="outline">
-              <FileDown className="w-4 h-4 mr-2" />
-              Exportar PDF
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => exportToPDF(true)} size="sm" variant="outline" title="PDF com custos e margens (interno)">
+                <FileDown className="w-4 h-4 mr-2" />
+                PDF Interno
+              </Button>
+              <Button onClick={() => exportToPDF(false)} size="sm" variant="secondary" title="PDF para cliente (sem custos)">
+                <FileDown className="w-4 h-4 mr-2" />
+                PDF Cliente
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="min-w-[600px] px-4 sm:px-0">
+            <div className="min-w-[700px] px-4 sm:px-0">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -338,44 +401,57 @@ const ProductsTab: React.FC = () => {
                     <TableHead>Estoque</TableHead>
                     <TableHead>Custo</TableHead>
                     <TableHead>Preço</TableHead>
+                    <TableHead className="text-center">Margem</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                  )) : products?.map((product) => (
-                    <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) && product.qty < 999 ? "bg-orange-50 dark:bg-orange-950" : ""}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-2">
-                          {(product as any).image_url ? (
-                            <img src={(product as any).image_url} alt={product.name} className="w-8 h-8 rounded object-cover" />
+                    <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
+                  )) : products?.map((product) => {
+                    const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
+                    const profit = Number(product.price) - Number(product.cost_price);
+                    return (
+                      <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) && product.qty < 999 ? "bg-orange-50 dark:bg-orange-950" : ""}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            {(product as any).image_url ? (
+                              <img src={(product as any).image_url} alt={product.name} className="w-8 h-8 rounded object-cover" />
+                            ) : (
+                              getServiceIcon(product.name)
+                            )}
+                            {product.name}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
+                        <TableCell>
+                          {product.qty >= 999 ? (
+                            <span className="text-cyan-600 font-medium">Serviço</span>
                           ) : (
-                            getServiceIcon(product.name)
+                            <span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span>
                           )}
-                          {product.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
-                      <TableCell>
-                        {product.qty >= 999 ? (
-                          <span className="text-cyan-600 font-medium">Serviço</span>
-                        ) : (
-                          <span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
-                          {product.qty < 999 && (
-                            <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
-                          )}
-                          <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex flex-col items-center">
+                            <span className={`font-semibold ${margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                              {margin.toFixed(1)}%
+                            </span>
+                            <span className="text-xs text-muted-foreground">R$ {profit.toFixed(2)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            {product.qty < 999 && (
+                              <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -528,7 +604,7 @@ const ProductsTab: React.FC = () => {
           {totalCost > 0 && (
             <Card className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/30 dark:to-blue-950/30 border-cyan-200 dark:border-cyan-800">
               <CardContent className="py-3">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                   <div>
                     <span className="text-muted-foreground">Custo Base:</span>
                     <p className="font-semibold">R$ {(parseFloat(baseCostPrice) || 0).toFixed(2)}</p>
@@ -544,6 +620,12 @@ const ProductsTab: React.FC = () => {
                   <div>
                     <span className="text-muted-foreground">Lucro Líquido:</span>
                     <p className="font-semibold text-green-600">R$ {profitInReais}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Margem Real:</span>
+                    <p className={`font-semibold ${calculateProfitMargin(totalCost, parseFloat(productPrice) || 0) >= 30 ? 'text-green-600' : calculateProfitMargin(totalCost, parseFloat(productPrice) || 0) >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                      {calculateProfitMargin(totalCost, parseFloat(productPrice) || 0).toFixed(1)}%
+                    </p>
                   </div>
                 </div>
               </CardContent>
