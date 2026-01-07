@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -33,6 +33,11 @@ const gestaoItems = [
   { id: "cadastros", title: "Clientes & Serviços", icon: Users },
   { id: "documents", title: "Orçamentos & O.S.", icon: FileText },
   { id: "services", title: "Manutenções", icon: Snowflake },
+];
+
+// Vendas
+const vendasItems = [
+  { id: "pdv", title: "PDV / Vendas", icon: ShoppingCart },
 ];
 
 // Financeiro
@@ -109,6 +114,17 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
           </SidebarGroupLabel>
           <SidebarGroupContent>
             {renderMenuItems(gestaoItems)}
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Vendas */}
+        <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <ShoppingCart className="w-3 h-3" />
+            Vendas
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            {renderMenuItems(vendasItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 

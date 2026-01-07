@@ -12,6 +12,7 @@ import AppointmentsTab from "@/components/AppointmentsTab";
 import FinanceiroUnifiedTab from "@/components/FinanceiroUnifiedTab";
 import DocumentsUnifiedTab from "@/components/DocumentsUnifiedTab";
 import ServicesUnifiedTab from "@/components/ServicesUnifiedTab";
+import PDVTab from "@/components/PDVTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -136,6 +137,8 @@ export default function Index() {
         return <FinanceiroUnifiedTab />;
       case "services":
         return <ServicesUnifiedTab />;
+      case "pdv":
+        return <PDVTab />;
       case "backup":
         return <DataBackup />;
       case "company":
@@ -153,6 +156,7 @@ export default function Index() {
       documents: "Orçamentos & Ordens de Serviço",
       financeiro: "Gestão Financeira",
       services: "Manutenções & Contratos",
+      pdv: "Ponto de Venda",
       backup: "Backup dos Dados",
       company: "Dados da Empresa"
     };
