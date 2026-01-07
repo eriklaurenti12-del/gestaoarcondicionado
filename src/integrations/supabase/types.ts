@@ -354,6 +354,65 @@ export type Database = {
           },
         ]
       }
+      maintenance_contracts: {
+        Row: {
+          cleaning_interval_months: number
+          client_id: number
+          contract_number: number
+          created_at: string
+          description: string | null
+          end_date: string | null
+          id: string
+          monthly_value: number | null
+          notes: string | null
+          start_date: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cleaning_interval_months?: number
+          client_id: number
+          contract_number?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          monthly_value?: number | null
+          notes?: string | null
+          start_date: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cleaning_interval_months?: number
+          client_id?: number
+          contract_number?: number
+          created_at?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          monthly_value?: number | null
+          notes?: string | null
+          start_date?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_contracts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
