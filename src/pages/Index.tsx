@@ -7,14 +7,11 @@ import SupportButton from "@/components/SupportButton";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import Dashboard from "@/components/Dashboard";
 import CadastrosUnifiedTab from "@/components/CadastrosUnifiedTab";
-import ReportsTab from "@/components/ReportsTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
-import PDVUnifiedTab from "@/components/PDVUnifiedTab";
 import FinanceiroUnifiedTab from "@/components/FinanceiroUnifiedTab";
 import DocumentsUnifiedTab from "@/components/DocumentsUnifiedTab";
 import ServicesUnifiedTab from "@/components/ServicesUnifiedTab";
-
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -133,16 +130,12 @@ export default function Index() {
         return <AppointmentsTab />;
       case "cadastros":
         return <CadastrosUnifiedTab />;
-      case "pdv":
-        return <PDVUnifiedTab />;
       case "documents":
         return <DocumentsUnifiedTab />;
       case "financeiro":
         return <FinanceiroUnifiedTab />;
       case "services":
         return <ServicesUnifiedTab />;
-      case "reports":
-        return <ReportsTab />;
       case "backup":
         return <DataBackup />;
       case "company":
@@ -154,18 +147,16 @@ export default function Index() {
 
   const getPageTitle = () => {
     const titles: Record<string, string> = {
-      dashboard: "Dashboard",
+      dashboard: "Painel de Controle",
       appointments: "Agenda de Atendimentos",
-      cadastros: "Cadastros",
-      pdv: "PDV / Vendas / Parcelas",
-      documents: "Orçamentos / Ordens de Serviço",
-      financeiro: "Financeiro",
-      services: "Serviços & Contratos",
-      reports: "Relatórios & Gráficos",
+      cadastros: "Clientes & Serviços",
+      documents: "Orçamentos & Ordens de Serviço",
+      financeiro: "Gestão Financeira",
+      services: "Manutenções & Contratos",
       backup: "Backup dos Dados",
-      company: "Minha Empresa"
+      company: "Dados da Empresa"
     };
-    return titles[activeTab] || "Dashboard";
+    return titles[activeTab] || "Painel de Controle";
   };
 
   return (

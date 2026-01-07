@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, CreditCard, Database, ShoppingCart, FolderOpen, Settings, Wind, Shield, FileText, Store, Fuel, Bell, History, ScrollText } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -22,34 +22,28 @@ interface AppSidebarProps {
   onSignOut: () => void;
 }
 
-// Menu Principal
+// Menu Principal - Fluxo do técnico de AC
 const mainItems = [
-  { id: "dashboard", title: "Dashboard", icon: BarChart3 },
+  { id: "dashboard", title: "Painel", icon: BarChart3 },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
 ];
 
-// Cadastros
-const cadastrosItems = [
-  { id: "cadastros", title: "Cadastros", icon: FolderOpen },
+// Gestão
+const gestaoItems = [
+  { id: "cadastros", title: "Clientes & Serviços", icon: Users },
+  { id: "documents", title: "Orçamentos & O.S.", icon: FileText },
+  { id: "services", title: "Manutenções", icon: Snowflake },
 ];
 
-// Vendas e Financeiro
-const vendasItems = [
-  { id: "pdv", title: "PDV / Vendas", icon: Store },
-  { id: "documents", title: "Orçamentos / O.S.", icon: FileText },
+// Financeiro
+const financeiroItems = [
   { id: "financeiro", title: "Financeiro", icon: Wallet },
-];
-
-// Ferramentas
-const toolsItems = [
-  { id: "services", title: "Serviços & Contratos", icon: History },
-  { id: "reports", title: "Relatórios & Gráficos", icon: TrendingUp },
-  { id: "backup", title: "Backup", icon: Database },
 ];
 
 // Configurações
 const configItems = [
   { id: "company", title: "Minha Empresa", icon: Briefcase },
+  { id: "backup", title: "Backup", icon: Database },
 ];
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
@@ -99,6 +93,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
         {/* Menu Principal */}
         <SidebarGroup>
           <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <Snowflake className="w-3 h-3 mr-1" />
             Principal
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -106,38 +101,32 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Cadastros */}
+        {/* Gestão */}
         <SidebarGroup>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <ClipboardList className="w-3 h-3" />
+            Gestão
+          </SidebarGroupLabel>
           <SidebarGroupContent>
-            {renderMenuItems(cadastrosItems)}
+            {renderMenuItems(gestaoItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Vendas e Financeiro */}
+        {/* Financeiro */}
         <SidebarGroup>
           <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <ShoppingCart className="w-3 h-3" />
-            Operações
+            <Wallet className="w-3 h-3" />
+            Financeiro
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            {renderMenuItems(vendasItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Ferramentas */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <Settings className="w-3 h-3" />
-            Ferramentas
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(toolsItems)}
+            {renderMenuItems(financeiroItems)}
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Configurações */}
         <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+            <Settings className="w-3 h-3" />
             Configurações
           </SidebarGroupLabel>
           <SidebarGroupContent>

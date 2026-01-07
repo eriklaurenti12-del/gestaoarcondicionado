@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Wrench, Building2 } from "lucide-react";
+import { Users, Snowflake, Building2 } from "lucide-react";
 import ClientsTab from './ClientsTab';
 import ProductsTab from './ProductsTab';
 import SuppliersTab from './SuppliersTab';
@@ -17,8 +17,8 @@ const CadastrosUnifiedTab: React.FC = () => {
             <span className="hidden sm:inline">Clientes</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-2">
-            <Wrench className="w-4 h-4" />
-            <span className="hidden sm:inline">Serviços</span>
+            <Snowflake className="w-4 h-4" />
+            <span className="hidden sm:inline">Serviços AC</span>
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="flex items-center gap-2">
             <Building2 className="w-4 h-4" />
