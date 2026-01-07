@@ -43,6 +43,7 @@ const vendasItems = [
 // Financeiro
 const financeiroItems = [
   { id: "financeiro", title: "Financeiro", icon: Wallet },
+  { id: "impostos", title: "Impostos", icon: TrendingUp },
 ];
 
 // Configurações
