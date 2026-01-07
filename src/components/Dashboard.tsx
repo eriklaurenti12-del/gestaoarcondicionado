@@ -21,13 +21,16 @@ const fetchDashboardData = async () => {
     const fixedExpensesPromise = supabase.from('fixed_expenses').select('*');
     const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']);
     const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'agendado']);
+    const scheduledMaintenancePromise = supabase.from('scheduled_maintenance').select('*, clients(name, telefone)').eq('is_completed', false);
 
-    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise]);
+    const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }, { data: scheduledMaintenance, error: smError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise, scheduledMaintenancePromise]);
 
-    if (pError || cError || sError || aError || iError || feError || qError || soError) {
-        console.error(pError || cError || sError || aError || iError || feError || qError || soError);
+    if (pError || cError || sError || aError || iError || feError || qError || soError || smError) {
+        console.error(pError || cError || sError || aError || iError || feError || qError || soError || smError);
         throw new Error("Failed to fetch dashboard data");
     }
+
+    const scheduledMaintenanceList = scheduledMaintenance || [];
 
     const productsList = products || [];
     const clientsList = clients || [];
@@ -129,6 +132,22 @@ const fetchDashboardData = async () => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
+    // Process scheduled maintenances
+    const pendingMaintenances = scheduledMaintenanceList.map((m: any) => {
+      const schedDate = new Date(m.scheduled_date);
+      const daysUntil = differenceInDays(schedDate, today);
+      let status = 'normal';
+      if (daysUntil < 0) status = 'overdue';
+      else if (daysUntil === 0) status = 'today';
+      else if (daysUntil <= 7) status = 'urgent';
+      else if (daysUntil <= 30) status = 'warning';
+      return { ...m, daysUntil, status };
+    }).sort((a: any, b: any) => a.daysUntil - b.daysUntil);
+
+    const overdueMaintenances = pendingMaintenances.filter((m: any) => m.status === 'overdue');
+    const todayMaintenances = pendingMaintenances.filter((m: any) => m.status === 'today');
+    const upcomingMaintenances = pendingMaintenances.filter((m: any) => m.status === 'urgent' || m.status === 'warning');
+
     return {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
@@ -153,7 +172,11 @@ const fetchDashboardData = async () => {
         monthlyExpensesTotal,
         expensesByCategory,
         pendingQuotes: quotesList,
-        pendingServiceOrders: serviceOrdersList
+        pendingServiceOrders: serviceOrdersList,
+        pendingMaintenances,
+        overdueMaintenances,
+        todayMaintenances,
+        upcomingMaintenances
     };
 };
 
@@ -250,7 +273,10 @@ const Dashboard: React.FC = () => {
         monthlyExpensesTotal = 0,
         expensesByCategory = {},
         pendingQuotes = [],
-        pendingServiceOrders = []
+        pendingServiceOrders = [],
+        overdueMaintenances = [],
+        todayMaintenances = [],
+        upcomingMaintenances = []
     } = data;
 
     // Calculate trial progress percentage for visual indicator
@@ -401,6 +427,37 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Maintenance Alerts */}
+      {overdueMaintenances.length > 0 && (
+        <Alert className="border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950">
+          <Thermometer className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 dark:text-red-200">🔴 Manutenções Vencidas!</AlertTitle>
+          <AlertDescription className="text-red-700 dark:text-red-300">
+            {overdueMaintenances.length} cliente(s) com limpeza de ar atrasada: {overdueMaintenances.slice(0, 3).map((m: any) => m.clients?.name || 'Cliente').join(", ")}{overdueMaintenances.length > 3 ? ` e mais ${overdueMaintenances.length - 3}...` : ''}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {todayMaintenances.length > 0 && (
+        <Alert className="border-cyan-300 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-950">
+          <CalendarCheck className="h-4 w-4 text-cyan-600" />
+          <AlertTitle className="text-cyan-800 dark:text-cyan-200">🧹 Limpezas Agendadas para Hoje!</AlertTitle>
+          <AlertDescription className="text-cyan-700 dark:text-cyan-300">
+            {todayMaintenances.length} cliente(s): {todayMaintenances.map((m: any) => m.clients?.name || 'Cliente').join(", ")}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {upcomingMaintenances.length > 0 && (
+        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
+          <Clock className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-800 dark:text-amber-200">⏰ Manutenções Próximas (7 dias)</AlertTitle>
+          <AlertDescription className="text-amber-700 dark:text-amber-300">
+            {upcomingMaintenances.filter((m: any) => m.status === 'urgent').length} cliente(s) com limpeza prevista para os próximos 7 dias
+          </AlertDescription>
+        </Alert>
       )}
 
       {lowStockProducts.length > 0 && (
