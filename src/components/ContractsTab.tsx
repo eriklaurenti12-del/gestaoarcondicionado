@@ -18,7 +18,8 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import { 
   FileText, Plus, Search, Trash2, RefreshCw, Download,
-  Calendar, DollarSign, User, Building2, AlertTriangle, CheckCircle
+  Calendar, DollarSign, User, Building2, AlertTriangle, CheckCircle,
+  MessageSquare, Eye, Edit, Phone
 } from 'lucide-react';
 
 interface Contract {
@@ -44,7 +45,9 @@ interface Contract {
 const ContractsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   
   // Form state
@@ -187,6 +190,29 @@ const ContractsTab: React.FC = () => {
       notes: ''
     });
     setSelectedContract(null);
+  };
+
+  const sendContractWhatsApp = (contract: Contract) => {
+    if (!contract.client.telefone) {
+      toast.error('Cliente não possui telefone cadastrado');
+      return;
+    }
+    const phone = contract.client.telefone.replace(/\D/g, '');
+    const message = encodeURIComponent(
+      `Olá ${contract.client.name}! 📋\n\n` +
+      `Seu contrato de manutenção "${contract.title}" está ativo!\n\n` +
+      `📅 Vigência: ${format(new Date(contract.start_date), 'dd/MM/yyyy')} a ${contract.end_date ? format(new Date(contract.end_date), 'dd/MM/yyyy') : 'Indeterminado'}\n` +
+      `🔧 Limpezas a cada ${contract.cleaning_interval_months} meses\n` +
+      (contract.monthly_value > 0 ? `💰 Valor mensal: R$ ${contract.monthly_value.toFixed(2)}\n\n` : '\n') +
+      `Entre em contato para mais informações! ❄️`
+    );
+    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    toast.success('WhatsApp aberto!');
+  };
+
+  const viewContract = (contract: Contract) => {
+    setSelectedContract(contract);
+    setViewDialogOpen(true);
   };
 
   const generateContractPDF = (contract: Contract) => {
@@ -346,10 +372,30 @@ const ContractsTab: React.FC = () => {
     return <Badge className="bg-green-100 text-green-700">Ativo</Badge>;
   };
 
-  const filteredContracts = contracts?.filter(c =>
-    c.client.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.title.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Filter contracts
+  const filteredContracts = contracts?.filter(c => {
+    const matchesSearch = c.client.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.title.toLowerCase().includes(search.toLowerCase());
+    
+    if (filterStatus === 'all') return matchesSearch;
+    
+    const today = new Date();
+    const endDate = c.end_date ? new Date(c.end_date) : null;
+    const daysUntilEnd = endDate ? differenceInDays(endDate, today) : null;
+    
+    if (filterStatus === 'active') return matchesSearch && c.status === 'ativo' && (daysUntilEnd === null || daysUntilEnd > 0);
+    if (filterStatus === 'expiring') return matchesSearch && daysUntilEnd !== null && daysUntilEnd <= 30 && daysUntilEnd > 0;
+    if (filterStatus === 'expired') return matchesSearch && daysUntilEnd !== null && daysUntilEnd < 0;
+    if (filterStatus === 'canceled') return matchesSearch && c.status === 'cancelado';
+    
+    return matchesSearch;
+  }) || [];
+
+  // Expired contracts count
+  const expiredContracts = contracts?.filter(c => {
+    if (!c.end_date) return false;
+    return differenceInDays(new Date(c.end_date), new Date()) < 0;
+  }).length || 0;
 
   // Stats
   const activeContracts = contracts?.filter(c => c.status === 'ativo').length || 0;
@@ -429,6 +475,35 @@ const ContractsTab: React.FC = () => {
                 Novo Contrato
               </Button>
             </div>
+          </div>
+          
+          {/* Filters */}
+          <div className="flex flex-wrap gap-3 mt-4">
+            <div className="w-full sm:w-48">
+              <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">🟢 Ativos</SelectItem>
+                  <SelectItem value="expiring">🟡 Vencendo (30 dias)</SelectItem>
+                  <SelectItem value="expired">🔴 Vencidos</SelectItem>
+                  <SelectItem value="canceled">⚫ Cancelados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {filterStatus !== 'all' && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => { setFilterStatus('all'); setSearch(''); }}
+                className="mt-auto"
+              >
+                Limpar filtros
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

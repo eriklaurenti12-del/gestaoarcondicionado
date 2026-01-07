@@ -39,6 +39,8 @@ interface ServiceHistory {
 const ServicesHistoryTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [selectedClientId, setSelectedClientId] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceHistory | null>(null);
   const [maintenanceDate, setMaintenanceDate] = useState('');
@@ -106,6 +108,19 @@ const ServicesHistoryTab: React.FC = () => {
       });
 
       return result;
+    }
+  });
+
+  // Fetch all clients for filter dropdown
+  const { data: clients } = useQuery({
+    queryKey: ['clients-for-filter'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('clients')
+        .select('id, name')
+        .order('name');
+      if (error) throw error;
+      return data || [];
     }
   });
 
@@ -192,10 +207,21 @@ const ServicesHistoryTab: React.FC = () => {
     toast.success('Mensagem enviada!');
   };
 
-  const filteredServices = services?.filter(s =>
-    s.clientName.toLowerCase().includes(search.toLowerCase()) ||
-    s.serviceName.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  // Filter services based on search, client, and status
+  const filteredServices = services?.filter(s => {
+    const matchesSearch = s.clientName.toLowerCase().includes(search.toLowerCase()) ||
+      s.serviceName.toLowerCase().includes(search.toLowerCase());
+    const matchesClient = selectedClientId === 'all' || s.clientId.toString() === selectedClientId;
+    const matchesStatus = filterStatus === 'all' || 
+      (filterStatus === 'overdue' && s.daysUntilMaintenance !== null && s.daysUntilMaintenance < 0) ||
+      (filterStatus === 'upcoming' && s.daysUntilMaintenance !== null && s.daysUntilMaintenance >= 0 && s.daysUntilMaintenance <= 30) ||
+      (filterStatus === 'scheduled' && s.daysUntilMaintenance !== null) ||
+      (filterStatus === 'not-scheduled' && s.daysUntilMaintenance === null);
+    return matchesSearch && matchesClient && matchesStatus;
+  }) || [];
+
+  // Get unique clients from services for quick stats
+  const uniqueClients = new Set(services?.map(s => s.clientId) || []);
 
   const getMaintenanceStatus = (daysUntil: number | null) => {
     if (daysUntil === null) return null;
@@ -221,11 +247,31 @@ const ServicesHistoryTab: React.FC = () => {
   const totalServices = services?.length || 0;
   const totalRevenue = services?.reduce((sum, s) => sum + Number(s.servicePrice), 0) || 0;
   const pendingMaintenances = services?.filter(s => s.daysUntilMaintenance !== null && s.daysUntilMaintenance <= 30).length || 0;
+  const overdueMaintenances = services?.filter(s => s.daysUntilMaintenance !== null && s.daysUntilMaintenance < 0).length || 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
+      {/* Alerts for overdue maintenances */}
+      {overdueMaintenances > 0 && (
+        <Card className="border-red-300 bg-red-50 dark:bg-red-950/20 dark:border-red-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div>
+                <p className="font-semibold text-red-700 dark:text-red-400">
+                  {overdueMaintenances} manutenção(ões) vencida(s)!
+                </p>
+                <p className="text-sm text-red-600/80 dark:text-red-400/80">
+                  Clientes aguardando limpeza de ar condicionado. Envie lembretes para reagendar.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -234,7 +280,21 @@ const ServicesHistoryTab: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-blue-600">{totalServices}</p>
-                <p className="text-xs text-muted-foreground">Serviços Realizados</p>
+                <p className="text-xs text-muted-foreground">Serviços</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900">
+                <User className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-purple-600">{uniqueClients.size}</p>
+                <p className="text-xs text-muted-foreground">Clientes</p>
               </div>
             </div>
           </CardContent>
@@ -248,7 +308,7 @@ const ServicesHistoryTab: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-green-600">R$ {totalRevenue.toFixed(0)}</p>
-                <p className="text-xs text-muted-foreground">Receita Total</p>
+                <p className="text-xs text-muted-foreground">Receita</p>
               </div>
             </div>
           </CardContent>
@@ -262,7 +322,7 @@ const ServicesHistoryTab: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-amber-600">{pendingMaintenances}</p>
-                <p className="text-xs text-muted-foreground">Manutenções Próximas</p>
+                <p className="text-xs text-muted-foreground">Próximas</p>
               </div>
             </div>
           </CardContent>
@@ -272,19 +332,68 @@ const ServicesHistoryTab: React.FC = () => {
       {/* Main Content */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-primary" />
-              Histórico de Serviços
-            </CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar cliente ou serviço..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <CardTitle className="flex items-center gap-2">
+                <Wrench className="w-5 h-5 text-primary" />
+                Histórico de Serviços
+              </CardTitle>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente ou serviço..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+            
+            {/* Filters */}
+            <div className="flex flex-wrap gap-3">
+              <div className="w-full sm:w-48">
+                <Label className="text-xs text-muted-foreground mb-1 block">Filtrar por Cliente</Label>
+                <Select value={selectedClientId} onValueChange={setSelectedClientId}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Todos os clientes" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os clientes</SelectItem>
+                    {clients?.map(client => (
+                      <SelectItem key={client.id} value={client.id.toString()}>
+                        {client.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="w-full sm:w-48">
+                <Label className="text-xs text-muted-foreground mb-1 block">Status da Manutenção</Label>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="overdue">🔴 Vencidas</SelectItem>
+                    <SelectItem value="upcoming">🟡 Próximas (30 dias)</SelectItem>
+                    <SelectItem value="scheduled">🟢 Com agendamento</SelectItem>
+                    <SelectItem value="not-scheduled">⚪ Sem agendamento</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(selectedClientId !== 'all' || filterStatus !== 'all') && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => { setSelectedClientId('all'); setFilterStatus('all'); setSearch(''); }}
+                  className="mt-auto"
+                >
+                  Limpar filtros
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
