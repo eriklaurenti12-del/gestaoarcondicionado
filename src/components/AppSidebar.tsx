@@ -42,9 +42,7 @@ const vendasItems = [
 
 // Ferramentas
 const toolsItems = [
-  { id: "services-history", title: "Serviços", icon: History },
-  { id: "contracts", title: "Contratos", icon: ScrollText },
-  { id: "reminders", title: "Lembretes", icon: Bell },
+  { id: "services", title: "Serviços & Contratos", icon: History },
   { id: "reports", title: "Relatórios & Gráficos", icon: TrendingUp },
   { id: "backup", title: "Backup", icon: Database },
 ];
