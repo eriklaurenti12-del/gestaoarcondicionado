@@ -473,19 +473,87 @@ const ServicesUnifiedTab: React.FC = () => {
   const totalMonthlyValue = contracts?.reduce((sum, c) => sum + Number(c.monthly_value), 0) || 0;
 
   // ============ ACTIONS ============
+  // ============ BRAZILIAN HOLIDAYS ============
+  const getBrazilianHolidays = (year: number) => {
+    // Calculate Easter (Computus algorithm)
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    const easter = new Date(year, month - 1, day);
+    
+    const addDays = (date: Date, days: number) => {
+      const result = new Date(date);
+      result.setDate(result.getDate() + days);
+      return result;
+    };
+    
+    return [
+      { date: new Date(year, 0, 1), name: 'Ano Novo', emoji: '🎆' },
+      { date: addDays(easter, -47), name: 'Carnaval', emoji: '🎭' },
+      { date: addDays(easter, -46), name: 'Carnaval', emoji: '🎭' },
+      { date: addDays(easter, -2), name: 'Sexta-feira Santa', emoji: '✝️' },
+      { date: easter, name: 'Páscoa', emoji: '🐰' },
+      { date: new Date(year, 3, 21), name: 'Tiradentes', emoji: '🏛️' },
+      { date: new Date(year, 4, 1), name: 'Dia do Trabalho', emoji: '👷' },
+      { date: addDays(easter, 60), name: 'Corpus Christi', emoji: '⛪' },
+      { date: new Date(year, 8, 7), name: 'Independência do Brasil', emoji: '🇧🇷' },
+      { date: new Date(year, 9, 12), name: 'Nossa Senhora Aparecida', emoji: '🙏' },
+      { date: new Date(year, 10, 2), name: 'Finados', emoji: '🕯️' },
+      { date: new Date(year, 10, 15), name: 'Proclamação da República', emoji: '🇧🇷' },
+      { date: new Date(year, 11, 25), name: 'Natal', emoji: '🎄' },
+    ];
+  };
+
+  const getNextHoliday = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const holidays = [...getBrazilianHolidays(currentYear), ...getBrazilianHolidays(currentYear + 1)];
+    
+    for (const holiday of holidays) {
+      if (holiday.date >= today) {
+        return holiday;
+      }
+    }
+    return holidays[0];
+  };
+
+  const nextHoliday = getNextHoliday();
+
+  const formatPhoneForWhatsApp = (phone: string) => {
+    // Remove all non-digits
+    let cleaned = phone.replace(/\D/g, '');
+    // Add country code if not present
+    if (!cleaned.startsWith('55')) {
+      cleaned = '55' + cleaned;
+    }
+    return cleaned;
+  };
+
+  // ============ WHATSAPP & EMAIL FUNCTIONS ============
   const sendReminderWhatsApp = (reminder: ServiceReminder) => {
     if (!reminder.clientPhone) {
       toast.error('Cliente não possui telefone cadastrado');
       return;
     }
-    const phone = reminder.clientPhone.replace(/\D/g, '');
+    const phone = formatPhoneForWhatsApp(reminder.clientPhone);
     const message = encodeURIComponent(
       `Olá ${reminder.clientName}!\n\n` +
       `🔧 Passaram-se ${reminder.monthsSince} meses desde sua última manutenção de ${reminder.serviceName}.\n\n` +
       `✅ Recomendamos agendar uma nova manutenção para manter seu equipamento funcionando perfeitamente!\n\n` +
       `📞 Entre em contato para agendar.`
     );
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
     toast.success(`Mensagem enviada para ${reminder.clientName}`);
   };
 
@@ -494,7 +562,7 @@ const ServicesUnifiedTab: React.FC = () => {
       toast.error('Cliente não possui telefone cadastrado');
       return;
     }
-    const phone = service.clientPhone.replace(/\D/g, '');
+    const phone = formatPhoneForWhatsApp(service.clientPhone);
     const message = encodeURIComponent(
       `Olá ${service.clientName}! 🌬️\n\n` +
       `Está na hora de fazer a manutenção do seu ar condicionado!\n\n` +
@@ -502,8 +570,42 @@ const ServicesUnifiedTab: React.FC = () => {
       `🔧 Serviço: ${service.serviceName}\n\n` +
       `Entre em contato para agendar sua limpeza! ❄️`
     );
-    window.open(`https://wa.me/55${phone}?text=${message}`, '_blank');
+    window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
     toast.success('Mensagem enviada!');
+  };
+
+  const generateBulkMessage = (clientName: string) => {
+    let message = bulkMessage;
+    const today = new Date();
+    
+    if (!message || message.trim() === '') {
+      if (bulkType === 'vacation') {
+        const returnDate = format(addDays(today, 7), "dd 'de' MMMM", { locale: ptBR });
+        message = `Olá ${clientName}! 🏖️\n\n` +
+          `Informamos que estaremos em período de *férias* a partir de hoje, ${format(today, "dd 'de' MMMM", { locale: ptBR })}.\n\n` +
+          `📅 Retornamos em: ${returnDate}\n\n` +
+          `Agradecemos a compreensão e até breve! 😊\n\n` +
+          `${companyData?.company_name || 'AC Service Pro'}`;
+      } else if (bulkType === 'holiday') {
+        const holiday = nextHoliday;
+        const holidayDate = format(holiday.date, "dd 'de' MMMM", { locale: ptBR });
+        message = `Olá ${clientName}! ${holiday.emoji}\n\n` +
+          `Informamos que *não haverá expediente* no dia ${holidayDate} em comemoração ao *${holiday.name}*.\n\n` +
+          `📅 Retornaremos normalmente no próximo dia útil.\n\n` +
+          `Desejamos um ótimo feriado! 🎉\n\n` +
+          `${companyData?.company_name || 'AC Service Pro'}`;
+      }
+    } else {
+      message = message.replace(/{nome}/gi, clientName);
+    }
+    
+    return message;
+  };
+
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
   };
 
   const sendBulkMessage = () => {
@@ -514,22 +616,13 @@ const ServicesUnifiedTab: React.FC = () => {
       return;
     }
 
-    let message = bulkMessage;
-    if (!message) {
-      if (bulkType === 'vacation') {
-        message = `Olá! 🏖️\n\nInformamos que estaremos em período de férias e retornaremos em breve.\n\nAgradecemos a compreensão!`;
-      } else if (bulkType === 'holiday') {
-        message = `Olá! 🎉\n\nInformamos que não haverá expediente hoje devido ao feriado.\n\nRetornaremos normalmente no próximo dia útil!\n\nBoas festas!`;
-      }
-    }
-
     if (sendMethod === 'whatsapp') {
       let successCount = 0;
       targetClients.forEach((client, index) => {
         setTimeout(() => {
-          const phone = client.telefone!.replace(/\D/g, '');
-          const personalizedMessage = encodeURIComponent(message.replace('{nome}', client.name));
-          window.open(`https://wa.me/55${phone}?text=${personalizedMessage}`, '_blank');
+          const phone = formatPhoneForWhatsApp(client.telefone!);
+          const personalizedMessage = encodeURIComponent(generateBulkMessage(client.name));
+          window.open(`https://wa.me/${phone}?text=${personalizedMessage}`, '_blank');
           successCount++;
           if (successCount === targetClients.length) {
             toast.success(`${successCount} mensagens preparadas!`);
@@ -537,14 +630,19 @@ const ServicesUnifiedTab: React.FC = () => {
         }, index * 500);
       });
     } else {
+      // Open Gmail with all emails
       const emails = targetClients.map(c => c.email).join(',');
       const subject = encodeURIComponent(
-        bulkType === 'vacation' ? 'Aviso de Férias' : 
-        bulkType === 'holiday' ? 'Aviso de Feriado' : 'Comunicado'
+        bulkType === 'vacation' ? 'Aviso de Férias - ' + (companyData?.company_name || 'AC Service Pro') : 
+        bulkType === 'holiday' ? `Aviso de Feriado: ${nextHoliday.name} - ${companyData?.company_name || 'AC Service Pro'}` : 
+        'Comunicado - ' + (companyData?.company_name || 'AC Service Pro')
       );
-      const body = encodeURIComponent(message.replace('{nome}', 'Cliente'));
-      window.open(`mailto:${emails}?subject=${subject}&body=${body}`, '_blank');
-      toast.success(`Email preparado para ${targetClients.length} cliente(s)!`);
+      const body = encodeURIComponent(generateBulkMessage('Cliente'));
+      
+      // Open Gmail compose
+      const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${emails}&su=${subject}&body=${body}`;
+      window.open(gmailUrl, '_blank');
+      toast.success(`Gmail aberto para ${targetClients.length} cliente(s)!`);
     }
   };
 
@@ -1022,46 +1120,138 @@ const ServicesUnifiedTab: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Method Selection */}
               <div className="grid grid-cols-2 gap-4">
-                <Card className={`cursor-pointer transition-all ${sendMethod === 'whatsapp' ? 'ring-2 ring-green-500' : ''}`} onClick={() => setSendMethod('whatsapp')}>
+                <Card className={`cursor-pointer transition-all hover:shadow-md ${sendMethod === 'whatsapp' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950/20' : ''}`} onClick={() => setSendMethod('whatsapp')}>
                   <CardContent className="p-4 text-center">
                     <MessageSquare className="w-8 h-8 mx-auto mb-2 text-green-500" />
                     <h3 className="font-semibold">WhatsApp</h3>
                     <p className="text-xs text-muted-foreground">{clients?.filter(c => c.telefone).length || 0} clientes</p>
                   </CardContent>
                 </Card>
-                <Card className={`cursor-pointer transition-all ${sendMethod === 'email' ? 'ring-2 ring-blue-500' : ''}`} onClick={() => setSendMethod('email')}>
+                <Card className={`cursor-pointer transition-all hover:shadow-md ${sendMethod === 'email' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''}`} onClick={() => setSendMethod('email')}>
                   <CardContent className="p-4 text-center">
                     <Mail className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                    <h3 className="font-semibold">Email</h3>
+                    <h3 className="font-semibold">Email (Gmail)</h3>
                     <p className="text-xs text-muted-foreground">{clients?.filter(c => c.email).length || 0} clientes</p>
                   </CardContent>
                 </Card>
               </div>
 
+              {/* Message Type Selection */}
               <div className="grid grid-cols-3 gap-2">
-                {['vacation', 'holiday', 'custom'].map(type => (
-                  <Card key={type} className={`cursor-pointer transition-all ${bulkType === type ? 'ring-2 ring-primary' : ''}`} onClick={() => setBulkType(type as any)}>
-                    <CardContent className="p-3 text-center">
-                      <p className="font-semibold text-sm">{type === 'vacation' ? '🏖️ Férias' : type === 'holiday' ? '🎉 Feriado' : '✏️ Personalizada'}</p>
-                    </CardContent>
-                  </Card>
-                ))}
+                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'vacation' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('vacation')}>
+                  <CardContent className="p-3 text-center">
+                    <p className="font-semibold text-sm">🏖️ Férias</p>
+                  </CardContent>
+                </Card>
+                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'holiday' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('holiday')}>
+                  <CardContent className="p-3 text-center">
+                    <p className="font-semibold text-sm">🎉 Feriado</p>
+                    <p className="text-[10px] text-muted-foreground truncate">{nextHoliday.emoji} {nextHoliday.name}</p>
+                  </CardContent>
+                </Card>
+                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'custom' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('custom')}>
+                  <CardContent className="p-3 text-center">
+                    <p className="font-semibold text-sm">✏️ Personalizada</p>
+                  </CardContent>
+                </Card>
               </div>
 
+              {/* Holiday Info */}
+              {bulkType === 'holiday' && (
+                <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
+                  <Calendar className="h-4 w-4 text-amber-600" />
+                  <AlertTitle className="text-amber-700 dark:text-amber-400">Próximo Feriado</AlertTitle>
+                  <AlertDescription className="text-amber-600/80">
+                    {nextHoliday.emoji} <strong>{nextHoliday.name}</strong> - {format(nextHoliday.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Client Selection */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Selecionar Clientes
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="select-all"
+                      checked={selectAll}
+                      onCheckedChange={(checked) => {
+                        setSelectAll(!!checked);
+                        if (checked) {
+                          setSelectedClientIds([]);
+                        }
+                      }}
+                    />
+                    <Label htmlFor="select-all" className="text-sm cursor-pointer">Todos ({clientsWithContact.length})</Label>
+                  </div>
+                </div>
+
+                {!selectAll && (
+                  <div className="space-y-2">
+                    <div className="relative">
+                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar cliente..."
+                        value={clientSearch}
+                        onChange={(e) => setClientSearch(e.target.value)}
+                        className="pl-8"
+                      />
+                    </div>
+                    <ScrollArea className="h-[150px] border rounded-md p-2">
+                      {filteredClientsForBulk.map(client => (
+                        <div key={client.id} className="flex items-center gap-2 py-1.5 px-1 hover:bg-muted/50 rounded">
+                          <Checkbox
+                            id={`client-${client.id}`}
+                            checked={selectedClientIds.includes(client.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                setSelectedClientIds(prev => [...prev, client.id]);
+                              } else {
+                                setSelectedClientIds(prev => prev.filter(id => id !== client.id));
+                              }
+                            }}
+                          />
+                          <Label htmlFor={`client-${client.id}`} className="text-sm cursor-pointer flex-1">
+                            {client.name}
+                            <span className="text-xs text-muted-foreground ml-2">
+                              {sendMethod === 'whatsapp' ? client.telefone : client.email}
+                            </span>
+                          </Label>
+                        </div>
+                      ))}
+                    </ScrollArea>
+                    <p className="text-xs text-muted-foreground text-right">
+                      {selectedClientIds.length} selecionado(s)
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Message Input */}
               <div>
-                <Label>Mensagem</Label>
+                <Label>Mensagem {bulkType !== 'custom' && '(opcional)'}</Label>
                 <Textarea
                   value={bulkMessage}
                   onChange={(e) => setBulkMessage(e.target.value)}
-                  placeholder={bulkType === 'custom' ? 'Digite sua mensagem... Use {nome} para o nome do cliente' : 'Deixe em branco para usar mensagem padrão'}
+                  placeholder={bulkType === 'custom' ? 'Digite sua mensagem... Use {nome} para o nome do cliente' : 'Deixe em branco para usar mensagem padrão com nome do cliente e data'}
                   rows={4}
                 />
+                {bulkType !== 'custom' && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    💡 A mensagem padrão inclui automaticamente: nome do cliente, data e {bulkType === 'holiday' ? `detalhes do feriado (${nextHoliday.name})` : 'período de férias'}
+                  </p>
+                )}
               </div>
 
-              <Button onClick={sendBulkMessage} className="w-full">
+              {/* Send Button */}
+              <Button onClick={sendBulkMessage} className="w-full" size="lg">
                 <Send className="w-4 h-4 mr-2" />
-                Enviar para {selectAll ? clientsWithContact.length : selectedClientIds.length} clientes
+                Enviar para {selectAll ? clientsWithContact.length : selectedClientIds.length} cliente(s) via {sendMethod === 'whatsapp' ? 'WhatsApp' : 'Gmail'}
               </Button>
             </CardContent>
           </Card>
