@@ -11,13 +11,13 @@ const DocumentsUnifiedTab: React.FC = () => {
     <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-xs">
-          <TabsTrigger value="quotes" className="flex items-center gap-2">
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Orçamentos</span>
+          <TabsTrigger value="quotes" className="flex items-center gap-1 px-2">
+            <FileText className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Orçamentos</span>
           </TabsTrigger>
-          <TabsTrigger value="orders" className="flex items-center gap-2">
-            <Briefcase className="w-4 h-4" />
-            <span className="hidden sm:inline">Ordens de Serviço</span>
+          <TabsTrigger value="orders" className="flex items-center gap-1 px-2">
+            <Briefcase className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Ordens de Serviço</span>
           </TabsTrigger>
         </TabsList>
 

@@ -600,13 +600,13 @@ const PDVTab: React.FC = () => {
     <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
-          <TabsTrigger value="venda" className="flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4" />
-            <span>PDV</span>
+          <TabsTrigger value="venda" className="flex items-center gap-1 px-2">
+            <ShoppingCart className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">PDV</span>
           </TabsTrigger>
-          <TabsTrigger value="historico" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            <span>Histórico</span>
+          <TabsTrigger value="historico" className="flex items-center gap-1 px-2">
+            <History className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">Histórico</span>
           </TabsTrigger>
         </TabsList>
 

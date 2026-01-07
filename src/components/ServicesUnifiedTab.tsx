@@ -756,22 +756,22 @@ const ServicesUnifiedTab: React.FC = () => {
 
       {/* Main Tabs */}
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="reminders" className="flex items-center gap-1 text-xs sm:text-sm">
-            <Bell className="w-4 h-4" />
-            <span className="hidden sm:inline">Lembretes</span>
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+          <TabsTrigger value="reminders" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+            <Bell className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Lembretes</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-1 text-xs sm:text-sm">
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">Histórico</span>
+          <TabsTrigger value="history" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+            <History className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="contracts" className="flex items-center gap-1 text-xs sm:text-sm">
-            <ScrollText className="w-4 h-4" />
-            <span className="hidden sm:inline">Contratos</span>
+          <TabsTrigger value="contracts" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+            <ScrollText className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Contratos</span>
           </TabsTrigger>
-          <TabsTrigger value="bulk" className="flex items-center gap-1 text-xs sm:text-sm">
-            <Send className="w-4 h-4" />
-            <span className="hidden sm:inline">Mensagens</span>
+          <TabsTrigger value="bulk" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+            <Send className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Mensagens</span>
           </TabsTrigger>
         </TabsList>
 
