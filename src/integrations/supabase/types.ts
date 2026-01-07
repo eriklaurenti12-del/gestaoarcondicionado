@@ -128,9 +128,11 @@ export type Database = {
         Row: {
           address: string | null
           aniversario: string | null
+          cpf_cnpj: string | null
           created_at: string
           email: string | null
           id: number
+          is_company: boolean | null
           name: string
           preferences: string | null
           telefone: string | null
@@ -139,9 +141,11 @@ export type Database = {
         Insert: {
           address?: string | null
           aniversario?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: number
+          is_company?: boolean | null
           name: string
           preferences?: string | null
           telefone?: string | null
@@ -150,9 +154,11 @@ export type Database = {
         Update: {
           address?: string | null
           aniversario?: string | null
+          cpf_cnpj?: string | null
           created_at?: string
           email?: string | null
           id?: number
+          is_company?: boolean | null
           name?: string
           preferences?: string | null
           telefone?: string | null
@@ -821,6 +827,93 @@ export type Database = {
           email?: string | null
           id?: number
           name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tax_records: {
+        Row: {
+          created_at: string
+          das_value: number | null
+          employee_fgts: number | null
+          employee_inss: number | null
+          employee_is_registered: boolean | null
+          employee_name: string | null
+          employee_salary: number | null
+          equipment_expenses: number | null
+          fgts_value: number | null
+          fuel_expenses: number | null
+          id: string
+          inss_value: number | null
+          irrf_value: number | null
+          iss_value: number | null
+          material_expenses: number | null
+          month_year: string
+          notes: string | null
+          other_expenses: number | null
+          other_taxes: number | null
+          record_date: string
+          revenue_from_products: number | null
+          revenue_from_services: number | null
+          total_expenses: number | null
+          total_revenue: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          das_value?: number | null
+          employee_fgts?: number | null
+          employee_inss?: number | null
+          employee_is_registered?: boolean | null
+          employee_name?: string | null
+          employee_salary?: number | null
+          equipment_expenses?: number | null
+          fgts_value?: number | null
+          fuel_expenses?: number | null
+          id?: string
+          inss_value?: number | null
+          irrf_value?: number | null
+          iss_value?: number | null
+          material_expenses?: number | null
+          month_year: string
+          notes?: string | null
+          other_expenses?: number | null
+          other_taxes?: number | null
+          record_date?: string
+          revenue_from_products?: number | null
+          revenue_from_services?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          das_value?: number | null
+          employee_fgts?: number | null
+          employee_inss?: number | null
+          employee_is_registered?: boolean | null
+          employee_name?: string | null
+          employee_salary?: number | null
+          equipment_expenses?: number | null
+          fgts_value?: number | null
+          fuel_expenses?: number | null
+          id?: string
+          inss_value?: number | null
+          irrf_value?: number | null
+          iss_value?: number | null
+          material_expenses?: number | null
+          month_year?: string
+          notes?: string | null
+          other_expenses?: number | null
+          other_taxes?: number | null
+          record_date?: string
+          revenue_from_products?: number | null
+          revenue_from_services?: number | null
+          total_expenses?: number | null
+          total_revenue?: number | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
