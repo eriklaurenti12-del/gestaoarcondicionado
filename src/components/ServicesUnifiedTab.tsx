@@ -22,7 +22,7 @@ import jsPDF from 'jspdf';
 import { 
   Bell, Send, MessageSquare, Clock, AlertTriangle, 
   Users, Calendar, RefreshCw, Search, CheckCircle, Mail,
-  Wrench, MapPin, DollarSign, Plus, User, History,
+  Snowflake, MapPin, DollarSign, Plus, User, History,
   FileText, Trash2, Download, Eye, Phone, Building2, ScrollText
 } from 'lucide-react';
 
@@ -780,8 +780,8 @@ const ServicesUnifiedTab: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-primary" />
-                Clientes para Retorno de Manutenção
+                <Snowflake className="w-5 h-5 text-primary" />
+                Limpezas de Ar Condicionado Pendentes
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -790,10 +790,10 @@ const ServicesUnifiedTab: React.FC = () => {
                   {[1,2,3].map(i => <Skeleton key={i} className="h-12 w-full" />)}
                 </div>
               ) : reminders?.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Bell className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Nenhum lembrete pendente</p>
-                  <p className="text-sm mt-1">Configure warranty_months nos serviços</p>
+              <div className="text-center py-8 text-muted-foreground">
+                  <Snowflake className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhuma limpeza pendente</p>
+                  <p className="text-sm mt-1">Configure o prazo em meses nos serviços de AC</p>
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
@@ -838,8 +838,8 @@ const ServicesUnifiedTab: React.FC = () => {
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col sm:flex-row justify-between gap-4">
                   <CardTitle className="flex items-center gap-2">
-                    <Wrench className="w-5 h-5 text-primary" />
-                    Histórico de Serviços
+                    <Snowflake className="w-5 h-5 text-primary" />
+                    Histórico de Atendimentos
                   </CardTitle>
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -878,8 +878,8 @@ const ServicesUnifiedTab: React.FC = () => {
                 <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
               ) : filteredServices.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
-                  <Wrench className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Nenhum serviço encontrado</p>
+                  <Snowflake className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Nenhum atendimento encontrado</p>
                 </div>
               ) : (
                 <ScrollArea className="h-[400px]">
