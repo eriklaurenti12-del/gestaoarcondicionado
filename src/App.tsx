@@ -21,10 +21,10 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
+        <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/landing" element={<Landing />} />
+            <Route path="/dashboard" element={<Index />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/members" element={<Members />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

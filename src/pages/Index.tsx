@@ -92,7 +92,7 @@ export default function Index() {
       }
       
       if (!session) {
-        navigate("/landing");
+        navigate("/");
       }
     });
 
@@ -104,7 +104,7 @@ export default function Index() {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      navigate("/landing");
+      navigate("/");
       return;
     }
 
@@ -141,7 +141,7 @@ export default function Index() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate("/landing");
+    navigate("/");
   };
 
   if (loading) {
