@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Clock, MessageCircle, Snowflake, RefreshCw, 
-  CheckCircle, LogOut, Download, Share
+  CheckCircle, LogOut, Download, Share, CreditCard, Crown
 } from "lucide-react";
 import { toast } from 'sonner';
 
@@ -14,6 +14,8 @@ const AwaitingActivation: React.FC = () => {
   const [userEmail, setUserEmail] = useState('');
   const [checking, setChecking] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState('https://wa.me/5511999999999');
+  const [checkoutMensal, setCheckoutMensal] = useState('');
+  const [checkoutAnual, setCheckoutAnual] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -46,15 +48,18 @@ const AwaitingActivation: React.FC = () => {
       }
       setUserEmail(session.user.email || '');
 
-      // Load whatsapp from settings
-      const { data } = await supabase
+      // Load settings
+      const { data: settings } = await supabase
         .from('admin_settings')
-        .select('value')
-        .eq('key', 'whatsapp_suporte')
-        .maybeSingle();
+        .select('key, value')
+        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_anual']);
       
-      if (data?.value) {
-        setWhatsappLink(data.value);
+      if (settings) {
+        settings.forEach(s => {
+          if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
+          if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
+          if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
+        });
       }
     };
 
@@ -146,6 +151,14 @@ const AwaitingActivation: React.FC = () => {
     }
   };
 
+  const openCheckout = (url: string) => {
+    if (url) {
+      window.open(url, '_blank');
+    } else {
+      toast.error('Link de pagamento não configurado. Entre em contato com o suporte.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 flex items-center justify-center p-4">
       {/* Background effects */}
@@ -181,6 +194,42 @@ const AwaitingActivation: React.FC = () => {
             <p className="text-gray-500 text-xs text-center mt-2">
               O sistema libera o acesso automaticamente após confirmar o pagamento
             </p>
+          </div>
+
+          {/* Payment Buttons */}
+          <div className="space-y-2">
+            <p className="text-gray-400 text-xs text-center font-medium">Escolha seu plano:</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Button 
+                onClick={() => openCheckout(checkoutMensal)}
+                className="flex-col h-auto py-3 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border border-blue-500/30"
+              >
+                <CreditCard className="w-5 h-5 mb-1" />
+                <span className="text-sm font-semibold">Mensal</span>
+                <span className="text-xs opacity-80">R$ 19,90/mês</span>
+              </Button>
+              
+              <Button 
+                onClick={() => openCheckout(checkoutAnual)}
+                className="flex-col h-auto py-3 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 border border-amber-400/30 relative overflow-hidden"
+              >
+                <div className="absolute -top-1 -right-1 bg-green-500 text-[9px] px-2 py-0.5 rounded-bl-md font-bold">
+                  ECONOMIZE
+                </div>
+                <Crown className="w-5 h-5 mb-1" />
+                <span className="text-sm font-semibold">Anual</span>
+                <span className="text-xs opacity-80">R$ 99,90/ano</span>
+              </Button>
+            </div>
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-white/10" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-slate-800 px-2 text-gray-500">ou</span>
+            </div>
           </div>
 
           <div className="space-y-3">
