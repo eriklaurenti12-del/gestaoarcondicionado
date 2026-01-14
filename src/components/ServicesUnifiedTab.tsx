@@ -949,7 +949,7 @@ const ServicesUnifiedTab: React.FC = () => {
                     <Label className="text-xs text-muted-foreground mb-1 block">Cliente</Label>
                     <Select value={selectedClientId} onValueChange={setSelectedClientId}>
                       <SelectTrigger className="h-9"><SelectValue placeholder="Todos" /></SelectTrigger>
-                      <SelectContent>
+                      <SelectContent avoidCollisions={false}>
                         <SelectItem value="all">Todos</SelectItem>
                         {clients?.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
                       </SelectContent>
@@ -959,7 +959,7 @@ const ServicesUnifiedTab: React.FC = () => {
                     <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
                     <Select value={filterStatus} onValueChange={setFilterStatus}>
                       <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectContent avoidCollisions={false}>
                         <SelectItem value="all">Todos</SelectItem>
                         <SelectItem value="overdue">🔴 Vencidas</SelectItem>
                         <SelectItem value="upcoming">🟡 Próximas</SelectItem>
@@ -1047,7 +1047,7 @@ const ServicesUnifiedTab: React.FC = () => {
                   <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
                   <Select value={contractFilterStatus} onValueChange={setContractFilterStatus}>
                     <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                    <SelectContent>
+                    <SelectContent avoidCollisions={false}>
                       <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="active">🟢 Ativos</SelectItem>
                       <SelectItem value="expiring">🟡 Vencendo</SelectItem>
@@ -1276,7 +1276,7 @@ const ServicesUnifiedTab: React.FC = () => {
               <Label>Intervalo (meses)</Label>
               <Select value={intervalMonths} onValueChange={setIntervalMonths}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent avoidCollisions={false}>
                   <SelectItem value="3">3 meses</SelectItem>
                   <SelectItem value="6">6 meses</SelectItem>
                   <SelectItem value="12">12 meses</SelectItem>
@@ -1308,7 +1308,7 @@ const ServicesUnifiedTab: React.FC = () => {
               <Label>Cliente *</Label>
               <Select value={contractFormData.clientId} onValueChange={(v) => setContractFormData(p => ({ ...p, clientId: v }))}>
                 <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
+                <SelectContent avoidCollisions={false}>
                   {clients?.map(c => <SelectItem key={c.id} value={c.id.toString()}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -1332,7 +1332,7 @@ const ServicesUnifiedTab: React.FC = () => {
                 <Label>Intervalo de Limpezas</Label>
                 <Select value={contractFormData.intervalMonths} onValueChange={(v) => setContractFormData(p => ({ ...p, intervalMonths: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent avoidCollisions={false}>
                     <SelectItem value="3">3 meses</SelectItem>
                     <SelectItem value="6">6 meses</SelectItem>
                     <SelectItem value="12">12 meses</SelectItem>
