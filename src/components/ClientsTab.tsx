@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone, Wind } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone, Wind, AlertTriangle, Clock, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
@@ -15,7 +17,7 @@ import ClientHistoryDialog from './ClientHistoryDialog';
 import ClientEquipmentDialog from './ClientEquipmentDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { format, parseISO, isValid } from 'date-fns';
+import { format, parseISO, isValid, differenceInDays } from 'date-fns';
 
 type ClientWithSales = Tables<'clients'> & { sales: Pick<Tables<'sales'>, 'sale_price' | 'qty'>[], preferences?: string | null };
 
@@ -35,6 +37,38 @@ const ClientsTab: React.FC = () => {
   const [equipmentClient, setEquipmentClient] = useState<ClientWithSales | null>(null);
 
   const { data: clients, isLoading: isLoadingClients } = useQuery({ queryKey: ['clients'], queryFn: fetchClients });
+
+  const { data: allMaintenances } = useQuery({
+    queryKey: ['all-maintenances'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scheduled_maintenance')
+        .select('*')
+        .eq('is_completed', false)
+        .order('scheduled_date', { ascending: true });
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const getClientMaintenanceStatus = (clientId: number) => {
+    const clientMaintenances = allMaintenances?.filter(m => m.client_id === clientId) || [];
+    if (clientMaintenances.length === 0) return null;
+    
+    const overdue = clientMaintenances.filter(m => differenceInDays(new Date(m.scheduled_date), new Date()) < 0);
+    const upcoming = clientMaintenances.filter(m => {
+      const days = differenceInDays(new Date(m.scheduled_date), new Date());
+      return days >= 0 && days <= 7;
+    });
+    
+    if (overdue.length > 0) {
+      return { status: 'overdue', count: overdue.length, icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/30' };
+    }
+    if (upcoming.length > 0) {
+      return { status: 'upcoming', count: upcoming.length, icon: Clock, color: 'text-amber-500', bg: 'bg-amber-100 dark:bg-amber-900/30' };
+    }
+    return { status: 'ok', count: clientMaintenances.length, icon: CheckCircle, color: 'text-green-500', bg: 'bg-green-100 dark:bg-green-900/30' };
+  };
   const updateClientMutation = useMutation({
     mutationFn: async (clientData: TablesUpdate<'clients'> & { id: number }) => {
         const { id, ...updateData } = clientData;
@@ -149,10 +183,32 @@ const ClientsTab: React.FC = () => {
                   {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
                   : filteredClients.map((client) => {
                     const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
+                    const maintenanceStatus = getClientMaintenanceStatus(client.id);
+                    const MaintenanceIcon = maintenanceStatus?.icon || CheckCircle;
                     
                     return (
                       <TableRow key={client.id} className="transition-all duration-200 hover:bg-muted/50">
-                        <TableCell className="font-medium">{client.name}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{client.name}</span>
+                            {maintenanceStatus && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <div className={`p-1 rounded-full ${maintenanceStatus.bg}`}>
+                                      <MaintenanceIcon className={`w-3 h-3 ${maintenanceStatus.color}`} />
+                                    </div>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    {maintenanceStatus.status === 'overdue' && `${maintenanceStatus.count} manutenção(ões) atrasada(s)`}
+                                    {maintenanceStatus.status === 'upcoming' && `${maintenanceStatus.count} manutenção(ões) próxima(s)`}
+                                    {maintenanceStatus.status === 'ok' && `${maintenanceStatus.count} manutenção(ões) agendada(s)`}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           {client.telefone ? (
                             <div className="flex items-center gap-1">

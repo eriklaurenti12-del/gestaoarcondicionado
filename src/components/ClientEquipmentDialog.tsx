@@ -9,9 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Trash2, Plus, Wind, Calendar, Shield, MapPin, Edit2, Save, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Trash2, Plus, Wind, Calendar, Shield, MapPin, Edit2, Save, X, Wrench, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface Equipment {
@@ -27,6 +28,17 @@ interface Equipment {
   location?: string;
   notes?: string;
   created_at: string;
+}
+
+interface ScheduledMaintenance {
+  id: string;
+  equipment_id: string | null;
+  scheduled_date: string;
+  interval_months: number;
+  is_completed: boolean;
+  completed_date: string | null;
+  maintenance_type: string;
+  notes?: string;
 }
 
 interface ClientEquipmentDialogProps {
@@ -57,6 +69,14 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
     notes: ''
   });
 
+  const [schedulingEquipmentId, setSchedulingEquipmentId] = useState<string | null>(null);
+  const [maintenanceForm, setMaintenanceForm] = useState({
+    scheduled_date: '',
+    interval_months: '6',
+    maintenance_type: 'limpeza',
+    notes: ''
+  });
+
   const { data: equipment, isLoading } = useQuery({
     queryKey: ['client-equipment', clientId],
     queryFn: async () => {
@@ -67,6 +87,20 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
         .order('created_at', { ascending: false });
       if (error) throw error;
       return data as Equipment[];
+    },
+    enabled: open && !!clientId
+  });
+
+  const { data: maintenances } = useQuery({
+    queryKey: ['equipment-maintenances', clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scheduled_maintenance')
+        .select('*')
+        .eq('client_id', clientId)
+        .order('scheduled_date', { ascending: true });
+      if (error) throw error;
+      return data as ScheduledMaintenance[];
     },
     enabled: open && !!clientId
   });
@@ -133,6 +167,48 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
     }
   });
 
+  const scheduleMutation = useMutation({
+    mutationFn: async (data: { equipment_id: string; scheduled_date: string; interval_months: number; maintenance_type: string; notes?: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { error } = await supabase.from('scheduled_maintenance').insert({
+        client_id: clientId,
+        equipment_id: data.equipment_id,
+        user_id: user.id,
+        scheduled_date: data.scheduled_date,
+        interval_months: data.interval_months,
+        maintenance_type: data.maintenance_type,
+        notes: data.notes || null,
+        is_completed: false
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment-maintenances', clientId] });
+      toast({ title: "Manutenção agendada!" });
+      setSchedulingEquipmentId(null);
+      setMaintenanceForm({ scheduled_date: '', interval_months: '6', maintenance_type: 'limpeza', notes: '' });
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro", description: error.message });
+    }
+  });
+
+  const completeMaintenanceMutation = useMutation({
+    mutationFn: async (maintenanceId: string) => {
+      const { error } = await supabase
+        .from('scheduled_maintenance')
+        .update({ is_completed: true, completed_date: new Date().toISOString().split('T')[0] })
+        .eq('id', maintenanceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment-maintenances', clientId] });
+      toast({ title: "Manutenção concluída!" });
+    }
+  });
+
   const resetForm = () => {
     setFormData({
       brand: '',
@@ -192,6 +268,65 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
     if (days <= 30) return { label: `${days}d restantes`, color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' };
     if (days <= 90) return { label: `${Math.floor(days / 30)}m restantes`, color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' };
     return { label: 'Ativa', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' };
+  };
+
+  const getMaintenanceStatus = (equipmentId: string) => {
+    const equipmentMaintenances = maintenances?.filter(m => m.equipment_id === equipmentId && !m.is_completed) || [];
+    if (equipmentMaintenances.length === 0) return null;
+    
+    const nextMaintenance = equipmentMaintenances.sort((a, b) => 
+      new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
+    )[0];
+    
+    const days = differenceInDays(new Date(nextMaintenance.scheduled_date), new Date());
+    
+    if (days < 0) {
+      return { 
+        label: `${Math.abs(days)}d atrasada`, 
+        color: 'bg-red-500 text-white',
+        borderColor: 'border-l-red-500',
+        icon: AlertTriangle,
+        maintenance: nextMaintenance
+      };
+    }
+    if (days <= 7) {
+      return { 
+        label: `${days}d restantes`, 
+        color: 'bg-amber-500 text-white',
+        borderColor: 'border-l-amber-500',
+        icon: Clock,
+        maintenance: nextMaintenance
+      };
+    }
+    if (days <= 30) {
+      return { 
+        label: `${days}d restantes`, 
+        color: 'bg-yellow-500 text-black',
+        borderColor: 'border-l-yellow-500',
+        icon: Clock,
+        maintenance: nextMaintenance
+      };
+    }
+    return { 
+      label: format(new Date(nextMaintenance.scheduled_date), 'dd/MM/yyyy'), 
+      color: 'bg-green-500 text-white',
+      borderColor: 'border-l-green-500',
+      icon: CheckCircle,
+      maintenance: nextMaintenance
+    };
+  };
+
+  const handleScheduleMaintenance = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!schedulingEquipmentId || !maintenanceForm.scheduled_date) return;
+    
+    scheduleMutation.mutate({
+      equipment_id: schedulingEquipmentId,
+      scheduled_date: maintenanceForm.scheduled_date,
+      interval_months: parseInt(maintenanceForm.interval_months),
+      maintenance_type: maintenanceForm.maintenance_type,
+      notes: maintenanceForm.notes
+    });
   };
 
   return (
@@ -311,12 +446,15 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
               ) : (
                 equipment?.map((eq) => {
                   const warranty = getWarrantyStatus(eq.warranty_end_date);
+                  const maintenanceStatus = getMaintenanceStatus(eq.id);
+                  const StatusIcon = maintenanceStatus?.icon || Wrench;
+                  
                   return (
-                    <Card key={eq.id} className="border-l-4 border-l-cyan-500">
+                    <Card key={eq.id} className={`border-l-4 ${maintenanceStatus?.borderColor || 'border-l-cyan-500'}`}>
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <Wind className="w-4 h-4 text-cyan-500" />
                               <span className="font-semibold">{eq.brand}</span>
                               {eq.model && <span className="text-muted-foreground">- {eq.model}</span>}
@@ -331,7 +469,7 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
                             {eq.serial_number && (
                               <p className="text-xs text-muted-foreground">S/N: {eq.serial_number}</p>
                             )}
-                            <div className="flex items-center gap-4 text-xs">
+                            <div className="flex items-center gap-4 text-xs flex-wrap">
                               {eq.installation_date && (
                                 <span className="flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
@@ -347,11 +485,138 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
                                 </span>
                               )}
                             </div>
+                            
+                            {/* Próxima Manutenção */}
+                            <div className="mt-3 pt-3 border-t border-border/50">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Wrench className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium">Próxima Manutenção:</span>
+                                </div>
+                                {maintenanceStatus ? (
+                                  <div className="flex items-center gap-2">
+                                    <Badge className={`${maintenanceStatus.color} flex items-center gap-1`}>
+                                      <StatusIcon className="w-3 h-3" />
+                                      {maintenanceStatus.label}
+                                    </Badge>
+                                    {maintenanceStatus.maintenance && !maintenanceStatus.maintenance.is_completed && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-6 text-xs"
+                                        onClick={() => completeMaintenanceMutation.mutate(maintenanceStatus.maintenance!.id)}
+                                      >
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Concluir
+                                      </Button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Não agendada</span>
+                                )}
+                              </div>
+                              
+                              {maintenanceStatus?.maintenance && (
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  <span className="capitalize">{maintenanceStatus.maintenance.maintenance_type}</span>
+                                  {' · '}
+                                  {format(new Date(maintenanceStatus.maintenance.scheduled_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                                  {maintenanceStatus.maintenance.notes && (
+                                    <span className="block mt-0.5 italic">{maintenanceStatus.maintenance.notes}</span>
+                                  )}
+                                </div>
+                              )}
+                              
+                              {/* Botão agendar ou formulário */}
+                              {schedulingEquipmentId === eq.id ? (
+                                <form onSubmit={handleScheduleMaintenance} className="mt-3 space-y-2 p-3 bg-muted/50 rounded-md">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <Label className="text-xs">Data Agendada *</Label>
+                                      <Input
+                                        type="date"
+                                        value={maintenanceForm.scheduled_date}
+                                        onChange={(e) => setMaintenanceForm({ ...maintenanceForm, scheduled_date: e.target.value })}
+                                        className="h-8 text-sm"
+                                        required
+                                      />
+                                    </div>
+                                    <div>
+                                      <Label className="text-xs">Intervalo</Label>
+                                      <Select 
+                                        value={maintenanceForm.interval_months}
+                                        onValueChange={(v) => setMaintenanceForm({ ...maintenanceForm, interval_months: v })}
+                                      >
+                                        <SelectTrigger className="h-8 text-sm">
+                                          <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="3">3 meses</SelectItem>
+                                          <SelectItem value="6">6 meses</SelectItem>
+                                          <SelectItem value="12">12 meses</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">Tipo</Label>
+                                    <Select 
+                                      value={maintenanceForm.maintenance_type}
+                                      onValueChange={(v) => setMaintenanceForm({ ...maintenanceForm, maintenance_type: v })}
+                                    >
+                                      <SelectTrigger className="h-8 text-sm">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="limpeza">Limpeza</SelectItem>
+                                        <SelectItem value="preventiva">Preventiva</SelectItem>
+                                        <SelectItem value="corretiva">Corretiva</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
+                                  <div>
+                                    <Label className="text-xs">Observações</Label>
+                                    <Input
+                                      value={maintenanceForm.notes}
+                                      onChange={(e) => setMaintenanceForm({ ...maintenanceForm, notes: e.target.value })}
+                                      placeholder="Observações..."
+                                      className="h-8 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button type="submit" size="sm" disabled={scheduleMutation.isPending}>
+                                      <Save className="w-3 h-3 mr-1" />
+                                      Salvar
+                                    </Button>
+                                    <Button type="button" size="sm" variant="outline" onClick={() => setSchedulingEquipmentId(null)}>
+                                      <X className="w-3 h-3 mr-1" />
+                                      Cancelar
+                                    </Button>
+                                  </div>
+                                </form>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-2 h-7 text-xs"
+                                  onClick={() => {
+                                    setSchedulingEquipmentId(eq.id);
+                                    // Sugerir data baseada no intervalo padrão
+                                    const suggestedDate = addMonths(new Date(), 6).toISOString().split('T')[0];
+                                    setMaintenanceForm({ ...maintenanceForm, scheduled_date: suggestedDate });
+                                  }}
+                                >
+                                  <Plus className="w-3 h-3 mr-1" />
+                                  Agendar Manutenção
+                                </Button>
+                              )}
+                            </div>
+                            
                             {eq.notes && (
                               <p className="text-xs text-muted-foreground mt-1">{eq.notes}</p>
                             )}
                           </div>
-                          <div className="flex gap-1">
+                          <div className="flex gap-1 ml-2">
                             <Button
                               variant="ghost"
                               size="icon"
