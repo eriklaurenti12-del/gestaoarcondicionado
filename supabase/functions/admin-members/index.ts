@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     // Load subscriptions and profiles
     const [{ data: subs, error: subsError }, { data: profiles, error: profilesError }] = await Promise.all([
       supabaseService.from('subscriptions').select('*'),
-      supabaseService.from('profiles').select('user_id, created_at')
+      supabaseService.from('profiles').select('user_id, created_at, phone')
     ]);
 
     if (subsError) {
@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
       return {
         id: u.id,
         email: u.email,
+        phone: profile?.phone || null,
         created_at: (profile?.created_at ?? u.created_at),
         subscription,
       };

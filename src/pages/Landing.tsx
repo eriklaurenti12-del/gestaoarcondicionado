@@ -37,6 +37,7 @@ const Landing: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [settings, setSettings] = useState<AdminSettings>({
     checkout_mensal: '',
     checkout_anual: '',
@@ -148,14 +149,20 @@ const Landing: React.FC = () => {
           await checkSubscriptionAndRedirect(data.user.id);
         }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data: authData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/awaiting-activation`,
-            data: { name }
+            data: { name, phone }
           }
         });
+        if (error) throw error;
+        
+        // Atualizar telefone no perfil
+        if (authData.user && phone) {
+          await supabase.from('profiles').update({ phone }).eq('user_id', authData.user.id);
+        }
         if (error) throw error;
         
         toast({ 
@@ -754,15 +761,27 @@ const Landing: React.FC = () => {
             <CardContent className="pb-4">
               <form onSubmit={handleAuth} className="space-y-3">
                 {!isLogin && (
-                  <div>
-                    <Label className="text-gray-300 text-sm">Nome</Label>
-                    <Input
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="Seu nome"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-9 text-sm"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <Label className="text-gray-300 text-sm">Nome</Label>
+                      <Input
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Seu nome"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-9 text-sm"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300 text-sm">WhatsApp</Label>
+                      <Input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="(11) 99999-9999"
+                        className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-9 text-sm"
+                      />
+                    </div>
+                  </>
                 )}
                 
                 <div>
