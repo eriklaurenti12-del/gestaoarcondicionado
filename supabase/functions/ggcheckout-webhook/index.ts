@@ -5,6 +5,48 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Função para enviar notificação no WhatsApp (abre link no navegador do admin)
+async function sendWhatsAppNotification(supabase: any, type: string, email: string, phone: string | null, plan: string, amount: number) {
+  // Buscar WhatsApp do admin nas configurações
+  const { data: settings } = await supabase
+    .from('admin_settings')
+    .select('value')
+    .eq('key', 'whatsapp_suporte')
+    .maybeSingle();
+
+  const adminWhatsapp = settings?.value || '';
+  
+  let message = '';
+  let title = '';
+  
+  switch (type) {
+    case 'payment_success':
+      title = '💰 Pagamento Confirmado!';
+      message = `✅ *PAGAMENTO CONFIRMADO*\n\n📧 Email: ${email}\n📱 Tel: ${phone || 'Não informado'}\n💳 Plano: ${plan}\n💵 Valor: R$ ${amount.toFixed(2)}\n⏰ Data: ${new Date().toLocaleString('pt-BR')}`;
+      break;
+    case 'payment_error':
+      title = '❌ Erro no Pagamento';
+      message = `❌ *ERRO NO PAGAMENTO*\n\n📧 Email: ${email}\n📱 Tel: ${phone || 'Não informado'}\n⏰ Data: ${new Date().toLocaleString('pt-BR')}\n\nVerifique o painel para mais detalhes.`;
+      break;
+    case 'pending_activation':
+      title = '⏳ Ativação Pendente';
+      message = `⏳ *ATIVAÇÃO PENDENTE*\n\n📧 Email: ${email}\n📱 Tel: ${phone || 'Não informado'}\n⏰ Cadastrado em: ${new Date().toLocaleString('pt-BR')}\n\nUsuário aguardando aprovação.`;
+      break;
+  }
+
+  // Salvar notificação no banco
+  await supabase.from('admin_notifications').insert({
+    type,
+    title,
+    message,
+    user_email: email,
+    user_phone: phone,
+    metadata: { plan, amount, whatsapp_link: adminWhatsapp ? `https://wa.me/55${adminWhatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(message)}` : null }
+  });
+
+  console.log(`📬 Notification saved: ${type} for ${email}`);
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -58,16 +100,9 @@ Deno.serve(async (req) => {
       event.toLowerCase().includes(e.toLowerCase().replace('_', '').replace(' ', ''))
     ) || payload.paid === true;
 
-    if (!isPaidEvent) {
-      console.log(`Event "${event}" is not a paid event, skipping activation`);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Event ${event} received but not processed (not a payment confirmation)` 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Verificar eventos de erro
+    const errorEvents = ['failed', 'declined', 'refused', 'error', 'cancelled', 'canceled'];
+    const isErrorEvent = errorEvents.some(e => event.toLowerCase().includes(e.toLowerCase()));
 
     // Extrair email - tentar várias estruturas possíveis da GGCheckout
     const email = 
@@ -80,6 +115,18 @@ Deno.serve(async (req) => {
       payload.payer?.email ||
       payload.customer_email ||
       payload.buyer_email;
+
+    // Extrair telefone
+    const phone = 
+      payload.phone || 
+      payload.customer?.phone || 
+      payload.buyer?.phone || 
+      payload.client?.phone ||
+      payload.data?.customer?.phone ||
+      payload.data?.phone ||
+      payload.customer_phone ||
+      payload.buyer_phone ||
+      null;
 
     // Extrair valor - tentar várias estruturas
     let amount = 
@@ -109,7 +156,30 @@ Deno.serve(async (req) => {
       payload.reference ||
       `gg_${Date.now()}`;
 
-    console.log(`Processing payment: email=${email}, amount=${amount}, event=${event}, transactionId=${transactionId}`);
+    console.log(`Processing payment: email=${email}, phone=${phone}, amount=${amount}, event=${event}, transactionId=${transactionId}`);
+
+    // Se for evento de erro, notificar e retornar
+    if (isErrorEvent && email) {
+      await sendWhatsAppNotification(supabase, 'payment_error', email, phone, '', amount);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Payment error event received and notification sent` 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!isPaidEvent) {
+      console.log(`Event "${event}" is not a paid event, skipping activation`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Event ${event} received but not processed (not a payment confirmation)` 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!email) {
       console.error('No email found in payload. Full payload:', JSON.stringify(payload));
@@ -134,10 +204,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    const user = users.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
     
     if (!user) {
       console.log(`User not found for email: ${email}`);
+      // Notificar sobre usuário não encontrado
+      await sendWhatsAppNotification(supabase, 'pending_activation', email, phone, '', amount);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -149,11 +221,23 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Buscar telefone do usuário se não veio no payload
+    let userPhone = phone;
+    if (!userPhone) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      userPhone = profile?.phone || null;
+    }
+
     // Determinar plano baseado no valor
     // R$ 39,90 (até 50) = mensal (1 mês)
     // Valor maior = anual (12 meses)
     const isMonthly = amount <= 50;
     const plan = isMonthly ? 'mensal' : 'anual';
+    const planName = isMonthly ? 'Mensal' : 'Anual';
     const durationMonths = isMonthly ? 1 : 12;
     
     const startDate = new Date();
@@ -178,11 +262,15 @@ Deno.serve(async (req) => {
 
     if (updateError) {
       console.error('Error updating subscription:', updateError);
+      await sendWhatsAppNotification(supabase, 'payment_error', email, userPhone, plan, amount);
       return new Response(
         JSON.stringify({ success: false, error: 'Error updating subscription', details: updateError }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Enviar notificação de sucesso
+    await sendWhatsAppNotification(supabase, 'payment_success', email, userPhone, planName, amount);
 
     console.log(`✅ Subscription activated successfully for ${email} - Plan: ${plan}`);
 
@@ -193,7 +281,7 @@ Deno.serve(async (req) => {
         data: {
           email,
           plan,
-          plan_name: isMonthly ? 'Mensal' : 'Anual',
+          plan_name: planName,
           amount,
           duration_months: durationMonths,
           start_date: startDate.toISOString(),

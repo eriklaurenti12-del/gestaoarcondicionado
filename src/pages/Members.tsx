@@ -9,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone, Bell } from "lucide-react";
 import { format } from "date-fns";
 import { AdminSettingsTab } from "@/components/AdminSettingsTab";
+import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
 
 type Member = {
   id: string;
@@ -195,11 +196,19 @@ export default function Members() {
               <Users className="w-4 h-4 mr-2" />
               Usuários
             </TabsTrigger>
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Bell className="w-4 h-4 mr-2" />
+              Notificações
+            </TabsTrigger>
             <TabsTrigger value="settings" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
               <Settings2 className="w-4 h-4 mr-2" />
               Configurações Checkout
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="notifications" className="mt-6">
+            <AdminNotificationsPanel />
+          </TabsContent>
 
           <TabsContent value="users" className="mt-6 space-y-6">
             <div className="flex justify-end">
