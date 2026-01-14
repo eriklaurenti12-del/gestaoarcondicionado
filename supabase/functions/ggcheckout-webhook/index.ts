@@ -17,33 +17,108 @@ Deno.serve(async (req) => {
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse the webhook payload from GGCheckout
-    const payload = await req.json();
+    // Ler o body da requisição
+    const bodyText = await req.text();
     
-    console.log('GGCheckout webhook received:', JSON.stringify(payload, null, 2));
-
-    // GGCheckout sends payment data - extract email and amount
-    // Adapte esses campos conforme a estrutura real do webhook da GGCheckout
-    const email = payload.email || payload.customer?.email || payload.buyer?.email;
-    const amount = parseFloat(payload.amount || payload.value || payload.total || '0');
-    const status = payload.status || payload.payment_status || 'approved';
-    const transactionId = payload.transaction_id || payload.id || payload.order_id;
-
-    console.log(`Processing payment: email=${email}, amount=${amount}, status=${status}`);
-
-    // Só processa se o pagamento foi aprovado
-    if (status !== 'approved' && status !== 'paid' && status !== 'completed') {
-      console.log('Payment not approved, skipping activation');
+    // Se o body estiver vazio, retorna sucesso (teste de conexão)
+    if (!bodyText || bodyText.trim() === '') {
+      console.log('Empty body received - connection test successful');
       return new Response(
-        JSON.stringify({ success: true, message: 'Payment not approved, no action taken' }),
+        JSON.stringify({ 
+          success: true, 
+          message: 'Webhook connection test successful',
+          timestamp: new Date().toISOString()
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!email) {
-      console.error('No email found in payload');
+    // Parse o JSON
+    let payload;
+    try {
+      payload = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError, 'Body:', bodyText);
       return new Response(
-        JSON.stringify({ success: false, error: 'Email not found in payload' }),
+        JSON.stringify({ success: false, error: 'Invalid JSON payload' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('GGCheckout webhook received:', JSON.stringify(payload, null, 2));
+
+    // GGCheckout pode enviar diferentes estruturas de payload
+    // Adaptar para os campos comuns da GGCheckout
+    const event = payload.event || payload.type || payload.status || '';
+    
+    // Verificar se é um evento de pagamento aprovado
+    // Eventos aceitos: pix_paid, card_paid, paid, approved, PAID, etc.
+    const paidEvents = ['pix_paid', 'card_paid', 'paid', 'approved', 'PAID', 'APPROVED', 'Pix Paid', 'Card Paid'];
+    const isPaidEvent = paidEvents.some(e => 
+      event.toLowerCase().includes(e.toLowerCase().replace('_', '').replace(' ', ''))
+    ) || payload.paid === true;
+
+    if (!isPaidEvent) {
+      console.log(`Event "${event}" is not a paid event, skipping activation`);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Event ${event} received but not processed (not a payment confirmation)` 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Extrair email - tentar várias estruturas possíveis da GGCheckout
+    const email = 
+      payload.email || 
+      payload.customer?.email || 
+      payload.buyer?.email || 
+      payload.client?.email ||
+      payload.data?.customer?.email ||
+      payload.data?.email ||
+      payload.payer?.email ||
+      payload.customer_email ||
+      payload.buyer_email;
+
+    // Extrair valor - tentar várias estruturas
+    let amount = 
+      payload.amount || 
+      payload.value || 
+      payload.total || 
+      payload.price ||
+      payload.data?.amount ||
+      payload.data?.value ||
+      payload.transaction?.amount ||
+      payload.order?.amount ||
+      0;
+
+    // Se o valor vier em centavos (ex: 3990 ao invés de 39.90), converter
+    if (typeof amount === 'number' && amount > 1000) {
+      amount = amount / 100;
+    } else if (typeof amount === 'string') {
+      // Limpar formatação brasileira (R$ 39,90 -> 39.90)
+      amount = parseFloat(amount.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+    }
+
+    const transactionId = 
+      payload.transaction_id || 
+      payload.id || 
+      payload.order_id ||
+      payload.data?.id ||
+      payload.reference ||
+      `gg_${Date.now()}`;
+
+    console.log(`Processing payment: email=${email}, amount=${amount}, event=${event}, transactionId=${transactionId}`);
+
+    if (!email) {
+      console.error('No email found in payload. Full payload:', JSON.stringify(payload));
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Email not found in payload',
+          received_payload: payload 
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -64,15 +139,20 @@ Deno.serve(async (req) => {
     if (!user) {
       console.log(`User not found for email: ${email}`);
       return new Response(
-        JSON.stringify({ success: false, error: 'User not registered', email }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'User not registered. Please sign up first.', 
+          email,
+          hint: 'O usuário precisa se cadastrar no sistema antes de efetuar o pagamento.'
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     // Determinar plano baseado no valor
-    // R$ 39,90 = mensal (1 mês)
-    // Outro valor (ex: R$ 370,00) = anual (12 meses)
-    const isMonthly = amount <= 50; // Considera até 50 como mensal
+    // R$ 39,90 (até 50) = mensal (1 mês)
+    // Valor maior = anual (12 meses)
+    const isMonthly = amount <= 50;
     const plan = isMonthly ? 'mensal' : 'anual';
     const durationMonths = isMonthly ? 1 : 12;
     
@@ -80,7 +160,7 @@ Deno.serve(async (req) => {
     const endDate = new Date();
     endDate.setMonth(endDate.getMonth() + durationMonths);
 
-    console.log(`Activating subscription for user ${user.id}: plan=${plan}, duration=${durationMonths} months`);
+    console.log(`Activating subscription for user ${user.id} (${email}): plan=${plan}, amount=${amount}, duration=${durationMonths} months`);
 
     // Atualizar assinatura do usuário
     const { error: updateError } = await supabase
@@ -99,20 +179,22 @@ Deno.serve(async (req) => {
     if (updateError) {
       console.error('Error updating subscription:', updateError);
       return new Response(
-        JSON.stringify({ success: false, error: 'Error updating subscription' }),
+        JSON.stringify({ success: false, error: 'Error updating subscription', details: updateError }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Subscription activated successfully for ${email}`);
+    console.log(`✅ Subscription activated successfully for ${email} - Plan: ${plan}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'Subscription activated successfully',
+        message: 'Assinatura ativada com sucesso!',
         data: {
           email,
           plan,
+          plan_name: isMonthly ? 'Mensal' : 'Anual',
+          amount,
           duration_months: durationMonths,
           start_date: startDate.toISOString(),
           end_date: endDate.toISOString(),
