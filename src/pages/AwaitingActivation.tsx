@@ -61,33 +61,52 @@ const AwaitingActivation: React.FC = () => {
     loadData();
   }, [navigate]);
 
-  const handleCheckSubscription = async () => {
-    setChecking(true);
+  const checkSubscriptionStatus = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate('/');
-        return;
+        return false;
       }
 
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', session.user.id)
-        .eq('is_active', true)
         .maybeSingle();
 
-      if (subscription) {
-        toast.success('Assinatura ativa! Redirecionando...');
+      // Verifica se está aprovado
+      if (subscription?.is_active && subscription?.status === 'aprovado') {
+        toast.success('🎉 Assinatura ativa! Redirecionando...');
         navigate('/dashboard');
-      } else {
-        toast.info('Sua assinatura ainda não foi ativada. Entre em contato com o suporte.');
+        return true;
       }
+      return false;
     } catch (error) {
-      toast.error('Erro ao verificar assinatura');
-    } finally {
-      setChecking(false);
+      console.error('Error checking subscription:', error);
+      return false;
     }
+  };
+
+  // Auto-refresh a cada 10 segundos para verificar se o pagamento foi processado
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const isActive = await checkSubscriptionStatus();
+      if (isActive) {
+        clearInterval(interval);
+      }
+    }, 10000); // Verifica a cada 10 segundos
+
+    return () => clearInterval(interval);
+  }, [navigate]);
+
+  const handleCheckSubscription = async () => {
+    setChecking(true);
+    const isActive = await checkSubscriptionStatus();
+    if (!isActive) {
+      toast.info('Sua assinatura ainda não foi ativada. Complete o pagamento ou entre em contato com o suporte.');
+    }
+    setChecking(false);
   };
 
   const handleContactSupport = () => {
@@ -149,10 +168,18 @@ const AwaitingActivation: React.FC = () => {
         </CardHeader>
 
         <CardContent className="space-y-4">
+          {/* Auto-refresh indicator */}
+          <div className="flex items-center justify-center gap-2 text-cyan-400 text-xs bg-cyan-500/10 rounded-lg py-2">
+            <RefreshCw className="w-3 h-3 animate-spin" />
+            <span>Verificando pagamento automaticamente...</span>
+          </div>
+
           <div className="bg-white/5 rounded-lg p-4 border border-white/10">
             <p className="text-gray-300 text-sm text-center">
-              Para liberar seu acesso, entre em contato com nosso suporte 
-              informando o email: <strong className="text-cyan-400">{userEmail}</strong>
+              Complete o pagamento usando o mesmo email: <strong className="text-cyan-400">{userEmail}</strong>
+            </p>
+            <p className="text-gray-500 text-xs text-center mt-2">
+              O sistema libera o acesso automaticamente após confirmar o pagamento
             </p>
           </div>
 
