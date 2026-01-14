@@ -314,10 +314,11 @@ export default function Members() {
                                 <SelectValue />
                               </SelectTrigger>
                             <SelectContent 
-                                className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px]"
+                                className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px] z-50"
                                 position="popper"
                                 sideOffset={4}
                                 align="start"
+                                avoidCollisions={false}
                               >
                                 <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">Vitalício</SelectItem>
                                 <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Ano</SelectItem>

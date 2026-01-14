@@ -95,6 +95,18 @@ const CompanyDataTab: React.FC = () => {
         
         if (error) throw error;
       }
+
+      // Salvar WhatsApp no perfil do usuário para aparecer no painel de membros
+      if (whatsapp) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ phone: whatsapp })
+          .eq('user_id', userId);
+        
+        if (profileError) {
+          console.error('Erro ao salvar telefone no perfil:', profileError);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-data'] });
