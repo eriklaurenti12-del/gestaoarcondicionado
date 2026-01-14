@@ -1,0 +1,214 @@
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { 
+  Clock, MessageCircle, Snowflake, RefreshCw, 
+  CheckCircle, LogOut, Download, Share
+} from "lucide-react";
+import { toast } from 'sonner';
+
+const AwaitingActivation: React.FC = () => {
+  const navigate = useNavigate();
+  const [userEmail, setUserEmail] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [whatsappLink, setWhatsappLink] = useState('https://wa.me/5511999999999');
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(false);
+
+  useEffect(() => {
+    // Detectar iOS e standalone
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+    
+    const standalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       (window.navigator as any).standalone === true;
+    setIsStandalone(standalone);
+
+    // Handler para Chrome/Android
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/');
+        return;
+      }
+      setUserEmail(session.user.email || '');
+
+      // Load whatsapp from settings
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'whatsapp_suporte')
+        .maybeSingle();
+      
+      if (data?.value) {
+        setWhatsappLink(data.value);
+      }
+    };
+
+    loadData();
+  }, [navigate]);
+
+  const handleCheckSubscription = async () => {
+    setChecking(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/');
+        return;
+      }
+
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (subscription) {
+        toast.success('Assinatura ativa! Redirecionando...');
+        navigate('/dashboard');
+      } else {
+        toast.info('Sua assinatura ainda não foi ativada. Entre em contato com o suporte.');
+      }
+    } catch (error) {
+      toast.error('Erro ao verificar assinatura');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleContactSupport = () => {
+    const message = encodeURIComponent(`Olá! Criei minha conta no AC Service Pro com o email: ${userEmail}. Gostaria de ativar minha assinatura!`);
+    window.open(`${whatsappLink}?text=${message}`, '_blank');
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    navigate('/');
+  };
+
+  const handleInstall = async () => {
+    if (isIOS) {
+      toast.info(
+        'Para instalar no iPhone/iPad:\n1. Toque no ícone de compartilhar (📤)\n2. Role e toque em "Adicionar à Tela de Início"',
+        { duration: 8000 }
+      );
+      return;
+    }
+
+    if (!deferredPrompt) {
+      toast.info('Abra no Chrome e acesse: Menu (⋮) → "Instalar aplicativo"', { duration: 6000 });
+      return;
+    }
+
+    try {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        toast.success('App instalado com sucesso! Acesse pela sua tela inicial.');
+        setDeferredPrompt(null);
+      }
+    } catch (error) {
+      toast.error('Erro ao instalar. Tente novamente.');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 flex items-center justify-center p-4">
+      {/* Background effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <Card className="w-full max-w-md bg-slate-800/90 border-cyan-500/30 backdrop-blur-lg relative z-10">
+        <CardHeader className="text-center pb-4">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-white animate-pulse" />
+          </div>
+          <CardTitle className="text-white text-xl">
+            Aguardando Ativação
+          </CardTitle>
+          <CardDescription className="text-gray-400">
+            Sua conta foi criada com sucesso!
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+            <p className="text-gray-300 text-sm text-center">
+              Para liberar seu acesso, entre em contato com nosso suporte 
+              informando o email: <strong className="text-cyan-400">{userEmail}</strong>
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Button 
+              onClick={handleContactSupport}
+              className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              Falar com Suporte via WhatsApp
+            </Button>
+
+            <Button 
+              onClick={handleCheckSubscription}
+              variant="outline"
+              className="w-full border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10"
+              disabled={checking}
+            >
+              {checking ? (
+                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="w-4 h-4 mr-2" />
+              )}
+              Verificar Ativação
+            </Button>
+
+            {!isStandalone && (
+              <Button 
+                onClick={handleInstall}
+                variant="outline"
+                className="w-full border-white/20 text-gray-300 hover:bg-white/10"
+              >
+                {isIOS ? <Share className="w-4 h-4 mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+                Instalar como App
+              </Button>
+            )}
+
+            <Button 
+              onClick={handleSignOut}
+              variant="ghost"
+              className="w-full text-gray-400 hover:text-white hover:bg-white/5"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </Button>
+          </div>
+
+          <div className="text-center pt-2">
+            <p className="text-gray-500 text-xs">
+              Após a ativação, você terá acesso completo ao sistema
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AwaitingActivation;
