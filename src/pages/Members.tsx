@@ -7,9 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2 } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users } from "lucide-react";
 import { format } from "date-fns";
+import { AdminSettingsTab } from "@/components/AdminSettingsTab";
 
 type Member = {
   id: string;
@@ -182,12 +184,28 @@ export default function Members() {
               Painel Super Admin
             </h1>
           </div>
-          <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
-            Atualizar Lista
-          </Button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="bg-[#1a1a24] border border-[#2a2a3a]">
+            <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Users className="w-4 h-4 mr-2" />
+              Usuários
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Settings2 className="w-4 h-4 mr-2" />
+              Configurações Checkout
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="users" className="mt-6 space-y-6">
+            <div className="flex justify-end">
+              <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
+                Atualizar Lista
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardContent className="pt-4 sm:pt-6">
               <div className="text-xl sm:text-2xl font-bold text-white">{stats.total}</div>
@@ -351,6 +369,12 @@ export default function Members() {
             </div>
           </CardContent>
         </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <AdminSettingsTab />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
