@@ -83,14 +83,13 @@ const Landing: React.FC = () => {
   }, [navigate]);
 
   const handleCheckout = (type: 'mensal' | 'anual') => {
-    const link = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
-    if (link) {
-      window.open(link, '_blank');
-    } else {
-      // If no checkout link, show login to create account then contact support
-      setShowLogin(true);
-      setIsLogin(false);
-    }
+    // Direciona para criar conta primeiro, depois ativação pelo suporte
+    setShowLogin(true);
+    setIsLogin(false);
+    toast({
+      title: "Crie sua conta primeiro!",
+      description: "Após o cadastro, finalize a ativação com nosso suporte usando o mesmo email.",
+    });
   };
 
   const handleContactSupport = () => {
@@ -119,16 +118,25 @@ const Landing: React.FC = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: `${window.location.origin}/dashboard`,
             data: { name }
           }
         });
         if (error) throw error;
         
+        // Após cadastro, abre WhatsApp para ativação
+        const whatsappLink = settings.whatsapp_suporte || 'https://wa.me/5511999999999';
+        const message = encodeURIComponent(`Olá! Acabei de criar minha conta no AC Service Pro com o email: ${email}. Gostaria de ativar minha assinatura!`);
+        
         toast({ 
-          title: "Conta criada!", 
-          description: "Você já pode acessar o sistema." 
+          title: "Conta criada com sucesso! 🎉", 
+          description: "Agora finalize sua ativação com nosso suporte. Use o MESMO EMAIL para liberar seu acesso." 
         });
+        
+        // Aguarda um pouco e abre WhatsApp
+        setTimeout(() => {
+          window.open(`${whatsappLink}?text=${message}`, '_blank');
+        }, 2000);
       }
     } catch (error: any) {
       toast({ 
