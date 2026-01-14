@@ -10,14 +10,23 @@ const brazilianNames = [
   "Patricia Nunes", "Leandro Castro", "Renata Dias", "Marcelo Ramos", "Aline Teixeira",
   "André Moreira", "Vanessa Lopes", "Henrique Cruz", "Carolina Melo", "Alexandre Freitas",
   "Priscila Cavalcanti", "Vinícius Azevedo", "Débora Soares", "Fabio Campos", "Tatiana Moura",
-  "Ricardo Barros", "Cristiane Reis", "Sérgio Cunha", "Luciana Pires", "Daniel Borges"
+  "Ricardo Barros", "Cristiane Reis", "Sérgio Cunha", "Luciana Pires", "Daniel Borges",
+  "José Pereira", "Antônio Gomes", "Francisco Costa", "Paulo Santos", "Marcos Oliveira",
+  "Luiz Ferreira", "Adriana Silva", "Sandra Lima", "Claudia Mendes", "Simone Rocha",
+  "Márcio Teixeira", "Wagner Almeida", "Rogério Dias", "Eliane Souza", "Vera Campos"
 ];
 
 const cities = [
   "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador", "Curitiba",
   "Fortaleza", "Brasília", "Recife", "Porto Alegre", "Manaus",
   "Goiânia", "Belém", "Guarulhos", "Campinas", "São Luís",
-  "São Gonçalo", "Maceió", "Duque de Caxias", "Campo Grande", "Natal"
+  "São Gonçalo", "Maceió", "Duque de Caxias", "Campo Grande", "Natal",
+  "Teresina", "João Pessoa", "Aracaju", "Cuiabá", "Florianópolis",
+  "Joinville", "Londrina", "Niterói", "Santos", "Uberlândia",
+  "Ribeirão Preto", "Sorocaba", "Feira de Santana", "Vitória", "Serra",
+  "Juiz de Fora", "Contagem", "Osasco", "Piracicaba", "Bauru",
+  "Carapicuíba", "Jundiaí", "São José dos Campos", "Santo André", "Diadema",
+  "Montes Claros", "Petrolina", "Franca", "Araraquara", "Marília"
 ];
 
 const plans = [

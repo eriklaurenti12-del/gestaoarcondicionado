@@ -1,1 +1,4 @@
 project_id = "gnrinwqmqhfasfojysep"
+
+[functions.ggcheckout-webhook]
+verify_jwt = false
