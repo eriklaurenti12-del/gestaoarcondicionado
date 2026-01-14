@@ -118,25 +118,20 @@ const Landing: React.FC = () => {
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/awaiting-activation`,
             data: { name }
           }
         });
         if (error) throw error;
         
-        // Após cadastro, abre WhatsApp para ativação
-        const whatsappLink = settings.whatsapp_suporte || 'https://wa.me/5511999999999';
-        const message = encodeURIComponent(`Olá! Acabei de criar minha conta no AC Service Pro com o email: ${email}. Gostaria de ativar minha assinatura!`);
-        
         toast({ 
           title: "Conta criada com sucesso! 🎉", 
-          description: "Agora finalize sua ativação com nosso suporte. Use o MESMO EMAIL para liberar seu acesso." 
+          description: "Redirecionando para ativação..." 
         });
         
-        // Aguarda um pouco e abre WhatsApp
-        setTimeout(() => {
-          window.open(`${whatsappLink}?text=${message}`, '_blank');
-        }, 2000);
+        // Redireciona para página de aguardando ativação
+        setShowLogin(false);
+        navigate('/awaiting-activation');
       }
     } catch (error: any) {
       toast({ 
@@ -691,61 +686,64 @@ const Landing: React.FC = () => {
         </div>
       </footer>
 
-      {/* Modal de Login/Cadastro */}
+      {/* Modal de Login/Cadastro - Compacto */}
       {showLogin && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <Card className="w-full max-w-md bg-slate-900 border-cyan-500/30 relative animate-scale-in">
-            <Button 
-              variant="ghost" 
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
+          onClick={(e) => e.target === e.currentTarget && setShowLogin(false)}
+        >
+          <Card className="w-full max-w-sm bg-slate-800/95 border-cyan-500/30 backdrop-blur-lg relative animate-in zoom-in-95">
+            <Button
+              variant="ghost"
               size="icon"
-              className="absolute top-2 right-2 text-gray-400 hover:text-white"
+              className="absolute top-2 right-2 text-gray-400 hover:text-white h-8 w-8"
               onClick={() => setShowLogin(false)}
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </Button>
             
-            <CardHeader className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mx-auto mb-4">
-                <Snowflake className="w-10 h-10 text-white" />
+            <CardHeader className="text-center pb-2 pt-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center mx-auto mb-2">
+                <Snowflake className="w-7 h-7 text-white" />
               </div>
-              <CardTitle className="text-white text-2xl">
-                {isLogin ? 'Bem-vindo de volta!' : 'Crie sua conta'}
+              <CardTitle className="text-white text-lg">
+                {isLogin ? 'Entrar' : 'Criar Conta'}
               </CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardDescription className="text-gray-400 text-xs">
                 {isLogin 
-                  ? 'Entre para acessar seu painel' 
-                  : 'Acesse todas as funcionalidades'}
+                  ? 'Acesse seu painel' 
+                  : 'Cadastre-se gratuitamente'}
               </CardDescription>
             </CardHeader>
 
-            <CardContent>
-              <form onSubmit={handleAuth} className="space-y-4">
+            <CardContent className="pb-4">
+              <form onSubmit={handleAuth} className="space-y-3">
                 {!isLogin && (
                   <div>
-                    <Label className="text-gray-300">Seu nome</Label>
+                    <Label className="text-gray-300 text-sm">Nome</Label>
                     <Input
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Como podemos te chamar?"
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
+                      placeholder="Seu nome"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-9 text-sm"
                     />
                   </div>
                 )}
                 
                 <div>
-                  <Label className="text-gray-300">Email</Label>
+                  <Label className="text-gray-300 text-sm">Email</Label>
                   <Input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="seu@email.com"
                     required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-500"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 h-9 text-sm"
                   />
                 </div>
                 
                 <div>
-                  <Label className="text-gray-300">Senha</Label>
+                  <Label className="text-gray-300 text-sm">Senha</Label>
                   <div className="relative">
                     <Input
                       type={showPassword ? 'text' : 'password'}
@@ -754,13 +752,13 @@ const Landing: React.FC = () => {
                       placeholder="••••••••"
                       required
                       minLength={6}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 pr-10"
+                      className="bg-white/10 border-white/20 text-white placeholder:text-gray-500 pr-9 h-9 text-sm"
                     />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-0 top-0 text-gray-400 hover:text-white"
+                      className="absolute right-0 top-0 text-gray-400 hover:text-white h-9 w-9"
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -774,17 +772,17 @@ const Landing: React.FC = () => {
                       id="remember" 
                       checked={rememberMe}
                       onCheckedChange={(checked) => setRememberMe(checked as boolean)}
-                      className="border-white/30 data-[state=checked]:bg-cyan-500"
+                      className="border-white/30 data-[state=checked]:bg-cyan-500 h-4 w-4"
                     />
-                    <Label htmlFor="remember" className="text-gray-400 text-sm cursor-pointer">
-                      Lembrar meu email
+                    <Label htmlFor="remember" className="text-gray-400 text-xs cursor-pointer">
+                      Lembrar email
                     </Label>
                   </div>
                 )}
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 h-9"
                   disabled={loading}
                 >
                   {loading ? (
@@ -794,41 +792,22 @@ const Landing: React.FC = () => {
                   ) : (
                     <UserPlus className="w-4 h-4 mr-2" />
                   )}
-                  {isLogin ? 'Entrar' : 'Criar Conta Grátis'}
+                  {isLogin ? 'Entrar' : 'Criar Conta'}
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-gray-400 text-sm">
+              <div className="mt-3 text-center">
+                <p className="text-gray-400 text-xs">
                   {isLogin ? 'Não tem conta?' : 'Já tem conta?'}
                   <Button 
                     variant="link" 
-                    className="text-cyan-400 hover:text-cyan-300 p-1"
+                    className="text-cyan-400 hover:text-cyan-300 p-1 text-xs h-auto"
                     onClick={() => setIsLogin(!isLogin)}
                   >
-                    {isLogin ? 'Criar conta grátis' : 'Fazer login'}
+                    {isLogin ? 'Criar conta' : 'Fazer login'}
                   </Button>
                 </p>
               </div>
-
-              {!isLogin && (
-                <div className="mt-4 text-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-white/20 text-gray-300 hover:bg-white/10"
-                    onClick={() => {
-                      // Trigger PWA install
-                      if ('serviceWorker' in navigator) {
-                        toast({ title: "Dica!", description: "Após criar sua conta, você poderá instalar o app no seu celular!" });
-                      }
-                    }}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Instalar como App
-                  </Button>
-                </div>
-              )}
             </CardContent>
           </Card>
         </div>
