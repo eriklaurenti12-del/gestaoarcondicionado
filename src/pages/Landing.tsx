@@ -95,7 +95,7 @@ const Landing: React.FC = () => {
 
   const handleContactSupport = () => {
     const whatsappLink = settings.whatsapp_suporte || 'https://wa.me/5511999999999';
-    window.open(`${whatsappLink}?text=Olá! Gostaria de ativar meus 7 dias grátis no AC Service Pro!`, '_blank');
+    window.open(`${whatsappLink}?text=Olá! Gostaria de saber mais sobre o AC Service Pro!`, '_blank');
   };
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -248,73 +248,64 @@ const Landing: React.FC = () => {
         }
       `}</style>
 
-      {/* Hero Section - adjusted padding for promo bar */}
-      <section className="pt-44 pb-20 px-4 relative">
+      {/* Hero Section */}
+      <section className="pt-44 pb-16 px-4 relative min-h-[90vh] flex items-center">
         <div className="container mx-auto text-center">
-          {/* Badge de promoção animado */}
+          {/* Badge de promoção */}
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Gift className="w-4 h-4 text-amber-400" />
             <span className="text-amber-300 text-sm font-medium">
-              🔥 PROMOÇÃO: Plano Anual com 22% OFF!
+              PROMOÇÃO: Plano Anual com 22% OFF!
             </span>
             <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight animate-fade-in">
-            Gerencie sua empresa de
-            <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in">
+            Gerencie sua empresa de{" "}
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               Ar Condicionado
             </span>
-            <br />
-            como um profissional
           </h1>
           
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
-            Sistema completo para técnicos e empresas de climatização. 
-            Agendamentos, clientes, ordens de serviço, financeiro e muito mais!
+          <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-xl mx-auto animate-fade-in px-4" style={{ animationDelay: '0.2s' }}>
+            Sistema completo para técnicos e empresas. Agendamentos, clientes, financeiro e mais!
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10 px-4">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300 hover:scale-105 animate-pulse"
-              onClick={handleContactSupport}
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-base sm:text-lg px-6 py-5 rounded-xl shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105"
+              onClick={() => { setShowLogin(true); setIsLogin(false); }}
             >
-              <MessageCircle className="w-5 h-5 mr-2" />
-              Ativar 7 Dias Grátis
+              <Sparkles className="w-5 h-5 mr-2" />
+              Começar Agora
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-lg px-8 py-6 rounded-xl transition-all duration-300 hover:scale-105"
+              className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-base sm:text-lg px-6 py-5 rounded-xl transition-all duration-300 hover:scale-105"
               onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              Ver Planos e Preços
+              Ver Planos
               <ChevronDown className="w-5 h-5 ml-2" />
             </Button>
           </div>
 
-          <p className="text-sm text-gray-400 mb-12">
-            💬 Fale com nosso suporte para ativar seu período de teste
-          </p>
-
-          {/* Stats with animation */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto px-4">
             {[
-              { value: "500+", label: "Técnicos ativos" },
-              { value: "15.000+", label: "Serviços gerenciados" },
-              { value: "99.9%", label: "Uptime garantido" },
-              { value: "4.9★", label: "Avaliação média" }
+              { value: "500+", label: "Técnicos" },
+              { value: "15K+", label: "Serviços" },
+              { value: "99.9%", label: "Uptime" },
+              { value: "4.9★", label: "Avaliação" }
             ].map((stat, i) => (
               <div 
                 key={i} 
-                className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 hover:scale-105"
-                style={{ animationDelay: `${i * 0.1}s` }}
+                className="bg-white/5 backdrop-blur-sm rounded-xl p-3 md:p-4 border border-white/10 hover:border-cyan-500/50 transition-all duration-300"
               >
-                <div className="text-2xl md:text-3xl font-bold text-cyan-400">{stat.value}</div>
-                <div className="text-sm text-gray-400">{stat.label}</div>
+                <div className="text-xl md:text-2xl font-bold text-cyan-400">{stat.value}</div>
+                <div className="text-xs md:text-sm text-gray-400">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -322,29 +313,27 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Features Grid */}
-      <section className="py-20 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
+      <section className="py-16 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
         <div className="container mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            Tudo que você precisa em
-            <span className="text-cyan-400"> um só lugar</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-3">
+            Tudo em <span className="text-cyan-400">um só lugar</span>
           </h2>
-          <p className="text-gray-400 text-center mb-12 max-w-xl mx-auto">
-            Pare de usar papel, planilhas e WhatsApp separados. 
-            Centralize toda sua operação em uma única ferramenta.
+          <p className="text-gray-400 text-center mb-10 max-w-md mx-auto text-sm md:text-base px-4">
+            Centralize toda sua operação em uma única ferramenta profissional.
           </p>
           
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {features.map((feature, i) => (
               <Card 
                 key={i} 
                 className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-cyan-500/50 group"
               >
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-4 group-hover:from-cyan-500/30 group-hover:to-blue-500/30 transition-all">
-                    <feature.icon className="w-6 h-6 text-cyan-400" />
+                <CardContent className="p-4 md:p-6 text-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3 group-hover:from-cyan-500/30 group-hover:to-blue-500/30 transition-all">
+                    <feature.icon className="w-5 h-5 md:w-6 md:h-6 text-cyan-400" />
                   </div>
-                  <h3 className="font-semibold text-white mb-1">{feature.title}</h3>
-                  <p className="text-sm text-gray-400">{feature.desc}</p>
+                  <h3 className="font-semibold text-white text-sm md:text-base mb-1">{feature.title}</h3>
+                  <p className="text-xs md:text-sm text-gray-400">{feature.desc}</p>
                 </CardContent>
               </Card>
             ))}
@@ -353,146 +342,126 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="precos" className="py-20 px-4 relative">
+      <section id="precos" className="py-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
         
         <div className="container mx-auto relative">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 mb-4">
               <Percent className="w-3 h-3 mr-1" />
               Preços Promocionais
             </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
               Escolha seu plano
             </h2>
-            <p className="text-gray-400 max-w-xl mx-auto">
-              Invista menos do que um serviço de limpeza por mês e tenha acesso a todas as funcionalidades.
+            <p className="text-gray-400 max-w-md mx-auto text-sm md:text-base px-4">
+              Invista menos que uma limpeza por mês e tenha acesso completo.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Plano Mensal */}
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm relative overflow-hidden">
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
-                  <span className="text-white">Plano Mensal</span>
+                  <span className="text-white text-lg">Plano Mensal</span>
                   <Clock className="w-5 h-5 text-gray-400" />
                 </CardTitle>
-                <CardDescription className="text-gray-400">
+                <CardDescription className="text-gray-400 text-sm">
                   Ideal para começar
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pb-6">
-                <div className="mb-6">
-                  <span className="text-4xl font-bold text-white">R$ 39,90</span>
+              <CardContent className="pb-4">
+                <div className="mb-4">
+                  <span className="text-3xl md:text-4xl font-bold text-white">R$ 39,90</span>
                   <span className="text-gray-400">/mês</span>
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {[
-                    "Acesso completo ao sistema",
-                    "Clientes e agendamentos ilimitados",
-                    "Ordens de serviço e orçamentos",
-                    "Controle financeiro completo",
-                    "Suporte via WhatsApp",
-                    "Atualizações gratuitas"
+                    "Acesso completo",
+                    "Clientes ilimitados",
+                    "Ordens de serviço",
+                    "Controle financeiro",
+                    "Suporte WhatsApp"
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-gray-300">
+                    <li key={i} className="flex items-center gap-2 text-gray-300 text-sm">
                       <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter className="flex-col gap-2">
+              <CardFooter>
                 <Button 
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white transition-all duration-300 hover:scale-105"
                   onClick={() => handleCheckout('mensal')}
                 >
-                  Assinar Plano Mensal
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full border-white/20 text-gray-300 hover:bg-white/10"
-                  onClick={handleContactSupport}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  7 dias grátis - Fale Conosco
+                  Assinar Mensal
                 </Button>
               </CardFooter>
             </Card>
 
-            {/* Plano Anual - Destacado */}
+            {/* Plano Anual */}
             <Card className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 backdrop-blur-sm relative overflow-hidden">
-              {/* Badge de economia */}
-              <div className="absolute top-4 right-4">
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg">
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs">
                   <TrendingUp className="w-3 h-3 mr-1" />
-                  ECONOMIZE 22%
+                  22% OFF
                 </Badge>
               </div>
               
-              <CardHeader className="pb-4">
+              <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <Crown className="w-5 h-5 text-amber-400" />
-                  <span className="text-white">Plano Anual</span>
+                  <span className="text-white text-lg">Plano Anual</span>
                 </CardTitle>
-                <CardDescription className="text-cyan-300">
+                <CardDescription className="text-cyan-300 text-sm">
                   Melhor custo-benefício
                 </CardDescription>
               </CardHeader>
-              <CardContent className="pb-6">
-                <div className="mb-2">
-                  <span className="text-gray-400 line-through text-lg">R$ 478,80</span>
+              <CardContent className="pb-4">
+                <div className="mb-1">
+                  <span className="text-gray-400 line-through text-sm">R$ 478,80</span>
                 </div>
-                <div className="mb-6">
-                  <span className="text-5xl font-bold text-white">R$ 370</span>
+                <div className="mb-4">
+                  <span className="text-3xl md:text-4xl font-bold text-white">R$ 370</span>
                   <span className="text-gray-300">/ano</span>
-                  <div className="text-cyan-400 text-sm mt-1">
-                    = R$ 30,83/mês
-                  </div>
+                  <div className="text-cyan-400 text-xs mt-1">= R$ 30,83/mês</div>
                 </div>
-                <ul className="space-y-3">
+                <ul className="space-y-2">
                   {[
-                    "✅ Tudo do plano mensal",
-                    "🎁 2 meses grátis inclusos",
-                    "⚡ Suporte prioritário",
-                    "📊 Relatórios avançados",
-                    "🔒 Backup automático diário",
-                    "🎓 Treinamento exclusivo"
+                    "Tudo do mensal",
+                    "2 meses grátis",
+                    "Suporte prioritário",
+                    "Relatórios avançados",
+                    "Backup diário"
                   ].map((item, i) => (
-                    <li key={i} className="flex items-center gap-2 text-white">
+                    <li key={i} className="flex items-center gap-2 text-white text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
                       {item}
                     </li>
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter className="flex-col gap-2">
+              <CardFooter>
                 <Button 
                   size="lg"
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-105 animate-pulse"
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-105"
                   onClick={() => handleCheckout('anual')}
                 >
                   <Crown className="w-5 h-5 mr-2" />
-                  Assinar Plano Anual - MELHOR OFERTA
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="w-full border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
-                  onClick={handleContactSupport}
-                >
-                  <MessageCircle className="w-4 h-4 mr-2" />
-                  7 dias grátis - Fale Conosco
+                  Assinar Anual
                 </Button>
               </CardFooter>
             </Card>
           </div>
 
           {/* Garantia */}
-          <div className="text-center mt-8">
+          <div className="text-center mt-6">
             <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
               <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-green-400 text-sm">
-                Garantia de 7 dias: não gostou, devolvemos seu dinheiro
+              <span className="text-green-400 text-xs sm:text-sm">
+                Garantia de reembolso em até 7 dias
               </span>
             </div>
           </div>
@@ -500,25 +469,25 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 px-4 bg-slate-900/50">
+      <section className="py-16 px-4 bg-slate-900/50">
         <div className="container mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
             O que nossos clientes dizem
           </h2>
           
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
             {testimonials.map((t, i) => (
               <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-sm">
-                <CardContent className="p-6">
-                  <div className="flex gap-1 mb-4">
+                <CardContent className="p-5">
+                  <div className="flex gap-1 mb-3">
                     {[...Array(t.stars)].map((_, i) => (
-                      <Star key={i} className="w-5 h-5 fill-amber-400 text-amber-400" />
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-gray-300 mb-4 italic">"{t.text}"</p>
+                  <p className="text-gray-300 mb-3 italic text-sm">"{t.text}"</p>
                   <div>
-                    <div className="font-semibold text-white">{t.name}</div>
-                    <div className="text-sm text-gray-400">{t.role}</div>
+                    <div className="font-semibold text-white text-sm">{t.name}</div>
+                    <div className="text-xs text-gray-400">{t.role}</div>
                   </div>
                 </CardContent>
               </Card>
@@ -528,29 +497,29 @@ const Landing: React.FC = () => {
       </section>
 
       {/* CTA Final */}
-      <section className="py-20 px-4 relative">
+      <section className="py-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent pointer-events-none" />
         
         <div className="container mx-auto text-center relative">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6">
-            Pronto para transformar seu negócio?
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4">
+            Pronto para começar?
           </h2>
-          <p className="text-gray-400 mb-8 max-w-xl mx-auto">
-            Junte-se a centenas de técnicos que já organizaram sua vida profissional com o AC Service Pro.
+          <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm md:text-base px-4">
+            Junte-se a centenas de técnicos que já organizaram seu negócio.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center px-4">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-cyan-500/25"
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-base px-6 py-5 rounded-xl shadow-lg shadow-cyan-500/25"
               onClick={() => { setShowLogin(true); setIsLogin(false); }}
             >
-              Criar Conta Grátis
+              Criar Conta
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-lg px-8 py-6 rounded-xl transition-all duration-300 hover:scale-105"
+              className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-base px-6 py-5 rounded-xl"
               onClick={handleContactSupport}
             >
               <MessageCircle className="w-5 h-5 mr-2" />
@@ -594,7 +563,7 @@ const Landing: React.FC = () => {
               <CardDescription className="text-gray-400">
                 {isLogin 
                   ? 'Entre para acessar seu painel' 
-                  : '7 dias grátis para testar todas as funcionalidades'}
+                  : 'Acesse todas as funcionalidades'}
               </CardDescription>
             </CardHeader>
 
