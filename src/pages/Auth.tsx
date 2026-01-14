@@ -35,14 +35,14 @@ export default function Auth() {
       if (event === 'PASSWORD_RECOVERY') {
         navigate("/reset-password");
       } else if (event === 'SIGNED_IN' && session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/");
+        navigate("/dashboard");
       }
     });
 
