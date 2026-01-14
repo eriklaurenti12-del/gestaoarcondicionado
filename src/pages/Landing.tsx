@@ -153,20 +153,21 @@ const Landing: React.FC = () => {
   }, []);
 
   const features = [
-    { icon: Calendar, title: "Agendamentos", desc: "Organize todos os atendimentos" },
-    { icon: Users, title: "Clientes", desc: "Cadastro completo com histórico" },
-    { icon: Wind, title: "Equipamentos", desc: "Controle por ar condicionado" },
-    { icon: Wrench, title: "Manutenção", desc: "Alertas de limpeza preventiva" },
-    { icon: FileText, title: "Ordens de Serviço", desc: "Documentos profissionais" },
-    { icon: BarChart3, title: "Financeiro", desc: "Lucro real e despesas" },
-    { icon: Smartphone, title: "100% Mobile", desc: "Funciona em qualquer lugar" },
-    { icon: Shield, title: "Seguro", desc: "Dados protegidos na nuvem" },
+    { icon: Calendar, title: "Agenda Inteligente", desc: "Nunca mais perca um serviço por esquecimento" },
+    { icon: Users, title: "Clientes Organizados", desc: "Histórico completo em segundos" },
+    { icon: Wind, title: "Controle de Equipamentos", desc: "Saiba tudo sobre cada ar do cliente" },
+    { icon: Wrench, title: "Manutenção Preventiva", desc: "Clientes voltando todo mês automático" },
+    { icon: FileText, title: "OS Profissional", desc: "Impressione e cobre mais caro" },
+    { icon: BarChart3, title: "Lucro Real", desc: "Veja quanto sobra de verdade" },
+    { icon: Smartphone, title: "No Celular", desc: "Acesse na obra, no carro, em casa" },
+    { icon: Shield, title: "Nunca Perde Dados", desc: "Tudo salvo na nuvem, sempre" },
   ];
 
   const testimonials = [
-    { name: "Carlos M.", role: "Técnico Autônomo", text: "Mudou minha vida! Antes eu perdia orçamentos no papel, agora tenho tudo organizado.", stars: 5 },
-    { name: "Ana Paula", role: "Empresa de Climatização", text: "O controle de manutenção preventiva aumentou nossa receita recorrente em 40%.", stars: 5 },
-    { name: "Roberto S.", role: "Técnico há 15 anos", text: "Simples de usar mesmo para quem não entende de tecnologia. Recomendo!", stars: 5 },
+    { name: "Carlos M.", role: "Técnico Autônomo - SP", text: "Eu perdia cliente por esquecer de ligar. Agora o sistema me lembra de tudo. Triplicou meus agendamentos!", stars: 5 },
+    { name: "Ana Paula", role: "Dona de Empresa - RJ", text: "Parei de perder dinheiro sem saber. Descobri que tinha funcionário me roubando. O financeiro mostrou tudo.", stars: 5 },
+    { name: "Roberto S.", role: "Técnico há 15 anos - MG", text: "Achava que era difícil, mas é mais fácil que WhatsApp. Em 10 minutos já tava usando.", stars: 5 },
+    { name: "Marcos L.", role: "Autônomo - BA", text: "O melhor investimento que fiz. Por menos de R$40 eu tenho o que empresas grandes pagam milhares.", stars: 5 },
   ];
 
   return (
@@ -251,54 +252,66 @@ const Landing: React.FC = () => {
       {/* Hero Section */}
       <section className="pt-44 pb-16 px-4 relative min-h-[90vh] flex items-center">
         <div className="container mx-auto text-center">
-          {/* Badge de promoção */}
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
-            <Gift className="w-4 h-4 text-amber-400" />
-            <span className="text-amber-300 text-sm font-medium">
-              PROMOÇÃO: Plano Anual com 22% OFF!
+          {/* Badge de urgência */}
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
+            <Zap className="w-4 h-4 text-red-400" />
+            <span className="text-red-300 text-sm font-medium">
+              ATENÇÃO: Você está perdendo dinheiro todo dia sem saber
             </span>
-            <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
+            <Zap className="w-4 h-4 text-red-400 animate-pulse" />
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in">
-            Gerencie sua empresa de{" "}
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-              Ar Condicionado
+            Chega de{" "}
+            <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
+              Perder Clientes
             </span>
+            <br />
+            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">e Trabalhar no Prejuízo</span>
           </h1>
           
-          <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-xl mx-auto animate-fade-in px-4" style={{ animationDelay: '0.2s' }}>
-            Sistema completo para técnicos e empresas. Agendamentos, clientes, financeiro e mais!
+          <p className="text-lg md:text-xl text-gray-300 mb-4 max-w-2xl mx-auto animate-fade-in px-4" style={{ animationDelay: '0.2s' }}>
+            <strong className="text-white">Você anota tudo no papel ou no WhatsApp?</strong> Esquece de cobrar clientes? 
+            Não sabe quanto lucrou no mês? <span className="text-cyan-400">Esse problema acaba HOJE.</span>
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10 px-4">
+          <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium px-4">
+            O único sistema de Ar Condicionado que <u>você realmente vai usar</u> — porque é simples igual WhatsApp, mas organiza TUDO.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 px-4">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-base sm:text-lg px-6 py-5 rounded-xl shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105"
-              onClick={() => { setShowLogin(true); setIsLogin(false); }}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-base sm:text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300 hover:scale-105"
+              onClick={() => handleCheckout('anual')}
             >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Começar Agora
+              <Crown className="w-5 h-5 mr-2" />
+              QUERO PARAR DE PERDER DINHEIRO
               <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-base sm:text-lg px-6 py-5 rounded-xl transition-all duration-300 hover:scale-105"
-              onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}
-            >
-              Ver Planos
-              <ChevronDown className="w-5 h-5 ml-2" />
             </Button>
           </div>
 
-          {/* Stats */}
+          {/* Prova social imediata */}
+          <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 max-w-2xl mx-auto border border-cyan-500/20 mb-8">
+            <p className="text-gray-300 text-sm mb-2">
+              <span className="text-cyan-400 font-bold">+ de 500 técnicos</span> já pararam de perder dinheiro com esse sistema
+            </p>
+            <div className="flex items-center justify-center gap-1">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+              ))}
+              <span className="text-amber-400 ml-2 font-bold">4.9/5</span>
+              <span className="text-gray-400 text-sm ml-1">- Avaliação dos clientes</span>
+            </div>
+          </div>
+
+          {/* Stats reformulados */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto px-4">
             {[
-              { value: "500+", label: "Técnicos" },
-              { value: "15K+", label: "Serviços" },
-              { value: "99.9%", label: "Uptime" },
-              { value: "4.9★", label: "Avaliação" }
+              { value: "R$ 39,90", label: "Menos que 1 limpeza" },
+              { value: "2 min", label: "Para começar a usar" },
+              { value: "100%", label: "No celular" },
+              { value: "0", label: "Conhecimento técnico" }
             ].map((stat, i) => (
               <div 
                 key={i} 
@@ -312,14 +325,50 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Seção da Dor */}
+      <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
+            Você se <span className="text-red-400">identifica</span> com isso?
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-4 mb-10">
+            {[
+              "Anota serviços no papel e depois perde",
+              "Esquece de cobrar cliente ou de fazer follow-up",
+              "Não sabe quanto lucrou no mês de verdade",
+              "Perde tempo procurando informação no WhatsApp",
+              "Cliente liga e você não lembra o histórico dele",
+              "Já perdeu serviço por falta de organização",
+              "Trabalha muito mas o dinheiro não sobra",
+              "Usa planilha Excel mas nunca atualiza"
+            ].map((pain, i) => (
+              <div key={i} className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <X className="w-5 h-5 text-red-400 flex-shrink-0" />
+                <span className="text-gray-300 text-sm">{pain}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
+            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+              Se você marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span>
+            </h3>
+            <p className="text-gray-300">
+              Cada dia sem organização é dinheiro que você deixa na mesa. <strong className="text-amber-400">Literalmente.</strong>
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid */}
       <section className="py-16 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
         <div className="container mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-3">
-            Tudo em <span className="text-cyan-400">um só lugar</span>
+            O que você ganha <span className="text-green-400">de verdade</span>
           </h2>
-          <p className="text-gray-400 text-center mb-10 max-w-md mx-auto text-sm md:text-base px-4">
-            Centralize toda sua operação em uma única ferramenta profissional.
+          <p className="text-gray-400 text-center mb-4 max-w-lg mx-auto text-sm md:text-base px-4">
+            Não é só "organização". É <strong className="text-white">mais dinheiro no bolso</strong> todo mês.
           </p>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
@@ -341,21 +390,93 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Seção de Comparação */}
+      <section className="py-16 px-4 bg-slate-900/50">
+        <div className="container mx-auto max-w-4xl">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">
+            Por que <span className="text-cyan-400">esse é o melhor</span> sistema?
+          </h2>
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Outros sistemas */}
+            <Card className="bg-red-500/5 border-red-500/20">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-red-400">
+                  <X className="w-5 h-5" />
+                  Outros Sistemas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {[
+                    "Custam R$ 150 a R$ 500/mês",
+                    "Complicados demais para usar",
+                    "Precisam de treinamento",
+                    "Feitos para empresas grandes",
+                    "Suporte demora dias para responder",
+                    "Interface confusa e antiga"
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-gray-400 text-sm">
+                      <X className="w-4 h-4 text-red-400 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+
+            {/* AC Service Pro */}
+            <Card className="bg-green-500/5 border-green-500/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-green-400">
+                  <CheckCircle className="w-5 h-5" />
+                  AC Service Pro
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {[
+                    "Apenas R$ 39,90/mês (ou menos no anual)",
+                    "Simples igual WhatsApp",
+                    "Começa a usar em 2 minutos",
+                    "Feito POR técnico PARA técnico",
+                    "Suporte responde em minutos no WhatsApp",
+                    "Interface moderna e bonita"
+                  ].map((item, i) => (
+                    <li key={i} className="flex items-center gap-2 text-gray-200 text-sm">
+                      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="text-center mt-8 bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
+            <p className="text-amber-300 font-medium">
+              💡 <strong>Pense:</strong> Uma única limpeza que você não esquece de cobrar já paga o sistema por 3 meses.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section id="precos" className="py-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
         
         <div className="container mx-auto relative">
           <div className="text-center mb-10">
-            <Badge className="bg-cyan-500/20 text-cyan-400 border-cyan-500/30 mb-4">
-              <Percent className="w-3 h-3 mr-1" />
-              Preços Promocionais
+            <Badge className="bg-green-500/20 text-green-400 border-green-500/30 mb-4">
+              <DollarSign className="w-3 h-3 mr-1" />
+              Investimento Ridículo
             </Badge>
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">
-              Escolha seu plano
+              Menos que <span className="text-cyan-400">uma limpeza</span> por mês
             </h2>
-            <p className="text-gray-400 max-w-md mx-auto text-sm md:text-base px-4">
-              Invista menos que uma limpeza por mês e tenha acesso completo.
+            <p className="text-gray-400 max-w-lg mx-auto text-sm md:text-base px-4">
+              Você cobra <strong className="text-white">R$ 120 a R$ 200</strong> numa limpeza. 
+              O sistema custa <strong className="text-cyan-400">R$ 39,90</strong>. <span className="text-amber-400">Faça as contas.</span>
             </p>
           </div>
 
@@ -368,21 +489,22 @@ const Landing: React.FC = () => {
                   <Clock className="w-5 h-5 text-gray-400" />
                 </CardTitle>
                 <CardDescription className="text-gray-400 text-sm">
-                  Ideal para começar
+                  Para testar e ver resultado rápido
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="mb-4">
                   <span className="text-3xl md:text-4xl font-bold text-white">R$ 39,90</span>
                   <span className="text-gray-400">/mês</span>
+                  <div className="text-green-400 text-xs mt-1">= 1/3 de uma limpeza simples</div>
                 </div>
                 <ul className="space-y-2">
                   {[
-                    "Acesso completo",
-                    "Clientes ilimitados",
-                    "Ordens de serviço",
-                    "Controle financeiro",
-                    "Suporte WhatsApp"
+                    "Acesso COMPLETO a tudo",
+                    "Clientes e equipamentos ilimitados",
+                    "Ordens de serviço profissionais",
+                    "Controle financeiro real",
+                    "Suporte humano no WhatsApp"
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-gray-300 text-sm">
                       <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
@@ -396,7 +518,7 @@ const Landing: React.FC = () => {
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white transition-all duration-300 hover:scale-105"
                   onClick={() => handleCheckout('mensal')}
                 >
-                  Assinar Mensal
+                  Começar por R$ 39,90
                 </Button>
               </CardFooter>
             </Card>
@@ -406,7 +528,7 @@ const Landing: React.FC = () => {
               <div className="absolute top-3 right-3">
                 <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs">
                   <TrendingUp className="w-3 h-3 mr-1" />
-                  22% OFF
+                  MAIS ESCOLHIDO
                 </Badge>
               </div>
               
@@ -416,25 +538,26 @@ const Landing: React.FC = () => {
                   <span className="text-white text-lg">Plano Anual</span>
                 </CardTitle>
                 <CardDescription className="text-cyan-300 text-sm">
-                  Melhor custo-benefício
+                  Para quem quer economizar de verdade
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="mb-1">
                   <span className="text-gray-400 line-through text-sm">R$ 478,80</span>
+                  <span className="text-green-400 text-sm ml-2">Economize R$ 108!</span>
                 </div>
                 <div className="mb-4">
                   <span className="text-3xl md:text-4xl font-bold text-white">R$ 370</span>
                   <span className="text-gray-300">/ano</span>
-                  <div className="text-cyan-400 text-xs mt-1">= R$ 30,83/mês</div>
+                  <div className="text-cyan-400 text-xs mt-1">= Apenas R$ 30,83/mês (preço de um almoço)</div>
                 </div>
                 <ul className="space-y-2">
                   {[
-                    "Tudo do mensal",
-                    "2 meses grátis",
-                    "Suporte prioritário",
+                    "TUDO do mensal incluído",
+                    "2 meses DE GRAÇA",
+                    "Suporte VIP prioritário",
                     "Relatórios avançados",
-                    "Backup diário"
+                    "Backup automático diário"
                   ].map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-white text-sm">
                       <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
@@ -450,18 +573,21 @@ const Landing: React.FC = () => {
                   onClick={() => handleCheckout('anual')}
                 >
                   <Crown className="w-5 h-5 mr-2" />
-                  Assinar Anual
+                  QUERO ECONOMIZAR R$ 108
                 </Button>
               </CardFooter>
             </Card>
           </div>
 
           {/* Garantia */}
-          <div className="text-center mt-6">
-            <div className="inline-flex items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-full px-4 py-2">
-              <Shield className="w-4 h-4 text-green-400" />
-              <span className="text-green-400 text-xs sm:text-sm">
-                Garantia de reembolso em até 7 dias
+          <div className="text-center mt-8">
+            <div className="inline-flex flex-col items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-6 py-4">
+              <Shield className="w-8 h-8 text-green-400" />
+              <span className="text-green-400 font-bold">
+                Garantia Total de 7 Dias
+              </span>
+              <span className="text-gray-400 text-sm max-w-md">
+                Se você não amar o sistema em 7 dias, devolvemos 100% do seu dinheiro. Sem perguntas. <strong className="text-white">Risco ZERO.</strong>
               </span>
             </div>
           </div>
@@ -471,23 +597,26 @@ const Landing: React.FC = () => {
       {/* Testimonials */}
       <section className="py-16 px-4 bg-slate-900/50">
         <div className="container mx-auto">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-10">
-            O que nossos clientes dizem
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
+            Técnicos <span className="text-cyan-400">reais</span> falando a verdade
           </h2>
+          <p className="text-gray-400 text-center mb-10 text-sm">
+            Não inventamos nada. São pessoas como você que resolveram o problema.
+          </p>
           
-          <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {testimonials.map((t, i) => (
-              <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-sm">
+              <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-sm hover:border-cyan-500/30 transition-all">
                 <CardContent className="p-5">
                   <div className="flex gap-1 mb-3">
                     {[...Array(t.stars)].map((_, i) => (
                       <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-gray-300 mb-3 italic text-sm">"{t.text}"</p>
-                  <div>
+                  <p className="text-gray-300 mb-4 italic text-sm leading-relaxed">"{t.text}"</p>
+                  <div className="border-t border-white/10 pt-3">
                     <div className="font-semibold text-white text-sm">{t.name}</div>
-                    <div className="text-xs text-gray-400">{t.role}</div>
+                    <div className="text-xs text-cyan-400">{t.role}</div>
                   </div>
                 </CardContent>
               </Card>
@@ -496,36 +625,50 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Urgência Final */}
+      <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
+        <div className="container mx-auto text-center max-w-3xl">
+          <h2 className="text-xl sm:text-2xl font-bold mb-4 text-white">
+            ⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?
+          </h2>
+          <p className="text-gray-300 mb-6">
+            Cada dia que passa sem sistema é cliente que você esquece, serviço que você não cobra, 
+            e <strong className="text-amber-400">dinheiro que fica na mesa</strong>. 
+            Você vai continuar trabalhando no prejuízo?
+          </p>
+        </div>
+      </section>
+
       {/* CTA Final */}
       <section className="py-16 px-4 relative">
         <div className="absolute inset-0 bg-gradient-to-t from-cyan-500/10 to-transparent pointer-events-none" />
         
         <div className="container mx-auto text-center relative">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-4">
-            Pronto para começar?
+          <h2 className="text-2xl sm:text-3xl font-bold mb-2">
+            A decisão é <span className="text-cyan-400">sua</span>
           </h2>
-          <p className="text-gray-400 mb-6 max-w-md mx-auto text-sm md:text-base px-4">
-            Junte-se a centenas de técnicos que já organizaram seu negócio.
+          <p className="text-gray-300 mb-6 max-w-lg mx-auto text-sm md:text-base px-4">
+            Continuar perdendo dinheiro todo dia... ou investir <strong className="text-white">menos que uma limpeza</strong> e resolver isso de vez?
           </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center px-4">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center px-4 mb-6">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-base px-6 py-5 rounded-xl shadow-lg shadow-cyan-500/25"
-              onClick={() => { setShowLogin(true); setIsLogin(false); }}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-base sm:text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300 hover:scale-105"
+              onClick={() => handleCheckout('anual')}
             >
-              Criar Conta
+              <Crown className="w-5 h-5 mr-2" />
+              QUERO PARAR DE PERDER DINHEIRO
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-base px-6 py-5 rounded-xl"
-              onClick={handleContactSupport}
-            >
-              <MessageCircle className="w-5 h-5 mr-2" />
-              Falar com Consultor
-            </Button>
           </div>
+          <Button 
+            variant="ghost"
+            className="text-gray-400 hover:text-white"
+            onClick={handleContactSupport}
+          >
+            <MessageCircle className="w-4 h-4 mr-2" />
+            Ainda tem dúvidas? Fale com um consultor
+          </Button>
         </div>
       </section>
 
