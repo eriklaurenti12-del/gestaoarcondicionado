@@ -75,6 +75,8 @@ export default function Members() {
           endDate.setFullYear(endDate.getFullYear() + 1);
         } else if (plan === 'trimestral') {
           endDate.setMonth(endDate.getMonth() + 3);
+        } else if (plan === '7dias') {
+          endDate.setDate(endDate.getDate() + 7);
         } else if (plan === '1dia') {
           endDate.setDate(endDate.getDate() + 1);
         } else {
@@ -293,16 +295,18 @@ export default function Members() {
                               <SelectTrigger className="w-[100px] sm:w-[110px] h-9 text-xs sm:text-sm bg-[#0f0f17] border-[#2a2a3a] text-white">
                                 <SelectValue />
                               </SelectTrigger>
-                              <SelectContent 
+                            <SelectContent 
                                 className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px]"
                                 position="popper"
                                 sideOffset={4}
+                                align="start"
                               >
-                                <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a]">Vitalício</SelectItem>
-                                <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a]">1 Ano</SelectItem>
-                                <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a]">3 Meses</SelectItem>
-                                <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a]">1 Mês</SelectItem>
-                                <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a]">1 Dia</SelectItem>
+                                <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">Vitalício</SelectItem>
+                                <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Ano</SelectItem>
+                                <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">3 Meses</SelectItem>
+                                <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Mês</SelectItem>
+                                <SelectItem value="7dias" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">7 Dias</SelectItem>
+                                <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Dia</SelectItem>
                               </SelectContent>
                             </Select>
                           )}
