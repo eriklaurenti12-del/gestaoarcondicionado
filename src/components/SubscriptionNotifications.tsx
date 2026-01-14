@@ -52,22 +52,22 @@ export const SubscriptionNotifications: React.FC = () => {
     };
 
     setNotificationId(prev => prev + 1);
-    setNotifications(prev => [...prev.slice(-2), newNotification]);
+    setNotifications(prev => [...prev.slice(-1), newNotification]);
 
-    // Remove notification after 4 seconds
+    // Remove notification after 8 seconds
     setTimeout(() => {
       setNotifications(prev => 
         prev.map(n => n.id === newNotification.id ? { ...n, visible: false } : n)
       );
-    }, 4000);
+    }, 8000);
   };
 
   useEffect(() => {
-    // Initial notification after 2 seconds
-    const initialTimeout = setTimeout(createNotification, 2000);
+    // Initial notification after 4 seconds
+    const initialTimeout = setTimeout(createNotification, 4000);
 
-    // Then every 3 seconds
-    const interval = setInterval(createNotification, 3000);
+    // Then every 8 seconds
+    const interval = setInterval(createNotification, 8000);
 
     return () => {
       clearTimeout(initialTimeout);
@@ -82,33 +82,33 @@ export const SubscriptionNotifications: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 space-y-2 max-w-xs">
+    <div className="fixed bottom-4 left-4 z-50 space-y-2 max-w-sm">
       {notifications.filter(n => n.visible).map((notification) => (
         <div
           key={notification.id}
-          className="bg-gradient-to-r from-green-900/90 to-emerald-900/90 backdrop-blur-lg border border-green-500/30 rounded-lg p-3 shadow-2xl shadow-green-500/20 animate-fade-in"
+          className="bg-gradient-to-r from-green-900/95 to-emerald-900/95 backdrop-blur-lg border border-green-500/40 rounded-xl p-4 shadow-2xl shadow-green-500/20"
           style={{
-            animation: 'slideInLeft 0.5s ease-out, pulse 2s infinite'
+            animation: 'slideInLeft 0.8s ease-out'
           }}
         >
           <div className="flex items-start gap-3">
-            <div className="p-1.5 bg-green-500/20 rounded-full animate-pulse">
+            <div className="p-2 bg-green-500/20 rounded-full">
               <CheckCircle className="w-5 h-5 text-green-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">
+              <p className="text-sm font-semibold text-white">
                 {notification.name}
               </p>
-              <p className="text-xs text-green-300/80">
-                {notification.city} acabou de assinar
+              <p className="text-xs text-green-300/90 mt-0.5">
+                de {notification.city} acabou de assinar
               </p>
-              <p className="text-xs font-semibold text-green-400 mt-1">
-                {notification.plan.name} - {notification.plan.price}
+              <p className="text-sm font-bold text-green-400 mt-1.5">
+                ✓ {notification.plan.name} - {notification.plan.price}
               </p>
             </div>
             <button
               onClick={() => dismissNotification(notification.id)}
-              className="text-green-400/50 hover:text-green-300 transition-colors"
+              className="text-green-400/60 hover:text-green-300 transition-colors p-1"
             >
               <X className="w-4 h-4" />
             </button>
@@ -118,11 +118,14 @@ export const SubscriptionNotifications: React.FC = () => {
 
       <style>{`
         @keyframes slideInLeft {
-          from {
-            transform: translateX(-100%);
+          0% {
+            transform: translateX(-120%);
             opacity: 0;
           }
-          to {
+          60% {
+            transform: translateX(5%);
+          }
+          100% {
             transform: translateX(0);
             opacity: 1;
           }
