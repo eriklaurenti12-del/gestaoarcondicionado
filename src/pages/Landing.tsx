@@ -63,19 +63,48 @@ const Landing: React.FC = () => {
     loadSettings();
   }, []);
 
+  // Função para verificar assinatura e redirecionar
+  const checkSubscriptionAndRedirect = async (userId: string) => {
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (subscription) {
+      // Verifica se está em período de trial (1 dia desde start_date)
+      const startDate = new Date(subscription.start_date);
+      const now = new Date();
+      const trialEndDate = new Date(startDate.getTime() + 24 * 60 * 60 * 1000); // 1 dia de trial
+      const isInTrial = now < trialEndDate;
+
+      // Acesso liberado se: assinatura ativa E aprovada OU dentro do período de trial
+      if ((subscription.is_active && subscription.status === 'aprovado') || (subscription.is_active && isInTrial)) {
+        navigate('/dashboard');
+      } else {
+        navigate('/awaiting-activation');
+      }
+    } else {
+      navigate('/awaiting-activation');
+    }
+  };
+
   // Verificar se já está logado
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/dashboard');
+        await checkSubscriptionAndRedirect(session.user.id);
       }
     };
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate('/dashboard');
+        // Usar setTimeout para evitar deadlock
+        setTimeout(() => {
+          checkSubscriptionAndRedirect(session.user.id);
+        }, 0);
       }
     });
 
@@ -103,7 +132,7 @@ const Landing: React.FC = () => {
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
         if (rememberMe) {
@@ -112,7 +141,12 @@ const Landing: React.FC = () => {
           localStorage.removeItem('ac_remember_email');
         }
         
-        toast({ title: "Bem-vindo de volta!", description: "Login realizado com sucesso." });
+        toast({ title: "Bem-vindo de volta!", description: "Verificando acesso..." });
+        
+        // Verifica assinatura e redireciona
+        if (data.user) {
+          await checkSubscriptionAndRedirect(data.user.id);
+        }
       } else {
         const { error } = await supabase.auth.signUp({
           email,
