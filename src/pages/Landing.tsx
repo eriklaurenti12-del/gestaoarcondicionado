@@ -14,8 +14,17 @@ import {
   FileText, Shield, Smartphone, Zap, ArrowRight, Sparkles,
   Crown, Gift, Clock, DollarSign, ChevronDown, Wind, Wrench,
   Download, LogIn, UserPlus, Eye, EyeOff, Loader2, X,
-  Percent, BadgeCheck, TrendingUp
+  Percent, BadgeCheck, TrendingUp, MessageCircle
 } from "lucide-react";
+import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
+import { PromoCountdown } from "@/components/PromoCountdown";
+
+type AdminSettings = {
+  checkout_mensal: string;
+  checkout_anual: string;
+  whatsapp_suporte: string;
+  promo_end_date: string;
+};
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +37,31 @@ const Landing: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [settings, setSettings] = useState<AdminSettings>({
+    checkout_mensal: '',
+    checkout_anual: '',
+    whatsapp_suporte: 'https://wa.me/5511999999999',
+    promo_end_date: ''
+  });
+
+  // Load admin settings
+  useEffect(() => {
+    const loadSettings = async () => {
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('key, value')
+        .in('key', ['checkout_mensal', 'checkout_anual', 'whatsapp_suporte', 'promo_end_date']);
+
+      if (data) {
+        const settingsMap: Partial<AdminSettings> = {};
+        data.forEach(item => {
+          settingsMap[item.key as keyof AdminSettings] = item.value || '';
+        });
+        setSettings(prev => ({ ...prev, ...settingsMap }));
+      }
+    };
+    loadSettings();
+  }, []);
 
   // Verificar se já está logado
   useEffect(() => {
@@ -47,6 +81,22 @@ const Landing: React.FC = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  const handleCheckout = (type: 'mensal' | 'anual') => {
+    const link = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
+    if (link) {
+      window.open(link, '_blank');
+    } else {
+      // If no checkout link, show login to create account then contact support
+      setShowLogin(true);
+      setIsLogin(false);
+    }
+  };
+
+  const handleContactSupport = () => {
+    const whatsappLink = settings.whatsapp_suporte || 'https://wa.me/5511999999999';
+    window.open(`${whatsappLink}?text=Olá! Gostaria de ativar meus 7 dias grátis no AC Service Pro!`, '_blank');
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,17 +171,25 @@ const Landing: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 text-white overflow-x-hidden">
+      {/* Subscription Notifications */}
+      <SubscriptionNotifications />
+
+      {/* Promo Countdown Timer */}
+      <div className="fixed top-0 left-0 right-0 z-[60]">
+        <PromoCountdown endDate={settings.promo_end_date || undefined} />
+      </div>
+
       {/* Partículas animadas de fundo */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        {[...Array(20)].map((_, i) => (
+        {[...Array(30)].map((_, i) => (
           <div
             key={i}
-            className="absolute animate-pulse"
+            className="absolute"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              animationDuration: `${2 + Math.random() * 3}s`
+              animation: `float ${3 + Math.random() * 4}s ease-in-out infinite`,
+              animationDelay: `${Math.random() * 2}s`
             }}
           >
             <Snowflake 
@@ -145,11 +203,18 @@ const Landing: React.FC = () => {
         ))}
       </div>
 
-      {/* Header fixo */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-cyan-500/20">
+      {/* Floating animated orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+      </div>
+
+      {/* Header fixo - adjusted top position for promo bar */}
+      <header className="fixed top-10 left-0 right-0 z-50 bg-slate-900/80 backdrop-blur-lg border-b border-cyan-500/20">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center animate-pulse">
               <Snowflake className="w-6 h-6 text-white" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -159,14 +224,14 @@ const Landing: React.FC = () => {
           <div className="flex items-center gap-3">
             <Button 
               variant="ghost" 
-              className="text-white hover:bg-white/10"
+              className="text-white hover:bg-white/10 transition-all duration-300 hover:scale-105"
               onClick={() => { setShowLogin(true); setIsLogin(true); }}
             >
               <LogIn className="w-4 h-4 mr-2" />
               Entrar
             </Button>
             <Button 
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 hover:scale-105 shadow-lg shadow-cyan-500/25"
               onClick={() => { setShowLogin(true); setIsLogin(false); }}
             >
               <UserPlus className="w-4 h-4 mr-2" />
@@ -176,46 +241,54 @@ const Landing: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 relative">
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(180deg); }
+        }
+      `}</style>
+
+      {/* Hero Section - adjusted padding for promo bar */}
+      <section className="pt-44 pb-20 px-4 relative">
         <div className="container mx-auto text-center">
-          {/* Badge de promoção */}
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-6 animate-pulse">
+          {/* Badge de promoção animado */}
+          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Gift className="w-4 h-4 text-amber-400" />
             <span className="text-amber-300 text-sm font-medium">
               🔥 PROMOÇÃO: Plano Anual com 22% OFF!
             </span>
+            <Zap className="w-4 h-4 text-amber-400 animate-pulse" />
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight animate-fade-in">
             Gerencie sua empresa de
             <br />
-            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent animate-pulse">
               Ar Condicionado
             </span>
             <br />
             como um profissional
           </h1>
           
-          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto animate-fade-in" style={{ animationDelay: '0.2s' }}>
             Sistema completo para técnicos e empresas de climatização. 
             Agendamentos, clientes, ordens de serviço, financeiro e muito mais!
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
             <Button 
               size="lg" 
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-cyan-500/25 transition-all duration-300 hover:scale-105"
-              onClick={() => { setShowLogin(true); setIsLogin(false); }}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 transition-all duration-300 hover:scale-105 animate-pulse"
+              onClick={handleContactSupport}
             >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Começar Grátis por 7 Dias
+              <MessageCircle className="w-5 h-5 mr-2" />
+              Ativar 7 Dias Grátis
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
             <Button 
               size="lg" 
               variant="outline"
-              className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-lg px-8 py-6 rounded-xl"
+              className="border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 text-lg px-8 py-6 rounded-xl transition-all duration-300 hover:scale-105"
               onClick={() => document.getElementById('precos')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Ver Planos e Preços
@@ -223,7 +296,11 @@ const Landing: React.FC = () => {
             </Button>
           </div>
 
-          {/* Stats */}
+          <p className="text-sm text-gray-400 mb-12">
+            💬 Fale com nosso suporte para ativar seu período de teste
+          </p>
+
+          {/* Stats with animation */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
             {[
               { value: "500+", label: "Técnicos ativos" },
@@ -231,7 +308,11 @@ const Landing: React.FC = () => {
               { value: "99.9%", label: "Uptime garantido" },
               { value: "4.9★", label: "Avaliação média" }
             ].map((stat, i) => (
-              <div key={i} className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10">
+              <div 
+                key={i} 
+                className="bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:border-cyan-500/50 hover:bg-white/10 transition-all duration-300 hover:scale-105"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
                 <div className="text-2xl md:text-3xl font-bold text-cyan-400">{stat.value}</div>
                 <div className="text-sm text-gray-400">{stat.label}</div>
               </div>
@@ -322,12 +403,20 @@ const Landing: React.FC = () => {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col gap-2">
                 <Button 
-                  className="w-full bg-white/10 hover:bg-white/20 text-white"
-                  onClick={() => { setShowLogin(true); setIsLogin(false); }}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white transition-all duration-300 hover:scale-105"
+                  onClick={() => handleCheckout('mensal')}
                 >
-                  Começar com 7 dias grátis
+                  Assinar Plano Mensal
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full border-white/20 text-gray-300 hover:bg-white/10"
+                  onClick={handleContactSupport}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  7 dias grátis - Fale Conosco
                 </Button>
               </CardFooter>
             </Card>
@@ -377,14 +466,22 @@ const Landing: React.FC = () => {
                   ))}
                 </ul>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="flex-col gap-2">
                 <Button 
                   size="lg"
-                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold shadow-lg shadow-cyan-500/25"
-                  onClick={() => { setShowLogin(true); setIsLogin(false); }}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg shadow-amber-500/25 transition-all duration-300 hover:scale-105 animate-pulse"
+                  onClick={() => handleCheckout('anual')}
                 >
-                  <BadgeCheck className="w-5 h-5 mr-2" />
-                  Assinar Plano Anual
+                  <Crown className="w-5 h-5 mr-2" />
+                  Assinar Plano Anual - MELHOR OFERTA
+                </Button>
+                <Button 
+                  variant="outline"
+                  className="w-full border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10"
+                  onClick={handleContactSupport}
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  7 dias grátis - Fale Conosco
                 </Button>
               </CardFooter>
             </Card>
@@ -453,9 +550,10 @@ const Landing: React.FC = () => {
             <Button 
               size="lg" 
               variant="outline"
-              className="border-white/30 text-white hover:bg-white/10 text-lg px-8 py-6 rounded-xl"
-              onClick={() => window.open('https://wa.me/5511999999999?text=Olá! Gostaria de saber mais sobre o AC Service Pro', '_blank')}
+              className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-lg px-8 py-6 rounded-xl transition-all duration-300 hover:scale-105"
+              onClick={handleContactSupport}
             >
+              <MessageCircle className="w-5 h-5 mr-2" />
               Falar com Consultor
             </Button>
           </div>
