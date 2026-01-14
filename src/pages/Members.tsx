@@ -9,13 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { AdminSettingsTab } from "@/components/AdminSettingsTab";
 
 type Member = {
   id: string;
   email: string;
+  phone: string | null;
   created_at: string;
   subscription: {
     plan: string;
@@ -168,7 +169,7 @@ export default function Members() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0a0f] p-6 relative" style={{ minWidth: '100%' }}>
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-600/5 rounded-full blur-[120px]"></div>
@@ -256,16 +257,17 @@ export default function Members() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
+            <div className="overflow-x-auto touch-pan-x">
+              <Table className="min-w-[900px]">
                 <TableHeader>
                   <TableRow className="border-[#2a2a3a] hover:bg-[#1a1a24]">
-                    <TableHead className="min-w-[200px] text-gray-400">Email</TableHead>
-                    <TableHead className="min-w-[120px] text-gray-400">Plano</TableHead>
+                    <TableHead className="min-w-[180px] text-gray-400">Email</TableHead>
+                    <TableHead className="min-w-[120px] text-gray-400">WhatsApp</TableHead>
+                    <TableHead className="min-w-[110px] text-gray-400">Plano</TableHead>
                     <TableHead className="min-w-[100px] text-gray-400">Status</TableHead>
                     <TableHead className="min-w-[100px] text-gray-400">Cadastro</TableHead>
-                    <TableHead className="min-w-[120px] text-gray-400">Vencimento</TableHead>
-                    <TableHead className="min-w-[200px] text-gray-400">Ações</TableHead>
+                    <TableHead className="min-w-[100px] text-gray-400">Vencimento</TableHead>
+                    <TableHead className="min-w-[180px] text-gray-400">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -279,10 +281,26 @@ export default function Members() {
                       >
                         <TableCell className="font-medium text-xs sm:text-sm text-white">
                           <div className="flex items-center gap-2">
-                            {isSuperAdminUser && <Shield className="w-4 h-4 text-cyan-500" />}
-                            {member.email}
-                            {isSuperAdminUser && <Badge className="bg-cyan-600 text-white text-[10px]">SUPREMO</Badge>}
+                            {isSuperAdminUser && <Shield className="w-4 h-4 text-cyan-500 flex-shrink-0" />}
+                            <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
+                            {isSuperAdminUser && <Badge className="bg-cyan-600 text-white text-[10px] flex-shrink-0">SUPREMO</Badge>}
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          {member.phone ? (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.open(`https://wa.me/55${member.phone?.replace(/\D/g, '')}`, '_blank')}
+                              className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-8 px-2"
+                              title={`Chamar ${member.phone}`}
+                            >
+                              <Phone className="w-3 h-3 mr-1" />
+                              <span className="text-xs">{member.phone}</span>
+                            </Button>
+                          ) : (
+                            <span className="text-gray-500 text-xs">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {isSuperAdminUser ? (
