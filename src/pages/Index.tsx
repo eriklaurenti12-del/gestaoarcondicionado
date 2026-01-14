@@ -16,11 +16,12 @@ import PDVTab from "@/components/PDVTab";
 import ImpostosTab from "@/components/ImpostosTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import OnboardingTour from "@/components/OnboardingTour";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell } from "lucide-react";
+import { Bell, HelpCircle } from "lucide-react";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
@@ -60,6 +61,7 @@ export default function Index() {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ['notification-count'],
@@ -90,7 +92,7 @@ export default function Index() {
       }
       
       if (!session) {
-        navigate("/auth");
+        navigate("/landing");
       }
     });
 
@@ -102,7 +104,7 @@ export default function Index() {
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      navigate("/auth");
+      navigate("/landing");
       return;
     }
 
@@ -112,12 +114,34 @@ export default function Index() {
       .eq('user_id', session.user.id);
 
     setIsSuperAdmin(roles?.some(r => r.role === 'super_admin') || false);
+    
+    // Check if first time user (onboarding not completed)
+    const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
+    const onboardingCompleted = localStorage.getItem(onboardingKey);
+    
+    if (!onboardingCompleted) {
+      setShowOnboarding(true);
+    }
+    
     setLoading(false);
+  };
+
+  const handleOnboardingComplete = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
+      localStorage.setItem(onboardingKey, 'true');
+    }
+    setShowOnboarding(false);
+  };
+
+  const handleRestartOnboarding = () => {
+    setShowOnboarding(true);
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate("/auth");
+    navigate("/landing");
   };
 
   if (loading) {
@@ -191,6 +215,17 @@ export default function Index() {
                   <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Help/Onboarding button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
+                    onClick={handleRestartOnboarding}
+                    title="Ver tutorial do sistema"
+                  >
+                    <HelpCircle className="h-5 w-5" />
+                  </Button>
+                  
                   {/* Notification Bell */}
                   <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                     <PopoverTrigger asChild>
@@ -233,6 +268,12 @@ export default function Index() {
           </div>
 
           <SupportButton />
+          
+          {/* Onboarding Tour */}
+          <OnboardingTour 
+            open={showOnboarding} 
+            onComplete={handleOnboardingComplete}
+          />
         </div>
       </SidebarProvider>
     </SubscriptionGate>
