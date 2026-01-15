@@ -212,3 +212,17 @@ div[style*="Edit with Lovable"],
   width: 0 !important;
   height: 0 !important;
 }
+
+/* Progress bar animation for rotating notifications */
+@keyframes progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-progress {
+  animation: progress linear forwards;
+}
