@@ -17,6 +17,7 @@ import ImpostosTab from "@/components/ImpostosTab";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import OnboardingTour from "@/components/OnboardingTour";
+import RotatingNotifications from "@/components/RotatingNotifications";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
@@ -268,6 +269,9 @@ export default function Index() {
           </div>
 
           <SupportButton />
+          
+          {/* Rotating Tips/Notifications */}
+          <RotatingNotifications />
           
           {/* Onboarding Tour */}
           <OnboardingTour 
