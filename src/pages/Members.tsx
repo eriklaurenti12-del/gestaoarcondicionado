@@ -43,10 +43,24 @@ export default function Members() {
 
   const checkSuperAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || user.email !== 'eriklaurenti09@gmail.com') {
+    if (!user) {
       navigate("/");
       return;
     }
+    
+    // Query user_roles table to verify super_admin role (server-side validation)
+    const { data: roleData, error } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('role', 'super_admin')
+      .maybeSingle();
+    
+    if (error || !roleData) {
+      navigate("/");
+      return;
+    }
+    
     setIsSuperAdmin(true);
   };
 
