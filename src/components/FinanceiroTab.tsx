@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel } from "lucide-react";
-import { format, startOfMonth, endOfMonth } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -58,13 +58,15 @@ export default function FinanceiroTab() {
   const { data: sales } = useQuery({
     queryKey: ["sales-financial", selectedMonth],
     queryFn: async () => {
-      const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
+      const monthEnd = endOfMonth(monthStart);
+      const startDate = format(monthStart, 'yyyy-MM-dd');
+      const endDateStr = format(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
       const { data, error } = await supabase
         .from("sales")
         .select("*, clients(name), products(name, price, cost_price)")
         .gte("sale_date", startDate)
-        .lte("sale_date", endDate)
+        .lte("sale_date", endDateStr)
         .order("sale_date", { ascending: false });
       if (error) throw error;
       return data as Sale[];
@@ -75,8 +77,10 @@ export default function FinanceiroTab() {
   const { data: fixedExpenses } = useQuery({
     queryKey: ["fixed-expenses-summary", selectedMonth],
     queryFn: async () => {
-      const startDate = `${selectedMonth}-01`;
-      const endDate = `${selectedMonth}-31`;
+      const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
+      const monthEnd = endOfMonth(monthStart);
+      const startDate = format(monthStart, 'yyyy-MM-dd');
+      const endDate = format(monthEnd, 'yyyy-MM-dd');
       const { data, error } = await supabase
         .from("fixed_expenses")
         .select("amount")
@@ -98,15 +102,17 @@ export default function FinanceiroTab() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    const startDate = `${selectedMonth}-01`;
-    const endDate = `${selectedMonth}-31`;
+    const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
+    const monthEnd = endOfMonth(monthStart);
+    const startDate = format(monthStart, 'yyyy-MM-dd');
+    const endDateStr = format(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
 
     const { data, error } = await supabase
       .from("financial_records")
       .select("*")
       .eq("user_id", session.user.id)
       .gte("record_date", startDate)
-      .lte("record_date", endDate)
+      .lte("record_date", endDateStr)
       .order("record_date", { ascending: false });
 
     if (error) {
@@ -196,7 +202,8 @@ export default function FinanceiroTab() {
   // Export beautiful bank statement PDF
   const exportStatementPDF = () => {
     const doc = new jsPDF();
-    const monthName = format(new Date(selectedMonth + "-01"), "MMMM 'de' yyyy", { locale: ptBR });
+    const [yr, mo] = selectedMonth.split('-').map(Number);
+    const monthName = format(new Date(yr, mo - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
     
     // Header with gradient effect (simulated with rectangles)
     doc.setFillColor(147, 51, 234);
@@ -291,7 +298,7 @@ export default function FinanceiroTab() {
     allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const tableData = allTransactions.map(t => [
-      format(new Date(t.date), "dd/MM/yyyy"),
+      format(new Date(t.date + (t.date.length === 10 ? 'T12:00:00' : '')), "dd/MM/yyyy"),
       t.description,
       t.method || "-",
       t.type === "venda" ? "Serviço" : t.type.charAt(0).toUpperCase() + t.type.slice(1),
@@ -566,7 +573,7 @@ export default function FinanceiroTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5 text-green-500" />
-              Vendas de Serviços - {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ptBR })}
+              Vendas de Serviços - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -585,7 +592,7 @@ export default function FinanceiroTab() {
                 <TableBody>
                   {sales.map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell>{format(new Date(sale.sale_date), "dd/MM/yyyy")}</TableCell>
+                      <TableCell>{format(new Date(sale.sale_date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                       <TableCell className="font-medium">{sale.clients?.name || "-"}</TableCell>
                       <TableCell>{sale.products?.name || "-"}</TableCell>
                       <TableCell>
@@ -612,7 +619,7 @@ export default function FinanceiroTab() {
       {/* Manual Records Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Registros Manuais - {format(new Date(selectedMonth + "-01"), "MMMM yyyy", { locale: ptBR })}</CardTitle>
+          <CardTitle>Registros Manuais - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -664,7 +671,7 @@ export default function FinanceiroTab() {
                         R$ {Number(record.amount).toFixed(2)}
                       </TableCell>
                       <TableCell>
-                        {format(new Date(record.record_date), "dd/MM/yyyy")}
+                        {format(new Date(record.record_date), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell>
                         <Button
