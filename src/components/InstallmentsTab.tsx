@@ -137,7 +137,7 @@ const InstallmentsTab: React.FC = () => {
   const today = new Date();
 
   const processedInstallments = installments.map((inst: any) => {
-    const dueDate = new Date(inst.due_date);
+    const dueDate = new Date(inst.due_date + 'T12:00:00');
     const daysUntilDue = differenceInDays(dueDate, today);
     let status = 'normal';
     if (inst.is_paid) status = 'paid';
@@ -156,7 +156,7 @@ const InstallmentsTab: React.FC = () => {
       (filterStatus === 'paid' && inst.is_paid) ||
       (filterStatus === 'overdue' && inst.status === 'overdue');
 
-    const dueDate = new Date(inst.due_date);
+    const dueDate = new Date(inst.due_date + 'T12:00:00');
     const matchesMonth = filterMonth === 'all' || (dueDate.getMonth() + 1).toString() === filterMonth;
     const matchesYear = filterYear === 'all' || dueDate.getFullYear().toString() === filterYear;
 
@@ -189,14 +189,14 @@ const InstallmentsTab: React.FC = () => {
       toast.error('Cliente sem telefone cadastrado');
       return;
     }
-    const message = `Olá ${clientName}, tudo bem? Passando para lembrar da parcela ${inst.installment_number}/${inst.total_installments} no valor de R$ ${Number(inst.amount).toFixed(2)} com vencimento em ${format(new Date(inst.due_date), 'dd/MM/yyyy')}.`;
+    const message = `Olá ${clientName}, tudo bem? Passando para lembrar da parcela ${inst.installment_number}/${inst.total_installments} no valor de R$ ${Number(inst.amount).toFixed(2)} com vencimento em ${format(new Date(inst.due_date + 'T12:00:00'), 'dd/MM/yyyy')}.`;
     window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const openDateDialog = (inst: any, mode: 'extend' | 'early') => {
     setEditingInstallment(inst);
     setDateDialogMode(mode);
-    setNewDueDate(new Date(inst.due_date));
+    setNewDueDate(new Date(inst.due_date + 'T12:00:00'));
     setNotes(inst.notes || '');
     setIsDateDialogOpen(true);
   };
@@ -303,7 +303,7 @@ const InstallmentsTab: React.FC = () => {
       inst.appointments?.products?.name || '-',
       `${inst.installment_number}/${inst.total_installments}`,
       `R$ ${Number(inst.amount).toFixed(2)}`,
-      format(new Date(inst.due_date), 'dd/MM/yyyy'),
+      format(new Date(inst.due_date + 'T12:00:00'), 'dd/MM/yyyy'),
       inst.is_paid ? 'PAGO' : inst.status === 'overdue' ? 'VENCIDA' : 'PENDENTE'
     ]);
 
@@ -545,7 +545,7 @@ const InstallmentsTab: React.FC = () => {
                       <TableCell>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
-                          {format(new Date(inst.due_date), 'dd/MM/yyyy')}
+                          {format(new Date(inst.due_date + 'T12:00:00'), 'dd/MM/yyyy')}
                         </div>
                       </TableCell>
                       <TableCell>{getStatusBadge(inst.status)}</TableCell>

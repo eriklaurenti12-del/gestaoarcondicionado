@@ -199,7 +199,9 @@ const FixedExpensesTab: React.FC = () => {
   };
 
   const filteredExpenses = expenses?.filter(exp => {
-    const expMonth = format(new Date(exp.expense_date), 'yyyy-MM');
+    // Parse date-only string as local date to avoid timezone shift
+    const parts = exp.expense_date.split('-');
+    const expMonth = `${parts[0]}-${parts[1]}`;
     return expMonth === filterMonth;
   }) || [];
 
@@ -218,10 +220,11 @@ const FixedExpensesTab: React.FC = () => {
     doc.setFontSize(18);
     doc.text('Relatório de Gastos Fixos', 14, 22);
     doc.setFontSize(11);
-    doc.text(`Período: ${format(new Date(filterMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}`, 14, 30);
+    const [yr, mo] = filterMonth.split('-').map(Number);
+    doc.text(`Período: ${format(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })}`, 14, 30);
 
     const tableData = filteredExpenses.map(exp => [
-      format(new Date(exp.expense_date), 'dd/MM/yyyy'),
+      format(new Date(exp.expense_date + 'T12:00:00'), 'dd/MM/yyyy'),
       categories.find(c => c.value === exp.category)?.label || exp.category,
       exp.description || '-',
       exp.helper_name || '-',
@@ -330,7 +333,7 @@ const FixedExpensesTab: React.FC = () => {
               <TableBody>
                 {filteredExpenses.map((exp) => (
                   <TableRow key={exp.id}>
-                    <TableCell>{format(new Date(exp.expense_date), 'dd/MM')}</TableCell>
+                    <TableCell>{format(new Date(exp.expense_date + 'T12:00:00'), 'dd/MM')}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         {getCategoryIcon(exp.category)}
