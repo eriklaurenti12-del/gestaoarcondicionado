@@ -211,6 +211,9 @@ const AdminN8nTab: React.FC = () => {
           <TabsTrigger value="webhooks" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
             <Settings2 className="w-4 h-4 mr-1" /> Webhooks
           </TabsTrigger>
+          <TabsTrigger value="templates" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+            <Mail className="w-4 h-4 mr-1" /> Templates
+          </TabsTrigger>
           <TabsTrigger value="test" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
             <Play className="w-4 h-4 mr-1" /> Testar
           </TabsTrigger>
@@ -342,6 +345,150 @@ const AdminN8nTab: React.FC = () => {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates" className="mt-4 space-y-4">
+          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-white text-lg flex items-center gap-2">
+                <Mail className="w-5 h-5 text-cyan-500" />
+                Templates Prontos para n8n
+              </CardTitle>
+              <p className="text-xs text-gray-400 mt-1">Copie o payload JSON e use no nó HTTP Request do n8n para enviar emails ou WhatsApp automaticamente</p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Welcome Email Template */}
+              {[
+                {
+                  title: '📧 Email de Boas-vindas',
+                  description: 'Enviado quando um novo usuário se cadastra',
+                  trigger: 'new_user',
+                  color: 'blue',
+                  payload: {
+                    event: 'new_user',
+                    action: 'send_email',
+                    to: '{{user_email}}',
+                    subject: 'Bem-vindo ao AC Service Pro! 🎉',
+                    body: 'Olá {{user_name}},\n\nSeja bem-vindo ao AC Service Pro!\n\nSeu cadastro foi realizado com sucesso. Agora você pode organizar seus clientes, agendamentos e finanças em um só lugar.\n\nAcesse: https://gestaoarcondicionado.lovable.app\n\nQualquer dúvida, estamos no WhatsApp!\n\nEquipe AC Service Pro',
+                    source: 'gestao-ar-condicionado'
+                  }
+                },
+                {
+                  title: '✅ Email de Pagamento Confirmado',
+                  description: 'Enviado quando o pagamento é aprovado',
+                  trigger: 'payment',
+                  color: 'green',
+                  payload: {
+                    event: 'payment_success',
+                    action: 'send_email',
+                    to: '{{user_email}}',
+                    subject: 'Pagamento Confirmado - AC Service Pro ✅',
+                    body: 'Olá {{user_name}},\n\nSeu pagamento de R$ {{amount}} foi confirmado!\n\nPlano: {{plan}}\nVálido até: {{end_date}}\n\nSeu acesso já está liberado. Aproveite todas as funcionalidades!\n\nAcesse: https://gestaoarcondicionado.lovable.app\n\nEquipe AC Service Pro',
+                    source: 'gestao-ar-condicionado'
+                  }
+                },
+                {
+                  title: '🚀 Email de Acesso Liberado',
+                  description: 'Enviado quando o acesso é ativado',
+                  trigger: 'access_granted',
+                  color: 'cyan',
+                  payload: {
+                    event: 'access_granted',
+                    action: 'send_email',
+                    to: '{{user_email}}',
+                    subject: 'Acesso Liberado - AC Service Pro 🚀',
+                    body: 'Olá {{user_name}},\n\nSeu acesso ao AC Service Pro foi liberado!\n\nAgora você pode:\n✅ Cadastrar clientes e equipamentos\n✅ Criar ordens de serviço e orçamentos\n✅ Controlar financeiro e agenda\n✅ Gerar relatórios PDF\n\nAcesse agora: https://gestaoarcondicionado.lovable.app\n\nEquipe AC Service Pro',
+                    source: 'gestao-ar-condicionado'
+                  }
+                },
+                {
+                  title: '💬 WhatsApp de Boas-vindas',
+                  description: 'Mensagem automática via WhatsApp',
+                  trigger: 'new_user',
+                  color: 'green',
+                  payload: {
+                    event: 'new_user',
+                    action: 'send_whatsapp',
+                    to: '{{user_phone}}',
+                    message: 'Olá {{user_name}}! 👋\n\nBem-vindo ao AC Service Pro! 🎉\n\nSeu cadastro foi realizado. Acesse o sistema e comece a organizar seus serviços de ar condicionado.\n\n🔗 https://gestaoarcondicionado.lovable.app\n\nQualquer dúvida, é só chamar aqui! 😊',
+                    source: 'gestao-ar-condicionado'
+                  }
+                },
+                {
+                  title: '💬 WhatsApp de Pagamento',
+                  description: 'Confirmação de pagamento via WhatsApp',
+                  trigger: 'payment',
+                  color: 'green',
+                  payload: {
+                    event: 'payment_success',
+                    action: 'send_whatsapp',
+                    to: '{{user_phone}}',
+                    message: 'Olá {{user_name}}! ✅\n\nSeu pagamento de R$ {{amount}} foi confirmado!\n\n📋 Plano: {{plan}}\n📅 Válido até: {{end_date}}\n\nSeu acesso já está liberado! 🚀\n\n🔗 https://gestaoarcondicionado.lovable.app',
+                    source: 'gestao-ar-condicionado'
+                  }
+                }
+              ].map((template, index) => (
+                <Card key={index} className="bg-[#0f0f17] border-[#2a2a3a]">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-white">{template.title}</h4>
+                        <p className="text-xs text-gray-400 mt-0.5">{template.description}</p>
+                        <Badge variant="outline" className="text-xs mt-2">{getTriggerLabel(template.trigger)}</Badge>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            navigator.clipboard.writeText(JSON.stringify(template.payload, null, 2));
+                            toast.success('Payload copiado!');
+                          }}
+                          className="text-cyan-400 hover:text-cyan-300 h-7"
+                        >
+                          <Copy className="w-3 h-3 mr-1" /> Copiar JSON
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setCustomPayload(JSON.stringify(template.payload, null, 2));
+                            // Switch to test tab  
+                            const testTab = document.querySelector('[value="test"]') as HTMLElement;
+                            testTab?.click();
+                          }}
+                          className="text-purple-400 hover:text-purple-300 h-7"
+                        >
+                          <Play className="w-3 h-3 mr-1" /> Usar no Teste
+                        </Button>
+                      </div>
+                    </div>
+                    <pre className="text-xs text-gray-500 mt-3 p-2 bg-[#1a1a24] rounded overflow-x-auto max-h-[100px]">
+                      {JSON.stringify(template.payload, null, 2)}
+                    </pre>
+                  </CardContent>
+                </Card>
+              ))}
+
+              {/* n8n Setup Guide */}
+              <Card className="bg-gradient-to-r from-orange-900/10 to-red-900/10 border-orange-800/20">
+                <CardContent className="p-4">
+                  <h4 className="text-sm font-medium text-white flex items-center gap-2 mb-2">
+                    <Webhook className="w-4 h-4 text-orange-400" /> Como usar no n8n
+                  </h4>
+                  <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
+                    <li>Crie um workflow no n8n com trigger <strong className="text-white">Webhook</strong></li>
+                    <li>Copie a URL do webhook gerada pelo n8n</li>
+                    <li>Cole aqui na aba <strong className="text-white">Webhooks</strong> e selecione o gatilho</li>
+                    <li>No n8n, adicione um nó <strong className="text-white">Send Email</strong> (Resend, Gmail, SMTP) ou <strong className="text-white">HTTP Request</strong> para WhatsApp API</li>
+                    <li>Use os campos do payload (<code className="text-cyan-400">{'{{user_email}}'}</code>, <code className="text-cyan-400">{'{{user_name}}'}</code>) como variáveis</li>
+                    <li>Ative o workflow e teste aqui!</li>
+                  </ol>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* Test Tab */}
