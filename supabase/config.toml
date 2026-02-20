@@ -3,5 +3,8 @@ project_id = "gnrinwqmqhfasfojysep"
 [functions.ggcheckout-webhook]
 verify_jwt = false
 
+[functions.payment-webhook]
+verify_jwt = false
+
 [functions.integration-ai-assistant]
 verify_jwt = false

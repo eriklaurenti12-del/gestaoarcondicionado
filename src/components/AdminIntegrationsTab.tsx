@@ -19,7 +19,8 @@ import {
   Bot, MessageSquare, Sparkles, HelpCircle
 } from "lucide-react";
 
-const WEBHOOK_URL = `https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/ggcheckout-webhook`;
+const WEBHOOK_URL = `https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/payment-webhook`;
+const LEGACY_WEBHOOK_URL = `https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/ggcheckout-webhook`;
 
 type TestResult = {
   success: boolean;
