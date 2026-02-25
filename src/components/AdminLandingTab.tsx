@@ -125,11 +125,10 @@ export const AdminLandingTab: React.FC = () => {
         if (!LANDING_KEYS.includes(key)) continue;
         const { error } = await supabase
           .from('admin_settings')
-          .update({ value })
-          .eq('key', key);
+          .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
         if (error) throw error;
       }
-      toast({ title: "Salvo! ✅", description: "Landing page atualizada. Recarregue para ver." });
+      toast({ title: "Salvo! ✅", description: "Landing page atualizada. As alterações já estão visíveis." });
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {

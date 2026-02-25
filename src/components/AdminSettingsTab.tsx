@@ -84,15 +84,14 @@ export const AdminSettingsTab: React.FC = () => {
       for (const [key, value] of Object.entries(settings)) {
         const { error } = await supabase
           .from('admin_settings')
-          .update({ value })
-          .eq('key', key);
+          .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
 
         if (error) throw error;
       }
 
       toast({
-        title: "Todas configurações salvas!",
-        description: "Os links de checkout foram atualizados."
+        title: "Todas configurações salvas! ✅",
+        description: "Os links de checkout e configurações foram atualizados."
       });
     } catch (error: any) {
       toast({

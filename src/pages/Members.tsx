@@ -9,13 +9,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone, Bell, Zap, Webhook, Megaphone } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Activity, Gift } from "lucide-react";
 import { format } from "date-fns";
 import { AdminSettingsTab } from "@/components/AdminSettingsTab";
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
 import AdminIntegrationsTab from "@/components/AdminIntegrationsTab";
 import AdminN8nTab from "@/components/AdminN8nTab";
 import AdminLandingTab from "@/components/AdminLandingTab";
+import AdminShareTab from "@/components/AdminShareTab";
+import AdminUsersOnlineTab from "@/components/AdminUsersOnlineTab";
+import AdminRaffleTab from "@/components/AdminRaffleTab";
 
 type Member = {
   id: string;
@@ -233,7 +236,18 @@ export default function Members() {
               <Megaphone className="w-4 h-4 mr-2" />
               Landing Page
             </TabsTrigger>
-
+            <TabsTrigger value="share" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Share2 className="w-4 h-4 mr-2" />
+              Links
+            </TabsTrigger>
+            <TabsTrigger value="online" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Activity className="w-4 h-4 mr-2" />
+              Usuários
+            </TabsTrigger>
+            <TabsTrigger value="raffle" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
+              <Gift className="w-4 h-4 mr-2" />
+              Sorteio
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="notifications" className="mt-6">
@@ -447,6 +461,18 @@ export default function Members() {
 
           <TabsContent value="landing" className="mt-6">
             <AdminLandingTab />
+          </TabsContent>
+
+          <TabsContent value="share" className="mt-6">
+            <AdminShareTab />
+          </TabsContent>
+
+          <TabsContent value="online" className="mt-6">
+            <AdminUsersOnlineTab />
+          </TabsContent>
+
+          <TabsContent value="raffle" className="mt-6">
+            <AdminRaffleTab />
           </TabsContent>
         </Tabs>
       </div>
