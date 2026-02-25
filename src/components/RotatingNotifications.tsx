@@ -98,6 +98,14 @@ const RotatingNotifications: React.FC = () => {
   const [isExiting, setIsExiting] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
 
+  // Check settings from localStorage
+  const notifSettings = (() => {
+    try {
+      const saved = localStorage.getItem('notification_settings');
+      return saved ? JSON.parse(saved) : { enabled: true, rotatingBanner: true };
+    } catch { return { enabled: true, rotatingBanner: true }; }
+  })();
+
   // Fetch real data for dynamic notifications
   const { data: installments } = useQuery({
     queryKey: ['rotating-installments'],
@@ -402,7 +410,7 @@ const RotatingNotifications: React.FC = () => {
     setIsVisible(false);
   };
 
-  if (allNotifications.length === 0 || isDismissed) return null;
+  if (allNotifications.length === 0 || isDismissed || !notifSettings.rotatingBanner) return null;
 
   const currentNotification = allNotifications[currentIndex % allNotifications.length];
 
