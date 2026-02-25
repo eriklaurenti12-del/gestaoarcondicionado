@@ -322,6 +322,11 @@ const Landing: React.FC = () => {
     stars: Number(settings[`landing_depoimento${i}_estrelas`] || 5),
   })).filter(t => t.name && t.text);
 
+  const template = settings.landing_template || 'persuasao';
+  const isPersuasao = template === 'persuasao';
+  const isVSL = template === 'vsl';
+  const isMinimalista = template === 'minimalista';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 text-white overflow-x-hidden">
       {/* Subscription Notifications */}
@@ -389,10 +394,11 @@ const Landing: React.FC = () => {
         }
       `}</style>
 
-      {/* Hero Section - adjusted padding for new header structure */}
+      {/* Hero Section */}
       <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center">
         <div className="container mx-auto text-center">
-          {/* Badge de urgência */}
+          {/* Badge de urgência - hide on minimalista */}
+          {!isMinimalista && (
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Zap className="w-4 h-4 text-red-400" />
             <span className="text-red-300 text-sm font-medium">
@@ -400,14 +406,15 @@ const Landing: React.FC = () => {
             </span>
             <Zap className="w-4 h-4 text-red-400 animate-pulse" />
           </div>
+          )}
 
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in">
-            Chega de{" "}
+          <h1 className={`font-bold mb-6 leading-tight animate-fade-in ${isMinimalista ? 'text-3xl sm:text-4xl md:text-5xl' : 'text-3xl sm:text-4xl md:text-5xl lg:text-6xl'}`}>
+            {!isMinimalista && <>Chega de{" "}</>}
             <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
               {settings.landing_hero_titulo}
             </span>
             <br />
-            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">{settings.landing_hero_subtitulo}</span>
+            <span className={isMinimalista ? 'text-xl sm:text-2xl md:text-3xl text-gray-300' : 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl'}>{settings.landing_hero_subtitulo}</span>
           </h1>
           
           <p className="text-lg md:text-xl text-gray-300 mb-4 max-w-2xl mx-auto animate-fade-in px-4" style={{ animationDelay: '0.2s' }}>
@@ -483,8 +490,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Seção da Dor */}
-      <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
+      {/* Seção da Dor - only persuasao */}
+      {isPersuasao && <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
             Você se <span className="text-red-400">identifica</span> com isso?
@@ -517,10 +524,10 @@ const Landing: React.FC = () => {
             </p>
           </div>
         </div>
-      </section>
+      </section>}
 
-      {/* Features Grid */}
-      <section className="py-16 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
+      {/* Features Grid - persuasao & minimalista */}
+      {(isPersuasao || isMinimalista) && <section className="py-16 px-4 bg-gradient-to-b from-transparent to-slate-900/50">
         <div className="container mx-auto">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-3">
             O que você ganha <span className="text-green-400">de verdade</span>
@@ -546,10 +553,10 @@ const Landing: React.FC = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
-      {/* Seção de Comparação */}
-      <section className="py-16 px-4 bg-slate-900/50">
+      {/* Seção de Comparação - only persuasao */}
+      {isPersuasao && <section className="py-16 px-4 bg-slate-900/50">
         <div className="container mx-auto max-w-4xl">
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">
             Por que <span className="text-cyan-400">esse é o melhor</span> sistema?
@@ -617,7 +624,7 @@ const Landing: React.FC = () => {
             </p>
           </div>
         </div>
-      </section>
+      </section>}
 
       {/* Pricing Section */}
       <section id="precos" className="py-16 px-4 relative">
@@ -754,8 +761,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-16 px-4 bg-slate-900/50">
+      {/* Testimonials - persuasao & vsl */}
+      {(isPersuasao || isVSL) && <section className="py-16 px-4 bg-slate-900/50">
         <div className="container mx-auto">
           <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
             Técnicos <span className="text-cyan-400">reais</span> falando a verdade
@@ -783,10 +790,10 @@ const Landing: React.FC = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
-      {/* FAQ Section */}
-      {(() => {
+      {/* FAQ Section - persuasao only */}
+      {isPersuasao && (() => {
         const faqs = [1,2,3,4,5,6].map(i => ({
           q: settings[`landing_faq${i}_pergunta`] || '',
           a: settings[`landing_faq${i}_resposta`] || '',
@@ -814,7 +821,8 @@ const Landing: React.FC = () => {
         );
       })()}
 
-      {/* Urgência Final */}
+      {/* Urgência Final - persuasao only */}
+      {isPersuasao && (
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-xl sm:text-2xl font-bold mb-4 text-white">
@@ -827,6 +835,7 @@ const Landing: React.FC = () => {
           </p>
         </div>
       </section>
+      )}
 
       {/* CTA Final */}
       <section className="py-16 px-4 relative">
