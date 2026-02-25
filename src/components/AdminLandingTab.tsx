@@ -274,7 +274,7 @@ export const AdminLandingTab: React.FC = () => {
             <iframe 
               key={previewKey}
               id="landing-preview"
-              src={`${window.location.origin}/?preview=true&t=${previewKey}`}
+              src={`https://gestaoarcondicionado.lovable.app/?preview=true&t=${previewKey}`}
               className="w-full h-full border-0"
               style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
               sandbox="allow-scripts allow-same-origin allow-popups"
@@ -303,17 +303,41 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="social" className="text-xs"><Star className="w-3 h-3 mr-1" />Prova Social</TabsTrigger>
         </TabsList>
 
-        {/* IA GENERATOR - Improved UX */}
+        {/* IA GENERATOR - with restore defaults */}
         <TabsContent value="ia">
           <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/30">
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Wand2 className="w-5 h-5 text-purple-400" /> Gerador Inteligente com IA
-              </CardTitle>
-              <CardDescription className="text-gray-300 text-sm">
-                A IA cria automaticamente textos persuasivos e paletas de cores profissionais para sua landing page. 
-                Você pode personalizar com um prompt ou deixar em branco para gerar automaticamente.
-              </CardDescription>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-white text-base">
+                    <Wand2 className="w-5 h-5 text-purple-400" /> Gerador Inteligente com IA
+                  </CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">
+                    Gere textos persuasivos e cores automaticamente. Funciona com qualquer template ativo.
+                  </CardDescription>
+                </div>
+                <Button variant="outline" onClick={() => {
+                  if (!window.confirm('Restaurar TODOS os valores para o padrão original?')) return;
+                  const defaults: Record<string, string> = {
+                    landing_hero_titulo: 'Pare de Perder Clientes e Dinheiro!',
+                    landing_hero_subtitulo: 'Sistema Completo para Técnicos de Ar Condicionado',
+                    landing_hero_descricao: 'Gerencie clientes, orçamentos, ordens de serviço, financeiro e muito mais em um só lugar.',
+                    landing_badge_urgencia: '🔥 Oferta por tempo limitado — Garanta agora!',
+                    landing_btn_cta_texto: 'QUERO COMEÇAR AGORA',
+                    landing_frase_destaque: 'Mais de 500 técnicos já transformaram seus negócios',
+                    landing_cor_primaria: '#06b6d4', landing_cor_secundaria: '#3b82f6',
+                    landing_cor_destaque: '#f59e0b', landing_cor_fundo: '#0f172a', landing_cor_botao_cta: '#22c55e',
+                    landing_preco_mensal: '39,90', landing_preco_anual: '370',
+                    landing_preco_anual_original: '478,80', landing_economia_anual: '108',
+                    landing_preco_mensal_equivalente: '30,83', landing_template: 'persuasao',
+                    landing_social_proof_count: '500', landing_social_proof_rating: '4.9', landing_garantia_dias: '7',
+                  };
+                  setSettings(prev => ({ ...prev, ...defaults }));
+                  toast({ title: "Restaurado! 🔄", description: "Valores padrão carregados. Clique 'Salvar Tudo' para aplicar." });
+                }} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                  <RefreshCw className="w-4 h-4 mr-2" /> Restaurar Padrão
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {/* How it works */}
@@ -391,7 +415,7 @@ export const AdminLandingTab: React.FC = () => {
                 <Layout className="w-5 h-5 text-purple-400" /> Escolha o Template
               </CardTitle>
               <CardDescription className="text-gray-400 text-xs">
-                Cada template muda a estrutura e as seções visíveis da sua landing page. Clique para selecionar e salve.
+                Escolha a estrutura da sua landing page. Todas as configurações (textos, cores, preços, FAQ, etc.) se aplicam ao template selecionado.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -404,7 +428,6 @@ export const AdminLandingTab: React.FC = () => {
                         ? `${tmpl.color} bg-white/5 shadow-lg shadow-cyan-500/10` 
                         : 'border-[#2a2a3a] hover:border-[#4a4a5a]'
                     }`}>
-                    {/* Mini visual mockup */}
                     <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-white/5`}>
                       <div className="space-y-1.5">
                         {tmpl.sections.map((section, i) => (
@@ -429,9 +452,11 @@ export const AdminLandingTab: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <p className="text-gray-500 text-xs mt-3 text-center">
-                💡 Após selecionar, clique "Salvar Tudo" e recarregue o preview para ver a mudança.
-              </p>
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mt-3">
+                <p className="text-cyan-300 text-xs text-center">
+                  💡 Todas as abas (Textos, Cores, Preços, FAQ, Depoimentos, etc.) alteram o template ativo. Salve e atualize o preview.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -479,28 +504,72 @@ export const AdminLandingTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* PREÇOS */}
+        {/* PREÇOS - with strikethrough */}
         <TabsContent value="precos">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
                 <DollarSign className="w-5 h-5 text-green-400" /> Preços dos Planos
               </CardTitle>
+              <CardDescription className="text-gray-400 text-xs">
+                Use "Preço Original" para exibir <span className="line-through text-red-400">valor riscado</span> → <span className="text-green-400 font-bold">preço real</span>
+              </CardDescription>
             </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[
-                { key: 'landing_preco_mensal', label: 'Preço Mensal (R$)', ph: '39,90' },
-                { key: 'landing_preco_anual', label: 'Preço Anual (R$)', ph: '370' },
-                { key: 'landing_preco_anual_original', label: 'Preço Original (riscado)', ph: '478,80' },
-                { key: 'landing_economia_anual', label: 'Economia Anual (R$)', ph: '108' },
-                { key: 'landing_preco_mensal_equivalente', label: 'Equivalente Mensal (R$)', ph: '30,83' },
-              ].map(f => (
-                <div key={f.key}>
-                  <Label className="text-gray-300 text-sm">{f.label}</Label>
-                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder={f.ph} />
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-3">
+                  <h4 className="text-cyan-400 font-semibold text-sm">💳 Plano Mensal</h4>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Preço (R$)</Label>
+                    <Input value={settings.landing_preco_mensal || ''} onChange={e => update('landing_preco_mensal', e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="39,90" />
+                  </div>
                 </div>
-              ))}
+                <div className="bg-[#12121a] border border-cyan-500/20 rounded-xl p-4 space-y-3">
+                  <h4 className="text-amber-400 font-semibold text-sm">⭐ Plano Anual</h4>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Preço Anual (R$)</Label>
+                    <Input value={settings.landing_preco_anual || ''} onChange={e => update('landing_preco_anual', e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="370" />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Preço Original <span className="text-red-400 line-through">(riscado)</span></Label>
+                    <Input value={settings.landing_preco_anual_original || ''} onChange={e => update('landing_preco_anual_original', e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="478,80" />
+                    <p className="text-gray-500 text-xs mt-1">Aparece riscado para mostrar economia</p>
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Economia (R$)</Label>
+                    <Input value={settings.landing_economia_anual || ''} onChange={e => update('landing_economia_anual', e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="108" />
+                  </div>
+                  <div>
+                    <Label className="text-gray-300 text-sm">Equivalente Mensal (R$)</Label>
+                    <Input value={settings.landing_preco_mensal_equivalente || ''} onChange={e => update('landing_preco_mensal_equivalente', e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="30,83" />
+                  </div>
+                </div>
+              </div>
+              {/* Live preview */}
+              <div className="bg-[#0f0f17] border border-[#2a2a3a] rounded-xl p-4">
+                <p className="text-gray-400 text-xs mb-3 text-center">Preview na landing:</p>
+                <div className="flex items-center justify-center gap-8 flex-wrap">
+                  <div className="text-center">
+                    <p className="text-gray-400 text-xs mb-1">Mensal</p>
+                    <p className="text-white text-2xl font-bold">R$ {settings.landing_preco_mensal || '39,90'}<span className="text-gray-400 text-sm">/mês</span></p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-amber-400 text-xs mb-1">⭐ Anual</p>
+                    {settings.landing_preco_anual_original && (
+                      <p className="text-red-400 line-through text-sm">R$ {settings.landing_preco_anual_original}</p>
+                    )}
+                    <p className="text-white text-2xl font-bold">R$ {settings.landing_preco_anual || '370'}<span className="text-gray-400 text-sm">/ano</span></p>
+                    {settings.landing_economia_anual && (
+                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">Economize R$ {settings.landing_economia_anual}</Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
