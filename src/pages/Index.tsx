@@ -14,6 +14,7 @@ import DocumentsUnifiedTab from "@/components/DocumentsUnifiedTab";
 import ServicesUnifiedTab from "@/components/ServicesUnifiedTab";
 import PDVTab from "@/components/PDVTab";
 import ImpostosTab from "@/components/ImpostosTab";
+import BtuCalculator from "@/components/BtuCalculator";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import OnboardingTour from "@/components/OnboardingTour";
@@ -163,6 +164,8 @@ export default function Index() {
         return <FinanceiroUnifiedTab />;
       case "services":
         return <ServicesUnifiedTab />;
+      case "btu-calculator":
+        return <BtuCalculator />;
       case "pdv":
         return <PDVTab />;
       case "impostos":
@@ -184,6 +187,7 @@ export default function Index() {
       documents: "Orçamentos & Ordens de Serviço",
       financeiro: "Gestão Financeira",
       services: "Manutenções & Contratos",
+      "btu-calculator": "Calculadora de BTUs",
       pdv: "Ponto de Venda",
       impostos: "Gestão de Impostos",
       backup: "Backup dos Dados",

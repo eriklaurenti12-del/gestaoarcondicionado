@@ -414,8 +414,8 @@ const RotatingNotifications: React.FC = () => {
   return (
     <div
       className={cn(
-        "fixed bottom-4 right-4 z-50 max-w-sm transition-all duration-300 ease-in-out",
-        isExiting ? "opacity-0 translate-x-4" : "opacity-100 translate-x-0",
+        "fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md transition-all duration-300 ease-in-out",
+        isExiting ? "opacity-0 translate-y-4" : "opacity-100 translate-y-0",
         !isVisible && "hidden"
       )}
     >

@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -33,6 +33,7 @@ const gestaoItems = [
   { id: "cadastros", title: "Clientes & Serviços", icon: Users },
   { id: "documents", title: "Orçamentos & O.S.", icon: FileText },
   { id: "services", title: "Manutenções", icon: Snowflake },
+  { id: "btu-calculator", title: "Medição BTUs", icon: Thermometer },
 ];
 
 // Vendas
