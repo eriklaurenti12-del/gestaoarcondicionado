@@ -1,69 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Badge } from "@/components/ui/badge";
-import { Copy, ExternalLink, Link2, LogIn, Globe, Share2, Users, Trash2, UserPlus } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-
-type TeamInvite = {
-  id: string;
-  invite_code: string;
-  status: string;
-  accepted_email: string | null;
-  created_at: string;
-};
+import { Copy, ExternalLink, Link2, LogIn, Globe, Share2 } from "lucide-react";
 
 export const AdminShareTab: React.FC = () => {
   const { toast } = useToast();
-  const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
-  const [loadingInvite, setLoadingInvite] = useState(false);
 
   const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
   const landingUrl = publishedUrl + '/';
   const loginUrl = publishedUrl + '/?login=true';
   const cadastroUrl = publishedUrl + '/?cadastro=true';
-
-  useEffect(() => {
-    loadTeamInvites();
-  }, []);
-
-  const loadTeamInvites = async () => {
-    const { data } = await supabase
-      .from('team_invites')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data) setTeamInvites(data as TeamInvite[]);
-  };
-
-  const generateTeamInvite = async () => {
-    setLoadingInvite(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const code = crypto.randomUUID().slice(0, 8).toUpperCase();
-      const { error } = await supabase.from('team_invites').insert({
-        invite_code: code,
-        created_by: user.id,
-        status: 'pending'
-      });
-      if (error) throw error;
-      toast({ title: "Link de equipe criado!", description: `Código: ${code}` });
-      loadTeamInvites();
-    } catch (e: any) {
-      toast({ title: "Erro", description: e.message, variant: "destructive" });
-    } finally {
-      setLoadingInvite(false);
-    }
-  };
-
-  const deleteInvite = async (id: string) => {
-    await supabase.from('team_invites').delete().eq('id', id);
-    loadTeamInvites();
-    toast({ title: "Convite removido" });
-  };
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -86,71 +34,6 @@ export const AdminShareTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Team Invites Section */}
-      <Card className="bg-gradient-to-br from-[#1a1a24] to-[#12121a] border-cyan-500/30">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
-                <Users className="w-6 h-6 text-cyan-400" />
-              </div>
-              <div>
-                <CardTitle className="text-white text-lg">🔗 Link de Equipe (Co-Admin)</CardTitle>
-                <CardDescription className="text-gray-400 text-sm">
-                  Gere links para membros da equipe co-administrarem o painel
-                </CardDescription>
-              </div>
-            </div>
-            <Button
-              onClick={generateTeamInvite}
-              disabled={loadingInvite}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
-            >
-              <UserPlus className="w-4 h-4 mr-2" />
-              Gerar Link
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {teamInvites.length === 0 ? (
-            <p className="text-gray-500 text-sm text-center py-4">Nenhum convite gerado. Clique em "Gerar Link" para criar.</p>
-          ) : (
-            teamInvites.map((invite) => {
-              const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
-              return (
-                <div key={invite.id} className="flex items-center gap-3 bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <code className="text-cyan-300 text-sm font-mono">{invite.invite_code}</code>
-                      <Badge className={invite.status === 'accepted' ? 'bg-green-600' : 'bg-yellow-600'}>
-                        {invite.status === 'accepted' ? '✓ Aceito' : '⏳ Pendente'}
-                      </Badge>
-                    </div>
-                    {invite.accepted_email && (
-                      <p className="text-gray-400 text-xs">Aceito por: {invite.accepted_email}</p>
-                    )}
-                    <Input value={teamUrl} readOnly className="bg-[#0a0a12] border-[#2a2a3a] text-cyan-300/70 text-xs h-7 font-mono mt-1" />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl, 'Link de Equipe')}
-                      className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a] text-xs h-7">
-                      <Copy className="w-3 h-3 mr-1" /> Copiar
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
-                      className="text-xs h-7 bg-red-600/80 hover:bg-red-700">
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })
-          )}
-          <p className="text-gray-500 text-xs">
-            💡 Membros que se cadastrarem pelo link terão acesso total ao painel admin.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Share Links */}
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">

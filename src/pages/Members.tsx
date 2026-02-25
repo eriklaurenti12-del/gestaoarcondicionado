@@ -288,7 +288,7 @@ export default function Members() {
 
           {/* TEAM TAB */}
           <TabsContent value="team" className="mt-6 space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-cyan-400" /> Equipe Co-Admin
@@ -300,6 +300,65 @@ export default function Members() {
                 <UserPlus className="w-4 h-4 mr-2" /> Gerar Convite
               </Button>
             </div>
+
+            {/* Phone Numbers - Direct Team */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader>
+                <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-green-400" /> Números da Equipe
+                </CardTitle>
+                <p className="text-gray-400 text-xs">
+                  Cadastre os telefones da equipe. Clientes podem ligar para quem estiver disponível ou selecionar aleatório.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {supportNumbers.map((num, idx) => (
+                  <div key={idx} className="flex gap-2 items-center bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
+                    <div className="flex-1 space-y-2 sm:space-y-0 sm:flex sm:gap-2">
+                      <Input value={num.name} onChange={e => {
+                        const updated = [...supportNumbers];
+                        updated[idx].name = e.target.value;
+                        setSupportNumbers(updated);
+                      }} placeholder="Nome do membro" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
+                      <Input value={num.phone} onChange={e => {
+                        const updated = [...supportNumbers];
+                        updated[idx].phone = e.target.value;
+                        setSupportNumbers(updated);
+                      }} placeholder="(11) 99999-9999" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
+                    </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
+                        onClick={() => {
+                          if (num.phone) window.open(`https://wa.me/55${num.phone.replace(/\D/g, '')}`, '_blank');
+                        }}><Phone className="w-4 h-4" /></Button>
+                      <Button size="sm" variant="ghost" className="text-red-400 h-8 w-8 p-0" onClick={() => {
+                        setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
+                      }}><Trash2 className="w-3 h-3" /></Button>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}
+                    className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">
+                    <UserPlus className="w-3 h-3 mr-1" /> Adicionar Membro
+                  </Button>
+                  <Button size="sm" onClick={saveSupportNumbers}
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">Salvar Números</Button>
+                  {supportNumbers.length > 0 && (
+                    <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                      onClick={() => {
+                        const available = supportNumbers.filter(n => n.phone);
+                        if (available.length === 0) { toast({ title: "Nenhum número cadastrado" }); return; }
+                        const random = available[Math.floor(Math.random() * available.length)];
+                        window.open(`https://wa.me/55${random.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${random.name}! Preciso de atendimento.`)}`, '_blank');
+                        toast({ title: `Conectando com ${random.name}...` });
+                      }}>
+                      🎲 Chamar Aleatório
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Active Team Members */}
             <Card className="bg-[#1a1a24] border-[#2a2a3a]">
@@ -387,45 +446,7 @@ export default function Members() {
               <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
                 Atualizar Lista
               </Button>
-              <Button onClick={() => setShowTeamPanel(!showTeamPanel)} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
-                <Phone className="w-4 h-4 mr-2" /> Equipe Suporte
-              </Button>
             </div>
-
-            {showTeamPanel && (
-              <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-                <CardHeader>
-                  <CardTitle className="text-white text-lg flex items-center gap-2">
-                    <Phone className="w-5 h-5 text-green-400" /> Números de Suporte
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {supportNumbers.map((num, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <Input value={num.name} onChange={e => {
-                        const updated = [...supportNumbers];
-                        updated[idx].name = e.target.value;
-                        setSupportNumbers(updated);
-                      }} placeholder="Nome" className="bg-[#0f0f17] border-[#2a2a3a] text-white flex-1" />
-                      <Input value={num.phone} onChange={e => {
-                        const updated = [...supportNumbers];
-                        updated[idx].phone = e.target.value;
-                        setSupportNumbers(updated);
-                      }} placeholder="WhatsApp" className="bg-[#0f0f17] border-[#2a2a3a] text-white flex-1" />
-                      <Button size="sm" variant="destructive" onClick={() => {
-                        setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
-                      }}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
-                  ))}
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}
-                      className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">+ Adicionar</Button>
-                    <Button size="sm" onClick={saveSupportNumbers}
-                      className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">Salvar</Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
               <Card className="bg-[#1a1a24] border-[#2a2a3a]">
