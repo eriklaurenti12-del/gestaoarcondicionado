@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Link, MessageCircle, Calendar, Loader2, ExternalLink, Settings2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 type AdminSetting = {
   id: string;
@@ -130,10 +131,10 @@ export const AdminSettingsTab: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Link className="w-5 h-5 text-cyan-400" />
-              Link Checkout Mensal (R$ 39,90)
+              Checkout Mensal
             </CardTitle>
             <CardDescription className="text-gray-400">
-              Cole aqui o link do GGCheckout para o plano mensal
+              Link de pagamento do plano mensal
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -163,10 +164,11 @@ export const AdminSettingsTab: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-white">
               <Link className="w-5 h-5 text-amber-400" />
-              Link Checkout Anual (R$ 370,00)
+              Checkout Anual
+              <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 text-xs">Destaque</Badge>
             </CardTitle>
             <CardDescription className="text-cyan-300/70">
-              Cole aqui o link do GGCheckout para o plano anual - Este é destacado na landing page
+              Link de pagamento do plano anual — destacado na landing page
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
