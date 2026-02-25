@@ -264,6 +264,8 @@ const Landing: React.FC = () => {
         <SubscriptionNotifications 
           interval={Number(settings.landing_notif_intervalo || 10) * 1000}
           soundEnabled={settings.landing_notif_som !== 'false'}
+          precoMensal={settings.landing_preco_mensal || '39,90'}
+          precoAnual={settings.landing_preco_anual || '370'}
         />
       )}
 
