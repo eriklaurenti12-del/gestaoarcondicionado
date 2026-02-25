@@ -219,7 +219,7 @@ export const AdminLandingTab: React.FC = () => {
             <p className="text-gray-400 text-sm">Textos, cores, FAQ, WhatsApp, vídeo, templates e mais</p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => window.open('/', '_blank')}
             className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
             <Eye className="w-4 h-4 mr-2" /> Preview
@@ -231,6 +231,33 @@ export const AdminLandingTab: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Live Preview Iframe */}
+      <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-white text-sm">
+              <Eye className="w-4 h-4 text-cyan-400" /> Preview ao Vivo
+            </CardTitle>
+            <Button size="sm" variant="ghost" onClick={() => {
+              const iframe = document.getElementById('landing-preview') as HTMLIFrameElement;
+              if (iframe) iframe.src = iframe.src; // reload
+            }} className="text-gray-400 hover:text-white h-7">
+              <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-2">
+          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black" style={{ height: '400px' }}>
+            <iframe 
+              id="landing-preview"
+              src="/" 
+              className="w-full h-full"
+              style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
