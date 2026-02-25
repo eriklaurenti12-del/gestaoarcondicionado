@@ -13,7 +13,7 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Sparkles, Wand2, Image
+  Image
 } from "lucide-react";
 
 const LANDING_KEYS = [
@@ -97,8 +97,6 @@ export const AdminLandingTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [aiGenerating, setAiGenerating] = useState(false);
-  const [aiPrompt, setAiPrompt] = useState('');
   const [settings, setSettings] = useState<LandingSettings>({});
   const [previewKey, setPreviewKey] = useState(0);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -146,25 +144,6 @@ export const AdminLandingTab: React.FC = () => {
     }
   };
 
-  const generateWithAI = async (type: 'colors' | 'texts' | 'full') => {
-    setAiGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-landing-theme', {
-        body: { prompt: aiPrompt || undefined, type }
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      if (data?.settings) {
-        setSettings(prev => ({ ...prev, ...data.settings }));
-        toast({ title: "IA gerou com sucesso! 🤖✨", description: `${Object.keys(data.settings).length} campos atualizados. Clique em Salvar para aplicar.` });
-      }
-    } catch (error: any) {
-      toast({ title: "Erro na IA", description: error.message, variant: "destructive" });
-    } finally {
-      setAiGenerating(false);
-    }
-  };
-
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'icon') => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -204,7 +183,7 @@ export const AdminLandingTab: React.FC = () => {
     { 
       id: 'persuasao', 
       name: '🎯 Persuasão Total', 
-      desc: 'Página completa com hero, dores do cliente, comparativo, preços, depoimentos, FAQ e CTAs. Layout de alta conversão.',
+      desc: 'Hero, dores, comparativo, preços, depoimentos, FAQ e CTAs.',
       sections: ['Hero + Urgência', 'Seção de Dor', 'Features', 'Comparativo', 'Preços', 'Depoimentos', 'FAQ', 'CTA Final'],
       color: 'border-cyan-500',
       gradient: 'from-cyan-500/20 to-blue-500/20'
@@ -212,7 +191,7 @@ export const AdminLandingTab: React.FC = () => {
     { 
       id: 'vsl', 
       name: '🎬 VSL (Vídeo)', 
-      desc: 'Foco no vídeo de vendas. O visitante assiste primeiro, depois vê preços e CTA. Pode travar tela até assistir.',
+      desc: 'Foco no vídeo de vendas com preços e CTA.',
       sections: ['Vídeo Hero', 'CTA Abaixo', 'Preços', 'Depoimentos'],
       color: 'border-amber-500',
       gradient: 'from-amber-500/20 to-orange-500/20'
@@ -220,7 +199,7 @@ export const AdminLandingTab: React.FC = () => {
     { 
       id: 'minimalista', 
       name: '✨ Minimalista', 
-      desc: 'Design limpo e direto. Hero, features, preços e CTA. Sem distrações. Carrega ultra rápido.',
+      desc: 'Design limpo e direto. Ultra rápido.',
       sections: ['Hero Limpo', 'Features', 'Preços', 'CTA'],
       color: 'border-green-500',
       gradient: 'from-green-500/20 to-emerald-500/20'
@@ -236,11 +215,31 @@ export const AdminLandingTab: React.FC = () => {
             <Megaphone className="w-6 h-6 text-purple-400" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Editor Completo da Landing Page</h2>
-            <p className="text-gray-400 text-sm">Textos, cores, FAQ, WhatsApp, vídeo, templates e mais</p>
+            <h2 className="text-xl font-bold text-white">Editor da Landing Page</h2>
+            <p className="text-gray-400 text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" onClick={() => {
+            if (!window.confirm('Restaurar TODOS os valores para o padrão original?')) return;
+            const defaults: Record<string, string> = {
+              landing_hero_titulo: 'Pare de Perder Clientes e Dinheiro!',
+              landing_hero_subtitulo: 'Sistema Completo para Técnicos de Ar Condicionado',
+              landing_hero_descricao: 'Gerencie clientes, orçamentos, ordens de serviço, financeiro e muito mais em um só lugar.',
+              landing_badge_urgencia: '🔥 Oferta por tempo limitado — Garanta agora!',
+              landing_btn_cta_texto: 'QUERO COMEÇAR AGORA',
+              landing_frase_destaque: 'Mais de 500 técnicos já transformaram seus negócios',
+              landing_cor_primaria: '#06b6d4', landing_cor_secundaria: '#3b82f6',
+              landing_cor_destaque: '#f59e0b', landing_cor_fundo: '#0f172a', landing_cor_botao_cta: '#22c55e',
+              landing_preco_mensal: '39,90', landing_preco_anual: '370',
+              landing_preco_anual_original: '478,80', landing_economia_anual: '108',
+              landing_preco_mensal_equivalente: '30,83', landing_template: 'persuasao',
+            };
+            setSettings(prev => ({ ...prev, ...defaults }));
+            toast({ title: "Restaurado! 🔄", description: "Clique 'Salvar Tudo' para aplicar." });
+          }} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+            <RefreshCw className="w-4 h-4 mr-2" /> Restaurar
+          </Button>
           <Button variant="outline" onClick={() => window.open('/', '_blank')}
             className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
             <Eye className="w-4 h-4 mr-2" /> Abrir Landing
@@ -253,15 +252,12 @@ export const AdminLandingTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Preview - improved with reload on save */}
+      {/* Live Preview */}
       <Card className="bg-[#1a1a24] border-[#2a2a3a]">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-white text-sm">
               <Eye className="w-4 h-4 text-cyan-400" /> Preview ao Vivo
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
-                Salve para atualizar
-              </Badge>
             </CardTitle>
             <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} 
               className="text-gray-400 hover:text-white h-7">
@@ -270,153 +266,39 @@ export const AdminLandingTab: React.FC = () => {
           </div>
         </CardHeader>
         <CardContent className="p-2">
-          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '400px' }}>
+          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '350px' }}>
             <iframe 
               key={previewKey}
-              id="landing-preview"
               src={`https://gestaoarcondicionado.lovable.app/?preview=true&t=${previewKey}`}
               className="w-full h-full border-0"
               style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
               sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
-          <p className="text-gray-500 text-xs mt-2 text-center">
-            💡 O preview carrega a landing page real. Salve as alterações e clique "Atualizar" para ver as mudanças.
-          </p>
         </CardContent>
       </Card>
 
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="ia" className="text-xs bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600"><Wand2 className="w-3 h-3 mr-1" />🤖 IA</TabsTrigger>
           <TabsTrigger value="template" className="text-xs"><Layout className="w-3 h-3 mr-1" />Template</TabsTrigger>
           <TabsTrigger value="textos" className="text-xs"><Type className="w-3 h-3 mr-1" />Textos</TabsTrigger>
           <TabsTrigger value="precos" className="text-xs"><DollarSign className="w-3 h-3 mr-1" />Preços</TabsTrigger>
-          <TabsTrigger value="ofertas" className="text-xs"><Gift className="w-3 h-3 mr-1" />Ofertas</TabsTrigger>
           <TabsTrigger value="cores" className="text-xs"><Palette className="w-3 h-3 mr-1" />Cores</TabsTrigger>
+          <TabsTrigger value="ofertas" className="text-xs"><Gift className="w-3 h-3 mr-1" />Ofertas</TabsTrigger>
           <TabsTrigger value="depoimentos" className="text-xs"><MessageSquare className="w-3 h-3 mr-1" />Depoimentos</TabsTrigger>
           <TabsTrigger value="faq" className="text-xs"><HelpCircle className="w-3 h-3 mr-1" />FAQ</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageCircle className="w-3 h-3 mr-1" />WhatsApp</TabsTrigger>
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
-          <TabsTrigger value="countdown" className="text-xs"><Clock className="w-3 h-3 mr-1" />Countdown</TabsTrigger>
-          <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
-          <TabsTrigger value="social" className="text-xs"><Star className="w-3 h-3 mr-1" />Prova Social</TabsTrigger>
+          <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
         </TabsList>
 
-        {/* IA GENERATOR - with restore defaults */}
-        <TabsContent value="ia">
-          <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/30">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-white text-base">
-                    <Wand2 className="w-5 h-5 text-purple-400" /> Gerador Inteligente com IA
-                  </CardTitle>
-                  <CardDescription className="text-gray-300 text-sm">
-                    Gere textos persuasivos e cores automaticamente. Funciona com qualquer template ativo.
-                  </CardDescription>
-                </div>
-                <Button variant="outline" onClick={() => {
-                  if (!window.confirm('Restaurar TODOS os valores para o padrão original?')) return;
-                  const defaults: Record<string, string> = {
-                    landing_hero_titulo: 'Pare de Perder Clientes e Dinheiro!',
-                    landing_hero_subtitulo: 'Sistema Completo para Técnicos de Ar Condicionado',
-                    landing_hero_descricao: 'Gerencie clientes, orçamentos, ordens de serviço, financeiro e muito mais em um só lugar.',
-                    landing_badge_urgencia: '🔥 Oferta por tempo limitado — Garanta agora!',
-                    landing_btn_cta_texto: 'QUERO COMEÇAR AGORA',
-                    landing_frase_destaque: 'Mais de 500 técnicos já transformaram seus negócios',
-                    landing_cor_primaria: '#06b6d4', landing_cor_secundaria: '#3b82f6',
-                    landing_cor_destaque: '#f59e0b', landing_cor_fundo: '#0f172a', landing_cor_botao_cta: '#22c55e',
-                    landing_preco_mensal: '39,90', landing_preco_anual: '370',
-                    landing_preco_anual_original: '478,80', landing_economia_anual: '108',
-                    landing_preco_mensal_equivalente: '30,83', landing_template: 'persuasao',
-                    landing_social_proof_count: '500', landing_social_proof_rating: '4.9', landing_garantia_dias: '7',
-                  };
-                  setSettings(prev => ({ ...prev, ...defaults }));
-                  toast({ title: "Restaurado! 🔄", description: "Valores padrão carregados. Clique 'Salvar Tudo' para aplicar." });
-                }} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
-                  <RefreshCw className="w-4 h-4 mr-2" /> Restaurar Padrão
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* How it works */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="bg-[#0f0f17] border border-blue-500/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Palette className="w-5 h-5 text-blue-400" />
-                    <h4 className="text-white font-semibold text-sm">Gerar Cores</h4>
-                  </div>
-                  <p className="text-gray-400 text-xs">Cria uma paleta de 5 cores profissionais (primária, secundária, destaque, fundo e botão CTA) que combinam entre si.</p>
-                </div>
-                <div className="bg-[#0f0f17] border border-green-500/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Type className="w-5 h-5 text-green-400" />
-                    <h4 className="text-white font-semibold text-sm">Gerar Textos</h4>
-                  </div>
-                  <p className="text-gray-400 text-xs">Cria títulos, subtítulos, descrições, badges e textos de CTA persuasivos com gatilhos mentais (urgência, dor, prova social).</p>
-                </div>
-                <div className="bg-[#0f0f17] border border-purple-500/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-5 h-5 text-purple-400" />
-                    <h4 className="text-white font-semibold text-sm">Gerar Tudo</h4>
-                  </div>
-                  <p className="text-gray-400 text-xs">Gera cores E textos de uma vez só. Ideal para criar uma landing page completamente nova em segundos.</p>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-gray-300 text-sm">Seu prompt (opcional)</Label>
-                <Textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-                  placeholder="Ex: Quero uma landing page com visual escuro e elegante, tons de azul e verde neon, textos agressivos focados em técnicos autônomos que perdem dinheiro..."
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px]" />
-                <p className="text-gray-500 text-xs mt-1">💡 Dica: Descreva o estilo visual, tom dos textos e público-alvo para resultados melhores.</p>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <Button onClick={() => generateWithAI('colors')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 h-12">
-                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Palette className="w-4 h-4 mr-2" />}
-                  🎨 Gerar Cores
-                </Button>
-                <Button onClick={() => generateWithAI('texts')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-12">
-                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Type className="w-4 h-4 mr-2" />}
-                  ✍️ Gerar Textos
-                </Button>
-                <Button onClick={() => generateWithAI('full')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12">
-                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  ✨ Gerar Tudo
-                </Button>
-              </div>
-              {aiGenerating && (
-                <div className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
-                  <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                  <div>
-                    <span className="text-purple-300 text-sm font-medium">IA gerando conteúdo...</span>
-                    <p className="text-purple-400/60 text-xs">Isso pode levar 5-15 segundos</p>
-                  </div>
-                </div>
-              )}
-              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
-                <p className="text-amber-300 text-xs">
-                  ⚠️ <strong>Importante:</strong> Após a IA gerar, revise os valores nas abas (Textos, Cores, etc.) e clique em <strong>"Salvar Tudo"</strong> para aplicar na landing page real.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TEMPLATE - Improved with visual preview */}
+        {/* TEMPLATE */}
         <TabsContent value="template">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
                 <Layout className="w-5 h-5 text-purple-400" /> Escolha o Template
               </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Escolha a estrutura da sua landing page. Todas as configurações (textos, cores, preços, FAQ, etc.) se aplicam ao template selecionado.
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -425,7 +307,7 @@ export const AdminLandingTab: React.FC = () => {
                     onClick={() => update('landing_template', tmpl.id)}
                     className={`cursor-pointer rounded-xl border-2 p-4 transition-all hover:scale-[1.02] ${
                       settings.landing_template === tmpl.id 
-                        ? `${tmpl.color} bg-white/5 shadow-lg shadow-cyan-500/10` 
+                        ? `${tmpl.color} bg-white/5 shadow-lg` 
                         : 'border-[#2a2a3a] hover:border-[#4a4a5a]'
                     }`}>
                     <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-white/5`}>
@@ -440,22 +322,12 @@ export const AdminLandingTab: React.FC = () => {
                       </div>
                     </div>
                     <h3 className="text-white font-bold text-sm mb-1">{tmpl.name}</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed mb-2">{tmpl.desc}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {tmpl.sections.map((s, i) => (
-                        <Badge key={i} className="bg-white/5 text-gray-400 border-white/10 text-[9px]">{s}</Badge>
-                      ))}
-                    </div>
+                    <p className="text-gray-400 text-xs leading-relaxed">{tmpl.desc}</p>
                     {settings.landing_template === tmpl.id && (
-                      <Badge className="mt-3 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">✓ Template Ativo</Badge>
+                      <Badge className="mt-2 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">✓ Ativo</Badge>
                     )}
                   </div>
                 ))}
-              </div>
-              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-lg p-3 mt-3">
-                <p className="text-cyan-300 text-xs text-center">
-                  💡 Todas as abas (Textos, Cores, Preços, FAQ, Depoimentos, etc.) alteram o template ativo. Salve e atualize o preview.
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -466,7 +338,7 @@ export const AdminLandingTab: React.FC = () => {
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Type className="w-5 h-5 text-cyan-400" /> Textos Principais (Hero)
+                <Type className="w-5 h-5 text-cyan-400" /> Textos Principais
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -504,16 +376,13 @@ export const AdminLandingTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* PREÇOS - with strikethrough */}
+        {/* PREÇOS */}
         <TabsContent value="precos">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
                 <DollarSign className="w-5 h-5 text-green-400" /> Preços dos Planos
               </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Use "Preço Original" para exibir <span className="line-through text-red-400">valor riscado</span> → <span className="text-green-400 font-bold">preço real</span>
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -536,7 +405,6 @@ export const AdminLandingTab: React.FC = () => {
                     <Label className="text-gray-300 text-sm">Preço Original <span className="text-red-400 line-through">(riscado)</span></Label>
                     <Input value={settings.landing_preco_anual_original || ''} onChange={e => update('landing_preco_anual_original', e.target.value)}
                       className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="478,80" />
-                    <p className="text-gray-500 text-xs mt-1">Aparece riscado para mostrar economia</p>
                   </div>
                   <div>
                     <Label className="text-gray-300 text-sm">Economia (R$)</Label>
@@ -550,28 +418,41 @@ export const AdminLandingTab: React.FC = () => {
                   </div>
                 </div>
               </div>
-              {/* Live preview */}
-              <div className="bg-[#0f0f17] border border-[#2a2a3a] rounded-xl p-4">
-                <p className="text-gray-400 text-xs mb-3 text-center">Preview na landing:</p>
-                <div className="flex items-center justify-center gap-8 flex-wrap">
-                  <div className="text-center">
-                    <p className="text-gray-400 text-xs mb-1">Mensal</p>
-                    <p className="text-white text-2xl font-bold">R$ {settings.landing_preco_mensal || '39,90'}<span className="text-gray-400 text-sm">/mês</span></p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-amber-400 text-xs mb-1">⭐ Anual</p>
-                    {settings.landing_preco_anual_original && (
-                      <p className="text-red-400 line-through text-sm">R$ {settings.landing_preco_anual_original}</p>
-                    )}
-                    <p className="text-white text-2xl font-bold">R$ {settings.landing_preco_anual || '370'}<span className="text-gray-400 text-sm">/ano</span></p>
-                    {settings.landing_economia_anual && (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs mt-1">Economize R$ {settings.landing_economia_anual}</Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* CORES */}
+        <TabsContent value="cores">
+          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-white text-base">
+                <Palette className="w-5 h-5 text-pink-400" /> Paleta de Cores
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <ColorInput label="Cor Primária" value={settings.landing_cor_primaria || '#06b6d4'} onChange={v => update('landing_cor_primaria', v)} />
+              <ColorInput label="Cor Secundária" value={settings.landing_cor_secundaria || '#3b82f6'} onChange={v => update('landing_cor_secundaria', v)} />
+              <ColorInput label="Cor Destaque" value={settings.landing_cor_destaque || '#f59e0b'} onChange={v => update('landing_cor_destaque', v)} />
+              <ColorInput label="Cor de Fundo" value={settings.landing_cor_fundo || '#0f172a'} onChange={v => update('landing_cor_fundo', v)} />
+              <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
+            </CardContent>
+          </Card>
+          <div className="mt-4 p-4 rounded-xl border border-[#2a2a3a]" style={{ background: settings.landing_cor_fundo || '#0f172a' }}>
+            <div className="flex gap-3 justify-center flex-wrap">
+              {[
+                { k: 'primaria', label: 'Primária' },
+                { k: 'secundaria', label: 'Secundária' },
+                { k: 'destaque', label: 'Destaque' },
+                { k: 'botao_cta', label: 'Botão CTA' }
+              ].map(c => (
+                <span key={c.k} className="px-4 py-2 rounded-lg text-white text-sm font-bold" 
+                  style={{ background: settings[`landing_cor_${c.k}`] || '#06b6d4' }}>
+                  {c.label}
+                </span>
+              ))}
+            </div>
+          </div>
         </TabsContent>
 
         {/* OFERTAS */}
@@ -606,40 +487,6 @@ export const AdminLandingTab: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* CORES */}
-        <TabsContent value="cores">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Palette className="w-5 h-5 text-pink-400" /> Paleta de Cores
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <ColorInput label="Cor Primária" value={settings.landing_cor_primaria || '#06b6d4'} onChange={v => update('landing_cor_primaria', v)} />
-              <ColorInput label="Cor Secundária" value={settings.landing_cor_secundaria || '#3b82f6'} onChange={v => update('landing_cor_secundaria', v)} />
-              <ColorInput label="Cor Destaque" value={settings.landing_cor_destaque || '#f59e0b'} onChange={v => update('landing_cor_destaque', v)} />
-              <ColorInput label="Cor de Fundo" value={settings.landing_cor_fundo || '#0f172a'} onChange={v => update('landing_cor_fundo', v)} />
-              <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
-            </CardContent>
-          </Card>
-          <div className="mt-4 p-4 rounded-xl border border-[#2a2a3a]" style={{ background: settings.landing_cor_fundo || '#0f172a' }}>
-            <p className="text-gray-400 text-xs mb-3 text-center">Preview das cores:</p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              {[
-                { k: 'primaria', label: 'Primária' },
-                { k: 'secundaria', label: 'Secundária' },
-                { k: 'destaque', label: 'Destaque' },
-                { k: 'botao_cta', label: 'Botão CTA' }
-              ].map(c => (
-                <span key={c.k} className="px-4 py-2 rounded-lg text-white text-sm font-bold" 
-                  style={{ background: settings[`landing_cor_${c.k}`] || '#06b6d4' }}>
-                  {c.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </TabsContent>
-
         {/* DEPOIMENTOS */}
         <TabsContent value="depoimentos">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -651,14 +498,6 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* FAQ */}
         <TabsContent value="faq">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a] mb-4">
-            <CardHeader className="pb-2">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <HelpCircle className="w-5 h-5 text-blue-400" /> Perguntas Frequentes (FAQ)
-              </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">Edite as perguntas e respostas exibidas na landing page</CardDescription>
-            </CardHeader>
-          </Card>
           <div className="space-y-3">
             {[1,2,3,4,5,6].map(i => (
               <Card key={i} className="bg-[#12121a] border-[#2a2a3a]">
@@ -689,20 +528,17 @@ export const AdminLandingTab: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* WHATSAPP - with custom icon upload */}
+        {/* WHATSAPP */}
         <TabsContent value="whatsapp">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
                 <MessageCircle className="w-5 h-5 text-green-400" /> Botão WhatsApp Flutuante
               </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Botão fixo no canto inferior direito da landing page
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-gray-300 text-sm">Botão ativo na landing</Label>
+                <Label className="text-gray-300 text-sm">Ativo</Label>
                 <Switch checked={settings.landing_whatsapp_flutuante !== 'false'}
                   onCheckedChange={v => update('landing_whatsapp_flutuante', v ? 'true' : 'false')} />
               </div>
@@ -721,12 +557,11 @@ export const AdminLandingTab: React.FC = () => {
                   placeholder="Olá! Vim pela landing page..." />
               </div>
               
-              {/* Custom icon upload */}
+              {/* Custom icon */}
               <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-3">
                 <Label className="text-gray-300 text-sm flex items-center gap-2">
-                  <Image className="w-4 h-4 text-green-400" /> Ícone personalizado (opcional)
+                  <Image className="w-4 h-4 text-green-400" /> Ícone personalizado
                 </Label>
-                <p className="text-gray-500 text-xs">Troque o ícone padrão do WhatsApp por uma imagem customizada (ex: logo, avatar). Máx 2MB.</p>
                 <div className="flex items-center gap-3">
                   <input ref={iconInputRef} type="file" accept="image/*" className="hidden"
                     onChange={e => handleFileUpload(e, 'icon')} />
@@ -745,24 +580,6 @@ export const AdminLandingTab: React.FC = () => {
                     </>
                   )}
                 </div>
-                {!settings.landing_whatsapp_icon_url && (
-                  <p className="text-gray-500 text-xs">Nenhum ícone customizado. Usando ícone padrão do WhatsApp.</p>
-                )}
-              </div>
-
-              {/* Preview */}
-              <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4">
-                <p className="text-gray-400 text-xs mb-3">Preview do botão:</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30 overflow-hidden">
-                    {settings.landing_whatsapp_icon_url ? (
-                      <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-full h-full object-cover" />
-                    ) : (
-                      <MessageCircle className="w-7 h-7 text-white" />
-                    )}
-                  </div>
-                  <span className="text-gray-300 text-sm">← Aparece assim no canto inferior direito</span>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -775,9 +592,6 @@ export const AdminLandingTab: React.FC = () => {
               <CardTitle className="flex items-center gap-2 text-white text-base">
                 <Video className="w-5 h-5 text-red-400" /> Vídeo de Vendas (VSL)
               </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Upload ou link do YouTube/Vimeo. Aparece no template VSL ou no hero.
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
@@ -804,8 +618,8 @@ export const AdminLandingTab: React.FC = () => {
               </div>
               <div className="flex items-center justify-between bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
                 <div>
-                  <Label className="text-gray-300 text-sm">Travar sistema até assistir vídeo</Label>
-                  <p className="text-gray-500 text-xs">Visitante precisa assistir antes de navegar</p>
+                  <Label className="text-gray-300 text-sm">Travar até assistir</Label>
+                  <p className="text-gray-500 text-xs">Visitante assiste antes de navegar</p>
                 </div>
                 <Switch checked={settings.landing_vsl_trava === 'true'}
                   onCheckedChange={v => update('landing_vsl_trava', v ? 'true' : 'false')} />
@@ -832,92 +646,81 @@ export const AdminLandingTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* COUNTDOWN */}
-        <TabsContent value="countdown">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Clock className="w-5 h-5 text-orange-400" /> Contador Regressivo
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label className="text-gray-300 text-sm">Texto do Countdown</Label>
-                <Input value={settings.landing_countdown_texto || ''} onChange={e => update('landing_countdown_texto', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-              </div>
-              <div>
-                <Label className="text-gray-300 text-sm">Badge de Desconto</Label>
-                <Input value={settings.landing_countdown_desconto || ''} onChange={e => update('landing_countdown_desconto', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* NOTIFICAÇÕES */}
-        <TabsContent value="notificacoes">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra (Prova Social)
-              </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Pop-ups simulados de compras recentes que aparecem na landing page para criar prova social
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-gray-300 text-sm">Ativas</Label>
-                <Switch checked={settings.landing_notif_ativa !== 'false'}
-                  onCheckedChange={v => update('landing_notif_ativa', v ? 'true' : 'false')} />
-              </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-gray-300 text-sm">Som</Label>
-                <Switch checked={settings.landing_notif_som !== 'false'}
-                  onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
-              </div>
-              <div>
-                <Label className="text-gray-300 text-sm">Intervalo entre notificações (segundos)</Label>
-                <Input type="number" value={settings.landing_notif_intervalo || '10'} 
-                  onChange={e => update('landing_notif_intervalo', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white w-32" min="5" max="60" />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* PROVA SOCIAL */}
-        <TabsContent value="social">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Star className="w-5 h-5 text-amber-400" /> Prova Social & Garantia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { key: 'landing_social_proof_count', label: 'Qtd Técnicos', ph: '500' },
-                { key: 'landing_social_proof_rating', label: 'Nota', ph: '4.9' },
-                { key: 'landing_garantia_dias', label: 'Dias Garantia', ph: '7' },
-              ].map(f => (
-                <div key={f.key}>
-                  <Label className="text-gray-300 text-sm">{f.label}</Label>
-                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder={f.ph} />
+        {/* EXTRAS - Countdown + Notificações + Prova Social combined */}
+        <TabsContent value="extras">
+          <div className="space-y-4">
+            {/* Countdown */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Clock className="w-5 h-5 text-orange-400" /> Contador Regressivo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-300 text-sm">Texto</Label>
+                  <Input value={settings.landing_countdown_texto || ''} onChange={e => update('landing_countdown_texto', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+                <div>
+                  <Label className="text-gray-300 text-sm">Badge Desconto</Label>
+                  <Input value={settings.landing_countdown_desconto || ''} onChange={e => update('landing_countdown_desconto', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notificações de compra */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-300 text-sm">Ativas</Label>
+                  <Switch checked={settings.landing_notif_ativa !== 'false'}
+                    onCheckedChange={v => update('landing_notif_ativa', v ? 'true' : 'false')} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-gray-300 text-sm">Som</Label>
+                  <Switch checked={settings.landing_notif_som !== 'false'}
+                    onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-sm">Intervalo (segundos)</Label>
+                  <Input type="number" value={settings.landing_notif_intervalo || '10'} 
+                    onChange={e => update('landing_notif_intervalo', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white w-32" min="5" max="60" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Prova Social */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Star className="w-5 h-5 text-amber-400" /> Prova Social & Garantia
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[
+                  { key: 'landing_social_proof_count', label: 'Qtd Técnicos', ph: '500' },
+                  { key: 'landing_social_proof_rating', label: 'Nota', ph: '4.9' },
+                  { key: 'landing_garantia_dias', label: 'Dias Garantia', ph: '7' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <Label className="text-gray-300 text-sm">{f.label}</Label>
+                    <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder={f.ph} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
       </Tabs>
-
-      <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 text-center">
-        <p className="text-cyan-300 text-sm">
-          <RefreshCw className="w-4 h-4 inline mr-2" />
-          Após salvar, clique "Atualizar" no preview ou recarregue a landing page para ver as alterações.
-        </p>
-      </div>
     </div>
   );
 };
