@@ -5,12 +5,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, PartyPopper, Snowflake } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSubscription } from './SubscriptionGate';
+
+// Brazilian holidays for the current year
+const getBrazilianHolidays = (year: number) => {
+  // Easter calculation (Meeus algorithm)
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31) - 1;
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  const easter = new Date(year, month, day);
+
+  const addDays = (date: Date, days: number) => {
+    const result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  };
+
+  return [
+    { date: new Date(year, 0, 1), name: '🎆 Confraternização Universal' },
+    { date: addDays(easter, -47), name: '🎭 Carnaval' },
+    { date: addDays(easter, -46), name: '🎭 Carnaval' },
+    { date: addDays(easter, -2), name: '✝️ Sexta-feira Santa' },
+    { date: easter, name: '✝️ Páscoa' },
+    { date: new Date(year, 3, 21), name: '🏗️ Tiradentes' },
+    { date: new Date(year, 4, 1), name: '👷 Dia do Trabalho' },
+    { date: addDays(easter, 60), name: '✝️ Corpus Christi' },
+    { date: new Date(year, 8, 7), name: '🇧🇷 Independência do Brasil' },
+    { date: new Date(year, 9, 12), name: '🙏 Nossa Sra. Aparecida' },
+    { date: new Date(year, 10, 2), name: '🕊️ Finados' },
+    { date: new Date(year, 10, 15), name: '🇧🇷 Proclamação da República' },
+    { date: new Date(year, 10, 20), name: '🧑🏿 Consciência Negra' },
+    { date: new Date(year, 11, 25), name: '🎄 Natal' },
+  ];
+};
 
 const fetchDashboardData = async () => {
     const productsPromise = supabase.from('products').select('*');
@@ -721,7 +764,81 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Main Stats Grid */}
+      {/* Quick Access & Holidays */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Quick Access to Open Services */}
+        {overdueAppointments.length > 0 && (
+          <Card className="border-primary/30">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <ClipboardList className="w-4 h-4 text-primary" />
+                Acesso Rápido - Serviços em Aberto
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {overdueAppointments.slice(0, 4).map((apt: any) => (
+                <div key={apt.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-3 h-3 text-destructive" />
+                    <span className="font-medium truncate max-w-[150px]">{apt.clients?.name || 'Cliente'}</span>
+                  </div>
+                  <Badge variant="destructive" className="text-[10px]">
+                    {apt.daysOverdue}d atrás
+                  </Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Brazilian Holidays */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <CalendarDays className="w-4 h-4 text-primary" />
+              Próximos Feriados
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(() => {
+              const today = new Date();
+              const holidays = getBrazilianHolidays(today.getFullYear());
+              const upcoming = holidays
+                .filter(h => h.date >= today || (h.date.toDateString() === today.toDateString()))
+                .slice(0, 4);
+              
+              if (upcoming.length === 0) {
+                const nextYear = getBrazilianHolidays(today.getFullYear() + 1);
+                return nextYear.slice(0, 4).map((h, i) => (
+                  <div key={i} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm">
+                    <span>{h.name}</span>
+                    <span className="text-xs text-muted-foreground">{format(h.date, 'dd/MM')}</span>
+                  </div>
+                ));
+              }
+              
+              return upcoming.map((h, i) => {
+                const days = differenceInDays(h.date, today);
+                const isHolidayToday = h.date.toDateString() === today.toDateString();
+                return (
+                  <div key={i} className={`flex items-center justify-between p-2 rounded-lg text-sm ${isHolidayToday ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'}`}>
+                    <span className={isHolidayToday ? 'font-bold' : ''}>{h.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">{format(h.date, 'dd/MM')}</span>
+                      {isHolidayToday ? (
+                        <Badge className="text-[10px]">HOJE</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">{days}d</Badge>
+                      )}
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>

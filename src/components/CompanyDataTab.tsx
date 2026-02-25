@@ -22,7 +22,7 @@ const CompanyDataTab: React.FC = () => {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [userId, setUserId] = useState<string>('');
-  const [logoBase64, setLogoBase64] = useState<string>('');
+  const [logoBase64, setLogoBase64] = useState<string>(localStorage.getItem('company_logo') || '');
   
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -56,6 +56,12 @@ const CompanyDataTab: React.FC = () => {
         setWhatsapp((data as any).whatsapp || '');
         setEmail((data as any).email || '');
         setAddress((data as any).address || '');
+        // Persist to localStorage for PDF access
+        localStorage.setItem('company_name', (data as any).company_name || '');
+        localStorage.setItem('company_cnpj', (data as any).cnpj_cpf || '');
+        localStorage.setItem('company_email', (data as any).email || '');
+        localStorage.setItem('company_whatsapp', (data as any).whatsapp || '');
+        localStorage.setItem('company_address', (data as any).address || '');
       }
       
       return data;
@@ -139,7 +145,9 @@ const CompanyDataTab: React.FC = () => {
     
     const reader = new FileReader();
     reader.onload = (event) => {
-      setLogoBase64(event.target?.result as string);
+      const base64 = event.target?.result as string;
+      setLogoBase64(base64);
+      localStorage.setItem('company_logo', base64);
       toast({ title: "Logo carregado!" });
     };
     reader.readAsDataURL(file);
@@ -147,6 +155,7 @@ const CompanyDataTab: React.FC = () => {
 
   const removeLogo = () => {
     setLogoBase64('');
+    localStorage.removeItem('company_logo');
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
