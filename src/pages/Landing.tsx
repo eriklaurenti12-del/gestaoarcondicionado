@@ -24,6 +24,20 @@ type AdminSettings = {
   checkout_anual: string;
   whatsapp_suporte: string;
   promo_end_date: string;
+  landing_preco_mensal: string;
+  landing_preco_anual: string;
+  landing_preco_anual_original: string;
+  landing_economia_anual: string;
+  landing_preco_mensal_equivalente: string;
+  landing_hero_titulo: string;
+  landing_hero_subtitulo: string;
+  landing_hero_descricao: string;
+  landing_social_proof_count: string;
+  landing_social_proof_rating: string;
+  landing_garantia_dias: string;
+  landing_btn_cta_texto: string;
+  landing_badge_urgencia: string;
+  landing_frase_destaque: string;
 };
 
 const Landing: React.FC = () => {
@@ -42,7 +56,21 @@ const Landing: React.FC = () => {
     checkout_mensal: '',
     checkout_anual: '',
     whatsapp_suporte: 'https://wa.me/5511999999999',
-    promo_end_date: ''
+    promo_end_date: '',
+    landing_preco_mensal: '39,90',
+    landing_preco_anual: '370',
+    landing_preco_anual_original: '478,80',
+    landing_economia_anual: '108',
+    landing_preco_mensal_equivalente: '30,83',
+    landing_hero_titulo: 'Chega de Perder Clientes',
+    landing_hero_subtitulo: 'e Trabalhar no Prejuízo',
+    landing_hero_descricao: 'Você anota tudo no papel ou no WhatsApp? Esquece de cobrar clientes? Não sabe quanto lucrou no mês? Esse problema acaba HOJE.',
+    landing_social_proof_count: '500',
+    landing_social_proof_rating: '4.9',
+    landing_garantia_dias: '7',
+    landing_btn_cta_texto: 'QUERO PARAR DE PERDER DINHEIRO',
+    landing_badge_urgencia: 'ATENÇÃO: Você está perdendo dinheiro todo dia sem saber',
+    landing_frase_destaque: 'O único sistema de Ar Condicionado que você realmente vai usar — porque é simples igual WhatsApp, mas organiza TUDO.',
   });
 
   // Load admin settings
@@ -51,7 +79,7 @@ const Landing: React.FC = () => {
       const { data } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['checkout_mensal', 'checkout_anual', 'whatsapp_suporte', 'promo_end_date']);
+        .or('key.in.(checkout_mensal,checkout_anual,whatsapp_suporte,promo_end_date),key.like.landing_%');
 
       if (data) {
         const settingsMap: Partial<AdminSettings> = {};
@@ -301,7 +329,7 @@ const Landing: React.FC = () => {
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Zap className="w-4 h-4 text-red-400" />
             <span className="text-red-300 text-sm font-medium">
-              ATENÇÃO: Você está perdendo dinheiro todo dia sem saber
+              {settings.landing_badge_urgencia}
             </span>
             <Zap className="w-4 h-4 text-red-400 animate-pulse" />
           </div>
@@ -309,19 +337,18 @@ const Landing: React.FC = () => {
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight animate-fade-in">
             Chega de{" "}
             <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">
-              Perder Clientes
+              {settings.landing_hero_titulo}
             </span>
             <br />
-            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">e Trabalhar no Prejuízo</span>
+            <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">{settings.landing_hero_subtitulo}</span>
           </h1>
           
           <p className="text-lg md:text-xl text-gray-300 mb-4 max-w-2xl mx-auto animate-fade-in px-4" style={{ animationDelay: '0.2s' }}>
-            <strong className="text-white">Você anota tudo no papel ou no WhatsApp?</strong> Esquece de cobrar clientes? 
-            Não sabe quanto lucrou no mês? <span className="text-cyan-400">Esse problema acaba HOJE.</span>
+            {settings.landing_hero_descricao}
           </p>
 
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium px-4">
-            O único sistema de Ar Condicionado que <u>você realmente vai usar</u> — porque é simples igual WhatsApp, mas organiza TUDO.
+            {settings.landing_frase_destaque}
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 px-4">
@@ -331,7 +358,7 @@ const Landing: React.FC = () => {
               onClick={() => handleCheckout('anual')}
             >
               <Crown className="w-5 h-5 mr-2" />
-              QUERO PARAR DE PERDER DINHEIRO
+              {settings.landing_btn_cta_texto}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
@@ -339,13 +366,13 @@ const Landing: React.FC = () => {
           {/* Prova social imediata */}
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 max-w-2xl mx-auto border border-cyan-500/20 mb-8">
             <p className="text-gray-300 text-sm mb-2">
-              <span className="text-cyan-400 font-bold">+ de 500 técnicos</span> já pararam de perder dinheiro com esse sistema
+              <span className="text-cyan-400 font-bold">+ de {settings.landing_social_proof_count} técnicos</span> já pararam de perder dinheiro com esse sistema
             </p>
             <div className="flex items-center justify-center gap-1">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
               ))}
-              <span className="text-amber-400 ml-2 font-bold">4.9/5</span>
+              <span className="text-amber-400 ml-2 font-bold">{settings.landing_social_proof_rating}/5</span>
               <span className="text-gray-400 text-sm ml-1">- Avaliação dos clientes</span>
             </div>
           </div>
@@ -353,7 +380,7 @@ const Landing: React.FC = () => {
           {/* Stats reformulados */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto px-4">
             {[
-              { value: "R$ 39,90", label: "Menos que 1 limpeza" },
+              { value: `R$ ${settings.landing_preco_mensal}`, label: "Menos que 1 limpeza" },
               { value: "2 min", label: "Para começar a usar" },
               { value: "100%", label: "No celular" },
               { value: "0", label: "Conhecimento técnico" }
@@ -481,7 +508,7 @@ const Landing: React.FC = () => {
               <CardContent>
                 <ul className="space-y-2">
                   {[
-                    "Apenas R$ 39,90/mês (ou menos no anual)",
+                    `Apenas R$ ${settings.landing_preco_mensal}/mês (ou menos no anual)`,
                     "Simples igual WhatsApp",
                     "Começa a usar em 2 minutos",
                     "Feito POR técnico PARA técnico",
@@ -521,7 +548,7 @@ const Landing: React.FC = () => {
             </h2>
             <p className="text-gray-400 max-w-lg mx-auto text-sm md:text-base px-4">
               Você cobra <strong className="text-white">R$ 120 a R$ 200</strong> numa limpeza. 
-              O sistema custa <strong className="text-cyan-400">R$ 39,90</strong>. <span className="text-amber-400">Faça as contas.</span>
+              O sistema custa <strong className="text-cyan-400">R$ {settings.landing_preco_mensal}</strong>. <span className="text-amber-400">Faça as contas.</span>
             </p>
           </div>
 
@@ -539,7 +566,7 @@ const Landing: React.FC = () => {
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="mb-4">
-                  <span className="text-3xl md:text-4xl font-bold text-white">R$ 39,90</span>
+                  <span className="text-3xl md:text-4xl font-bold text-white">R$ {settings.landing_preco_mensal}</span>
                   <span className="text-gray-400">/mês</span>
                   <div className="text-green-400 text-xs mt-1">= 1/3 de uma limpeza simples</div>
                 </div>
@@ -563,7 +590,7 @@ const Landing: React.FC = () => {
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white transition-all duration-300 hover:scale-105"
                   onClick={() => handleCheckout('mensal')}
                 >
-                  Começar por R$ 39,90
+                  Começar por R$ {settings.landing_preco_mensal}
                 </Button>
               </CardFooter>
             </Card>
@@ -588,13 +615,13 @@ const Landing: React.FC = () => {
               </CardHeader>
               <CardContent className="pb-4">
                 <div className="mb-1">
-                  <span className="text-gray-400 line-through text-sm">R$ 478,80</span>
-                  <span className="text-green-400 text-sm ml-2">Economize R$ 108!</span>
+                  <span className="text-gray-400 line-through text-sm">R$ {settings.landing_preco_anual_original}</span>
+                  <span className="text-green-400 text-sm ml-2">Economize R$ {settings.landing_economia_anual}!</span>
                 </div>
                 <div className="mb-4">
-                  <span className="text-3xl md:text-4xl font-bold text-white">R$ 370</span>
+                  <span className="text-3xl md:text-4xl font-bold text-white">R$ {settings.landing_preco_anual}</span>
                   <span className="text-gray-300">/ano</span>
-                  <div className="text-cyan-400 text-xs mt-1">= Apenas R$ 30,83/mês (preço de um almoço)</div>
+                  <div className="text-cyan-400 text-xs mt-1">= Apenas R$ {settings.landing_preco_mensal_equivalente}/mês (preço de um almoço)</div>
                 </div>
                 <ul className="space-y-2">
                   {[
@@ -618,7 +645,7 @@ const Landing: React.FC = () => {
                   onClick={() => handleCheckout('anual')}
                 >
                   <Crown className="w-5 h-5 mr-2" />
-                  QUERO ECONOMIZAR R$ 108
+                  QUERO ECONOMIZAR R$ {settings.landing_economia_anual}
                 </Button>
               </CardFooter>
             </Card>
@@ -629,10 +656,10 @@ const Landing: React.FC = () => {
             <div className="inline-flex flex-col items-center gap-2 bg-green-500/10 border border-green-500/30 rounded-xl px-6 py-4">
               <Shield className="w-8 h-8 text-green-400" />
               <span className="text-green-400 font-bold">
-                Garantia Total de 7 Dias
+                Garantia Total de {settings.landing_garantia_dias} Dias
               </span>
               <span className="text-gray-400 text-sm max-w-md">
-                Se você não amar o sistema em 7 dias, devolvemos 100% do seu dinheiro. Sem perguntas. <strong className="text-white">Risco ZERO.</strong>
+                Se você não amar o sistema em {settings.landing_garantia_dias} dias, devolvemos 100% do seu dinheiro. Sem perguntas. <strong className="text-white">Risco ZERO.</strong>
               </span>
             </div>
           </div>
@@ -702,7 +729,7 @@ const Landing: React.FC = () => {
               onClick={() => handleCheckout('anual')}
             >
               <Crown className="w-5 h-5 mr-2" />
-              QUERO PARAR DE PERDER DINHEIRO
+              {settings.landing_btn_cta_texto}
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
