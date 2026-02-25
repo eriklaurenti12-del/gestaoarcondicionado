@@ -74,7 +74,7 @@ const playNotificationSound = () => {
   }
 };
 
-export const SubscriptionNotifications: React.FC = () => {
+export const SubscriptionNotifications: React.FC<{ interval?: number; soundEnabled?: boolean }> = ({ interval = 10000, soundEnabled = true }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [notificationId, setNotificationId] = useState(0);
   const hasInteracted = useRef(false);
@@ -131,8 +131,8 @@ export const SubscriptionNotifications: React.FC = () => {
     setNotificationId(prev => prev + 1);
     setNotifications(prev => [...prev.slice(-1), newNotification]);
 
-    // Play sound if user has interacted
-    if (hasInteracted.current) {
+    // Play sound if user has interacted and sound is enabled
+    if (hasInteracted.current && soundEnabled) {
       playNotificationSound();
     }
 
@@ -148,14 +148,14 @@ export const SubscriptionNotifications: React.FC = () => {
     // Initial notification after 5 seconds
     const initialTimeout = setTimeout(createNotification, 5000);
 
-    // Then every 10 seconds
-    const interval = setInterval(createNotification, 10000);
+    // Then at configured interval
+    const timer = setInterval(createNotification, interval);
 
     return () => {
       clearTimeout(initialTimeout);
-      clearInterval(interval);
+      clearInterval(timer);
     };
-  }, []);
+  }, [interval]);
 
   const dismissNotification = (id: number) => {
     setNotifications(prev => 
