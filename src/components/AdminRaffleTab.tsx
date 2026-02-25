@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Gift, Loader2, Trophy, Users, Sparkles, RotateCw, Copy, Phone, History, Crown } from "lucide-react";
+import { Gift, Loader2, Trophy, Users, Sparkles, RotateCw, Copy, Phone, History, Crown, UserPlus, Zap } from "lucide-react";
 
 type Member = {
   id: string;
@@ -35,6 +36,8 @@ export const AdminRaffleTab: React.FC = () => {
   const [spinning, setSpinning] = useState(false);
   const [history, setHistory] = useState<RaffleRecord[]>([]);
   const [displayName, setDisplayName] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [activating, setActivating] = useState<string | null>(null);
 
   useEffect(() => { loadMembers(); loadHistory(); }, []);
 
@@ -66,6 +69,47 @@ export const AdminRaffleTab: React.FC = () => {
     return true;
   });
 
+  const activate1MonthFree = async (member: Member) => {
+    setActivating(member.id);
+    try {
+      const startDate = new Date();
+      const endDate = new Date();
+      endDate.setMonth(endDate.getMonth() + 1);
+
+      const { error } = await supabase.functions.invoke('admin-update-subscription', {
+        body: {
+          target_user_id: member.id,
+          plan: 'mensal',
+          status: 'aprovado',
+          is_active: true,
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          payment_date: startDate.toISOString()
+        }
+      });
+      if (error) throw error;
+      toast({ title: "✅ Ativado!", description: `1 mês grátis ativado para ${member.email}` });
+      loadMembers();
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setActivating(null);
+    }
+  };
+
+  const selectAndReward = () => {
+    if (!selectedUserId) {
+      toast({ title: "Selecione um usuário", variant: "destructive" });
+      return;
+    }
+    const member = members.find(m => m.id === selectedUserId);
+    if (!member) return;
+    setWinner(member);
+    setDisplayName(member.email);
+    saveRaffleResult(member);
+    toast({ title: "🎉 Prêmio Atribuído!", description: `${member.email} recebeu: ${prize}` });
+  };
+
   const runRaffle = () => {
     if (eligibleMembers.length === 0) {
       toast({ title: "Sem participantes", description: "Nenhum usuário elegível.", variant: "destructive" });
@@ -88,10 +132,7 @@ export const AdminRaffleTab: React.FC = () => {
         const finalWinner = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
         setWinner(finalWinner);
         setDisplayName(finalWinner.email);
-        
-        // Save to DB
         saveRaffleResult(finalWinner);
-        
         toast({ title: "🎉 Sorteio Realizado!", description: `Vencedor: ${finalWinner.email}` });
       }
     }, 120);
@@ -105,12 +146,6 @@ export const AdminRaffleTab: React.FC = () => {
         prize,
         winner_notified: true,
       });
-
-      // Create admin notification for the winner
-      await supabase.functions.invoke('payment-webhook', {
-        body: {} // This will fail gracefully, we just need to notify
-      }).catch(() => {});
-
       loadHistory();
     } catch (error: any) {
       console.error('Error saving raffle:', error);
@@ -132,8 +167,8 @@ export const AdminRaffleTab: React.FC = () => {
           <Gift className="w-6 h-6 text-amber-400" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-white">Sorteio de Usuários</h2>
-          <p className="text-gray-400 text-sm">Sorteie prêmios entre os assinantes. O vencedor é notificado e vê no sistema.</p>
+          <h2 className="text-xl font-bold text-white">Sorteio & Premiação</h2>
+          <p className="text-gray-400 text-sm">Sorteie ou selecione usuários para dar prêmios e ativar contas</p>
         </div>
       </div>
 
@@ -175,6 +210,48 @@ export const AdminRaffleTab: React.FC = () => {
             </Badge>
           </div>
 
+          {/* Select specific user */}
+          <Card className="bg-[#12121a] border-[#2a2a3a]">
+            <CardContent className="p-4 space-y-3">
+              <h4 className="text-cyan-400 font-semibold text-sm flex items-center gap-2">
+                <UserPlus className="w-4 h-4" /> Selecionar Usuário Específico
+              </h4>
+              <div className="flex gap-2">
+                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                  <SelectTrigger className="bg-[#0f0f17] border-[#2a2a3a] text-white flex-1">
+                    <SelectValue placeholder="Selecione um usuário..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#1a1a24] border-[#2a2a3a] max-h-60">
+                    {members.filter(m => m.email !== 'eriklaurenti09@gmail.com').map(m => (
+                      <SelectItem key={m.id} value={m.id} className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white">
+                        {m.email} {m.subscription?.status === 'aprovado' ? '✅' : '⏳'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button size="sm" onClick={selectAndReward}
+                  className="bg-amber-600 hover:bg-amber-700 text-white whitespace-nowrap">
+                  <Gift className="w-4 h-4 mr-1" /> Dar Prêmio
+                </Button>
+              </div>
+              {selectedUserId && (
+                <Button size="sm" onClick={() => {
+                  const member = members.find(m => m.id === selectedUserId);
+                  if (member) activate1MonthFree(member);
+                }}
+                  disabled={activating === selectedUserId}
+                  className="bg-green-600 hover:bg-green-700 text-white w-full">
+                  {activating === selectedUserId ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Zap className="w-4 h-4 mr-2" />
+                  )}
+                  Ativar 1 Mês Grátis para este Usuário
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Spinning display */}
           {(spinning || displayName) && (
             <div className={`p-6 rounded-xl border-2 text-center transition-all ${
@@ -194,7 +271,7 @@ export const AdminRaffleTab: React.FC = () => {
             {spinning ? (
               <><RotateCw className="w-5 h-5 mr-2 animate-spin" /> Sorteando...</>
             ) : (
-              <><Sparkles className="w-5 h-5 mr-2" /> SORTEAR AGORA</>
+              <><Sparkles className="w-5 h-5 mr-2" /> SORTEAR ALEATÓRIO</>
             )}
           </Button>
         </CardContent>
@@ -208,7 +285,7 @@ export const AdminRaffleTab: React.FC = () => {
             <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg shadow-amber-500/30">
               <Trophy className="w-10 h-10 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-1">🎉 Vencedor do Sorteio!</h3>
+            <h3 className="text-2xl font-bold text-white mb-1">🎉 Vencedor!</h3>
             <p className="text-amber-300 text-lg font-semibold">{winner.email}</p>
             {winner.phone && <p className="text-gray-400 text-sm mt-1">📱 {winner.phone}</p>}
             <Badge className="mt-3 bg-amber-500/20 text-amber-300 border-amber-500/30 text-sm">
@@ -222,20 +299,26 @@ export const AdminRaffleTab: React.FC = () => {
               {winner.phone && (
                 <Button size="sm" onClick={() => notifyWinner(winner)}
                   className="bg-green-600 hover:bg-green-700 text-white">
-                  <Phone className="w-3 h-3 mr-1" /> Avisar no WhatsApp
+                  <Phone className="w-3 h-3 mr-1" /> Avisar WhatsApp
                 </Button>
               )}
+              <Button size="sm" onClick={() => activate1MonthFree(winner)}
+                disabled={activating === winner.id}
+                className="bg-cyan-600 hover:bg-cyan-700 text-white">
+                {activating === winner.id ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Zap className="w-3 h-3 mr-1" />}
+                Ativar 1 Mês Grátis
+              </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* History from DB */}
+      {/* History */}
       {history.length > 0 && (
         <Card className="bg-[#1a1a24] border-[#2a2a3a]">
           <CardHeader className="pb-2">
             <CardTitle className="text-white text-sm flex items-center gap-2">
-              <History className="w-4 h-4 text-cyan-400" /> Histórico de Sorteios (salvo no sistema)
+              <History className="w-4 h-4 text-cyan-400" /> Histórico de Sorteios
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
