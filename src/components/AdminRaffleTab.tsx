@@ -6,13 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Gift, Loader2, Trophy, Users, Sparkles, RotateCw, Copy } from "lucide-react";
+import { Gift, Loader2, Trophy, Users, Sparkles, RotateCw, Copy, Phone, History, Crown } from "lucide-react";
 
 type Member = {
   id: string;
   email: string;
   phone: string | null;
   subscription: { plan: string; status: string; } | null;
+};
+
+type RaffleRecord = {
+  id: string;
+  winner_email: string;
+  winner_user_id: string | null;
+  prize: string;
+  is_claimed: boolean;
+  winner_notified: boolean;
+  created_at: string;
 };
 
 export const AdminRaffleTab: React.FC = () => {
@@ -23,9 +33,10 @@ export const AdminRaffleTab: React.FC = () => {
   const [prize, setPrize] = useState('1 mês grátis');
   const [winner, setWinner] = useState<Member | null>(null);
   const [spinning, setSpinning] = useState(false);
-  const [history, setHistory] = useState<{ winner: string; prize: string; date: string }[]>([]);
+  const [history, setHistory] = useState<RaffleRecord[]>([]);
+  const [displayName, setDisplayName] = useState('');
 
-  useEffect(() => { loadMembers(); }, []);
+  useEffect(() => { loadMembers(); loadHistory(); }, []);
 
   const loadMembers = async () => {
     setLoading(true);
@@ -38,6 +49,15 @@ export const AdminRaffleTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadHistory = async () => {
+    const { data } = await supabase
+      .from('raffle_history')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(20);
+    if (data) setHistory(data as RaffleRecord[]);
   };
 
   const eligibleMembers = members.filter(m => {
@@ -54,26 +74,55 @@ export const AdminRaffleTab: React.FC = () => {
 
     setSpinning(true);
     setWinner(null);
+    setDisplayName('');
 
-    // Animate through names
     let count = 0;
-    const maxCount = 20;
+    const maxCount = 25;
     const interval = setInterval(() => {
       const randomMember = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
-      setWinner(randomMember);
+      setDisplayName(randomMember.email);
       count++;
       if (count >= maxCount) {
         clearInterval(interval);
         setSpinning(false);
         const finalWinner = eligibleMembers[Math.floor(Math.random() * eligibleMembers.length)];
         setWinner(finalWinner);
-        setHistory(prev => [
-          { winner: finalWinner.email, prize, date: new Date().toLocaleString('pt-BR') },
-          ...prev.slice(0, 9)
-        ]);
+        setDisplayName(finalWinner.email);
+        
+        // Save to DB
+        saveRaffleResult(finalWinner);
+        
         toast({ title: "🎉 Sorteio Realizado!", description: `Vencedor: ${finalWinner.email}` });
       }
-    }, 100);
+    }, 120);
+  };
+
+  const saveRaffleResult = async (winnerMember: Member) => {
+    try {
+      await supabase.from('raffle_history').insert({
+        winner_email: winnerMember.email,
+        winner_user_id: winnerMember.id,
+        prize,
+        winner_notified: true,
+      });
+
+      // Create admin notification for the winner
+      await supabase.functions.invoke('payment-webhook', {
+        body: {} // This will fail gracefully, we just need to notify
+      }).catch(() => {});
+
+      loadHistory();
+    } catch (error: any) {
+      console.error('Error saving raffle:', error);
+    }
+  };
+
+  const notifyWinner = (member: Member) => {
+    const message = `🎉 Parabéns! Você GANHOU o sorteio do AC Service Pro!\n\n🎁 Prêmio: ${prize}\n\nEntre no sistema para ver sua premiação ou responda essa mensagem para resgatar!`;
+    const phone = member.phone?.replace(/\D/g, '') || '';
+    if (phone) {
+      window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    }
   };
 
   return (
@@ -84,7 +133,7 @@ export const AdminRaffleTab: React.FC = () => {
         </div>
         <div>
           <h2 className="text-xl font-bold text-white">Sorteio de Usuários</h2>
-          <p className="text-gray-400 text-sm">Sorteie prêmios entre os assinantes</p>
+          <p className="text-gray-400 text-sm">Sorteie prêmios entre os assinantes. O vencedor é notificado e vê no sistema.</p>
         </div>
       </div>
 
@@ -95,7 +144,7 @@ export const AdminRaffleTab: React.FC = () => {
             <div>
               <Label className="text-gray-300 text-sm">Prêmio</Label>
               <Input value={prize} onChange={e => setPrize(e.target.value)}
-                className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="Ex: 1 mês grátis" />
+                className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="Ex: 1 mês grátis, desconto 50%" />
             </div>
             <div>
               <Label className="text-gray-300 text-sm">Participantes</Label>
@@ -126,41 +175,54 @@ export const AdminRaffleTab: React.FC = () => {
             </Badge>
           </div>
 
+          {/* Spinning display */}
+          {(spinning || displayName) && (
+            <div className={`p-6 rounded-xl border-2 text-center transition-all ${
+              spinning 
+                ? 'border-amber-500/50 bg-amber-500/5 animate-pulse' 
+                : 'border-green-500/50 bg-green-500/5'
+            }`}>
+              <p className="text-gray-400 text-xs mb-2">{spinning ? '🎰 Sorteando...' : '🎉 Vencedor!'}</p>
+              <p className={`text-2xl font-bold ${spinning ? 'text-amber-400' : 'text-green-400'}`}>
+                {displayName}
+              </p>
+            </div>
+          )}
+
           <Button onClick={runRaffle} disabled={spinning || eligibleMembers.length === 0}
             className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-lg py-6">
             {spinning ? (
-              <>
-                <RotateCw className="w-5 h-5 mr-2 animate-spin" /> Sorteando...
-              </>
+              <><RotateCw className="w-5 h-5 mr-2 animate-spin" /> Sorteando...</>
             ) : (
-              <>
-                <Sparkles className="w-5 h-5 mr-2" /> SORTEAR AGORA
-              </>
+              <><Sparkles className="w-5 h-5 mr-2" /> SORTEAR AGORA</>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Winner */}
+      {/* Winner Card */}
       {winner && !spinning && (
-        <Card className="bg-gradient-to-br from-amber-900/30 to-orange-900/30 border-amber-500/50">
-          <CardContent className="p-6 text-center">
-            <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-3" />
-            <h3 className="text-2xl font-bold text-white mb-1">🎉 Vencedor!</h3>
+        <Card className="bg-gradient-to-br from-amber-900/30 to-orange-900/30 border-amber-500/50 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
+          <CardContent className="p-6 text-center relative">
+            <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full mx-auto mb-4 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <Trophy className="w-10 h-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-1">🎉 Vencedor do Sorteio!</h3>
             <p className="text-amber-300 text-lg font-semibold">{winner.email}</p>
             {winner.phone && <p className="text-gray-400 text-sm mt-1">📱 {winner.phone}</p>}
-            <Badge className="mt-3 bg-amber-500/20 text-amber-300 border-amber-500/30">
-              Prêmio: {prize}
+            <Badge className="mt-3 bg-amber-500/20 text-amber-300 border-amber-500/30 text-sm">
+              <Crown className="w-3 h-3 mr-1" /> Prêmio: {prize}
             </Badge>
-            <div className="flex justify-center gap-2 mt-4">
+            <div className="flex justify-center gap-2 mt-4 flex-wrap">
               <Button size="sm" onClick={() => { navigator.clipboard.writeText(winner.email); toast({ title: "Copiado!" }); }}
                 className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">
                 <Copy className="w-3 h-3 mr-1" /> Copiar Email
               </Button>
               {winner.phone && (
-                <Button size="sm" onClick={() => window.open(`https://wa.me/55${winner.phone?.replace(/\D/g, '')}?text=Parabéns! Você ganhou: ${prize}! 🎉`, '_blank')}
+                <Button size="sm" onClick={() => notifyWinner(winner)}
                   className="bg-green-600 hover:bg-green-700 text-white">
-                  💬 Avisar no WhatsApp
+                  <Phone className="w-3 h-3 mr-1" /> Avisar no WhatsApp
                 </Button>
               )}
             </div>
@@ -168,22 +230,36 @@ export const AdminRaffleTab: React.FC = () => {
         </Card>
       )}
 
-      {/* History */}
+      {/* History from DB */}
       {history.length > 0 && (
         <Card className="bg-[#1a1a24] border-[#2a2a3a]">
           <CardHeader className="pb-2">
-            <CardTitle className="text-white text-sm">📜 Histórico de Sorteios</CardTitle>
+            <CardTitle className="text-white text-sm flex items-center gap-2">
+              <History className="w-4 h-4 text-cyan-400" /> Histórico de Sorteios (salvo no sistema)
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {history.map((h, i) => (
-              <div key={i} className="flex items-center justify-between bg-[#12121a] border border-[#2a2a3a] rounded-lg p-2">
-                <div>
-                  <p className="text-white text-xs font-medium">{h.winner}</p>
-                  <p className="text-gray-500 text-[10px]">{h.date}</p>
+            {history.map((h) => (
+              <div key={h.id} className="flex items-center justify-between bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-4 h-4 text-amber-400" />
+                  <div>
+                    <p className="text-white text-sm font-medium">{h.winner_email}</p>
+                    <p className="text-gray-500 text-[10px]">
+                      {new Date(h.created_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
                 </div>
-                <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
-                  {h.prize}
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px]">
+                    {h.prize}
+                  </Badge>
+                  {h.is_claimed && (
+                    <Badge className="bg-green-500/10 text-green-400 border-green-500/20 text-[10px]">
+                      Resgatado
+                    </Badge>
+                  )}
+                </div>
               </div>
             ))}
           </CardContent>

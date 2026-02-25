@@ -13,39 +13,28 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Sparkles, Wand2
+  Sparkles, Wand2, Image
 } from "lucide-react";
 
 const LANDING_KEYS = [
-  // Preços
   'landing_preco_mensal', 'landing_preco_anual', 'landing_preco_anual_original',
   'landing_economia_anual', 'landing_preco_mensal_equivalente',
-  // Hero
   'landing_hero_titulo', 'landing_hero_subtitulo', 'landing_hero_descricao',
   'landing_social_proof_count', 'landing_social_proof_rating',
   'landing_garantia_dias', 'landing_btn_cta_texto', 'landing_badge_urgencia', 'landing_frase_destaque',
-  // Cores
   'landing_cor_primaria', 'landing_cor_secundaria', 'landing_cor_destaque',
   'landing_cor_fundo', 'landing_cor_botao_cta',
-  // Countdown
   'landing_countdown_texto', 'landing_countdown_desconto',
-  // Notificações
   'landing_notif_intervalo', 'landing_notif_som', 'landing_notif_ativa',
-  // Ofertas
   'landing_oferta1_titulo', 'landing_oferta1_descricao', 'landing_oferta1_badge', 'landing_oferta1_ativa',
   'landing_oferta2_titulo', 'landing_oferta2_descricao', 'landing_oferta2_badge', 'landing_oferta2_ativa',
-  // Depoimentos
   'landing_depoimento1_nome', 'landing_depoimento1_role', 'landing_depoimento1_texto', 'landing_depoimento1_estrelas',
   'landing_depoimento2_nome', 'landing_depoimento2_role', 'landing_depoimento2_texto', 'landing_depoimento2_estrelas',
   'landing_depoimento3_nome', 'landing_depoimento3_role', 'landing_depoimento3_texto', 'landing_depoimento3_estrelas',
   'landing_depoimento4_nome', 'landing_depoimento4_role', 'landing_depoimento4_texto', 'landing_depoimento4_estrelas',
-  // WhatsApp flutuante
-  'landing_whatsapp_flutuante', 'landing_whatsapp_link', 'landing_whatsapp_mensagem',
-  // Template
+  'landing_whatsapp_flutuante', 'landing_whatsapp_link', 'landing_whatsapp_mensagem', 'landing_whatsapp_icon_url',
   'landing_template',
-  // VSL
   'landing_vsl_url', 'landing_vsl_trava',
-  // FAQ
   ...Array.from({length: 6}, (_, i) => [`landing_faq${i+1}_pergunta`, `landing_faq${i+1}_resposta`, `landing_faq${i+1}_ativa`]).flat(),
 ];
 
@@ -111,7 +100,9 @@ export const AdminLandingTab: React.FC = () => {
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [settings, setSettings] = useState<LandingSettings>({});
+  const [previewKey, setPreviewKey] = useState(0);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const iconInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -146,7 +137,8 @@ export const AdminLandingTab: React.FC = () => {
           .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
         if (error) throw error;
       }
-      toast({ title: "Salvo! ✅", description: "Landing page atualizada." });
+      toast({ title: "Salvo! ✅", description: "Landing page atualizada. Atualize o preview." });
+      setPreviewKey(prev => prev + 1);
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
@@ -173,28 +165,30 @@ export const AdminLandingTab: React.FC = () => {
     }
   };
 
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'icon') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
-      toast({ title: "Arquivo muito grande", description: "Máximo 50MB", variant: "destructive" });
+    const maxSize = type === 'video' ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast({ title: "Arquivo muito grande", description: `Máximo ${type === 'video' ? '50MB' : '2MB'}`, variant: "destructive" });
       return;
     }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
-      const fileName = `vsl-video-${Date.now()}.${ext}`;
+      const fileName = `${type}-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from('landing-media')
         .upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
       
-      const { data: { publicUrl } } = supabase.storage
-        .from('landing-media')
-        .getPublicUrl(fileName);
-      
-      update('landing_vsl_url', publicUrl);
-      toast({ title: "Vídeo enviado! ✅", description: "Salve para aplicar na landing." });
+      if (type === 'video') {
+        update('landing_vsl_url', publicUrl);
+      } else {
+        update('landing_whatsapp_icon_url', publicUrl);
+      }
+      toast({ title: `${type === 'video' ? 'Vídeo' : 'Ícone'} enviado! ✅` });
     } catch (error: any) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
     } finally {
@@ -205,6 +199,33 @@ export const AdminLandingTab: React.FC = () => {
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div>;
   }
+
+  const templateOptions = [
+    { 
+      id: 'persuasao', 
+      name: '🎯 Persuasão Total', 
+      desc: 'Página completa com hero, dores do cliente, comparativo, preços, depoimentos, FAQ e CTAs. Layout de alta conversão.',
+      sections: ['Hero + Urgência', 'Seção de Dor', 'Features', 'Comparativo', 'Preços', 'Depoimentos', 'FAQ', 'CTA Final'],
+      color: 'border-cyan-500',
+      gradient: 'from-cyan-500/20 to-blue-500/20'
+    },
+    { 
+      id: 'vsl', 
+      name: '🎬 VSL (Vídeo)', 
+      desc: 'Foco no vídeo de vendas. O visitante assiste primeiro, depois vê preços e CTA. Pode travar tela até assistir.',
+      sections: ['Vídeo Hero', 'CTA Abaixo', 'Preços', 'Depoimentos'],
+      color: 'border-amber-500',
+      gradient: 'from-amber-500/20 to-orange-500/20'
+    },
+    { 
+      id: 'minimalista', 
+      name: '✨ Minimalista', 
+      desc: 'Design limpo e direto. Hero, features, preços e CTA. Sem distrações. Carrega ultra rápido.',
+      sections: ['Hero Limpo', 'Features', 'Preços', 'CTA'],
+      color: 'border-green-500',
+      gradient: 'from-green-500/20 to-emerald-500/20'
+    },
+  ];
 
   return (
     <div className="space-y-4">
@@ -222,7 +243,7 @@ export const AdminLandingTab: React.FC = () => {
         <div className="flex gap-2 flex-wrap">
           <Button variant="outline" onClick={() => window.open('/', '_blank')}
             className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
-            <Eye className="w-4 h-4 mr-2" /> Preview
+            <Eye className="w-4 h-4 mr-2" /> Abrir Landing
           </Button>
           <Button onClick={saveAll} disabled={saving}
             className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
@@ -232,19 +253,18 @@ export const AdminLandingTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Preview Iframe */}
+      {/* Live Preview - improved with reload on save */}
       <Card className="bg-[#1a1a24] border-[#2a2a3a]">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-white text-sm">
               <Eye className="w-4 h-4 text-cyan-400" /> Preview ao Vivo
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">
+                Salve para atualizar
+              </Badge>
             </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => {
-              const iframe = document.getElementById('landing-preview') as HTMLIFrameElement;
-              if (iframe) {
-                iframe.src = iframe.src;
-              }
-            }} className="text-gray-400 hover:text-white h-7">
+            <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} 
+              className="text-gray-400 hover:text-white h-7">
               <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
             </Button>
           </div>
@@ -252,13 +272,17 @@ export const AdminLandingTab: React.FC = () => {
         <CardContent className="p-2">
           <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '400px' }}>
             <iframe 
+              key={previewKey}
               id="landing-preview"
-              src={window.location.origin + '/'}
+              src={`${window.location.origin}/?preview=true&t=${previewKey}`}
               className="w-full h-full border-0"
               style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
               sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
+          <p className="text-gray-500 text-xs mt-2 text-center">
+            💡 O preview carrega a landing page real. Salve as alterações e clique "Atualizar" para ver as mudanças.
+          </p>
         </CardContent>
       </Card>
 
@@ -279,55 +303,87 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="social" className="text-xs"><Star className="w-3 h-3 mr-1" />Prova Social</TabsTrigger>
         </TabsList>
 
-        {/* IA GENERATOR */}
+        {/* IA GENERATOR - Improved UX */}
         <TabsContent value="ia">
           <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/30">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Wand2 className="w-5 h-5 text-purple-400" /> Gerador com IA
+                <Wand2 className="w-5 h-5 text-purple-400" /> Gerador Inteligente com IA
               </CardTitle>
-              <CardDescription className="text-gray-400 text-xs">
-                Cole um prompt ou deixe em branco para gerar automaticamente. A IA gera cores, textos e temas completos.
+              <CardDescription className="text-gray-300 text-sm">
+                A IA cria automaticamente textos persuasivos e paletas de cores profissionais para sua landing page. 
+                Você pode personalizar com um prompt ou deixar em branco para gerar automaticamente.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* How it works */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-[#0f0f17] border border-blue-500/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Palette className="w-5 h-5 text-blue-400" />
+                    <h4 className="text-white font-semibold text-sm">Gerar Cores</h4>
+                  </div>
+                  <p className="text-gray-400 text-xs">Cria uma paleta de 5 cores profissionais (primária, secundária, destaque, fundo e botão CTA) que combinam entre si.</p>
+                </div>
+                <div className="bg-[#0f0f17] border border-green-500/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Type className="w-5 h-5 text-green-400" />
+                    <h4 className="text-white font-semibold text-sm">Gerar Textos</h4>
+                  </div>
+                  <p className="text-gray-400 text-xs">Cria títulos, subtítulos, descrições, badges e textos de CTA persuasivos com gatilhos mentais (urgência, dor, prova social).</p>
+                </div>
+                <div className="bg-[#0f0f17] border border-purple-500/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    <h4 className="text-white font-semibold text-sm">Gerar Tudo</h4>
+                  </div>
+                  <p className="text-gray-400 text-xs">Gera cores E textos de uma vez só. Ideal para criar uma landing page completamente nova em segundos.</p>
+                </div>
+              </div>
+
               <div>
-                <Label className="text-gray-300 text-sm">Prompt (opcional)</Label>
+                <Label className="text-gray-300 text-sm">Seu prompt (opcional)</Label>
                 <Textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
-                  placeholder="Ex: Landing page moderna com tons de azul escuro e verde neon, estilo premium para técnicos de ar condicionado..."
+                  placeholder="Ex: Quero uma landing page com visual escuro e elegante, tons de azul e verde neon, textos agressivos focados em técnicos autônomos que perdem dinheiro..."
                   className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px]" />
+                <p className="text-gray-500 text-xs mt-1">💡 Dica: Descreva o estilo visual, tom dos textos e público-alvo para resultados melhores.</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <Button onClick={() => generateWithAI('colors')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 h-12">
                   {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Palette className="w-4 h-4 mr-2" />}
-                  Gerar Cores
+                  🎨 Gerar Cores
                 </Button>
                 <Button onClick={() => generateWithAI('texts')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 h-12">
                   {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Type className="w-4 h-4 mr-2" />}
-                  Gerar Textos
+                  ✍️ Gerar Textos
                 </Button>
                 <Button onClick={() => generateWithAI('full')} disabled={aiGenerating}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 h-12">
                   {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                  Gerar Tudo
+                  ✨ Gerar Tudo
                 </Button>
               </div>
               {aiGenerating && (
-                <div className="flex items-center gap-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                <div className="flex items-center gap-3 p-4 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                   <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
-                  <span className="text-purple-300 text-sm">IA gerando... aguarde alguns segundos</span>
+                  <div>
+                    <span className="text-purple-300 text-sm font-medium">IA gerando conteúdo...</span>
+                    <p className="text-purple-400/60 text-xs">Isso pode levar 5-15 segundos</p>
+                  </div>
                 </div>
               )}
-              <p className="text-gray-500 text-xs">
-                💡 Após gerar, revise os valores nas abas ao lado e clique em "Salvar Tudo" para aplicar na landing page.
-              </p>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                <p className="text-amber-300 text-xs">
+                  ⚠️ <strong>Importante:</strong> Após a IA gerar, revise os valores nas abas (Textos, Cores, etc.) e clique em <strong>"Salvar Tudo"</strong> para aplicar na landing page real.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* TEMPLATE */}
+        {/* TEMPLATE - Improved with visual preview */}
         <TabsContent value="template">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
@@ -335,31 +391,47 @@ export const AdminLandingTab: React.FC = () => {
                 <Layout className="w-5 h-5 text-purple-400" /> Escolha o Template
               </CardTitle>
               <CardDescription className="text-gray-400 text-xs">
-                Selecione o layout da sua página de vendas. A atual será salva como padrão.
+                Cada template muda a estrutura e as seções visíveis da sua landing page. Clique para selecionar e salve.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {[
-                  { id: 'persuasao', name: '🎯 Persuasão', desc: 'Layout completo com todas as seções de venda, prova social, dor e urgência. Ideal para conversão máxima.', color: 'border-cyan-500' },
-                  { id: 'vsl', name: '🎬 VSL (Vídeo)', desc: 'Página focada em vídeo de vendas. O vídeo fica em destaque com CTA abaixo. Pode travar até assistir.', color: 'border-amber-500' },
-                  { id: 'minimalista', name: '✨ Minimalista', desc: 'Layout limpo e direto ao ponto. Hero + preços + depoimentos + CTA. Sem distrações.', color: 'border-green-500' },
-                ].map(tmpl => (
+                {templateOptions.map(tmpl => (
                   <div key={tmpl.id}
                     onClick={() => update('landing_template', tmpl.id)}
-                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all hover:scale-[1.02] ${
                       settings.landing_template === tmpl.id 
-                        ? `${tmpl.color} bg-white/5 shadow-lg` 
+                        ? `${tmpl.color} bg-white/5 shadow-lg shadow-cyan-500/10` 
                         : 'border-[#2a2a3a] hover:border-[#4a4a5a]'
                     }`}>
-                    <h3 className="text-white font-bold text-sm mb-2">{tmpl.name}</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">{tmpl.desc}</p>
+                    {/* Mini visual mockup */}
+                    <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-white/5`}>
+                      <div className="space-y-1.5">
+                        {tmpl.sections.map((section, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-cyan-400' : 'bg-white/30'}`} />
+                            <div className="h-1.5 bg-white/20 rounded-full flex-1" style={{ maxWidth: `${70 + Math.random() * 30}%` }} />
+                            <span className="text-[8px] text-white/40">{section}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <h3 className="text-white font-bold text-sm mb-1">{tmpl.name}</h3>
+                    <p className="text-gray-400 text-xs leading-relaxed mb-2">{tmpl.desc}</p>
+                    <div className="flex flex-wrap gap-1">
+                      {tmpl.sections.map((s, i) => (
+                        <Badge key={i} className="bg-white/5 text-gray-400 border-white/10 text-[9px]">{s}</Badge>
+                      ))}
+                    </div>
                     {settings.landing_template === tmpl.id && (
-                      <Badge className="mt-3 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">✓ Ativo</Badge>
+                      <Badge className="mt-3 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">✓ Template Ativo</Badge>
                     )}
                   </div>
                 ))}
               </div>
+              <p className="text-gray-500 text-xs mt-3 text-center">
+                💡 Após selecionar, clique "Salvar Tudo" e recarregue o preview para ver a mudança.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -482,11 +554,17 @@ export const AdminLandingTab: React.FC = () => {
             </CardContent>
           </Card>
           <div className="mt-4 p-4 rounded-xl border border-[#2a2a3a]" style={{ background: settings.landing_cor_fundo || '#0f172a' }}>
+            <p className="text-gray-400 text-xs mb-3 text-center">Preview das cores:</p>
             <div className="flex gap-3 justify-center flex-wrap">
-              {['primaria','secundaria','destaque','botao_cta'].map(k => (
-                <span key={k} className="px-4 py-2 rounded-lg text-white text-sm font-bold" 
-                  style={{ background: settings[`landing_cor_${k}`] || '#06b6d4' }}>
-                  {k}
+              {[
+                { k: 'primaria', label: 'Primária' },
+                { k: 'secundaria', label: 'Secundária' },
+                { k: 'destaque', label: 'Destaque' },
+                { k: 'botao_cta', label: 'Botão CTA' }
+              ].map(c => (
+                <span key={c.k} className="px-4 py-2 rounded-lg text-white text-sm font-bold" 
+                  style={{ background: settings[`landing_cor_${c.k}`] || '#06b6d4' }}>
+                  {c.label}
                 </span>
               ))}
             </div>
@@ -542,7 +620,7 @@ export const AdminLandingTab: React.FC = () => {
           </div>
         </TabsContent>
 
-        {/* WHATSAPP */}
+        {/* WHATSAPP - with custom icon upload */}
         <TabsContent value="whatsapp">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
@@ -573,12 +651,46 @@ export const AdminLandingTab: React.FC = () => {
                   className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[60px]" 
                   placeholder="Olá! Vim pela landing page..." />
               </div>
+              
+              {/* Custom icon upload */}
+              <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-3">
+                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                  <Image className="w-4 h-4 text-green-400" /> Ícone personalizado (opcional)
+                </Label>
+                <p className="text-gray-500 text-xs">Troque o ícone padrão do WhatsApp por uma imagem customizada (ex: logo, avatar). Máx 2MB.</p>
+                <div className="flex items-center gap-3">
+                  <input ref={iconInputRef} type="file" accept="image/*" className="hidden"
+                    onChange={e => handleFileUpload(e, 'icon')} />
+                  <Button variant="outline" onClick={() => iconInputRef.current?.click()} disabled={uploading}
+                    className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a]">
+                    {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Enviar Imagem
+                  </Button>
+                  {settings.landing_whatsapp_icon_url && (
+                    <>
+                      <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-12 h-12 rounded-full object-cover border-2 border-green-500/30" />
+                      <Button variant="ghost" size="sm" onClick={() => update('landing_whatsapp_icon_url', '')}
+                        className="text-red-400 hover:text-red-300">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+                {!settings.landing_whatsapp_icon_url && (
+                  <p className="text-gray-500 text-xs">Nenhum ícone customizado. Usando ícone padrão do WhatsApp.</p>
+                )}
+              </div>
+
               {/* Preview */}
               <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4">
                 <p className="text-gray-400 text-xs mb-3">Preview do botão:</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30 animate-bounce">
-                    <MessageCircle className="w-7 h-7 text-white" />
+                  <div className="w-14 h-14 rounded-full bg-green-500 flex items-center justify-center shadow-lg shadow-green-500/30 overflow-hidden">
+                    {settings.landing_whatsapp_icon_url ? (
+                      <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-full h-full object-cover" />
+                    ) : (
+                      <MessageCircle className="w-7 h-7 text-white" />
+                    )}
                   </div>
                   <span className="text-gray-300 text-sm">← Aparece assim no canto inferior direito</span>
                 </div>
@@ -595,24 +707,24 @@ export const AdminLandingTab: React.FC = () => {
                 <Video className="w-5 h-5 text-red-400" /> Vídeo de Vendas (VSL)
               </CardTitle>
               <CardDescription className="text-gray-400 text-xs">
-                Faça upload do vídeo ou cole um link do YouTube/Vimeo. Aparece no template VSL.
+                Upload ou link do YouTube/Vimeo. Aparece no template VSL ou no hero.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-gray-300 text-sm">URL do Vídeo (YouTube, Vimeo ou upload)</Label>
+                <Label className="text-gray-300 text-sm">URL do Vídeo</Label>
                 <Input value={settings.landing_vsl_url || ''} 
                   onChange={e => update('landing_vsl_url', e.target.value)}
                   className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                  placeholder="https://youtube.com/watch?v=... ou URL do upload" />
+                  placeholder="https://youtube.com/watch?v=..." />
               </div>
               <div className="flex gap-2">
                 <input ref={videoInputRef} type="file" accept="video/*" className="hidden" 
-                  onChange={handleVideoUpload} />
+                  onChange={e => handleFileUpload(e, 'video')} />
                 <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploading}
                   className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a]">
                   {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
-                  {uploading ? 'Enviando...' : 'Upload Vídeo (max 50MB)'}
+                  Upload Vídeo (max 50MB)
                 </Button>
                 {settings.landing_vsl_url && (
                   <Button variant="outline" onClick={() => update('landing_vsl_url', '')}
@@ -624,7 +736,7 @@ export const AdminLandingTab: React.FC = () => {
               <div className="flex items-center justify-between bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
                 <div>
                   <Label className="text-gray-300 text-sm">Travar sistema até assistir vídeo</Label>
-                  <p className="text-gray-500 text-xs">Usuário precisa assistir o vídeo antes de acessar o sistema</p>
+                  <p className="text-gray-500 text-xs">Visitante precisa assistir antes de navegar</p>
                 </div>
                 <Switch checked={settings.landing_vsl_trava === 'true'}
                   onCheckedChange={v => update('landing_vsl_trava', v ? 'true' : 'false')} />
@@ -679,8 +791,11 @@ export const AdminLandingTab: React.FC = () => {
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra
+                <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra (Prova Social)
               </CardTitle>
+              <CardDescription className="text-gray-400 text-xs">
+                Pop-ups simulados de compras recentes que aparecem na landing page para criar prova social
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -694,7 +809,7 @@ export const AdminLandingTab: React.FC = () => {
                   onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
               </div>
               <div>
-                <Label className="text-gray-300 text-sm">Intervalo (segundos)</Label>
+                <Label className="text-gray-300 text-sm">Intervalo entre notificações (segundos)</Label>
                 <Input type="number" value={settings.landing_notif_intervalo || '10'} 
                   onChange={e => update('landing_notif_intervalo', e.target.value)}
                   className="bg-[#0f0f17] border-[#2a2a3a] text-white w-32" min="5" max="60" />
@@ -731,7 +846,7 @@ export const AdminLandingTab: React.FC = () => {
       <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-3 text-center">
         <p className="text-cyan-300 text-sm">
           <RefreshCw className="w-4 h-4 inline mr-2" />
-          Após salvar, recarregue a landing page para ver as alterações.
+          Após salvar, clique "Atualizar" no preview ou recarregue a landing page para ver as alterações.
         </p>
       </div>
     </div>
