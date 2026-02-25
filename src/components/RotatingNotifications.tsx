@@ -136,14 +136,32 @@ const RotatingNotifications: React.FC = () => {
     queryKey: ['rotating-maintenances'],
     queryFn: async () => {
       const today = new Date();
+      const pastMonth = addDays(today, -60); // Include overdue up to 60 days
       const nextMonth = addDays(today, 30);
       const { data } = await supabase
         .from('scheduled_maintenance')
-        .select('*, clients(name)')
+        .select('*, clients(name, telefone)')
         .eq('is_completed', false)
-        .gte('scheduled_date', today.toISOString().split('T')[0])
+        .gte('scheduled_date', pastMonth.toISOString().split('T')[0])
         .lte('scheduled_date', nextMonth.toISOString().split('T')[0])
         .order('scheduled_date', { ascending: true })
+        .limit(20);
+      return data || [];
+    },
+    refetchInterval: 300000
+  });
+
+  // Fetch past-due appointments (agendado but date already passed)
+  const { data: overdueAppointments } = useQuery({
+    queryKey: ['rotating-overdue-appointments'],
+    queryFn: async () => {
+      const today = new Date();
+      const { data } = await supabase
+        .from('appointments')
+        .select('*, clients(name), products(name)')
+        .eq('status', 'agendado')
+        .lt('appointment_date', today.toISOString())
+        .order('appointment_date', { ascending: false })
         .limit(10);
       return data || [];
     },
@@ -243,7 +261,18 @@ const RotatingNotifications: React.FC = () => {
       const daysUntil = differenceInDays(maintDate, today);
       const clientName = maint.clients?.name || 'Cliente';
       
-      if (daysUntil <= 7) {
+      if (daysUntil < 0) {
+        // OVERDUE maintenance - highest priority
+        notifications.push({
+          id: `maint-overdue-${maint.id}`,
+          icon: <AlertTriangle className="w-5 h-5" />,
+          title: "⚠️ Manutenção VENCIDA!",
+          message: `${clientName} - vencida há ${Math.abs(daysUntil)} dia(s)! Agende agora!`,
+          color: "from-red-600 to-red-500",
+          priority: 10,
+          type: 'alert'
+        });
+      } else if (daysUntil <= 7) {
         notifications.push({
           id: `maint-${maint.id}`,
           icon: <Wrench className="w-5 h-5" />,
@@ -251,6 +280,16 @@ const RotatingNotifications: React.FC = () => {
           message: `${clientName} - ${format(maintDate, "dd/MM", { locale: ptBR })} (${maint.maintenance_type})`,
           color: "from-purple-500 to-violet-500",
           priority: 6,
+          type: 'info'
+        });
+      } else if (daysUntil <= 30) {
+        notifications.push({
+          id: `maint-month-${maint.id}`,
+          icon: <Wrench className="w-5 h-5" />,
+          title: "Manutenção em breve",
+          message: `${clientName} - em ${daysUntil} dias (${maint.maintenance_type})`,
+          color: "from-amber-500 to-yellow-500",
+          priority: 4,
           type: 'info'
         });
       }
@@ -288,8 +327,26 @@ const RotatingNotifications: React.FC = () => {
       }
     });
 
+    // Overdue appointments (agendado but past date)
+    overdueAppointments?.forEach((apt: any) => {
+      const aptDate = new Date(apt.appointment_date);
+      const daysOverdue = differenceInDays(today, aptDate);
+      const clientName = apt.clients?.name || 'Cliente';
+      const serviceName = apt.products?.name || 'Serviço';
+      
+      notifications.push({
+        id: `apt-overdue-${apt.id}`,
+        icon: <AlertTriangle className="w-5 h-5" />,
+        title: "⚠️ Serviço em aberto!",
+        message: `${clientName} - "${serviceName}" agendado há ${daysOverdue} dia(s) e ainda não concluído!`,
+        color: "from-red-600 to-orange-500",
+        priority: 10,
+        type: 'alert'
+      });
+    });
+
     return notifications;
-  }, [installments, appointments, maintenances, clients]);
+  }, [installments, appointments, maintenances, clients, overdueAppointments]);
 
   // Combine and sort all notifications
   const allNotifications = useMemo(() => {

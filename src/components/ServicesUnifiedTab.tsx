@@ -254,7 +254,11 @@ const ServicesUnifiedTab: React.FC = () => {
     endDate: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
     intervalMonths: '6',
     monthlyValue: '',
-    notes: ''
+    notes: '',
+    serviceType: 'preventiva',
+    equipmentCount: '1',
+    responsibleName: '',
+    responsibleCpf: '',
   });
 
   // ============ QUERIES ============
@@ -409,7 +413,11 @@ const ServicesUnifiedTab: React.FC = () => {
       endDate: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
       intervalMonths: '6',
       monthlyValue: '',
-      notes: ''
+      notes: '',
+      serviceType: 'preventiva',
+      equipmentCount: '1',
+      responsibleName: '',
+      responsibleCpf: '',
     });
     setSelectedContract(null);
   };
@@ -649,64 +657,183 @@ const ServicesUnifiedTab: React.FC = () => {
   const generateContractPDF = (contract: Contract) => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
     let y = 20;
 
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CONTRATO DE MANUTENÇÃO PREVENTIVA', pageWidth / 2, y, { align: 'center' });
-    y += 10;
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Contrato Nº ${contract.contract_number}`, pageWidth / 2, y, { align: 'center' });
-    y += 15;
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CONTRATADA:', 20, y);
+    // === HEADER ===
+    doc.setDrawColor(0, 120, 200);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y, pageWidth - margin, y);
     y += 8;
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 80, 160);
+    doc.text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', pageWidth / 2, y, { align: 'center' });
+    y += 6;
     doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    doc.text('MANUTENÇÃO PREVENTIVA E CORRETIVA DE AR CONDICIONADO', pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(10);
+    doc.text(`Contrato Nº ${String(contract.contract_number).padStart(4, '0')}`, pageWidth / 2, y, { align: 'center' });
+    y += 4;
+    doc.setDrawColor(0, 120, 200);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 12;
+
+    // === CONTRATADA ===
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('1. CONTRATADA (Prestadora de Serviços)', margin, y);
+    y += 8;
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     if (companyData) {
-      doc.text(`Razão Social: ${companyData.company_name}`, 20, y); y += 6;
-      doc.text(`CNPJ/CPF: ${companyData.cnpj_cpf}`, 20, y); y += 6;
-      if (companyData.address) { doc.text(`Endereço: ${companyData.address}`, 20, y); y += 6; }
-      if (companyData.whatsapp) { doc.text(`Telefone: ${companyData.whatsapp}`, 20, y); y += 6; }
+      doc.text(`Razão Social: ${companyData.company_name}`, margin + 5, y); y += 6;
+      doc.text(`CNPJ/CPF: ${companyData.cnpj_cpf}`, margin + 5, y); y += 6;
+      if (companyData.address) { doc.text(`Endereço: ${companyData.address}`, margin + 5, y); y += 6; }
+      if (companyData.email) { doc.text(`Email: ${companyData.email}`, margin + 5, y); y += 6; }
+      if (companyData.whatsapp) { doc.text(`Telefone/WhatsApp: ${companyData.whatsapp}`, margin + 5, y); y += 6; }
+    } else {
+      doc.text('(Dados da empresa não cadastrados)', margin + 5, y); y += 6;
     }
-    y += 10;
+    y += 6;
 
-    doc.setFontSize(14);
+    // === CONTRATANTE ===
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('CONTRATANTE:', 20, y);
+    doc.text('2. CONTRATANTE', margin, y);
     y += 8;
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Nome: ${contract.client.name}`, 20, y); y += 6;
-    if (contract.client.address) { doc.text(`Endereço: ${contract.client.address}`, 20, y); y += 6; }
-    if (contract.client.telefone) { doc.text(`Telefone: ${contract.client.telefone}`, 20, y); y += 6; }
-    y += 10;
+    doc.text(`Nome/Razão Social: ${contract.client.name}`, margin + 5, y); y += 6;
+    if (contract.client.address) { doc.text(`Endereço: ${contract.client.address}`, margin + 5, y); y += 6; }
+    if (contract.client.telefone) { doc.text(`Telefone: ${contract.client.telefone}`, margin + 5, y); y += 6; }
+    if (contract.client.email) { doc.text(`Email: ${contract.client.email}`, margin + 5, y); y += 6; }
+    y += 6;
 
-    doc.setFontSize(14);
+    // === OBJETO DO CONTRATO ===
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('CONDIÇÕES:', 20, y);
+    doc.text('3. OBJETO DO CONTRATO', margin, y);
     y += 8;
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Título: ${contract.title}`, 20, y); y += 6;
-    doc.text(`Vigência: ${format(new Date(contract.start_date), 'dd/MM/yyyy')} a ${contract.end_date ? format(new Date(contract.end_date), 'dd/MM/yyyy') : 'Indeterminado'}`, 20, y); y += 6;
-    doc.text(`Limpezas a cada: ${contract.cleaning_interval_months} meses`, 20, y); y += 6;
+    const objetoText = `O presente contrato tem por objeto a prestação de serviços de manutenção preventiva e/ou corretiva em sistemas de ar condicionado, conforme descrito abaixo:`;
+    const objetoLines = doc.splitTextToSize(objetoText, pageWidth - 2 * margin - 10);
+    doc.text(objetoLines, margin + 5, y); y += objetoLines.length * 5 + 4;
+    
+    doc.text(`• Título: ${contract.title}`, margin + 5, y); y += 6;
+    if (contract.description) {
+      const descLines = doc.splitTextToSize(`• Descrição: ${contract.description}`, pageWidth - 2 * margin - 10);
+      doc.text(descLines, margin + 5, y); y += descLines.length * 5 + 2;
+    }
+    doc.text(`• Intervalo de manutenções: A cada ${contract.cleaning_interval_months} meses`, margin + 5, y); y += 6;
+    y += 4;
+
+    // === VIGÊNCIA ===
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('4. VIGÊNCIA', margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Data de Início: ${format(new Date(contract.start_date), 'dd/MM/yyyy')}`, margin + 5, y); y += 6;
+    doc.text(`Data de Término: ${contract.end_date ? format(new Date(contract.end_date), 'dd/MM/yyyy') : 'Indeterminado'}`, margin + 5, y); y += 6;
+    y += 4;
+
+    // === VALORES ===
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('5. VALORES E CONDIÇÕES DE PAGAMENTO', margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
     if (contract.monthly_value > 0) {
-      doc.text(`Valor Mensal: R$ ${contract.monthly_value.toFixed(2)}`, 20, y); y += 6;
+      doc.text(`Valor Mensal: R$ ${contract.monthly_value.toFixed(2)}`, margin + 5, y); y += 6;
+      const totalAnual = contract.monthly_value * 12;
+      doc.text(`Valor Anual Estimado: R$ ${totalAnual.toFixed(2)}`, margin + 5, y); y += 6;
+    } else {
+      doc.text('Valor: A combinar conforme serviço executado.', margin + 5, y); y += 6;
     }
-    y += 30;
+    y += 4;
 
-    doc.line(20, y, 90, y);
-    doc.line(pageWidth - 90, y, pageWidth - 20, y);
+    // === OBRIGAÇÕES ===
+    if (y > 220) { doc.addPage(); y = 20; }
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('6. OBRIGAÇÕES DA CONTRATADA', margin, y);
+    y += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const obrigacoes = [
+      'Executar os serviços de manutenção preventiva nos prazos estabelecidos.',
+      'Utilizar materiais e equipamentos adequados para a execução dos serviços.',
+      'Fornecer relatório de cada manutenção realizada.',
+      'Garantir a qualidade dos serviços pelo período de 90 (noventa) dias.',
+    ];
+    obrigacoes.forEach(o => {
+      doc.text(`• ${o}`, margin + 5, y); y += 6;
+    });
+    y += 4;
+
+    // === NOTAS ===
+    if (contract.notes) {
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text('7. OBSERVAÇÕES', margin, y);
+      y += 8;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      const notesLines = doc.splitTextToSize(contract.notes, pageWidth - 2 * margin - 10);
+      doc.text(notesLines, margin + 5, y); y += notesLines.length * 5 + 4;
+    }
+
+    // === ASSINATURAS ===
+    if (y > 230) { doc.addPage(); y = 20; }
+    y = Math.max(y + 15, 240);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    const dataLocal = `${companyData?.address?.split(',')[0]?.split('-')[0]?.trim() || 'Local'}, ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+    doc.text(dataLocal, pageWidth / 2, y, { align: 'center' });
+    y += 20;
+
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    
+    // Left signature
+    doc.line(margin, y, margin + 70, y);
     y += 5;
-    doc.text('CONTRATADA', 55, y, { align: 'center' });
-    doc.text('CONTRATANTE', pageWidth - 55, y, { align: 'center' });
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyData?.company_name || 'CONTRATADA', margin + 35, y, { align: 'center' });
+    y += 5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(companyData?.cnpj_cpf || '', margin + 35, y, { align: 'center' });
+    
+    // Right signature
+    const rightX = pageWidth - margin - 70;
+    doc.setLineWidth(0.5);
+    doc.line(rightX, y - 10, pageWidth - margin, y - 10);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(contract.client.name, rightX + 35, y - 5, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text('CONTRATANTE', rightX + 35, y, { align: 'center' });
 
-    doc.save(`Contrato_${contract.contract_number}_${contract.client.name.replace(/\s/g, '_')}.pdf`);
-    toast.success('PDF gerado!');
+    // Footer
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')} | ${companyData?.company_name || 'AC Service Pro'}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+    doc.save(`Contrato_${String(contract.contract_number).padStart(4, '0')}_${contract.client.name.replace(/\s/g, '_')}.pdf`);
+    toast.success('PDF profissional gerado com sucesso!');
   };
 
   const getStatusBadge = (status: string) => {
@@ -1303,7 +1430,7 @@ const ServicesUnifiedTab: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Novo Contrato de Manutenção</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             <div>
               <Label>Cliente *</Label>
               <Select value={contractFormData.clientId} onValueChange={(v) => setContractFormData(p => ({ ...p, clientId: v }))}>
@@ -1317,6 +1444,19 @@ const ServicesUnifiedTab: React.FC = () => {
               <Label>Título *</Label>
               <Input value={contractFormData.title} onChange={(e) => setContractFormData(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Contrato de Manutenção Residencial" />
             </div>
+            <div>
+              <Label>Tipo de Serviço</Label>
+              <Select value={contractFormData.serviceType} onValueChange={(v) => setContractFormData(p => ({ ...p, serviceType: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent avoidCollisions={false}>
+                  <SelectItem value="preventiva">Manutenção Preventiva</SelectItem>
+                  <SelectItem value="corretiva">Manutenção Corretiva</SelectItem>
+                  <SelectItem value="ambas">Preventiva + Corretiva</SelectItem>
+                  <SelectItem value="instalacao">Instalação + Manutenção</SelectItem>
+                  <SelectItem value="limpeza">Limpeza Periódica</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Data Início</Label>
@@ -1327,12 +1467,14 @@ const ServicesUnifiedTab: React.FC = () => {
                 <Input type="date" value={contractFormData.endDate} onChange={(e) => setContractFormData(p => ({ ...p, endDate: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
-                <Label>Intervalo de Limpezas</Label>
+                <Label>Intervalo Limpezas</Label>
                 <Select value={contractFormData.intervalMonths} onValueChange={(v) => setContractFormData(p => ({ ...p, intervalMonths: v }))}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent avoidCollisions={false}>
+                    <SelectItem value="1">1 mês</SelectItem>
+                    <SelectItem value="2">2 meses</SelectItem>
                     <SelectItem value="3">3 meses</SelectItem>
                     <SelectItem value="6">6 meses</SelectItem>
                     <SelectItem value="12">12 meses</SelectItem>
@@ -1343,14 +1485,28 @@ const ServicesUnifiedTab: React.FC = () => {
                 <Label>Valor Mensal (R$)</Label>
                 <Input type="number" value={contractFormData.monthlyValue} onChange={(e) => setContractFormData(p => ({ ...p, monthlyValue: e.target.value }))} placeholder="0.00" />
               </div>
+              <div>
+                <Label>Qtd. Equipamentos</Label>
+                <Input type="number" value={contractFormData.equipmentCount} onChange={(e) => setContractFormData(p => ({ ...p, equipmentCount: e.target.value }))} placeholder="1" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Responsável (nome)</Label>
+                <Input value={contractFormData.responsibleName} onChange={(e) => setContractFormData(p => ({ ...p, responsibleName: e.target.value }))} placeholder="Nome do responsável" />
+              </div>
+              <div>
+                <Label>CPF do Responsável</Label>
+                <Input value={contractFormData.responsibleCpf} onChange={(e) => setContractFormData(p => ({ ...p, responsibleCpf: e.target.value }))} placeholder="000.000.000-00" />
+              </div>
             </div>
             <div>
-              <Label>Descrição</Label>
-              <Textarea value={contractFormData.description} onChange={(e) => setContractFormData(p => ({ ...p, description: e.target.value }))} placeholder="Detalhes do contrato..." />
+              <Label>Descrição do Serviço</Label>
+              <Textarea value={contractFormData.description} onChange={(e) => setContractFormData(p => ({ ...p, description: e.target.value }))} placeholder="Descreva os serviços inclusos no contrato, equipamentos, locais..." rows={3} />
             </div>
             <div>
-              <Label>Observações</Label>
-              <Textarea value={contractFormData.notes} onChange={(e) => setContractFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Notas adicionais..." />
+              <Label>Observações / Cláusulas Adicionais</Label>
+              <Textarea value={contractFormData.notes} onChange={(e) => setContractFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Notas adicionais, condições especiais, multas..." rows={2} />
             </div>
           </div>
           <DialogFooter>

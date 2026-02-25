@@ -180,6 +180,15 @@ const fetchDashboardData = async () => {
       })
       .sort((a: any, b: any) => a.daysUntil - b.daysUntil);
 
+    // Overdue appointments (agendado but past date)
+    const overdueAppointments = appointmentsList
+      .filter(a => a.status === 'agendado' && new Date(a.appointment_date) < today)
+      .map((a: any) => ({
+        ...a,
+        daysOverdue: differenceInDays(today, new Date(a.appointment_date))
+      }))
+      .sort((a: any, b: any) => b.daysOverdue - a.daysOverdue);
+
     return {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
@@ -211,7 +220,8 @@ const fetchDashboardData = async () => {
         upcomingMaintenances,
         birthdayClients,
         upcomingBirthdays,
-        clientsList
+        clientsList,
+        overdueAppointments
     };
 };
 
@@ -372,6 +382,7 @@ const Dashboard: React.FC = () => {
         upcomingMaintenances = [],
         birthdayClients = [],
         upcomingBirthdays = [],
+        overdueAppointments = [],
     } = data;
 
     // Calculate trial progress percentage for visual indicator
@@ -493,6 +504,68 @@ const Dashboard: React.FC = () => {
 
       {/* Raffle Wins Banner */}
       <RaffleWinsBanner />
+
+      {/* CRITICAL: Overdue Appointments Alert */}
+      {overdueAppointments.length > 0 && (
+        <Card className="border-2 border-red-500/50 bg-gradient-to-r from-red-500/10 to-orange-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-full bg-red-500/20">
+                <AlertTriangle className="w-5 h-5 text-red-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-red-600 dark:text-red-400">⚠️ {overdueAppointments.length} Serviço(s) em Aberto!</h3>
+                <p className="text-xs text-muted-foreground">Agendamentos passados não concluídos. Atualize o status!</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {overdueAppointments.slice(0, 5).map((apt: any) => (
+                <div key={apt.id} className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-red-500" />
+                    <div>
+                      <p className="text-sm font-medium">{apt.clients?.name || 'Cliente'} - {apt.products?.name || 'Serviço'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Agendado: {format(new Date(apt.appointment_date), 'dd/MM/yyyy HH:mm')} • Há {apt.daysOverdue} dia(s)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Overdue Maintenances Alert */}
+      {overdueMaintenances.length > 0 && (
+        <Card className="border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-yellow-500/10">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-full bg-amber-500/20">
+                <Wrench className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-bold text-amber-600 dark:text-amber-400">🔧 {overdueMaintenances.length} Manutenção(ões) Vencida(s)!</h3>
+                <p className="text-xs text-muted-foreground">Manutenções que já passaram da data programada</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              {overdueMaintenances.slice(0, 5).map((m: any) => (
+                <div key={m.id} className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 rounded-lg p-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                    <div>
+                      <p className="text-sm font-medium">{m.clients?.name || 'Cliente'}</p>
+                      <p className="text-xs text-muted-foreground">Vencida há {Math.abs(m.daysUntil)} dias • {m.maintenance_type}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* App Installation & Notifications */}
       {(showInstallBanner || !notificationsEnabled) && (
