@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Pencil } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Check, X, Play, Phone } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isPast, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { toast } from 'sonner';
 
 const fetchAppointments = async () => {
   const { data, error } = await supabase
@@ -28,10 +29,28 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['calendar-appointments'],
     queryFn: fetchAppointments
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: (_, { status }) => {
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      const labels: Record<string, string> = {
+        confirmado: '✓ Confirmado',
+        concluido: '✅ Concluído',
+        cancelado: '❌ Cancelado',
+        agendado: '📅 Reagendado'
+      };
+      toast.success(labels[status] || 'Status atualizado');
+    }
   });
 
   const appointmentsByDate = useMemo(() => {
@@ -350,38 +369,51 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             </p>
                           )}
                         </div>
-                        {/* GPS + WhatsApp buttons */}
-                        <div className="flex gap-2 mt-3 pt-2 border-t">
+                        {/* Status Action Buttons */}
+                        {apt.status !== 'concluido' && apt.status !== 'cancelado' && (
+                          <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                            {apt.status !== 'confirmado' && (
+                              <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'confirmado' })}>
+                                <Play className="w-3 h-3 mr-1" /> Confirmar
+                              </Button>
+                            )}
+                            <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'concluido' })}>
+                              <Check className="w-3 h-3 mr-1" /> Concluir
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'cancelado' })}>
+                              <X className="w-3 h-3 mr-1" /> Cancelar
+                            </Button>
+                          </div>
+                        )}
+                        {(apt.status === 'concluido' || apt.status === 'cancelado') && (
+                          <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                            <Button size="sm" variant="ghost" className="text-xs h-7 flex-1"
+                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'agendado' })}>
+                              ↩️ Reabrir
+                            </Button>
+                          </div>
+                        )}
+                        {/* Navigation + Contact */}
+                        <div className="flex gap-1.5 mt-2">
                           {apt.clients?.address && (
                             <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7 flex-1"
-                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}
-                              >
-                                <Navigation className="w-3 h-3 mr-1" />
-                                Maps
+                              <Button size="sm" variant="ghost" className="text-xs h-6 flex-1 text-muted-foreground"
+                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}>
+                                <Navigation className="w-3 h-3 mr-1" /> Maps
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs h-7 flex-1"
-                                onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank')}
-                              >
-                                <MapPin className="w-3 h-3 mr-1" />
-                                Waze
+                              <Button size="sm" variant="ghost" className="text-xs h-6 flex-1 text-muted-foreground"
+                                onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank')}>
+                                <MapPin className="w-3 h-3 mr-1" /> Waze
                               </Button>
                             </>
                           )}
                           {apt.clients?.telefone && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-xs h-7"
-                              onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}
-                            >
-                              📱
+                            <Button size="sm" variant="ghost" className="text-xs h-6 text-muted-foreground"
+                              onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}>
+                              <Phone className="w-3 h-3 mr-1" /> WhatsApp
                             </Button>
                           )}
                         </div>

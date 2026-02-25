@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Bell, BellRing, BellOff, Smartphone, Monitor, Clock, AlertTriangle, Gift, DollarSign, Wrench, Calendar } from 'lucide-react';
+import { Bell, BellRing, BellOff, Smartphone, Monitor, Clock, AlertTriangle, Gift, DollarSign, Wrench, Calendar, CreditCard, PartyPopper, ShieldCheck, TrendingUp, Lightbulb } from 'lucide-react';
 import { toast } from 'sonner';
 
 const NotificationSettings: React.FC = () => {
@@ -20,6 +20,11 @@ const NotificationSettings: React.FC = () => {
       stock: true,
       tips: true,
       rotatingBanner: true,
+      holidays: true,
+      paymentSystem: true,
+      overdueAlerts: true,
+      weeklyReport: false,
+      soundEnabled: true,
     };
   });
 
@@ -71,17 +76,46 @@ const NotificationSettings: React.FC = () => {
     </div>
   );
 
+  const enabledCount = Object.entries(settings).filter(([k, v]) => k !== 'enabled' && v === true).length;
+  const totalCount = Object.keys(settings).length - 1;
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Bell className="w-6 h-6 text-primary" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-primary/10 rounded-lg">
+            <Bell className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">Notificações</h2>
+            <p className="text-sm text-muted-foreground">Gerencie alertas e avisos do sistema</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold">Notificações</h2>
-          <p className="text-sm text-muted-foreground">Gerencie alertas e avisos do sistema</p>
-        </div>
+        <Badge variant="outline" className="text-xs">
+          {enabledCount}/{totalCount} ativas
+        </Badge>
       </div>
+
+      {/* Master Toggle */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-semibold">Notificações Globais</p>
+                <p className="text-xs text-muted-foreground">Ativar/desativar todas as notificações</p>
+              </div>
+            </div>
+            <Switch
+              checked={settings.enabled}
+              onCheckedChange={(checked) => saveSettings({ ...settings, enabled: checked })}
+            />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Device Permission */}
       <Card>
@@ -126,82 +160,63 @@ const NotificationSettings: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Notification Types */}
+      {/* Alertas do Sistema */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4" />
+            Alertas do Sistema
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SettingRow icon={Calendar} label="Agendamentos" description="Alertas de serviços agendados, confirmados e atrasados" settingKey="appointments" color="bg-blue-500/10 text-blue-500" />
+          <SettingRow icon={DollarSign} label="Parcelas e Cobranças" description="Alertas de parcelas vencidas e a vencer" settingKey="installments" color="bg-red-500/10 text-red-500" />
+          <SettingRow icon={Wrench} label="Manutenções Pendentes" description="Lembretes de limpezas e manutenções preventivas" settingKey="maintenance" color="bg-amber-500/10 text-amber-500" />
+          <SettingRow icon={AlertTriangle} label="Estoque Baixo" description="Alertas quando produtos estiverem abaixo do mínimo" settingKey="stock" color="bg-orange-500/10 text-orange-500" />
+          <SettingRow icon={AlertTriangle} label="Serviços Atrasados" description="Agendamentos com data passada ainda pendentes" settingKey="overdueAlerts" color="bg-red-500/10 text-red-600" />
+        </CardContent>
+      </Card>
+
+      {/* Lembretes e Datas */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Gift className="w-4 h-4" />
+            Lembretes e Datas Especiais
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SettingRow icon={Gift} label="Aniversários de Clientes" description="Aviso de aniversários para ações de fidelização" settingKey="birthdays" color="bg-pink-500/10 text-pink-500" />
+          <SettingRow icon={PartyPopper} label="Feriados Nacionais" description="Lembretes de feriados e datas comemorativas" settingKey="holidays" color="bg-purple-500/10 text-purple-500" />
+          <SettingRow icon={CreditCard} label="Pagamento do Sistema" description="Alerta de vencimento da sua assinatura" settingKey="paymentSystem" color="bg-cyan-500/10 text-cyan-500" />
+        </CardContent>
+      </Card>
+
+      {/* Exibição na Tela */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Monitor className="w-4 h-4" />
-            Tipos de Notificação
+            Exibição na Tela
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <SettingRow 
-            icon={Calendar} 
-            label="Agendamentos" 
-            description="Alertas de serviços agendados e atrasados" 
-            settingKey="appointments" 
-            color="bg-blue-500/10 text-blue-500" 
-          />
-          <SettingRow 
-            icon={DollarSign} 
-            label="Parcelas e Cobranças" 
-            description="Alertas de parcelas vencidas e a vencer" 
-            settingKey="installments" 
-            color="bg-red-500/10 text-red-500" 
-          />
-          <SettingRow 
-            icon={Wrench} 
-            label="Manutenções" 
-            description="Lembretes de manutenções preventivas" 
-            settingKey="maintenance" 
-            color="bg-amber-500/10 text-amber-500" 
-          />
-          <SettingRow 
-            icon={Gift} 
-            label="Aniversários" 
-            description="Aviso de aniversários de clientes" 
-            settingKey="birthdays" 
-            color="bg-pink-500/10 text-pink-500" 
-          />
-          <SettingRow 
-            icon={AlertTriangle} 
-            label="Estoque Baixo" 
-            description="Alertas quando produtos estiverem acabando" 
-            settingKey="stock" 
-            color="bg-orange-500/10 text-orange-500" 
-          />
-          <SettingRow 
-            icon={Clock} 
-            label="Dicas do Sistema" 
-            description="Sugestões e dicas rotativas na tela" 
-            settingKey="tips" 
-            color="bg-purple-500/10 text-purple-500" 
-          />
-        </CardContent>
-      </Card>
-
-      {/* Banner Settings */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BellRing className="w-4 h-4" />
-            Notificações na Tela
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-between py-3">
+          <SettingRow icon={BellRing} label="Banner Rotativo" description="Barra de alertas rotativos no dashboard" settingKey="rotatingBanner" color="bg-primary/10 text-primary" />
+          <SettingRow icon={Lightbulb} label="Dicas do Sistema" description="Sugestões e dicas de uso do sistema" settingKey="tips" color="bg-purple-500/10 text-purple-500" />
+          <SettingRow icon={TrendingUp} label="Resumo Semanal" description="Relatório resumido da semana na tela inicial" settingKey="weeklyReport" color="bg-emerald-500/10 text-emerald-500" />
+          <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+              <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500">
                 <Bell className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-sm font-medium">Banner Rotativo Central</p>
-                <p className="text-xs text-muted-foreground">Mostra alertas e dicas no rodapé da tela</p>
+                <p className="text-sm font-medium">Som de Notificação</p>
+                <p className="text-xs text-muted-foreground">Tocar som ao receber alertas na tela</p>
               </div>
             </div>
             <Switch
-              checked={settings.rotatingBanner}
-              onCheckedChange={(checked) => saveSettings({ ...settings, rotatingBanner: checked })}
+              checked={settings.soundEnabled}
+              onCheckedChange={(checked) => saveSettings({ ...settings, soundEnabled: checked })}
             />
           </div>
         </CardContent>
