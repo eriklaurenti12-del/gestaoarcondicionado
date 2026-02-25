@@ -443,7 +443,7 @@ export const AdminIntegrationsTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-cyan-400" />
-                    Checkout Mensal — R$ 39,90/mês
+                    Checkout Mensal
                   </label>
                   {settings.checkout_mensal && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
                 </div>
@@ -462,7 +462,7 @@ export const AdminIntegrationsTab: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-amber-400" />
-                    Checkout Anual — R$ 370,00/ano
+                    Checkout Anual
                     <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[10px]">Destaque</Badge>
                   </label>
                   {settings.checkout_anual && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
