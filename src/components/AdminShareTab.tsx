@@ -8,9 +8,11 @@ import { Copy, ExternalLink, Link2, LogIn, Globe, Share2, QrCode } from "lucide-
 export const AdminShareTab: React.FC = () => {
   const { toast } = useToast();
   
-  const landingUrl = window.location.origin + '/';
-  const loginUrl = window.location.origin + '/?login=true';
-  const cadastroUrl = window.location.origin + '/?cadastro=true';
+  const baseUrl = window.location.origin;
+  const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
+  const landingUrl = publishedUrl + '/';
+  const loginUrl = publishedUrl + '/?login=true';
+  const cadastroUrl = publishedUrl + '/?cadastro=true';
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
