@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.integration-ai-assistant]
 verify_jwt = false
+
+[functions.generate-landing-theme]
+verify_jwt = false
