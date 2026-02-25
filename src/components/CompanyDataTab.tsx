@@ -475,33 +475,44 @@ const CompanyDataTab: React.FC = () => {
                 Contato
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">WhatsApp</Label>
-                  <Input
-                    placeholder="(00) 00000-0000"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Telefone Fixo</Label>
-                  <Input
-                    placeholder="(00) 0000-0000"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Email</Label>
-                  <Input
-                    type="email"
-                    placeholder="contato@empresa.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
+            <CardContent className="space-y-4">
+              {/* Primary WhatsApp */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">WhatsApp Principal</Label>
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                />
+              </div>
+              {/* Additional WhatsApps */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">WhatsApp Adicional</Label>
+                <Input
+                  placeholder="(00) 00000-0000 (opcional)"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                />
+              </div>
+              {/* Primary Email */}
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Email Principal</Label>
+                <Input
+                  type="email"
+                  placeholder="contato@empresa.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              {/* Additional Email */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Email Adicional</Label>
+                <Input
+                  type="email"
+                  placeholder="financeiro@empresa.com (opcional)"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>

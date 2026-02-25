@@ -217,11 +217,28 @@ const FixedExpensesTab: React.FC = () => {
 
   const exportToPDF = () => {
     const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const logoBase64 = localStorage.getItem('company_logo');
+    const companyName = localStorage.getItem('company_name') || '';
+    
+    // Header
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 45, 'F');
+    
+    let headerX = 15;
+    if (logoBase64) {
+      try { doc.addImage(logoBase64, 'PNG', 15, 8, 28, 28); headerX = 48; } catch {}
+    }
+    
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
-    doc.text('Relatório de Gastos Fixos', 14, 22);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName || 'Relatório de Gastos', headerX, 20);
     doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
     const [yr, mo] = filterMonth.split('-').map(Number);
-    doc.text(`Período: ${format(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })}`, 14, 30);
+    doc.text(`Gastos Fixos — ${format(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })}`, headerX, 30);
 
     const tableData = filteredExpenses.map(exp => [
       format(new Date(exp.expense_date + 'T12:00:00'), 'dd/MM/yyyy'),
@@ -233,13 +250,35 @@ const FixedExpensesTab: React.FC = () => {
     ]);
 
     autoTable(doc, {
-      startY: 35,
+      startY: 52,
       head: [['Data', 'Categoria', 'Descrição', 'Ajudante', 'Recorrente', 'Valor']],
       body: tableData,
       foot: [['', '', '', '', 'TOTAL:', `R$ ${grandTotal.toFixed(2)}`]],
-      headStyles: { fillColor: [0, 128, 192] },
-      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }
+      headStyles: { fillColor: [24, 24, 27], textColor: 255, fontStyle: 'bold' },
+      footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' },
+      styles: { fontSize: 9 }
     });
+
+    // Category totals
+    const finalY = (doc as any).lastAutoTable?.finalY || 200;
+    let y = finalY + 15;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(24, 24, 27);
+    doc.text('Resumo por Categoria', 15, y); y += 8;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(75, 85, 99);
+    categories.forEach(cat => {
+      const val = totalByCategory[cat.value] || 0;
+      if (val > 0) {
+        doc.text(`${cat.label}: R$ ${val.toFixed(2)}`, 20, y); y += 7;
+      }
+    });
+    
+    doc.setFontSize(8);
+    doc.setTextColor(156, 163, 175);
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 285, { align: 'center' });
 
     doc.save(`gastos-fixos-${filterMonth}.pdf`);
     toast({ title: "PDF exportado!" });
