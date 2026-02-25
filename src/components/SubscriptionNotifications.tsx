@@ -117,7 +117,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
       plan = Math.random() > 0.3 ? plans[1] : plans[0];
     }
 
-    const newNotification: Notification = { id: notificationId, name, city, plan, actionType, visible: true };
+    const newNotification: Notification = { id: Date.now() + Math.random(), name, city, plan, actionType, visible: true };
     setNotificationId(prev => prev + 1);
     setNotifications(prev => [...prev.slice(-1), newNotification]);
 

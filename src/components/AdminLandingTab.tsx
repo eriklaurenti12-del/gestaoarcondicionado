@@ -12,7 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
-  HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp
+  HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
+  Sparkles, Wand2
 } from "lucide-react";
 
 const LANDING_KEYS = [
@@ -107,6 +108,8 @@ export const AdminLandingTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
   const [settings, setSettings] = useState<LandingSettings>({});
   const videoInputRef = useRef<HTMLInputElement>(null);
 
@@ -148,6 +151,25 @@ export const AdminLandingTab: React.FC = () => {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const generateWithAI = async (type: 'colors' | 'texts' | 'full') => {
+    setAiGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-landing-theme', {
+        body: { prompt: aiPrompt || undefined, type }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.settings) {
+        setSettings(prev => ({ ...prev, ...data.settings }));
+        toast({ title: "IA gerou com sucesso! 🤖✨", description: `${Object.keys(data.settings).length} campos atualizados. Clique em Salvar para aplicar.` });
+      }
+    } catch (error: any) {
+      toast({ title: "Erro na IA", description: error.message, variant: "destructive" });
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -212,6 +234,7 @@ export const AdminLandingTab: React.FC = () => {
 
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
+          <TabsTrigger value="ia" className="text-xs bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600"><Wand2 className="w-3 h-3 mr-1" />🤖 IA</TabsTrigger>
           <TabsTrigger value="template" className="text-xs"><Layout className="w-3 h-3 mr-1" />Template</TabsTrigger>
           <TabsTrigger value="textos" className="text-xs"><Type className="w-3 h-3 mr-1" />Textos</TabsTrigger>
           <TabsTrigger value="precos" className="text-xs"><DollarSign className="w-3 h-3 mr-1" />Preços</TabsTrigger>
@@ -225,6 +248,54 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
           <TabsTrigger value="social" className="text-xs"><Star className="w-3 h-3 mr-1" />Prova Social</TabsTrigger>
         </TabsList>
+
+        {/* IA GENERATOR */}
+        <TabsContent value="ia">
+          <Card className="bg-gradient-to-br from-purple-900/30 to-pink-900/30 border-purple-500/30">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-white text-base">
+                <Wand2 className="w-5 h-5 text-purple-400" /> Gerador com IA
+              </CardTitle>
+              <CardDescription className="text-gray-400 text-xs">
+                Cole um prompt ou deixe em branco para gerar automaticamente. A IA gera cores, textos e temas completos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label className="text-gray-300 text-sm">Prompt (opcional)</Label>
+                <Textarea value={aiPrompt} onChange={e => setAiPrompt(e.target.value)}
+                  placeholder="Ex: Landing page moderna com tons de azul escuro e verde neon, estilo premium para técnicos de ar condicionado..."
+                  className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px]" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <Button onClick={() => generateWithAI('colors')} disabled={aiGenerating}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700">
+                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Palette className="w-4 h-4 mr-2" />}
+                  Gerar Cores
+                </Button>
+                <Button onClick={() => generateWithAI('texts')} disabled={aiGenerating}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700">
+                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Type className="w-4 h-4 mr-2" />}
+                  Gerar Textos
+                </Button>
+                <Button onClick={() => generateWithAI('full')} disabled={aiGenerating}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                  {aiGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                  Gerar Tudo
+                </Button>
+              </div>
+              {aiGenerating && (
+                <div className="flex items-center gap-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
+                  <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+                  <span className="text-purple-300 text-sm">IA gerando... aguarde alguns segundos</span>
+                </div>
+              )}
+              <p className="text-gray-500 text-xs">
+                💡 Após gerar, revise os valores nas abas ao lado e clique em "Salvar Tudo" para aplicar na landing page.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* TEMPLATE */}
         <TabsContent value="template">
