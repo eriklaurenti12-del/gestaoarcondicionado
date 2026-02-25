@@ -14,12 +14,30 @@ import {
   FileText, Shield, Smartphone, Zap, ArrowRight, Sparkles,
   Crown, Gift, Clock, DollarSign, ChevronDown, Wind, Wrench,
   Download, LogIn, UserPlus, Eye, EyeOff, Loader2, X,
-  Percent, BadgeCheck, TrendingUp, MessageCircle
+  Percent, BadgeCheck, TrendingUp, MessageCircle, HelpCircle, ChevronUp, Video
 } from "lucide-react";
 import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
 import { PromoCountdown } from "@/components/PromoCountdown";
 
 type AdminSettings = Record<string, string>;
+
+const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="border border-white/10 rounded-xl overflow-hidden">
+      <button onClick={() => setOpen(!open)} 
+        className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors">
+        <span className="text-white font-medium text-sm pr-4">{question}</span>
+        {open ? <ChevronUp className="w-4 h-4 text-cyan-400 shrink-0" /> : <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" />}
+      </button>
+      {open && (
+        <div className="px-4 pb-4 text-gray-300 text-sm leading-relaxed border-t border-white/5 pt-3">
+          {answer}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -86,6 +104,34 @@ const Landing: React.FC = () => {
     landing_depoimento4_role: 'Autônomo - BA',
     landing_depoimento4_texto: 'O melhor investimento que fiz. Por menos de R$40 eu tenho o que empresas grandes pagam milhares.',
     landing_depoimento4_estrelas: '5',
+    // WhatsApp flutuante
+    landing_whatsapp_flutuante: 'true',
+    landing_whatsapp_link: 'https://wa.me/5511999999999',
+    landing_whatsapp_mensagem: 'Olá! Vim pela landing page e gostaria de saber mais!',
+    // Template
+    landing_template: 'persuasao',
+    // VSL
+    landing_vsl_url: '',
+    landing_vsl_trava: 'false',
+    // FAQ
+    landing_faq1_pergunta: 'O sistema é difícil de usar?',
+    landing_faq1_resposta: 'Não! É mais simples que WhatsApp. Em 2 minutos você já está usando.',
+    landing_faq1_ativa: 'true',
+    landing_faq2_pergunta: 'Funciona no celular?',
+    landing_faq2_resposta: 'Sim! 100% responsivo, funciona em qualquer celular, tablet ou computador.',
+    landing_faq2_ativa: 'true',
+    landing_faq3_pergunta: 'Posso cancelar a qualquer momento?',
+    landing_faq3_resposta: 'Sim! Sem multa, sem burocracia. Cancele quando quiser pelo WhatsApp.',
+    landing_faq3_ativa: 'true',
+    landing_faq4_pergunta: 'E se eu não gostar?',
+    landing_faq4_resposta: 'Você tem 7 dias de garantia total. Se não gostar, devolvemos 100% do valor.',
+    landing_faq4_ativa: 'true',
+    landing_faq5_pergunta: 'Meus dados ficam seguros?',
+    landing_faq5_resposta: 'Sim! Usamos criptografia de nível bancário. Seus dados estão 100% protegidos na nuvem.',
+    landing_faq5_ativa: 'true',
+    landing_faq6_pergunta: 'Preciso instalar alguma coisa?',
+    landing_faq6_resposta: 'Não! Funciona direto no navegador. Basta abrir e usar. Também pode instalar como app no celular.',
+    landing_faq6_ativa: 'true',
   });
 
   // Load admin settings
@@ -376,6 +422,25 @@ const Landing: React.FC = () => {
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium px-4">
             {settings.landing_frase_destaque}
           </p>
+
+          {/* VSL Video in Hero */}
+          {settings.landing_template === 'vsl' && settings.landing_vsl_url && (
+            <div className="max-w-3xl mx-auto mb-8 px-4">
+              <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl shadow-cyan-500/20 border border-cyan-500/20">
+                {settings.landing_vsl_url.includes('youtube') || settings.landing_vsl_url.includes('youtu.be') ? (
+                  <iframe 
+                    src={settings.landing_vsl_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                    className="w-full h-full" allowFullScreen />
+                ) : settings.landing_vsl_url.includes('vimeo') ? (
+                  <iframe 
+                    src={settings.landing_vsl_url.replace('vimeo.com/', 'player.vimeo.com/video/')}
+                    className="w-full h-full" allowFullScreen />
+                ) : (
+                  <video src={settings.landing_vsl_url} controls className="w-full h-full" />
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8 px-4">
             <Button 
@@ -725,6 +790,35 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      {(() => {
+        const faqs = [1,2,3,4,5,6].map(i => ({
+          q: settings[`landing_faq${i}_pergunta`] || '',
+          a: settings[`landing_faq${i}_resposta`] || '',
+          active: settings[`landing_faq${i}_ativa`] !== 'false',
+        })).filter(f => f.active && f.q && f.a);
+        
+        if (faqs.length === 0) return null;
+        
+        return (
+          <section className="py-16 px-4 bg-slate-900/50">
+            <div className="container mx-auto max-w-3xl">
+              <h2 className="text-2xl sm:text-3xl font-bold text-center mb-3">
+                Perguntas <span className="text-cyan-400">Frequentes</span>
+              </h2>
+              <p className="text-gray-400 text-center mb-8 text-sm">
+                Tire suas dúvidas antes de começar
+              </p>
+              <div className="space-y-3">
+                {faqs.map((faq, i) => (
+                  <FaqItem key={i} question={faq.q} answer={faq.a} />
+                ))}
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* Urgência Final */}
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
@@ -919,6 +1013,54 @@ const Landing: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* WhatsApp Floating Button */}
+      {settings.landing_whatsapp_flutuante !== 'false' && settings.landing_whatsapp_link && (
+        <a
+          href={`${settings.landing_whatsapp_link}?text=${encodeURIComponent(settings.landing_whatsapp_mensagem || 'Olá!')}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 flex items-center justify-center shadow-2xl shadow-green-500/40 transition-all duration-300 hover:scale-110 group"
+          title="Fale conosco no WhatsApp"
+        >
+          <MessageCircle className="w-7 h-7 text-white" />
+          <span className="absolute right-16 bg-slate-800 text-white text-xs px-3 py-1.5 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+            Fale conosco!
+          </span>
+        </a>
+      )}
+
+      {/* VSL Video Modal */}
+      {settings.landing_template === 'vsl' && settings.landing_vsl_url && settings.landing_vsl_trava === 'true' && !showLogin && (
+        <div className="fixed inset-0 bg-black/95 z-[65] flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl">
+            <h2 className="text-white text-xl font-bold text-center mb-4">
+              🎬 Assista o vídeo antes de continuar
+            </h2>
+            <div className="aspect-video bg-black rounded-xl overflow-hidden mb-4">
+              {settings.landing_vsl_url.includes('youtube') || settings.landing_vsl_url.includes('youtu.be') ? (
+                <iframe 
+                  src={settings.landing_vsl_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                  className="w-full h-full" allowFullScreen />
+              ) : settings.landing_vsl_url.includes('vimeo') ? (
+                <iframe 
+                  src={settings.landing_vsl_url.replace('vimeo.com/', 'player.vimeo.com/video/')}
+                  className="w-full h-full" allowFullScreen />
+              ) : (
+                <video src={settings.landing_vsl_url} controls className="w-full h-full" />
+              )}
+            </div>
+            <div className="text-center">
+              <Button onClick={() => { setShowLogin(true); }}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6">
+                <Crown className="w-5 h-5 mr-2" />
+                QUERO COMEÇAR AGORA
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
