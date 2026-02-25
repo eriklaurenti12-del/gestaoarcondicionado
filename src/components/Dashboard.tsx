@@ -84,12 +84,44 @@ const fetchDashboardData = async () => {
     const quotesList = quotes || [];
     const serviceOrdersList = serviceOrders || [];
     const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0) && p.qty < 999);
-    const totalSales = salesList.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
-    const totalProfit = salesList.reduce((sum, s) => sum + Number(s.total_profit), 0);
-    const totalItems = salesList.reduce((sum, s) => sum + s.qty, 0);
+    // Filter sales for CURRENT MONTH only
+    const now = new Date();
+    const currentMonthPrefix = format(now, 'yyyy-MM');
+    const currentMonthSales = salesList.filter(s => {
+      try { return s.sale_date?.startsWith(currentMonthPrefix); } catch { return false; }
+    });
+    const totalSales = currentMonthSales.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
+    const totalProfit = currentMonthSales.reduce((sum, s) => sum + Number(s.total_profit), 0);
+    const totalItems = currentMonthSales.reduce((sum, s) => sum + s.qty, 0);
     const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
-    const today = new Date();
+    // Previous month for variation
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthPrefix = format(prevMonth, 'yyyy-MM');
+    const prevMonthSales = salesList.filter(s => {
+      try { return s.sale_date?.startsWith(prevMonthPrefix); } catch { return false; }
+    });
+    const prevMonthTotal = prevMonthSales.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
+    const monthVariation = prevMonthTotal > 0 ? ((totalSales - prevMonthTotal) / prevMonthTotal) * 100 : totalSales > 0 ? 100 : 0;
+
+    // Best month of the year
+    const yearMonths: { [key: string]: number } = {};
+    for (let m = 0; m < 12; m++) {
+      const mk = `${now.getFullYear()}-${String(m + 1).padStart(2, '0')}`;
+      yearMonths[mk] = 0;
+    }
+    salesList.forEach(s => {
+      try {
+        const mk = s.sale_date?.substring(0, 7);
+        if (mk && mk.startsWith(String(now.getFullYear())) && yearMonths[mk] !== undefined) {
+          yearMonths[mk] += Number(s.sale_price) * s.qty;
+        }
+      } catch {}
+    });
+    const bestMonthEntry = Object.entries(yearMonths).sort((a, b) => b[1] - a[1])[0];
+    const bestMonth = bestMonthEntry && bestMonthEntry[1] > 0 ? { month: bestMonthEntry[0], value: bestMonthEntry[1] } : null;
+
+    const today = now;
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
 
@@ -236,7 +268,7 @@ const fetchDashboardData = async () => {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
         lowStockProducts,
-        salesReport: { totalSales, totalItems, totalProfit, profitMargin },
+        salesReport: { totalSales, totalItems, totalProfit, profitMargin, monthVariation, prevMonthTotal, bestMonth },
         appointmentStats: {
             today: todayAppointments.length,
             week: weekAppointments.length,
@@ -411,7 +443,7 @@ const Dashboard: React.FC = () => {
       servicesCount = 0, 
       clientsCount = 0, 
       lowStockProducts = [], 
-      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0 }, 
+      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0, monthVariation: 0, prevMonthTotal: 0, bestMonth: null as any }, 
       appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
       pendingInstallments = [],
       totalPendingAmount = 0,
@@ -671,33 +703,13 @@ const Dashboard: React.FC = () => {
         </Card>
       )}
 
-      {/* Maintenance Alerts */}
-      {overdueMaintenances.length > 0 && (
-        <Alert className="border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950">
-          <Thermometer className="h-4 w-4 text-red-600" />
-          <AlertTitle className="text-red-800 dark:text-red-200">🔴 Manutenções Vencidas!</AlertTitle>
-          <AlertDescription className="text-red-700 dark:text-red-300">
-            {overdueMaintenances.length} cliente(s) com limpeza de ar atrasada: {overdueMaintenances.slice(0, 3).map((m: any) => m.clients?.name || 'Cliente').join(", ")}{overdueMaintenances.length > 3 ? ` e mais ${overdueMaintenances.length - 3}...` : ''}
-          </AlertDescription>
-        </Alert>
-      )}
-
+      {/* Maintenance Alerts (consolidated) */}
       {todayMaintenances.length > 0 && (
         <Alert className="border-cyan-300 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-950">
           <CalendarCheck className="h-4 w-4 text-cyan-600" />
           <AlertTitle className="text-cyan-800 dark:text-cyan-200">🧹 Limpezas Agendadas para Hoje!</AlertTitle>
           <AlertDescription className="text-cyan-700 dark:text-cyan-300">
             {todayMaintenances.length} cliente(s): {todayMaintenances.map((m: any) => m.clients?.name || 'Cliente').join(", ")}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {upcomingMaintenances.length > 0 && (
-        <Alert className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950">
-          <Clock className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-800 dark:text-amber-200">⏰ Manutenções Próximas (7 dias)</AlertTitle>
-          <AlertDescription className="text-amber-700 dark:text-amber-300">
-            {upcomingMaintenances.filter((m: any) => m.status === 'urgent').length} cliente(s) com limpeza prevista para os próximos 7 dias
           </AlertDescription>
         </Alert>
       )}
@@ -892,20 +904,40 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
-            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços</p>
+            <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços este mês</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
-                    <span className="text-muted-foreground">Lucro Total</span>
+                    <span className="text-muted-foreground">Lucro do Mês</span>
                     <span className="font-bold text-blue-600">R$ {salesReport.totalProfit.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Margem de Lucro</span>
                     <span className="font-bold">{salesReport.profitMargin.toFixed(2)}%</span>
                 </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Mês Anterior</span>
+                    <span className="font-medium">R$ {(salesReport.prevMonthTotal || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Variação</span>
+                    <span className={`font-bold ${(salesReport.monthVariation || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(salesReport.monthVariation || 0) >= 0 ? '+' : ''}{(salesReport.monthVariation || 0).toFixed(1)}%
+                    </span>
+                </div>
             </div>
+            {salesReport.bestMonth && (
+              <div className="mt-3 p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                    Melhor mês do ano: {format(new Date(salesReport.bestMonth.month + '-01'), 'MMMM', { locale: ptBR })} — R$ {salesReport.bestMonth.value.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
         

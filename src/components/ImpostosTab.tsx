@@ -263,68 +263,126 @@ const ImpostosTab: React.FC = () => {
   const generatePDFContabilidade = () => {
     const doc = new jsPDF();
     const monthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const logoBase64 = localStorage.getItem('company_logo');
+    const companyName = localStorage.getItem('company_name') || '';
+    const companyCnpj = localStorage.getItem('company_cnpj') || '';
     
-    doc.setFontSize(18);
-    doc.text('Relatório para Contabilidade', 105, 20, { align: 'center' });
-    doc.setFontSize(12);
-    doc.text(`Período: ${monthLabel}`, 105, 30, { align: 'center' });
+    // Header
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 50, 'F');
     
-    let y = 45;
-    
-    // Faturamento
-    doc.setFontSize(14);
-    doc.text('FATURAMENTO', 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.text(`Faturamento Total: R$ ${formData.total_revenue.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Serviços: R$ ${formData.revenue_from_services.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Produtos: R$ ${formData.revenue_from_products.toFixed(2)}`, 25, y); y += 12;
-    
-    // Impostos
-    doc.setFontSize(14);
-    doc.text('IMPOSTOS E GUIAS', 20, y); y += 10;
-    doc.setFontSize(10);
-    doc.text(`DAS (Simples Nacional): R$ ${formData.das_value.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`INSS: R$ ${formData.inss_value.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`FGTS: R$ ${formData.fgts_value.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`IRRF: R$ ${formData.irrf_value.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`ISS: R$ ${formData.iss_value.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`Outros: R$ ${formData.other_taxes.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`TOTAL IMPOSTOS: R$ ${totalTaxes.toFixed(2)}`, 25, y); y += 12;
-    
-    // Despesas
-    doc.setFontSize(14);
-    doc.text('DESPESAS OPERACIONAIS', 20, y); y += 10;
-    doc.setFontSize(10);
-    doc.text(`Total Despesas: R$ ${formData.total_expenses.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Combustível: R$ ${formData.fuel_expenses.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Materiais: R$ ${formData.material_expenses.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Equipamentos: R$ ${formData.equipment_expenses.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`  - Outros: R$ ${formData.other_expenses.toFixed(2)}`, 25, y); y += 12;
-    
-    // Funcionário
-    if (formData.employee_name) {
-      doc.setFontSize(14);
-      doc.text('GASTOS COM FUNCIONÁRIO', 20, y); y += 10;
-      doc.setFontSize(10);
-      doc.text(`Nome: ${formData.employee_name}`, 25, y); y += 7;
-      doc.text(`Registrado: ${formData.employee_is_registered ? 'Sim' : 'Não'}`, 25, y); y += 7;
-      doc.text(`Salário: R$ ${formData.employee_salary.toFixed(2)}`, 25, y); y += 7;
-      doc.text(`INSS Funcionário: R$ ${formData.employee_inss.toFixed(2)}`, 25, y); y += 7;
-      doc.text(`FGTS Funcionário: R$ ${formData.employee_fgts.toFixed(2)}`, 25, y); y += 7;
-      doc.text(`TOTAL FUNCIONÁRIO: R$ ${employeeCosts.toFixed(2)}`, 25, y); y += 12;
+    let headerX = 15;
+    if (logoBase64) {
+      try { doc.addImage(logoBase64, 'PNG', 15, 8, 30, 30); headerX = 50; } catch {}
     }
     
-    // Resumo
-    doc.setFontSize(14);
-    doc.text('RESUMO', 20, y); y += 10;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyName || 'Relatório Contábil', headerX, 22);
     doc.setFontSize(10);
-    doc.text(`Faturamento: R$ ${formData.total_revenue.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`(-) Impostos: R$ ${totalTaxes.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`(-) Despesas: R$ ${formData.total_expenses.toFixed(2)}`, 25, y); y += 7;
-    doc.text(`(-) Funcionário: R$ ${employeeCosts.toFixed(2)}`, 25, y); y += 7;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(180, 180, 180);
+    doc.text(`Período: ${monthLabel}`, headerX, 30);
+    if (companyCnpj) doc.text(`CNPJ/CPF: ${companyCnpj}`, headerX, 37);
+    
+    let y = 60;
+    doc.setTextColor(40, 40, 40);
+    
+    const addLine = (label: string, value: number, indent = 25) => {
+      doc.setFontSize(10);
+      doc.text(label, indent, y);
+      doc.text(`R$ ${value.toFixed(2)}`, pageWidth - 20, y, { align: 'right' });
+      y += 7;
+    };
+    
+    const addTitle = (title: string) => {
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(24, 24, 27);
+      doc.text(title, 15, y);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(15, y + 2, pageWidth - 15, y + 2);
+      y += 10;
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(75, 85, 99);
+    };
+    
+    addTitle('FATURAMENTO');
+    addLine('Faturamento Total', formData.total_revenue);
+    addLine('  - Serviços', formData.revenue_from_services);
+    addLine('  - Produtos', formData.revenue_from_products);
+    y += 5;
+    
+    addTitle('IMPOSTOS E GUIAS');
+    addLine('DAS (Simples Nacional)', formData.das_value);
+    addLine('INSS', formData.inss_value);
+    addLine('FGTS', formData.fgts_value);
+    addLine('IRRF', formData.irrf_value);
+    addLine('ISS', formData.iss_value);
+    addLine('Outros', formData.other_taxes);
+    doc.setFont('helvetica', 'bold');
+    addLine('TOTAL IMPOSTOS', totalTaxes);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    
+    addTitle('DESPESAS OPERACIONAIS');
+    addLine('Combustível', formData.fuel_expenses);
+    addLine('Materiais', formData.material_expenses);
+    addLine('Equipamentos', formData.equipment_expenses);
+    addLine('Outros', formData.other_expenses);
+    doc.setFont('helvetica', 'bold');
+    addLine('TOTAL DESPESAS', formData.total_expenses);
+    doc.setFont('helvetica', 'normal');
+    y += 5;
+    
+    if (formData.employee_name) {
+      addTitle('FUNCIONÁRIO');
+      doc.text(`Nome: ${formData.employee_name} • ${formData.employee_is_registered ? 'CLT' : 'Informal'}`, 25, y); y += 7;
+      addLine('Salário', formData.employee_salary);
+      addLine('INSS', formData.employee_inss);
+      addLine('FGTS', formData.employee_fgts);
+      doc.setFont('helvetica', 'bold');
+      addLine('TOTAL FUNCIONÁRIO', employeeCosts);
+      doc.setFont('helvetica', 'normal');
+      y += 5;
+    }
+    
+    // Summary box
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(15, y, pageWidth - 30, 40, 3, 3, 'F');
+    y += 10;
     doc.setFontSize(12);
-    doc.text(`= LUCRO LÍQUIDO: R$ ${netProfit.toFixed(2)}`, 25, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(24, 24, 27);
+    doc.text('RESUMO', 20, y); y += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Faturamento: R$ ${formData.total_revenue.toFixed(2)}`, 20, y);
+    doc.text(`(-) Impostos: R$ ${totalTaxes.toFixed(2)}`, pageWidth / 2, y);
+    y += 7;
+    doc.text(`(-) Despesas: R$ ${formData.total_expenses.toFixed(2)}`, 20, y);
+    doc.text(`(-) Funcionário: R$ ${employeeCosts.toFixed(2)}`, pageWidth / 2, y);
+    y += 10;
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    const profitColor = netProfit >= 0 ? [34, 197, 94] : [239, 68, 68];
+    doc.setTextColor(profitColor[0], profitColor[1], profitColor[2]);
+    doc.text(`LUCRO LÍQUIDO: R$ ${netProfit.toFixed(2)}`, pageWidth / 2, y, { align: 'center' });
+    
+    // Tax percentage
+    if (formData.total_revenue > 0) {
+      y += 12;
+      doc.setFontSize(9);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Carga tributária: ${((totalTaxes / formData.total_revenue) * 100).toFixed(1)}% do faturamento`, pageWidth / 2, y, { align: 'center' });
+    }
+    
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(156, 163, 175);
+    doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, 285, { align: 'center' });
     
     doc.save(`relatorio-contabilidade-${selectedMonth}.pdf`);
     toast.success('PDF gerado com sucesso!');
@@ -386,14 +444,14 @@ const ImpostosTab: React.FC = () => {
       </div>
 
       {/* Cards Resumo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
           <CardContent className="p-4">
             <div className="flex items-center gap-2 text-green-600">
               <TrendingUp className="w-4 h-4" />
               <span className="text-xs font-medium">Faturamento</span>
             </div>
-            <div className="text-2xl font-bold text-green-600 mt-1">
+            <div className="text-xl font-bold text-green-600 mt-1">
               R$ {formData.total_revenue.toFixed(2)}
             </div>
           </CardContent>
@@ -405,9 +463,14 @@ const ImpostosTab: React.FC = () => {
               <Receipt className="w-4 h-4" />
               <span className="text-xs font-medium">Impostos</span>
             </div>
-            <div className="text-2xl font-bold text-red-600 mt-1">
+            <div className="text-xl font-bold text-red-600 mt-1">
               R$ {totalTaxes.toFixed(2)}
             </div>
+            {formData.total_revenue > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {((totalTaxes / formData.total_revenue) * 100).toFixed(1)}% do faturamento
+              </p>
+            )}
           </CardContent>
         </Card>
 
@@ -417,8 +480,20 @@ const ImpostosTab: React.FC = () => {
               <DollarSign className="w-4 h-4" />
               <span className="text-xs font-medium">Despesas</span>
             </div>
-            <div className="text-2xl font-bold text-amber-600 mt-1">
+            <div className="text-xl font-bold text-amber-600 mt-1">
               R$ {formData.total_expenses.toFixed(2)}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-purple-600">
+              <Users className="w-4 h-4" />
+              <span className="text-xs font-medium">Funcionário</span>
+            </div>
+            <div className="text-xl font-bold text-purple-600 mt-1">
+              R$ {employeeCosts.toFixed(2)}
             </div>
           </CardContent>
         </Card>
@@ -429,9 +504,14 @@ const ImpostosTab: React.FC = () => {
               <Calculator className="w-4 h-4" />
               <span className="text-xs font-medium">Lucro Líquido</span>
             </div>
-            <div className={`text-2xl font-bold mt-1 ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+            <div className={`text-xl font-bold mt-1 ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
               R$ {netProfit.toFixed(2)}
             </div>
+            {formData.total_revenue > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Margem: {((netProfit / formData.total_revenue) * 100).toFixed(1)}%
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
