@@ -204,6 +204,14 @@ export const AdminLandingTab: React.FC = () => {
       color: 'border-green-500',
       gradient: 'from-green-500/20 to-emerald-500/20'
     },
+    { 
+      id: 'custom', 
+      name: '🛠️ Criar do Zero', 
+      desc: 'Página totalmente personalizada. Você decide cada seção, texto e layout.',
+      sections: ['Título Livre', 'Seções Livres', 'CTA Personalizado', 'Layout Aberto'],
+      color: 'border-pink-500',
+      gradient: 'from-pink-500/20 to-purple-500/20'
+    },
   ];
 
   return (
