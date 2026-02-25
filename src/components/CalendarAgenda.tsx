@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Check, X, Play, Phone } from "lucide-react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isPast, isBefore, startOfDay } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
 const fetchAppointments = async () => {
@@ -29,6 +30,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [viewMode, setViewMode] = useState<'month' | 'week'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [decisionAppointment, setDecisionAppointment] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
@@ -90,6 +92,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     if (!selectedDate) return false;
     return isBefore(startOfDay(selectedDate), startOfDay(new Date()));
   }, [selectedDate]);
+
+  const canUseQuickDecision = (appointmentDate: string, status: string) => {
+    const isPendingStatus = status === 'agendado' || status === 'confirmado';
+    return isPendingStatus && isBefore(parseISO(appointmentDate), new Date());
+  };
 
   const navigate = (direction: 'prev' | 'next') => {
     if (viewMode === 'month') {
@@ -338,88 +345,152 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {selectedDayAppointments.map((apt: any) => (
-                    <Card key={apt.id} className={`transition-all hover:shadow-md ${isSelectedDatePast ? 'opacity-70' : ''}`}>
-                      <CardContent className="p-3">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex items-center gap-2 text-primary font-semibold">
-                            <Clock className="w-4 h-4" />
-                            {format(parseISO(apt.appointment_date), 'HH:mm')}
+                  {selectedDayAppointments.map((apt: any) => {
+                    const canQuickDecide = canUseQuickDecision(apt.appointment_date, apt.status);
+
+                    return (
+                      <Card
+                        key={apt.id}
+                        onClick={() => canQuickDecide && setDecisionAppointment(apt)}
+                        className={`transition-all hover:shadow-md ${isSelectedDatePast ? 'opacity-70' : ''} ${canQuickDecide ? 'cursor-pointer border-primary/30 bg-primary/5' : ''}`}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2 text-primary font-semibold">
+                              <Clock className="w-4 h-4" />
+                              {format(parseISO(apt.appointment_date), 'HH:mm')}
+                            </div>
+                            {getStatusBadge(apt.status)}
                           </div>
-                          {getStatusBadge(apt.status)}
-                        </div>
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
-                            <User className="w-3 h-3 text-muted-foreground" />
-                            <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Wrench className="w-3 h-3" />
-                            <span>{apt.products?.name || 'Serviço'}</span>
-                          </div>
-                          {apt.clients?.address && (
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 text-sm">
+                              <User className="w-3 h-3 text-muted-foreground" />
+                              <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
+                            </div>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <MapPin className="w-3 h-3" />
-                              <span className="truncate text-xs">{apt.clients.address}</span>
+                              <Wrench className="w-3 h-3" />
+                              <span>{apt.products?.name || 'Serviço'}</span>
+                            </div>
+                            {apt.clients?.address && (
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="w-3 h-3" />
+                                <span className="truncate text-xs">{apt.clients.address}</span>
+                              </div>
+                            )}
+                            {apt.notes && (
+                              <p className="text-xs text-muted-foreground italic mt-1 pl-5">
+                                "{apt.notes}"
+                              </p>
+                            )}
+                            {canQuickDecide && (
+                              <p className="text-xs text-primary mt-2 pl-5">
+                                Toque no card para decidir: serviço feito ou não feito.
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Status Action Buttons */}
+                          {!canQuickDecide && apt.status !== 'concluido' && apt.status !== 'cancelado' && (
+                            <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                              {apt.status !== 'confirmado' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateStatusMutation.mutate({ id: apt.id, status: 'confirmado' });
+                                  }}
+                                >
+                                  <Play className="w-3 h-3 mr-1" /> Confirmar
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateStatusMutation.mutate({ id: apt.id, status: 'concluido' });
+                                }}
+                              >
+                                <Check className="w-3 h-3 mr-1" /> Concluir
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateStatusMutation.mutate({ id: apt.id, status: 'cancelado' });
+                                }}
+                              >
+                                <X className="w-3 h-3 mr-1" /> Cancelar
+                              </Button>
                             </div>
                           )}
-                          {apt.notes && (
-                            <p className="text-xs text-muted-foreground italic mt-1 pl-5">
-                              "{apt.notes}"
-                            </p>
+                          {!canQuickDecide && (apt.status === 'concluido' || apt.status === 'cancelado') && (
+                            <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs h-7 flex-1"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateStatusMutation.mutate({ id: apt.id, status: 'agendado' });
+                                }}
+                              >
+                                ↩️ Reabrir
+                              </Button>
+                            </div>
                           )}
-                        </div>
-                        {/* Status Action Buttons */}
-                        {apt.status !== 'concluido' && apt.status !== 'cancelado' && (
-                          <div className="flex gap-1.5 mt-3 pt-2 border-t">
-                            {apt.status !== 'confirmado' && (
-                              <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                                onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'confirmado' })}>
-                                <Play className="w-3 h-3 mr-1" /> Confirmar
+
+                          {/* Navigation + Contact */}
+                          <div className="flex gap-1.5 mt-2">
+                            {apt.clients?.address && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs h-6 flex-1 text-muted-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank');
+                                  }}
+                                >
+                                  <Navigation className="w-3 h-3 mr-1" /> Maps
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="text-xs h-6 flex-1 text-muted-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank');
+                                  }}
+                                >
+                                  <MapPin className="w-3 h-3 mr-1" /> Waze
+                                </Button>
+                              </>
+                            )}
+                            {apt.clients?.telefone && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-xs h-6 text-muted-foreground"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank');
+                                }}
+                              >
+                                <Phone className="w-3 h-3 mr-1" /> WhatsApp
                               </Button>
                             )}
-                            <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
-                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'concluido' })}>
-                              <Check className="w-3 h-3 mr-1" /> Concluir
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'cancelado' })}>
-                              <X className="w-3 h-3 mr-1" /> Cancelar
-                            </Button>
                           </div>
-                        )}
-                        {(apt.status === 'concluido' || apt.status === 'cancelado') && (
-                          <div className="flex gap-1.5 mt-3 pt-2 border-t">
-                            <Button size="sm" variant="ghost" className="text-xs h-7 flex-1"
-                              onClick={() => updateStatusMutation.mutate({ id: apt.id, status: 'agendado' })}>
-                              ↩️ Reabrir
-                            </Button>
-                          </div>
-                        )}
-                        {/* Navigation + Contact */}
-                        <div className="flex gap-1.5 mt-2">
-                          {apt.clients?.address && (
-                            <>
-                              <Button size="sm" variant="ghost" className="text-xs h-6 flex-1 text-muted-foreground"
-                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}>
-                                <Navigation className="w-3 h-3 mr-1" /> Maps
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-xs h-6 flex-1 text-muted-foreground"
-                                onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank')}>
-                                <MapPin className="w-3 h-3 mr-1" /> Waze
-                              </Button>
-                            </>
-                          )}
-                          {apt.clients?.telefone && (
-                            <Button size="sm" variant="ghost" className="text-xs h-6 text-muted-foreground"
-                              onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}>
-                              <Phone className="w-3 h-3 mr-1" /> WhatsApp
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
             </ScrollArea>
@@ -463,6 +534,46 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           </CardContent>
         </Card>
       </div>
+
+      <Dialog open={!!decisionAppointment} onOpenChange={(open) => !open && setDecisionAppointment(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Finalizar atendimento</DialogTitle>
+            <DialogDescription>
+              {decisionAppointment
+                ? `${decisionAppointment.clients?.name || 'Cliente'} • ${format(parseISO(decisionAppointment.appointment_date), "dd/MM 'às' HH:mm")}`
+                : 'Selecione a decisão do atendimento'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-2">
+            <Button
+              className="w-full"
+              onClick={() => {
+                if (!decisionAppointment) return;
+                updateStatusMutation.mutate({ id: decisionAppointment.id, status: 'concluido' });
+                setDecisionAppointment(null);
+              }}
+            >
+              <Check className="w-4 h-4 mr-2" /> Serviço feito
+            </Button>
+            <Button
+              variant="destructive"
+              className="w-full"
+              onClick={() => {
+                if (!decisionAppointment) return;
+                updateStatusMutation.mutate({ id: decisionAppointment.id, status: 'cancelado' });
+                setDecisionAppointment(null);
+              }}
+            >
+              <X className="w-4 h-4 mr-2" /> Serviço não feito
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setDecisionAppointment(null)}>
+              Fechar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
