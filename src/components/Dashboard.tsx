@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, PartyPopper, Snowflake } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -332,6 +332,10 @@ const Dashboard: React.FC = () => {
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [showInstallBanner, setShowInstallBanner] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const companyName = localStorage.getItem('company_name') || '';
+    const today = new Date();
+    const currentMonth = format(today, 'MMMM', { locale: ptBR });
+    const currentDate = format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -435,6 +439,30 @@ const Dashboard: React.FC = () => {
 
     return (
     <div className="space-y-6">
+      {/* Welcome Header */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold">
+                👋 Seja bem-vindo{companyName ? `, ${companyName}` : ''}!
+              </h2>
+              <p className="text-sm text-muted-foreground capitalize mt-1">
+                📅 {currentDate}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="text-xs capitalize">
+                {currentMonth}
+              </Badge>
+              <Badge variant="outline" className="text-xs">
+                {format(today, 'yyyy')}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* License/Subscription Status Card */}
       {subscriptionData && (
         <Card className={`border-2 ${
@@ -791,45 +819,54 @@ const Dashboard: React.FC = () => {
           </Card>
         )}
 
-        {/* Brazilian Holidays */}
+        {/* Brazilian Holidays with WhatsApp */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <CalendarDays className="w-4 h-4 text-primary" />
-              Próximos Feriados
+              Próximos Feriados 🇧🇷
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             {(() => {
-              const today = new Date();
-              const holidays = getBrazilianHolidays(today.getFullYear());
-              const upcoming = holidays
-                .filter(h => h.date >= today || (h.date.toDateString() === today.toDateString()))
-                .slice(0, 4);
+              const now = new Date();
+              const holidays = getBrazilianHolidays(now.getFullYear());
+              const nextYearHolidays = getBrazilianHolidays(now.getFullYear() + 1);
+              let upcoming = holidays
+                .filter(h => h.date >= now || (h.date.toDateString() === now.toDateString()))
+                .slice(0, 5);
               
-              if (upcoming.length === 0) {
-                const nextYear = getBrazilianHolidays(today.getFullYear() + 1);
-                return nextYear.slice(0, 4).map((h, i) => (
-                  <div key={i} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm">
-                    <span>{h.name}</span>
-                    <span className="text-xs text-muted-foreground">{format(h.date, 'dd/MM')}</span>
-                  </div>
-                ));
+              if (upcoming.length < 5) {
+                upcoming = [...upcoming, ...nextYearHolidays.slice(0, 5 - upcoming.length)];
               }
               
               return upcoming.map((h, i) => {
-                const days = differenceInDays(h.date, today);
-                const isHolidayToday = h.date.toDateString() === today.toDateString();
+                const days = differenceInDays(h.date, now);
+                const isHolidayToday = h.date.toDateString() === now.toDateString();
+                const holidayMsg = `Olá! 😊\n\nLembrando que ${format(h.date, "dd/MM (EEEE)", { locale: ptBR })} é feriado: ${h.name.replace(/[^\w\sáéíóúãõâêîôûàèìòùçÁÉÍÓÚÃÕÂÊÎÔÛÀÈÌÒÙÇ]/g, '').trim()}.\n\nNosso atendimento pode ter horário diferenciado. Qualquer dúvida entre em contato!\n\n${companyName || 'Equipe'}`;
+
                 return (
-                  <div key={i} className={`flex items-center justify-between p-2 rounded-lg text-sm ${isHolidayToday ? 'bg-primary/10 border border-primary/30' : 'bg-muted/50'}`}>
-                    <span className={isHolidayToday ? 'font-bold' : ''}>{h.name}</span>
-                    <div className="flex items-center gap-2">
+                  <div key={i} className={`flex items-center justify-between p-2 rounded-lg text-sm gap-2 ${isHolidayToday ? 'bg-primary/10 border border-primary/30 animate-pulse' : 'bg-muted/50'}`}>
+                    <span className={`flex-1 ${isHolidayToday ? 'font-bold' : ''}`}>{h.name}</span>
+                    <div className="flex items-center gap-1.5">
                       <span className="text-xs text-muted-foreground">{format(h.date, 'dd/MM')}</span>
                       {isHolidayToday ? (
                         <Badge className="text-[10px]">HOJE</Badge>
                       ) : (
                         <Badge variant="outline" className="text-[10px]">{days}d</Badge>
                       )}
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-6 w-6 text-green-600 hover:text-green-500 hover:bg-green-500/10"
+                        title="Avisar clientes sobre feriado"
+                        onClick={() => {
+                          // Open WhatsApp with holiday message (user picks contact)
+                          window.open(`https://wa.me/?text=${encodeURIComponent(holidayMsg)}`, '_blank');
+                        }}
+                      >
+                        <Send className="w-3 h-3" />
+                      </Button>
                     </div>
                   </div>
                 );
@@ -999,7 +1036,8 @@ const Dashboard: React.FC = () => {
                     <Button size="sm" variant="outline" className="h-7 text-green-600 border-green-300"
                       onClick={() => {
                         const clean = client.telefone.replace(/\D/g, '');
-                        const msg = `Olá ${client.name}! 🎂🎉\n\nParabéns pelo seu aniversário! Desejamos muitas felicidades e sucesso!\n\nUm abraço da equipe AC Service Pro! ❤️`;
+                        const name = companyName || 'AC Service Pro';
+                        const msg = `Olá ${client.name}! 🎂🎉\n\nParabéns pelo seu aniversário! Desejamos muitas felicidades e sucesso!\n\nUm abraço da equipe ${name}! ❤️`;
                         window.open(`https://wa.me/55${clean}?text=${encodeURIComponent(msg)}`, '_blank');
                       }}>
                       <Phone className="w-3 h-3 mr-1" /> Parabenizar
@@ -1017,11 +1055,24 @@ const Dashboard: React.FC = () => {
           <Gift className="h-4 w-4 text-fuchsia-600" />
           <AlertTitle className="text-fuchsia-800 dark:text-fuchsia-200">🎁 Aniversários Próximos (7 dias)</AlertTitle>
           <AlertDescription className="text-fuchsia-700 dark:text-fuchsia-300">
-            {upcomingBirthdays.slice(0, 5).map((client: any) => (
-              <span key={client.id} className="block text-sm">
-                {client.name} em {client.daysUntil} dia(s) ({client.age} anos)
-              </span>
-            ))}
+            <div className="space-y-2 mt-2">
+              {upcomingBirthdays.slice(0, 5).map((client: any) => (
+                <div key={client.id} className="flex items-center justify-between">
+                  <span className="text-sm">{client.name} em {client.daysUntil} dia(s) ({client.age} anos)</span>
+                  {client.telefone && (
+                    <Button size="sm" variant="outline" className="h-6 text-xs text-green-600 border-green-300"
+                      onClick={() => {
+                        const clean = client.telefone.replace(/\D/g, '');
+                        const name = companyName || 'AC Service Pro';
+                        const msg = `Olá ${client.name}! 🎂\n\nSeu aniversário está chegando! A equipe ${name} deseja tudo de melhor! 🎉`;
+                        window.open(`https://wa.me/55${clean}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}>
+                      <Send className="w-3 h-3 mr-1" /> Enviar
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
           </AlertDescription>
         </Alert>
       )}
