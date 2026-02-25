@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Settings2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Activity, Gift } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Activity, Gift } from "lucide-react";
 import { format } from "date-fns";
-import { AdminSettingsTab } from "@/components/AdminSettingsTab";
+
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
 import AdminIntegrationsTab from "@/components/AdminIntegrationsTab";
 import AdminN8nTab from "@/components/AdminN8nTab";
@@ -219,10 +219,6 @@ export default function Members() {
             <TabsTrigger value="notifications" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
               <Bell className="w-4 h-4 mr-2" />
               Notificações
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
-              <Settings2 className="w-4 h-4 mr-2" />
-              Configurações Checkout
             </TabsTrigger>
             <TabsTrigger value="integrations" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
               <Zap className="w-4 h-4 mr-2" />
@@ -447,9 +443,6 @@ export default function Members() {
         </Card>
           </TabsContent>
 
-          <TabsContent value="settings" className="mt-6">
-            <AdminSettingsTab />
-          </TabsContent>
 
           <TabsContent value="integrations" className="mt-6">
             <AdminIntegrationsTab />

@@ -241,19 +241,22 @@ export const AdminLandingTab: React.FC = () => {
             </CardTitle>
             <Button size="sm" variant="ghost" onClick={() => {
               const iframe = document.getElementById('landing-preview') as HTMLIFrameElement;
-              if (iframe) iframe.src = iframe.src; // reload
+              if (iframe) {
+                iframe.src = iframe.src;
+              }
             }} className="text-gray-400 hover:text-white h-7">
               <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
             </Button>
           </div>
         </CardHeader>
         <CardContent className="p-2">
-          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black" style={{ height: '400px' }}>
+          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '400px' }}>
             <iframe 
               id="landing-preview"
-              src="/" 
-              className="w-full h-full"
+              src={window.location.origin + '/'}
+              className="w-full h-full border-0"
               style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
+              sandbox="allow-scripts allow-same-origin allow-popups"
             />
           </div>
         </CardContent>
