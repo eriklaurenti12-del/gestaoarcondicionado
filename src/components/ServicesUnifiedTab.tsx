@@ -519,6 +519,11 @@ const ServicesUnifiedTab: React.FC = () => {
     onError: (error: any) => toast.error(error.message)
   });
 
+  const [terminationDialogOpen, setTerminationDialogOpen] = useState(false);
+  const [terminationContract, setTerminationContract] = useState<Contract | null>(null);
+  const [terminationType, setTerminationType] = useState<'quebra' | 'finalizacao'>('finalizacao');
+  const [terminationReason, setTerminationReason] = useState('');
+
   const deleteContractMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('maintenance_contracts').delete().eq('id', id);
@@ -530,6 +535,128 @@ const ServicesUnifiedTab: React.FC = () => {
     },
     onError: (error: any) => toast.error(error.message)
   });
+
+  const generateTerminationPDF = (contract: Contract, type: 'quebra' | 'finalizacao', reason: string) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    let y = 20;
+
+    doc.setDrawColor(type === 'quebra' ? 200 : 0, type === 'quebra' ? 50 : 120, type === 'quebra' ? 50 : 200);
+    doc.setLineWidth(0.8);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 8;
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(type === 'quebra' ? 180 : 0, type === 'quebra' ? 0 : 80, type === 'quebra' ? 0 : 160);
+    const title = type === 'quebra' ? 'TERMO DE RESCISÃO CONTRATUAL' : 'TERMO DE FINALIZAÇÃO DE CONTRATO';
+    doc.text(title, pageWidth / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Referente ao Contrato Nº ${String(contract.contract_number).padStart(4, '0')}`, pageWidth / 2, y, { align: 'center' });
+    y += 4;
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 12;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+
+    // Partes
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONTRATADA:', margin, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+    if (companyData) {
+      doc.text(`${companyData.company_name} - CNPJ/CPF: ${companyData.cnpj_cpf}`, margin + 5, y); y += 6;
+      if (companyData.address) { doc.text(`Endereço: ${companyData.address}`, margin + 5, y); y += 6; }
+    }
+    y += 4;
+    doc.setFont('helvetica', 'bold');
+    doc.text('CONTRATANTE:', margin, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${contract.client.name}`, margin + 5, y); y += 6;
+    if (contract.client.address) { doc.text(`Endereço: ${contract.client.address}`, margin + 5, y); y += 6; }
+    if (contract.client.telefone) { doc.text(`Telefone: ${contract.client.telefone}`, margin + 5, y); y += 6; }
+    y += 8;
+
+    // Dados do contrato
+    doc.setFont('helvetica', 'bold');
+    doc.text('DADOS DO CONTRATO:', margin, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Título: ${contract.title}`, margin + 5, y); y += 6;
+    doc.text(`Vigência: ${format(new Date(contract.start_date), 'dd/MM/yyyy')} a ${contract.end_date ? format(new Date(contract.end_date), 'dd/MM/yyyy') : 'Indeterminado'}`, margin + 5, y); y += 6;
+    doc.text(`Valor Mensal: R$ ${contract.monthly_value.toFixed(2)}`, margin + 5, y); y += 6;
+    doc.text(`Intervalo de Limpezas: A cada ${contract.cleaning_interval_months} meses`, margin + 5, y); y += 10;
+
+    // Motivo
+    doc.setFont('helvetica', 'bold');
+    const motivoTitulo = type === 'quebra' ? 'MOTIVO DA RESCISÃO:' : 'MOTIVO DA FINALIZAÇÃO:';
+    doc.text(motivoTitulo, margin, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+    const reasonText = reason || (type === 'quebra' 
+      ? 'Rescisão contratual por iniciativa das partes, conforme condições estabelecidas no contrato original.' 
+      : 'Contrato encerrado por cumprimento integral do prazo de vigência estabelecido.');
+    const reasonLines = doc.splitTextToSize(reasonText, pageWidth - 2 * margin - 10);
+    doc.text(reasonLines, margin + 5, y); y += reasonLines.length * 5 + 8;
+
+    // Data
+    doc.text(`Data de ${type === 'quebra' ? 'Rescisão' : 'Finalização'}: ${format(new Date(), 'dd/MM/yyyy')}`, margin + 5, y); y += 12;
+
+    // Cláusula
+    doc.setFont('helvetica', 'bold');
+    doc.text('DISPOSIÇÕES FINAIS:', margin, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+    const clausula = type === 'quebra'
+      ? 'As partes declaram que não possuem mais obrigações pendentes referentes ao contrato rescindido, ressalvadas eventuais obrigações financeiras já vencidas e não quitadas até a presente data.'
+      : 'As partes declaram que o contrato foi integralmente cumprido, não restando obrigações pendentes entre as partes.';
+    const clausulaLines = doc.splitTextToSize(clausula, pageWidth - 2 * margin - 10);
+    doc.text(clausulaLines, margin + 5, y); y += clausulaLines.length * 5 + 20;
+
+    // Assinaturas
+    if (y > 230) { doc.addPage(); y = 20; }
+    y = Math.max(y, 220);
+    
+    const dataLocal = `${companyData?.address?.split(',')[0]?.split('-')[0]?.trim() || 'Local'}, ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+    doc.setTextColor(100, 100, 100);
+    doc.text(dataLocal, pageWidth / 2, y, { align: 'center' });
+    y += 20;
+
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, margin + 70, y);
+    doc.line(pageWidth - margin - 70, y, pageWidth - margin, y);
+    y += 5;
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text(companyData?.company_name || 'CONTRATADA', margin + 35, y, { align: 'center' });
+    doc.text(contract.client.name, pageWidth - margin - 35, y, { align: 'center' });
+
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    doc.text(`Documento gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+    const typeLabel = type === 'quebra' ? 'Rescisao' : 'Finalizacao';
+    doc.save(`${typeLabel}_Contrato_${String(contract.contract_number).padStart(4, '0')}_${contract.client.name.replace(/\s/g, '_')}.pdf`);
+    toast.success(`Documento de ${type === 'quebra' ? 'rescisão' : 'finalização'} gerado!`);
+  };
+
+  const handleTerminateContract = () => {
+    if (!terminationContract) return;
+    generateTerminationPDF(terminationContract, terminationType, terminationReason);
+    // Update contract status
+    supabase.from('maintenance_contracts')
+      .update({ status: 'cancelado' })
+      .eq('id', terminationContract.id)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+      });
+    setTerminationDialogOpen(false);
+    setTerminationContract(null);
+    setTerminationReason('');
+  };
 
   const renewContractMutation = useMutation({
     mutationFn: async (contract: Contract) => {
@@ -1370,10 +1497,17 @@ const ServicesUnifiedTab: React.FC = () => {
                           <TableCell>R$ {contract.monthly_value.toFixed(2)}</TableCell>
                           <TableCell>{getContractStatusBadge(contract)}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1">
-                              <Button size="sm" variant="outline" onClick={() => generateContractPDF(contract)}><Download className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="outline" onClick={() => renewContractMutation.mutate(contract)}><RefreshCw className="w-4 h-4" /></Button>
-                              <Button size="sm" variant="destructive" onClick={() => deleteContractMutation.mutate(contract.id)}><Trash2 className="w-4 h-4" /></Button>
+                          <div className="flex gap-1">
+                              <Button size="sm" variant="outline" onClick={() => generateContractPDF(contract)} title="Baixar contrato"><Download className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" onClick={() => renewContractMutation.mutate(contract)} title="Renovar"><RefreshCw className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" className="text-amber-600 border-amber-300 hover:bg-amber-50" 
+                                onClick={() => { setTerminationContract(contract); setTerminationDialogOpen(true); }}
+                                title="Encerrar/Rescindir">
+                                <FileText className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="destructive" onClick={() => {
+                                if (window.confirm('Excluir contrato permanentemente?')) deleteContractMutation.mutate(contract.id);
+                              }} title="Excluir"><Trash2 className="w-4 h-4" /></Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1517,6 +1651,56 @@ const ServicesUnifiedTab: React.FC = () => {
             <Button variant="outline" onClick={() => { setContractDialogOpen(false); resetContractForm(); }}>Cancelar</Button>
             <Button onClick={() => createContractMutation.mutate(contractFormData)} disabled={!contractFormData.clientId || !contractFormData.title || createContractMutation.isPending}>
               {createContractMutation.isPending ? 'Salvando...' : 'Criar Contrato'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Termination Dialog */}
+      <Dialog open={terminationDialogOpen} onOpenChange={setTerminationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-amber-500" />
+              Encerrar Contrato
+            </DialogTitle>
+            <DialogDescription>
+              {terminationContract && `Contrato #${terminationContract.contract_number} - ${terminationContract.client.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Tipo de Encerramento</Label>
+              <Select value={terminationType} onValueChange={(v: 'quebra' | 'finalizacao') => setTerminationType(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent avoidCollisions={false}>
+                  <SelectItem value="finalizacao">✅ Finalização (cumprimento do prazo)</SelectItem>
+                  <SelectItem value="quebra">❌ Rescisão (quebra de contrato)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Motivo / Observações</Label>
+              <Textarea value={terminationReason} onChange={e => setTerminationReason(e.target.value)}
+                placeholder={terminationType === 'quebra' 
+                  ? "Descreva o motivo da rescisão contratual..." 
+                  : "Observações sobre a finalização do contrato..."} 
+                rows={3} />
+            </div>
+            {terminationType === 'quebra' && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-red-700 dark:text-red-400 text-sm">
+                  ⚠️ A rescisão contratual gera um documento formal. O contrato será marcado como cancelado.
+                </p>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTerminationDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleTerminateContract}
+              className={terminationType === 'quebra' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}>
+              <Download className="w-4 h-4 mr-2" />
+              Gerar Documento e Encerrar
             </Button>
           </DialogFooter>
         </DialogContent>
