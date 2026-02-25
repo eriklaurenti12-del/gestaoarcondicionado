@@ -3,9 +3,11 @@ import { Clock, Flame, Zap } from 'lucide-react';
 
 interface PromoCountdownProps {
   endDate?: string;
+  text?: string;
+  discountBadge?: string;
 }
 
-export const PromoCountdown: React.FC<PromoCountdownProps> = ({ endDate }) => {
+export const PromoCountdown: React.FC<PromoCountdownProps> = ({ endDate, text, discountBadge }) => {
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -81,7 +83,7 @@ export const PromoCountdown: React.FC<PromoCountdownProps> = ({ endDate }) => {
         <div className="flex items-center gap-2 animate-pulse">
           <Zap className="w-5 h-5" />
           <span className="font-bold text-sm sm:text-base">
-            🔥 PROMOÇÃO POR TEMPO LIMITADO!
+            {text || '🔥 PROMOÇÃO POR TEMPO LIMITADO!'}
           </span>
         </div>
 
@@ -99,7 +101,7 @@ export const PromoCountdown: React.FC<PromoCountdownProps> = ({ endDate }) => {
         </div>
 
         <span className="text-xs sm:text-sm font-medium bg-white/20 px-2 py-1 rounded-full">
-          22% OFF Plano Anual
+          {discountBadge || '22% OFF Plano Anual'}
         </span>
       </div>
 

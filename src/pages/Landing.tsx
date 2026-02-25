@@ -19,26 +19,7 @@ import {
 import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
 import { PromoCountdown } from "@/components/PromoCountdown";
 
-type AdminSettings = {
-  checkout_mensal: string;
-  checkout_anual: string;
-  whatsapp_suporte: string;
-  promo_end_date: string;
-  landing_preco_mensal: string;
-  landing_preco_anual: string;
-  landing_preco_anual_original: string;
-  landing_economia_anual: string;
-  landing_preco_mensal_equivalente: string;
-  landing_hero_titulo: string;
-  landing_hero_subtitulo: string;
-  landing_hero_descricao: string;
-  landing_social_proof_count: string;
-  landing_social_proof_rating: string;
-  landing_garantia_dias: string;
-  landing_btn_cta_texto: string;
-  landing_badge_urgencia: string;
-  landing_frase_destaque: string;
-};
+type AdminSettings = Record<string, string>;
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -71,6 +52,40 @@ const Landing: React.FC = () => {
     landing_btn_cta_texto: 'QUERO PARAR DE PERDER DINHEIRO',
     landing_badge_urgencia: 'ATENÇÃO: Você está perdendo dinheiro todo dia sem saber',
     landing_frase_destaque: 'O único sistema de Ar Condicionado que você realmente vai usar — porque é simples igual WhatsApp, mas organiza TUDO.',
+    landing_countdown_texto: '🔥 PROMOÇÃO POR TEMPO LIMITADO!',
+    landing_countdown_desconto: '22% OFF Plano Anual',
+    landing_notif_ativa: 'true',
+    landing_notif_som: 'true',
+    landing_notif_intervalo: '10',
+    landing_oferta1_titulo: 'Plano Mensal',
+    landing_oferta1_descricao: 'Para testar e ver resultado rápido',
+    landing_oferta1_badge: '',
+    landing_oferta1_ativa: 'true',
+    landing_oferta2_titulo: 'Plano Anual',
+    landing_oferta2_descricao: 'Para quem quer economizar de verdade',
+    landing_oferta2_badge: 'MAIS ESCOLHIDO',
+    landing_oferta2_ativa: 'true',
+    landing_cor_primaria: '#06b6d4',
+    landing_cor_secundaria: '#3b82f6',
+    landing_cor_destaque: '#f59e0b',
+    landing_cor_fundo: '#0f172a',
+    landing_cor_botao_cta: '#22c55e',
+    landing_depoimento1_nome: 'Carlos M.',
+    landing_depoimento1_role: 'Técnico Autônomo - SP',
+    landing_depoimento1_texto: 'Eu perdia cliente por esquecer de ligar. Agora o sistema me lembra de tudo. Triplicou meus agendamentos!',
+    landing_depoimento1_estrelas: '5',
+    landing_depoimento2_nome: 'Ana Paula',
+    landing_depoimento2_role: 'Dona de Empresa - RJ',
+    landing_depoimento2_texto: 'Parei de perder dinheiro sem saber. Descobri que tinha funcionário me roubando. O financeiro mostrou tudo.',
+    landing_depoimento2_estrelas: '5',
+    landing_depoimento3_nome: 'Roberto S.',
+    landing_depoimento3_role: 'Técnico há 15 anos - MG',
+    landing_depoimento3_texto: 'Achava que era difícil, mas é mais fácil que WhatsApp. Em 10 minutos já tava usando.',
+    landing_depoimento3_estrelas: '5',
+    landing_depoimento4_nome: 'Marcos L.',
+    landing_depoimento4_role: 'Autônomo - BA',
+    landing_depoimento4_texto: 'O melhor investimento que fiz. Por menos de R$40 eu tenho o que empresas grandes pagam milhares.',
+    landing_depoimento4_estrelas: '5',
   });
 
   // Load admin settings
@@ -235,21 +250,30 @@ const Landing: React.FC = () => {
     { icon: Shield, title: "Nunca Perde Dados", desc: "Tudo salvo na nuvem, sempre" },
   ];
 
-  const testimonials = [
-    { name: "Carlos M.", role: "Técnico Autônomo - SP", text: "Eu perdia cliente por esquecer de ligar. Agora o sistema me lembra de tudo. Triplicou meus agendamentos!", stars: 5 },
-    { name: "Ana Paula", role: "Dona de Empresa - RJ", text: "Parei de perder dinheiro sem saber. Descobri que tinha funcionário me roubando. O financeiro mostrou tudo.", stars: 5 },
-    { name: "Roberto S.", role: "Técnico há 15 anos - MG", text: "Achava que era difícil, mas é mais fácil que WhatsApp. Em 10 minutos já tava usando.", stars: 5 },
-    { name: "Marcos L.", role: "Autônomo - BA", text: "O melhor investimento que fiz. Por menos de R$40 eu tenho o que empresas grandes pagam milhares.", stars: 5 },
-  ];
+  const testimonials = [1, 2, 3, 4].map(i => ({
+    name: settings[`landing_depoimento${i}_nome`] || '',
+    role: settings[`landing_depoimento${i}_role`] || '',
+    text: settings[`landing_depoimento${i}_texto`] || '',
+    stars: Number(settings[`landing_depoimento${i}_estrelas`] || 5),
+  })).filter(t => t.name && t.text);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-cyan-950 text-white overflow-x-hidden">
       {/* Subscription Notifications */}
-      <SubscriptionNotifications />
+      {settings.landing_notif_ativa !== 'false' && (
+        <SubscriptionNotifications 
+          interval={Number(settings.landing_notif_intervalo || 10) * 1000}
+          soundEnabled={settings.landing_notif_som !== 'false'}
+        />
+      )}
 
       {/* Promo Countdown Timer - now part of header flow, not overlapping */}
       <div className="fixed top-0 left-0 right-0 z-[60]">
-        <PromoCountdown endDate={settings.promo_end_date || undefined} />
+        <PromoCountdown 
+          endDate={settings.promo_end_date || undefined}
+          text={settings.landing_countdown_texto}
+          discountBadge={settings.landing_countdown_desconto}
+        />
         {/* Header fixo - inside promo container */}
         <header className="bg-slate-900/80 backdrop-blur-lg border-b border-cyan-500/20">
           <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -557,11 +581,11 @@ const Landing: React.FC = () => {
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm relative overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
-                  <span className="text-white text-lg">Plano Mensal</span>
+                  <span className="text-white text-lg">{settings.landing_oferta1_titulo || 'Plano Mensal'}</span>
                   <Clock className="w-5 h-5 text-gray-400" />
                 </CardTitle>
                 <CardDescription className="text-gray-400 text-sm">
-                  Para testar e ver resultado rápido
+                  {settings.landing_oferta1_descricao || 'Para testar e ver resultado rápido'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-4">
@@ -597,20 +621,22 @@ const Landing: React.FC = () => {
 
             {/* Plano Anual */}
             <Card className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 backdrop-blur-sm relative overflow-hidden">
-              <div className="absolute top-3 right-3">
-                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs">
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  MAIS ESCOLHIDO
-                </Badge>
-              </div>
+              {settings.landing_oferta2_badge && (
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs">
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    {settings.landing_oferta2_badge}
+                  </Badge>
+                </div>
+              )}
               
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2">
                   <Crown className="w-5 h-5 text-amber-400" />
-                  <span className="text-white text-lg">Plano Anual</span>
+                  <span className="text-white text-lg">{settings.landing_oferta2_titulo || 'Plano Anual'}</span>
                 </CardTitle>
                 <CardDescription className="text-cyan-300 text-sm">
-                  Para quem quer economizar de verdade
+                  {settings.landing_oferta2_descricao || 'Para quem quer economizar de verdade'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="pb-4">
