@@ -1017,6 +1017,39 @@ export type Database = {
         }
         Relationships: []
       }
+      team_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          accepted_email: string | null
+          created_at: string
+          created_by: string
+          id: string
+          invite_code: string
+          status: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          accepted_email?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          invite_code: string
+          status?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          accepted_email?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          invite_code?: string
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Wind } from "lucide-react";
+import { Loader2, Mail, Lock, Wind, Users } from "lucide-react";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const teamCode = searchParams.get('team');
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
@@ -55,7 +57,7 @@ export default function Auth() {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: signUpData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -63,10 +65,26 @@ export default function Auth() {
         }
       });
       if (error) throw error;
-      toast({
-        title: "Cadastro realizado!",
-        description: "Você já pode fazer login."
-      });
+
+      // If team invite code, accept it
+      if (teamCode && signUpData.user) {
+        await supabase.functions.invoke('accept-team-invite', {
+          body: {
+            invite_code: teamCode,
+            user_id: signUpData.user.id,
+            user_email: email
+          }
+        });
+        toast({
+          title: "🎉 Bem-vindo à equipe!",
+          description: "Conta criada com acesso de co-administrador."
+        });
+      } else {
+        toast({
+          title: "Cadastro realizado!",
+          description: "Você já pode fazer login."
+        });
+      }
       setEmail("");
       setPassword("");
     } catch (error: any) {
@@ -298,7 +316,15 @@ export default function Auth() {
                 <TabsContent value="signup" className="p-6 space-y-4">
                   <div className="text-center space-y-1 mb-4">
                     <h2 className="text-xl font-bold text-white">CRIAR CONTA</h2>
-                    <p className="text-xs text-cyan-200/50">Cadastre-se gratuitamente</p>
+                    <p className="text-xs text-cyan-200/50">
+                      {teamCode ? '🔗 Convite de equipe detectado' : 'Cadastre-se gratuitamente'}
+                    </p>
+                    {teamCode && (
+                      <div className="flex items-center justify-center gap-2 mt-2 p-2 bg-cyan-500/10 rounded-lg border border-cyan-500/30">
+                        <Users className="w-4 h-4 text-cyan-400" />
+                        <span className="text-cyan-300 text-xs font-medium">Acesso Co-Admin ao criar conta</span>
+                      </div>
+                    )}
                   </div>
 
                   <form onSubmit={handleSignUp} className="space-y-4">
