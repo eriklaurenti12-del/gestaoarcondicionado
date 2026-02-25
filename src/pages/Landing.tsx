@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -41,9 +41,21 @@ const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, ans
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const [showLogin, setShowLogin] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+
+  // Handle ?login=true and ?cadastro=true query params
+  useEffect(() => {
+    if (searchParams.get('login') === 'true') {
+      setShowLogin(true);
+      setIsLogin(true);
+    } else if (searchParams.get('cadastro') === 'true') {
+      setShowLogin(true);
+      setIsLogin(false);
+    }
+  }, [searchParams]);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
