@@ -636,6 +636,36 @@ export type Database = {
           },
         ]
       }
+      raffle_history: {
+        Row: {
+          created_at: string
+          id: string
+          is_claimed: boolean | null
+          prize: string
+          winner_email: string
+          winner_notified: boolean | null
+          winner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_claimed?: boolean | null
+          prize: string
+          winner_email: string
+          winner_notified?: boolean | null
+          winner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_claimed?: boolean | null
+          prize?: string
+          winner_email?: string
+          winner_notified?: boolean | null
+          winner_user_id?: string | null
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           client_id: number
