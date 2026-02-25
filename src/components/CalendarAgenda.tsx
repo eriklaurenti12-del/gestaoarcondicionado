@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Pencil } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isPast, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -14,7 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const fetchAppointments = async () => {
   const { data, error } = await supabase
     .from('appointments')
-    .select('*, clients(name, telefone), products(name, price)')
+    .select('*, clients(name, telefone, address), products(name, price)')
     .order('appointment_date');
   if (error) throw error;
   return data || [];
@@ -338,10 +338,51 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             <Wrench className="w-3 h-3" />
                             <span>{apt.products?.name || 'Serviço'}</span>
                           </div>
+                          {apt.clients?.address && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <MapPin className="w-3 h-3" />
+                              <span className="truncate text-xs">{apt.clients.address}</span>
+                            </div>
+                          )}
                           {apt.notes && (
-                            <p className="text-xs text-muted-foreground italic mt-2 pl-5">
+                            <p className="text-xs text-muted-foreground italic mt-1 pl-5">
                               "{apt.notes}"
                             </p>
+                          )}
+                        </div>
+                        {/* GPS + WhatsApp buttons */}
+                        <div className="flex gap-2 mt-3 pt-2 border-t">
+                          {apt.clients?.address && (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7 flex-1"
+                                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}
+                              >
+                                <Navigation className="w-3 h-3 mr-1" />
+                                Maps
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="text-xs h-7 flex-1"
+                                onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank')}
+                              >
+                                <MapPin className="w-3 h-3 mr-1" />
+                                Waze
+                              </Button>
+                            </>
+                          )}
+                          {apt.clients?.telefone && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                              onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}
+                            >
+                              📱
+                            </Button>
                           )}
                         </div>
                       </CardContent>
