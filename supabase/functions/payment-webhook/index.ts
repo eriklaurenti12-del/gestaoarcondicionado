@@ -205,11 +205,29 @@ Deno.serve(async (req) => {
       userPhone = profile?.phone || null;
     }
 
-    // Determine plan based on amount
-    const isMonthly = amount <= 50;
-    const plan = isMonthly ? 'mensal' : 'anual';
-    const planName = isMonthly ? 'Mensal' : 'Anual';
-    const durationMonths = isMonthly ? 1 : 12;
+    // Determine plan based on amount - configurable thresholds
+    // Check admin_settings for custom price thresholds
+    const { data: precosSettings } = await supabase
+      .from('admin_settings')
+      .select('key, value')
+      .in('key', ['preco_mensal', 'preco_anual']);
+    
+    const precoMensal = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_mensal')?.value || '50');
+    const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '200');
+    
+    let plan = 'mensal';
+    let planName = 'Mensal';
+    let durationMonths = 1;
+    
+    if (amount >= precoAnual * 0.8) {
+      plan = 'anual';
+      planName = 'Anual';
+      durationMonths = 12;
+    } else {
+      plan = 'mensal';
+      planName = 'Mensal';
+      durationMonths = 1;
+    }
     
     const startDate = new Date();
     const endDate = new Date();

@@ -215,6 +215,64 @@ const fetchDashboardData = async () => {
     };
 };
 
+const RaffleWinsBanner: React.FC = () => {
+  const [wins, setWins] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadWins = async () => {
+      const { data } = await supabase.from('raffle_history').select('*').order('created_at', { ascending: false }).limit(5);
+      if (data && data.length > 0) setWins(data);
+    };
+    loadWins();
+
+    // Listen for new wins in realtime
+    const channel = supabase.channel('raffle-wins')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'raffle_history' }, (payload) => {
+        setWins(prev => [payload.new as any, ...prev].slice(0, 5));
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  if (wins.length === 0) return null;
+
+  return (
+    <Card className="border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10 overflow-hidden relative">
+      <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/10 rounded-full blur-3xl" />
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <Gift className="w-5 h-5 text-amber-400" />
+          <h3 className="font-bold text-amber-300">🎉 Sorteio!</h3>
+        </div>
+        {wins.map((win) => (
+          <div key={win.id} className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 rounded-lg p-3 mb-2">
+            <div className="flex items-center gap-2">
+              <Trophy className="w-4 h-4 text-amber-400" />
+              <div>
+                <p className="text-sm font-semibold text-white">Prêmio: {win.prize}</p>
+                <p className="text-xs text-gray-400">
+                  {new Date(win.created_at).toLocaleDateString('pt-BR')}
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {win.is_claimed ? (
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs">✓ Resgatado</Badge>
+              ) : (
+                <a href="https://wa.me/5516992600631?text=Olá%20Erik,%20ganhei%20o%20sorteio%20e%20quero%20resgatar%20meu%20prêmio!" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs">
+                    <Phone className="w-3 h-3 mr-1" /> Resgatar
+                  </Button>
+                </a>
+              )}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+};
+
 const Dashboard: React.FC = () => {
     const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
@@ -432,6 +490,9 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Raffle Wins Banner */}
+      <RaffleWinsBanner />
 
       {/* App Installation & Notifications */}
       {(showInstallBanner || !notificationsEnabled) && (
