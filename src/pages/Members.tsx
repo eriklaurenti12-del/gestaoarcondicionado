@@ -41,11 +41,32 @@ export default function Members() {
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
+  const [showTeamPanel, setShowTeamPanel] = useState(false);
+  const [supportNumbers, setSupportNumbers] = useState<{name: string; phone: string}[]>([]);
 
   useEffect(() => {
     checkSuperAdmin();
     loadMembers();
+    loadSupportNumbers();
   }, []);
+
+  const loadSupportNumbers = async () => {
+    const { data } = await supabase.from('admin_settings').select('value').eq('key', 'support_team_numbers').maybeSingle();
+    if (data?.value) {
+      try { setSupportNumbers(JSON.parse(data.value)); } catch {}
+    }
+  };
+
+  const saveSupportNumbers = async () => {
+    const { error } = await supabase.from('admin_settings').upsert({
+      key: 'support_team_numbers',
+      value: JSON.stringify(supportNumbers.filter(n => n.name && n.phone)),
+      description: 'Números da equipe de suporte'
+    }, { onConflict: 'key' });
+    if (!error) {
+      toast({ title: "Salvo!", description: "Números de suporte atualizados." });
+    }
+  };
 
   const checkSuperAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -238,7 +259,7 @@ export default function Members() {
             </TabsTrigger>
             <TabsTrigger value="online" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
               <Activity className="w-4 h-4 mr-2" />
-              Usuários
+              Online
             </TabsTrigger>
             <TabsTrigger value="raffle" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white">
               <Gift className="w-4 h-4 mr-2" />
@@ -251,11 +272,59 @@ export default function Members() {
           </TabsContent>
 
           <TabsContent value="users" className="mt-6 space-y-6">
-            <div className="flex justify-end">
+            <div className="flex flex-wrap gap-2 justify-end">
               <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
                 Atualizar Lista
               </Button>
+              <Button onClick={() => setShowTeamPanel(!showTeamPanel)} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
+                <Users className="w-4 h-4 mr-2" />
+                Equipe Suporte
+              </Button>
             </div>
+
+            {/* Team Support Management Panel */}
+            {showTeamPanel && (
+              <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+                <CardHeader>
+                  <CardTitle className="text-white text-lg flex items-center gap-2">
+                    <Phone className="w-5 h-5 text-green-400" />
+                    Números de Suporte / Equipe
+                  </CardTitle>
+                  <p className="text-gray-400 text-sm">Adicione números extras de suporte que aparecem para os usuários</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {supportNumbers.map((num, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input value={num.name} onChange={e => {
+                        const updated = [...supportNumbers];
+                        updated[idx].name = e.target.value;
+                        setSupportNumbers(updated);
+                      }} placeholder="Nome" className="bg-[#0f0f17] border-[#2a2a3a] text-white flex-1" />
+                      <Input value={num.phone} onChange={e => {
+                        const updated = [...supportNumbers];
+                        updated[idx].phone = e.target.value;
+                        setSupportNumbers(updated);
+                      }} placeholder="WhatsApp" className="bg-[#0f0f17] border-[#2a2a3a] text-white flex-1" />
+                      <Button size="sm" variant="destructive" onClick={() => {
+                        setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
+                      }} className="bg-red-600 hover:bg-red-700">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}
+                      className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">
+                      + Adicionar Número
+                    </Button>
+                    <Button size="sm" onClick={saveSupportNumbers}
+                      className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">
+                      Salvar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
