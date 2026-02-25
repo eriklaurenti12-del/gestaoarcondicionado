@@ -67,6 +67,8 @@ export const AdminIntegrationsTab: React.FC = () => {
     checkout_mensal: '',
     checkout_anual: '',
     whatsapp_suporte: '',
+    preco_mensal: '39.90',
+    preco_anual: '370',
   });
   const [testEmail, setTestEmail] = useState('');
   const [testAmount, setTestAmount] = useState('39.90');
@@ -127,8 +129,8 @@ export const AdminIntegrationsTab: React.FC = () => {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        if (['checkout_mensal', 'checkout_anual', 'whatsapp_suporte'].includes(key)) {
-          await supabase.from('admin_settings').update({ value }).eq('key', key);
+        if (['checkout_mensal', 'checkout_anual', 'whatsapp_suporte', 'preco_mensal', 'preco_anual'].includes(key)) {
+          await supabase.from('admin_settings').upsert({ key, value, description: `Config: ${key}` }, { onConflict: 'key' });
         }
       }
       toast({ title: "Salvo!", description: "Integrações atualizadas com sucesso." });
@@ -418,7 +420,7 @@ export const AdminIntegrationsTab: React.FC = () => {
                 </h4>
                 <p className="text-xs text-gray-400">
                   O webhook detecta automaticamente a plataforma pelo formato do payload. Ao receber um pagamento aprovado, 
-                  busca o usuário pelo email, determina o plano pelo valor (≤R$50 = mensal, &gt;R$50 = anual) e ativa a assinatura 
+                  busca o usuário pelo email, determina o plano pelo valor (usando os preços configurados na aba Checkout) e ativa a assinatura 
                   instantaneamente. Notificações são salvas para o painel admin.
                 </p>
               </div>
@@ -489,6 +491,39 @@ export const AdminIntegrationsTab: React.FC = () => {
                 </div>
               </div>
 
+              {/* Preços para detecção automática do webhook */}
+              <div className="bg-gradient-to-r from-purple-600/10 to-cyan-600/10 rounded-lg p-4 border border-purple-600/20 space-y-3">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                  <Settings className="w-4 h-4 text-purple-400" />
+                  Preços para Detecção Automática (Webhook)
+                </h4>
+                <p className="text-xs text-gray-400">
+                  O webhook usa estes valores para detectar automaticamente se o pagamento é mensal ou anual. 
+                  Valores ≥ 80% do preço anual = anual, senão = mensal.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Preço Mensal (R$)</label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={settings.preco_mensal} 
+                      onChange={(e) => setSettings(prev => ({ ...prev, preco_mensal: e.target.value }))} 
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                      placeholder="39.90"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Preço Anual (R$)</label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={settings.preco_anual} 
+                      onChange={(e) => setSettings(prev => ({ ...prev, preco_anual: e.target.value }))} 
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                      placeholder="370"
+                    />
+                  </div>
+                </div>
+              </div>
               <div className="flex justify-end pt-2">
                 <Button onClick={saveAllSettings} disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
