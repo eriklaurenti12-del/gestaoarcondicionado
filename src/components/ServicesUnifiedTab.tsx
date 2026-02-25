@@ -218,6 +218,150 @@ const fetchContracts = async (): Promise<Contract[]> => {
 // MAIN COMPONENT
 // ============================================================
 
+// Scheduled Maintenances Sub-component
+const ScheduledMaintenancesSection: React.FC = () => {
+  const queryClient = useQueryClient();
+  
+  const { data: scheduled, isLoading } = useQuery({
+    queryKey: ['scheduled-maintenances-list'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('scheduled_maintenance')
+        .select('*, clients(name, telefone, address)')
+        .order('scheduled_date', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
+  const toggleComplete = useMutation({
+    mutationFn: async ({ id, completed }: { id: string; completed: boolean }) => {
+      const { error } = await supabase.from('scheduled_maintenance').update({
+        is_completed: completed,
+        completed_date: completed ? new Date().toISOString().split('T')[0] : null
+      }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduled-maintenances-list'] });
+      queryClient.invalidateQueries({ queryKey: ['service-reminders'] });
+      toast.success('Manutenção atualizada!');
+    }
+  });
+
+  const deleteMaintenance = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('scheduled_maintenance').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['scheduled-maintenances-list'] });
+      toast.success('Manutenção removida');
+    }
+  });
+
+  const pending = scheduled?.filter(s => !s.is_completed) || [];
+  const completed = scheduled?.filter(s => s.is_completed) || [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-primary" />
+          Manutenções Programadas
+        </CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {pending.length} pendente(s) · {completed.length} concluída(s)
+        </p>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}</div>
+        ) : pending.length === 0 && completed.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p>Nenhuma manutenção programada</p>
+            <p className="text-xs">Agende pelo Histórico ou Lembretes</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {pending.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500" /> Pendentes
+                </h4>
+                <div className="space-y-2">
+                  {pending.map((m: any) => {
+                    const daysUntil = differenceInDays(new Date(m.scheduled_date), new Date());
+                    const isOverdue = daysUntil < 0;
+                    return (
+                      <div key={m.id} className={`flex items-center gap-3 p-3 rounded-lg border ${isOverdue ? 'border-red-300 bg-red-50 dark:bg-red-950/20' : daysUntil <= 7 ? 'border-amber-300 bg-amber-50 dark:bg-amber-950/20' : 'border-border'}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm">{m.clients?.name || 'Cliente'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(m.scheduled_date), "dd/MM/yyyy")} · {m.maintenance_type}
+                            {m.interval_months && ` · A cada ${m.interval_months} meses`}
+                          </p>
+                          {m.clients?.address && (
+                            <p className="text-xs text-muted-foreground truncate">{m.clients.address}</p>
+                          )}
+                          {m.notes && <p className="text-xs italic text-muted-foreground mt-1">"{m.notes}"</p>}
+                        </div>
+                        <Badge variant={isOverdue ? 'destructive' : daysUntil <= 7 ? 'secondary' : 'outline'} className="text-xs shrink-0">
+                          {isOverdue ? `${Math.abs(daysUntil)}d atrasado` : daysUntil === 0 ? 'Hoje' : `${daysUntil}d`}
+                        </Badge>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600"
+                            onClick={() => toggleComplete.mutate({ id: m.id, completed: true })}>
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                          {m.clients?.telefone && (
+                            <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                              onClick={() => window.open(`https://wa.me/55${m.clients.telefone.replace(/\D/g, '')}`, '_blank')}>
+                              <Phone className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500"
+                            onClick={() => deleteMaintenance.mutate(m.id)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+            {completed.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-500" /> Concluídas
+                </h4>
+                <div className="space-y-2">
+                  {completed.slice(0, 10).map((m: any) => (
+                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-border opacity-60">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm line-through">{m.clients?.name || 'Cliente'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(m.scheduled_date), "dd/MM/yyyy")} · Concluído em {m.completed_date ? format(new Date(m.completed_date), "dd/MM/yyyy") : '-'}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="ghost" className="h-7 text-xs"
+                        onClick={() => toggleComplete.mutate({ id: m.id, completed: false })}>
+                        ↩️ Reabrir
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 const ServicesUnifiedTab: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeSubTab, setActiveSubTab] = useState('reminders');
@@ -986,6 +1130,10 @@ const ServicesUnifiedTab: React.FC = () => {
             <Bell className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Lembretes</span>
           </TabsTrigger>
+          <TabsTrigger value="scheduled" className="flex items-center gap-1 text-xs sm:text-sm px-2">
+            <Calendar className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Programadas</span>
+          </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-1 text-xs sm:text-sm px-2">
             <History className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Histórico</span>
@@ -993,10 +1141,6 @@ const ServicesUnifiedTab: React.FC = () => {
           <TabsTrigger value="contracts" className="flex items-center gap-1 text-xs sm:text-sm px-2">
             <ScrollText className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Contratos</span>
-          </TabsTrigger>
-          <TabsTrigger value="bulk" className="flex items-center gap-1 text-xs sm:text-sm px-2">
-            <Send className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Mensagens</span>
           </TabsTrigger>
         </TabsList>
 
@@ -1054,6 +1198,11 @@ const ServicesUnifiedTab: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* SCHEDULED MAINTENANCES TAB */}
+        <TabsContent value="scheduled" className="mt-6">
+          <ScheduledMaintenancesSection />
         </TabsContent>
 
         {/* HISTORY TAB */}
@@ -1237,152 +1386,7 @@ const ServicesUnifiedTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* BULK MESSAGES TAB */}
-        <TabsContent value="bulk" className="mt-6 space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Send className="w-5 h-5 text-primary" />
-                Mensagens em Massa
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Method Selection */}
-              <div className="grid grid-cols-2 gap-4">
-                <Card className={`cursor-pointer transition-all hover:shadow-md ${sendMethod === 'whatsapp' ? 'ring-2 ring-green-500 bg-green-50 dark:bg-green-950/20' : ''}`} onClick={() => setSendMethod('whatsapp')}>
-                  <CardContent className="p-4 text-center">
-                    <MessageSquare className="w-8 h-8 mx-auto mb-2 text-green-500" />
-                    <h3 className="font-semibold">WhatsApp</h3>
-                    <p className="text-xs text-muted-foreground">{clients?.filter(c => c.telefone).length || 0} clientes</p>
-                  </CardContent>
-                </Card>
-                <Card className={`cursor-pointer transition-all hover:shadow-md ${sendMethod === 'email' ? 'ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/20' : ''}`} onClick={() => setSendMethod('email')}>
-                  <CardContent className="p-4 text-center">
-                    <Mail className="w-8 h-8 mx-auto mb-2 text-blue-500" />
-                    <h3 className="font-semibold">Email (Gmail)</h3>
-                    <p className="text-xs text-muted-foreground">{clients?.filter(c => c.email).length || 0} clientes</p>
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* Message Type Selection */}
-              <div className="grid grid-cols-3 gap-2">
-                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'vacation' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('vacation')}>
-                  <CardContent className="p-3 text-center">
-                    <p className="font-semibold text-sm">🏖️ Férias</p>
-                  </CardContent>
-                </Card>
-                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'holiday' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('holiday')}>
-                  <CardContent className="p-3 text-center">
-                    <p className="font-semibold text-sm">🎉 Feriado</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{nextHoliday.emoji} {nextHoliday.name}</p>
-                  </CardContent>
-                </Card>
-                <Card className={`cursor-pointer transition-all hover:shadow-md ${bulkType === 'custom' ? 'ring-2 ring-primary bg-primary/5' : ''}`} onClick={() => setBulkType('custom')}>
-                  <CardContent className="p-3 text-center">
-                    <p className="font-semibold text-sm">✏️ Personalizada</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Holiday Info */}
-              {bulkType === 'holiday' && (
-                <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
-                  <Calendar className="h-4 w-4 text-amber-600" />
-                  <AlertTitle className="text-amber-700 dark:text-amber-400">Próximo Feriado</AlertTitle>
-                  <AlertDescription className="text-amber-600/80">
-                    {nextHoliday.emoji} <strong>{nextHoliday.name}</strong> - {format(nextHoliday.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Client Selection */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label className="flex items-center gap-2">
-                    <Users className="w-4 h-4" />
-                    Selecionar Clientes
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="select-all"
-                      checked={selectAll}
-                      onCheckedChange={(checked) => {
-                        setSelectAll(!!checked);
-                        if (checked) {
-                          setSelectedClientIds([]);
-                        }
-                      }}
-                    />
-                    <Label htmlFor="select-all" className="text-sm cursor-pointer">Todos ({clientsWithContact.length})</Label>
-                  </div>
-                </div>
-
-                {!selectAll && (
-                  <div className="space-y-2">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Buscar cliente..."
-                        value={clientSearch}
-                        onChange={(e) => setClientSearch(e.target.value)}
-                        className="pl-8"
-                      />
-                    </div>
-                    <ScrollArea className="h-[150px] border rounded-md p-2">
-                      {filteredClientsForBulk.map(client => (
-                        <div key={client.id} className="flex items-center gap-2 py-1.5 px-1 hover:bg-muted/50 rounded">
-                          <Checkbox
-                            id={`client-${client.id}`}
-                            checked={selectedClientIds.includes(client.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedClientIds(prev => [...prev, client.id]);
-                              } else {
-                                setSelectedClientIds(prev => prev.filter(id => id !== client.id));
-                              }
-                            }}
-                          />
-                          <Label htmlFor={`client-${client.id}`} className="text-sm cursor-pointer flex-1">
-                            {client.name}
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {sendMethod === 'whatsapp' ? client.telefone : client.email}
-                            </span>
-                          </Label>
-                        </div>
-                      ))}
-                    </ScrollArea>
-                    <p className="text-xs text-muted-foreground text-right">
-                      {selectedClientIds.length} selecionado(s)
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Message Input */}
-              <div>
-                <Label>Mensagem {bulkType !== 'custom' && '(opcional)'}</Label>
-                <Textarea
-                  value={bulkMessage}
-                  onChange={(e) => setBulkMessage(e.target.value)}
-                  placeholder={bulkType === 'custom' ? 'Digite sua mensagem... Use {nome} para o nome do cliente' : 'Deixe em branco para usar mensagem padrão com nome do cliente e data'}
-                  rows={4}
-                />
-                {bulkType !== 'custom' && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    💡 A mensagem padrão inclui automaticamente: nome do cliente, data e {bulkType === 'holiday' ? `detalhes do feriado (${nextHoliday.name})` : 'período de férias'}
-                  </p>
-                )}
-              </div>
-
-              {/* Send Button */}
-              <Button onClick={sendBulkMessage} className="w-full" size="lg">
-                <Send className="w-4 h-4 mr-2" />
-                Enviar para {selectAll ? clientsWithContact.length : selectedClientIds.length} cliente(s) via {sendMethod === 'whatsapp' ? 'WhatsApp' : 'Gmail'}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Schedule Maintenance Dialog */}
