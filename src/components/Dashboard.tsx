@@ -358,7 +358,11 @@ const RaffleWinsBanner: React.FC = () => {
   );
 };
 
-const Dashboard: React.FC = () => {
+interface DashboardProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
     const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -623,7 +627,11 @@ const Dashboard: React.FC = () => {
             </div>
             <div className="space-y-2">
               {overdueAppointments.slice(0, 5).map((apt: any) => (
-                <div key={apt.id} className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-2">
+                <div 
+                  key={apt.id} 
+                  className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-2 cursor-pointer hover:bg-red-500/10 transition-colors"
+                  onClick={() => onNavigateToTab?.('appointments')}
+                >
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4 text-red-500" />
                     <div>
@@ -633,6 +641,7 @@ const Dashboard: React.FC = () => {
                       </p>
                     </div>
                   </div>
+                  <Badge variant="destructive" className="text-[10px] shrink-0">Ver →</Badge>
                 </div>
               ))}
             </div>

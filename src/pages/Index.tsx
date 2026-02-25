@@ -17,8 +17,10 @@ import ImpostosTab from "@/components/ImpostosTab";
 import BtuCalculator from "@/components/BtuCalculator";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import NotificationSettings from "@/components/NotificationSettings";
 import OnboardingTour from "@/components/OnboardingTour";
 import RotatingNotifications from "@/components/RotatingNotifications";
+import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
@@ -153,7 +155,7 @@ export default function Index() {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard />;
+        return <Dashboard onNavigateToTab={setActiveTab} />;
       case "appointments":
         return <AppointmentsTab />;
       case "cadastros":
@@ -170,6 +172,8 @@ export default function Index() {
         return <PDVTab />;
       case "impostos":
         return <ImpostosTab />;
+      case "notifications-settings":
+        return <NotificationSettings />;
       case "backup":
         return <DataBackup />;
       case "company":
@@ -190,6 +194,7 @@ export default function Index() {
       "btu-calculator": "Calculadora de BTUs",
       pdv: "Ponto de Venda",
       impostos: "Gestão de Impostos",
+      "notifications-settings": "Configurações de Notificações",
       backup: "Backup dos Dados",
       company: "Dados da Empresa"
     };
@@ -273,6 +278,9 @@ export default function Index() {
           </div>
 
           <SupportButton />
+          
+          {/* Update Notification */}
+          <UpdateNotification />
           
           {/* Rotating Tips/Notifications */}
           <RotatingNotifications />

@@ -14,15 +14,16 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'icon-192x192.png', 'icon-512x512.png'],
       manifest: {
-        name: 'Sistema de Gestão de Negócios',
-        short_name: 'Gestão Negócios',
-        description: 'Sistema completo para gestão de negócios',
+        name: 'AC Service Pro - Gestão de Ar Condicionado',
+        short_name: 'AC Service Pro',
+        description: 'Sistema completo para gestão de ar condicionado',
         theme_color: '#000000',
         background_color: '#ffffff',
         display: 'standalone',
+        orientation: 'any',
         icons: [
           {
             src: 'icon-192x192.png',
@@ -40,7 +41,8 @@ export default defineConfig(({ mode }) => ({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -49,7 +51,7 @@ export default defineConfig(({ mode }) => ({
               cacheName: 'supabase-cache',
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 horas
+                maxAgeSeconds: 60 * 60 * 24
               }
             }
           }

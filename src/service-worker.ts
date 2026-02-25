@@ -2,7 +2,7 @@
 
 declare const self: ServiceWorkerGlobalScope;
 
-const CACHE_NAME = 'gestao-negocios-v2';
+const CACHE_NAME = 'gestao-ac-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -15,24 +15,43 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(urlsToCache))
   );
-  self.skipWaiting();
+  // Don't skip waiting - let UpdateNotification handle it
 });
 
 self.addEventListener('fetch', (event) => {
+  // Always network-first for API calls
+  if (event.request.url.includes('supabase') || event.request.url.includes('/~oauth')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+  
+  // Network first, fallback to cache for everything else
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
-    })
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses
+        if (response.status === 200) {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request).then((response) => {
+          return response || new Response('Offline', { status: 503 });
+        });
+      })
   );
 });
 
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
+          if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
         })
@@ -42,20 +61,29 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
+// Listen for skip waiting message from UpdateNotification
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Handle push notifications
 self.addEventListener('push', (event) => {
-  const options: NotificationOptions = {
-    body: event.data?.text() || 'Nova notificação do Salão de Beleza',
+  const data = event.data?.json() || {};
+  const options = {
+    body: data.body || 'Nova notificação do AC Service Pro',
     icon: '/icon-192x192.png',
     badge: '/icon-192x192.png',
+    tag: data.tag || 'general',
     data: {
       dateOfArrival: Date.now(),
-      primaryKey: '1'
+      url: data.url || '/'
     }
-  };
+  } as NotificationOptions;
 
   event.waitUntil(
-    self.registration.showNotification('Salão de Beleza', options)
+    self.registration.showNotification(data.title || 'AC Service Pro', options)
   );
 });
 
@@ -63,31 +91,16 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  if (event.action === 'explore') {
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then((clientList) => {
-        for (const client of clientList) {
-          if ('focus' in client) {
-            return client.focus();
-          }
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          return client.focus();
         }
-        if (self.clients.openWindow) {
-          return self.clients.openWindow('/');
-        }
-      })
-    );
-  }
+      }
+      if (self.clients.openWindow) {
+        return self.clients.openWindow(event.notification.data?.url || '/');
+      }
+    })
+  );
 });
-
-// Periodic sync for background notifications (if supported)
-self.addEventListener('periodicsync', (event: any) => {
-  if (event.tag === 'check-notifications') {
-    event.waitUntil(checkAndSendNotifications());
-  }
-});
-
-async function checkAndSendNotifications() {
-  // This would check for pending items and send notifications
-  // For now, just log that sync happened
-  console.log('Periodic sync: checking notifications');
-}
