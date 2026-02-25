@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -148,6 +148,38 @@ const fetchDashboardData = async () => {
     const todayMaintenances = pendingMaintenances.filter((m: any) => m.status === 'today');
     const upcomingMaintenances = pendingMaintenances.filter((m: any) => m.status === 'urgent' || m.status === 'warning');
 
+    // Birthday notifications
+    const todayMonth = today.getMonth();
+    const todayDay = today.getDate();
+    const birthdayClients = clientsList
+      .filter((c: any) => {
+        if (!c.aniversario) return false;
+        const bday = new Date(c.aniversario);
+        return bday.getMonth() === todayMonth && bday.getDate() === todayDay;
+      })
+      .map((c: any) => {
+        const bday = new Date(c.aniversario);
+        const age = today.getFullYear() - bday.getFullYear();
+        return { ...c, age };
+      });
+
+    const upcomingBirthdays = clientsList
+      .filter((c: any) => {
+        if (!c.aniversario) return false;
+        const bday = new Date(c.aniversario);
+        const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+        const diff = differenceInDays(thisYearBday, today);
+        return diff > 0 && diff <= 7;
+      })
+      .map((c: any) => {
+        const bday = new Date(c.aniversario);
+        const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
+        const daysUntil = differenceInDays(thisYearBday, today);
+        const age = today.getFullYear() - bday.getFullYear();
+        return { ...c, daysUntil, age };
+      })
+      .sort((a: any, b: any) => a.daysUntil - b.daysUntil);
+
     return {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
@@ -176,7 +208,10 @@ const fetchDashboardData = async () => {
         pendingMaintenances,
         overdueMaintenances,
         todayMaintenances,
-        upcomingMaintenances
+        upcomingMaintenances,
+        birthdayClients,
+        upcomingBirthdays,
+        clientsList
     };
 };
 
@@ -276,7 +311,9 @@ const Dashboard: React.FC = () => {
         pendingServiceOrders = [],
         overdueMaintenances = [],
         todayMaintenances = [],
-        upcomingMaintenances = []
+        upcomingMaintenances = [],
+        birthdayClients = [],
+        upcomingBirthdays = [],
     } = data;
 
     // Calculate trial progress percentage for visual indicator
@@ -695,6 +732,47 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Birthday Alerts */}
+      {birthdayClients.length > 0 && (
+        <Alert className="border-pink-300 bg-pink-50 dark:border-pink-800 dark:bg-pink-950">
+          <Gift className="h-4 w-4 text-pink-600" />
+          <AlertTitle className="text-pink-800 dark:text-pink-200">🎂 Aniversariante(s) do Dia!</AlertTitle>
+          <AlertDescription className="text-pink-700 dark:text-pink-300">
+            <div className="space-y-2 mt-2">
+              {birthdayClients.map((client: any) => (
+                <div key={client.id} className="flex items-center justify-between">
+                  <span className="font-medium">{client.name} faz <strong>{client.age} anos</strong> hoje! 🎉</span>
+                  {client.telefone && (
+                    <Button size="sm" variant="outline" className="h-7 text-green-600 border-green-300"
+                      onClick={() => {
+                        const clean = client.telefone.replace(/\D/g, '');
+                        const msg = `Olá ${client.name}! 🎂🎉\n\nParabéns pelo seu aniversário! Desejamos muitas felicidades e sucesso!\n\nUm abraço da equipe AC Service Pro! ❤️`;
+                        window.open(`https://wa.me/55${clean}?text=${encodeURIComponent(msg)}`, '_blank');
+                      }}>
+                      <Phone className="w-3 h-3 mr-1" /> Parabenizar
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {upcomingBirthdays.length > 0 && (
+        <Alert className="border-fuchsia-200 bg-fuchsia-50 dark:border-fuchsia-800 dark:bg-fuchsia-950">
+          <Gift className="h-4 w-4 text-fuchsia-600" />
+          <AlertTitle className="text-fuchsia-800 dark:text-fuchsia-200">🎁 Aniversários Próximos (7 dias)</AlertTitle>
+          <AlertDescription className="text-fuchsia-700 dark:text-fuchsia-300">
+            {upcomingBirthdays.slice(0, 5).map((client: any) => (
+              <span key={client.id} className="block text-sm">
+                {client.name} em {client.daysUntil} dia(s) ({client.age} anos)
+              </span>
+            ))}
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Top Rankings */}

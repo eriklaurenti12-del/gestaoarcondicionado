@@ -256,20 +256,21 @@ const RotatingNotifications: React.FC = () => {
       }
     });
 
-    // Birthday notifications
+    // Birthday notifications with age
     clients?.forEach((client: any) => {
       if (!client.aniversario) return;
       
       const birthday = new Date(client.aniversario);
       const thisYearBirthday = new Date(today.getFullYear(), birthday.getMonth(), birthday.getDate());
       const daysUntil = differenceInDays(thisYearBirthday, today);
+      const age = today.getFullYear() - birthday.getFullYear();
       
       if (daysUntil === 0) {
         notifications.push({
           id: `bday-today-${client.id}`,
           icon: <Gift className="w-5 h-5" />,
           title: "Aniversário hoje! 🎂",
-          message: `${client.name} faz aniversário hoje! Envie parabéns!`,
+          message: `${client.name} faz ${age} anos hoje! Envie parabéns!`,
           color: "from-pink-500 to-rose-500",
           priority: 8,
           type: 'alert'
@@ -279,7 +280,7 @@ const RotatingNotifications: React.FC = () => {
           id: `bday-soon-${client.id}`,
           icon: <Gift className="w-5 h-5" />,
           title: "Aniversário próximo",
-          message: `${client.name} faz aniversário em ${daysUntil} dia(s)!`,
+          message: `${client.name} faz ${age} anos em ${daysUntil} dia(s)!`,
           color: "from-fuchsia-500 to-pink-500",
           priority: 4,
           type: 'info'

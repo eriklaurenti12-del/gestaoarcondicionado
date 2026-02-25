@@ -352,6 +352,32 @@ const AppointmentsTab: React.FC = () => {
 
     const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     
+    // ========== CONFLICT DETECTION ==========
+    const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
+    const duration = (selectedService as any)?.service_duration || 60; // default 60 min
+    const newStart = dateTime.getTime();
+    const newEnd = newStart + duration * 60 * 1000;
+    
+    const conflictingAppointments = appointments?.filter(a => {
+      if (a.status === 'cancelado' || a.status === 'concluido') return false;
+      const aptStart = new Date(a.appointment_date).getTime();
+      const aptDuration = (a.products as any)?.service_duration || 60;
+      const aptEnd = aptStart + aptDuration * 60 * 1000;
+      return (newStart < aptEnd && newEnd > aptStart); // overlap
+    }) || [];
+
+    if (conflictingAppointments.length > 0) {
+      const conflictNames = conflictingAppointments.map(a => 
+        `${a.clients?.name || 'Cliente'} às ${format(new Date(a.appointment_date), 'HH:mm')}`
+      ).join(', ');
+      
+      const confirmed = window.confirm(
+        `⚠️ CONFLITO DE HORÁRIO!\n\nJá existem agendamentos nesse horário:\n${conflictNames}\n\nDeseja agendar mesmo assim?`
+      );
+      if (!confirmed) return;
+    }
+    // ========================================
+    
     // Get client_id and notes based on source
     let clientId: number | null = null;
     let fullNotes = notes || "";
