@@ -645,9 +645,20 @@ const Landing: React.FC = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+          <div className={`grid gap-6 max-w-4xl mx-auto ${
+            settings.landing_oferta1_ativa !== 'false' && settings.landing_oferta2_ativa !== 'false' 
+              ? 'md:grid-cols-2' : 'md:grid-cols-1 max-w-lg'
+          }`}>
             {/* Plano Mensal */}
+            {settings.landing_oferta1_ativa !== 'false' && (
             <Card className="!bg-white/5 !border-white/10 backdrop-blur-sm relative overflow-hidden">
+              {settings.landing_oferta1_badge && (
+                <div className="absolute top-3 right-3">
+                  <Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 shadow-lg text-xs">
+                    {settings.landing_oferta1_badge}
+                  </Badge>
+                </div>
+              )}
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-white text-lg">{settings.landing_oferta1_titulo || 'Plano Mensal'}</span>
@@ -664,13 +675,7 @@ const Landing: React.FC = () => {
                   <div className="text-green-400 text-xs mt-1">= 1/3 de uma limpeza simples</div>
                 </div>
                 <ul className="space-y-2">
-                  {[
-                    "Acesso COMPLETO a tudo",
-                    "Clientes e equipamentos ilimitados",
-                    "Ordens de serviço profissionais",
-                    "Controle financeiro real",
-                    "Suporte humano no WhatsApp"
-                  ].map((item, i) => (
+                  {(settings.landing_oferta1_features || 'Acesso COMPLETO a tudo\nClientes e equipamentos ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte humano no WhatsApp').split('\n').filter(Boolean).map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-gray-300 text-sm">
                       <CheckCircle className="w-4 h-4 text-cyan-400 flex-shrink-0" />
                       {item}
@@ -683,12 +688,14 @@ const Landing: React.FC = () => {
                   className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white transition-all duration-300 hover:scale-105"
                   onClick={() => handleCheckout('mensal')}
                 >
-                  Começar por R$ {settings.landing_preco_mensal}
+                  {settings.landing_oferta1_btn_texto || `Começar por R$ ${settings.landing_preco_mensal}`}
                 </Button>
               </CardFooter>
             </Card>
+            )}
 
             {/* Plano Anual */}
+            {settings.landing_oferta2_ativa !== 'false' && (
             <Card className="!bg-gradient-to-br !from-cyan-500/20 !to-blue-500/20 !border-cyan-500/50 backdrop-blur-sm relative overflow-hidden">
               {settings.landing_oferta2_badge && (
                 <div className="absolute top-3 right-3">
@@ -719,13 +726,7 @@ const Landing: React.FC = () => {
                   <div className="text-cyan-400 text-xs mt-1">= Apenas R$ {settings.landing_preco_mensal_equivalente}/mês (preço de um almoço)</div>
                 </div>
                 <ul className="space-y-2">
-                  {[
-                    "TUDO do mensal incluído",
-                    "2 meses DE GRAÇA",
-                    "Suporte VIP prioritário",
-                    "Relatórios avançados",
-                    "Backup automático diário"
-                  ].map((item, i) => (
+                  {(settings.landing_oferta2_features || 'TUDO do mensal incluído\n2 meses DE GRAÇA\nSuporte VIP prioritário\nRelatórios avançados\nBackup automático diário').split('\n').filter(Boolean).map((item, i) => (
                     <li key={i} className="flex items-center gap-2 text-white text-sm">
                       <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
                       {item}
@@ -740,10 +741,11 @@ const Landing: React.FC = () => {
                   onClick={() => handleCheckout('anual')}
                 >
                   <Crown className="w-5 h-5 mr-2" />
-                  QUERO ECONOMIZAR R$ {settings.landing_economia_anual}
+                  {settings.landing_oferta2_btn_texto || `QUERO ECONOMIZAR R$ ${settings.landing_economia_anual}`}
                 </Button>
               </CardFooter>
             </Card>
+            )}
           </div>
 
           {/* Garantia */}
