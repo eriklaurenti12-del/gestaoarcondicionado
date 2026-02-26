@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { CheckCircle, X, TrendingUp, RefreshCw, Star } from 'lucide-react';
 
-const brazilianNames = [
+const defaultNames = [
   "João Silva", "Maria Santos", "Pedro Oliveira", "Ana Costa", "Carlos Souza",
   "Juliana Lima", "Lucas Pereira", "Fernanda Alves", "Rafael Gomes", "Amanda Ribeiro",
   "Thiago Martins", "Camila Ferreira", "Bruno Rodrigues", "Letícia Barbosa", "Gustavo Carvalho",
@@ -16,7 +16,7 @@ const brazilianNames = [
   "Márcio Teixeira", "Wagner Almeida", "Rogério Dias", "Eliane Souza", "Vera Campos"
 ];
 
-const cities = [
+const defaultCities = [
   "São Paulo", "Rio de Janeiro", "Belo Horizonte", "Salvador", "Curitiba",
   "Fortaleza", "Brasília", "Recife", "Porto Alegre", "Manaus",
   "Goiânia", "Belém", "Guarulhos", "Campinas", "São Luís",
@@ -29,7 +29,7 @@ const cities = [
   "Montes Claros", "Petrolina", "Franca", "Araraquara", "Marília"
 ];
 
-const actionTypes = [
+const defaultActionTypes = [
   { action: "acabou de assinar", icon: CheckCircle, color: "text-green-400" },
   { action: "acabou de renovar", icon: RefreshCw, color: "text-blue-400" },
   { action: "fez upgrade para anual", icon: TrendingUp, color: "text-amber-400" },
@@ -37,13 +37,14 @@ const actionTypes = [
 ];
 
 type PlanInfo = { name: string; price: string; isAnnual: boolean };
+type ActionType = { action: string; icon: React.ElementType; color: string };
 
 type Notification = {
   id: number;
   name: string;
   city: string;
   plan: PlanInfo;
-  actionType: typeof actionTypes[0];
+  actionType: ActionType;
   visible: boolean;
 };
 
@@ -69,17 +70,33 @@ interface SubscriptionNotificationsProps {
   soundEnabled?: boolean;
   precoMensal?: string;
   precoAnual?: string;
+  customActions?: string;
+  customNames?: string;
+  customCities?: string;
 }
 
 export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps> = ({ 
   interval = 10000, 
   soundEnabled = true,
   precoMensal = '39,90',
-  precoAnual = '370'
+  precoAnual = '370',
+  customActions,
+  customNames,
+  customCities,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationId, setNotificationId] = useState(0);
   const hasInteracted = useRef(false);
+
+  const namesList = customNames?.trim() ? customNames.split('\n').filter(Boolean) : defaultNames;
+  const citiesList = customCities?.trim() ? customCities.split('\n').filter(Boolean) : defaultCities;
+  
+  const actionTypes: ActionType[] = customActions?.trim()
+    ? customActions.split('\n').filter(Boolean).map((action, i) => ({
+        action,
+        icon: [CheckCircle, RefreshCw, TrendingUp, Star][i % 4],
+        color: ['text-green-400', 'text-blue-400', 'text-amber-400', 'text-purple-400'][i % 4],
+      }))
+    : defaultActionTypes;
 
   const plans: PlanInfo[] = [
     { name: "Plano Mensal", price: `R$ ${precoMensal}`, isAnnual: false },
@@ -97,28 +114,12 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
   }, []);
 
   const createNotification = () => {
-    const name = brazilianNames[Math.floor(Math.random() * brazilianNames.length)];
-    const city = cities[Math.floor(Math.random() * cities.length)];
-    const random = Math.random();
-    let actionType: typeof actionTypes[0];
-    let plan: PlanInfo;
-
-    if (random < 0.4) {
-      actionType = actionTypes[0];
-      plan = Math.random() > 0.3 ? plans[1] : plans[0];
-    } else if (random < 0.65) {
-      actionType = actionTypes[1];
-      plan = Math.random() > 0.4 ? plans[1] : plans[0];
-    } else if (random < 0.85) {
-      actionType = actionTypes[2];
-      plan = plans[1];
-    } else {
-      actionType = actionTypes[3];
-      plan = Math.random() > 0.3 ? plans[1] : plans[0];
-    }
+    const name = namesList[Math.floor(Math.random() * namesList.length)];
+    const city = citiesList[Math.floor(Math.random() * citiesList.length)];
+    const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+    const plan = Math.random() > 0.4 ? plans[1] : plans[0];
 
     const newNotification: Notification = { id: Date.now() + Math.random(), name, city, plan, actionType, visible: true };
-    setNotificationId(prev => prev + 1);
     setNotifications(prev => [...prev.slice(-1), newNotification]);
 
     if (hasInteracted.current && soundEnabled) playNotificationSound();
@@ -132,7 +133,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
     const initialTimeout = setTimeout(createNotification, 5000);
     const timer = setInterval(createNotification, interval);
     return () => { clearTimeout(initialTimeout); clearInterval(timer); };
-  }, [interval, precoMensal, precoAnual]);
+  }, [interval, precoMensal, precoAnual, customActions, customNames, customCities]);
 
   const dismissNotification = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, visible: false } : n));

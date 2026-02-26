@@ -320,7 +320,13 @@ const Landing: React.FC = () => {
     role: settings[`landing_depoimento${i}_role`] || '',
     text: settings[`landing_depoimento${i}_texto`] || '',
     stars: Number(settings[`landing_depoimento${i}_estrelas`] || 5),
+    foto: settings[`landing_depoimento${i}_foto`] || '',
+    video: settings[`landing_depoimento${i}_video`] || '',
   })).filter(t => t.name && t.text);
+
+  const videosSocialProof = [1, 2, 3]
+    .map(i => settings[`landing_video_prova_social_${i}`] || '')
+    .filter(Boolean);
 
   const template = settings.landing_template || 'persuasao';
   const isPersuasao = template === 'persuasao';
@@ -336,6 +342,9 @@ const Landing: React.FC = () => {
           soundEnabled={settings.landing_notif_som !== 'false'}
           precoMensal={settings.landing_preco_mensal || '39,90'}
           precoAnual={settings.landing_preco_anual || '370'}
+          customActions={settings.landing_notif_acoes || ''}
+          customNames={settings.landing_notif_nomes || ''}
+          customCities={settings.landing_notif_cidades || ''}
         />
       )}
 
@@ -777,20 +786,74 @@ const Landing: React.FC = () => {
             {testimonials.map((t, i) => (
               <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:border-cyan-500/30 transition-all">
                 <CardContent className="p-5">
-                  <div className="flex gap-1 mb-3">
-                    {[...Array(t.stars)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
+                  {t.video ? (
+                    <div className="aspect-video bg-black rounded-lg overflow-hidden mb-3">
+                      {t.video.includes('youtube') || t.video.includes('youtu.be') ? (
+                        <iframe src={t.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                          className="w-full h-full" allowFullScreen />
+                      ) : (
+                        <video src={t.video} controls className="w-full h-full" />
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex gap-1 mb-3">
+                      {[...Array(t.stars)].map((_, i) => (
+                        <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  )}
                   <p className="text-gray-300 mb-4 italic text-sm leading-relaxed">"{t.text}"</p>
-                  <div className="border-t border-white/10 pt-3">
-                    <div className="font-semibold text-white text-sm">{t.name}</div>
-                    <div className="text-xs text-cyan-400">{t.role}</div>
+                  <div className="border-t border-white/10 pt-3 flex items-center gap-3">
+                    {t.foto ? (
+                      <img src={t.foto} alt={t.name} className="w-10 h-10 rounded-full object-cover border-2 border-cyan-500/30" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center text-white font-bold text-sm">
+                        {t.name.charAt(0)}
+                      </div>
+                    )}
+                    <div>
+                      <div className="font-semibold text-white text-sm">{t.name}</div>
+                      <div className="text-xs text-cyan-400">{t.role}</div>
+                    </div>
                   </div>
+                  {t.video && (
+                    <div className="flex gap-1 mt-2">
+                      {[...Array(t.stars)].map((_, i) => (
+                        <Star key={i} className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
           </div>
+
+          {/* Vídeos de Prova Social */}
+          {videosSocialProof.length > 0 && (
+            <div className="mt-12">
+              <h3 className="text-xl font-bold text-center mb-6">
+                🎬 Veja o que nossos clientes <span className="text-cyan-400">dizem em vídeo</span>
+              </h3>
+              <div className={`grid gap-4 max-w-4xl mx-auto ${
+                videosSocialProof.length === 1 ? 'grid-cols-1 max-w-2xl' :
+                videosSocialProof.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'
+              }`}>
+                {videosSocialProof.map((url, i) => (
+                  <div key={i} className="aspect-video bg-black rounded-xl overflow-hidden border border-white/10">
+                    {url.includes('youtube') || url.includes('youtu.be') ? (
+                      <iframe src={url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                        className="w-full h-full" allowFullScreen />
+                    ) : url.includes('vimeo') ? (
+                      <iframe src={url.replace('vimeo.com/', 'player.vimeo.com/video/')}
+                        className="w-full h-full" allowFullScreen />
+                    ) : (
+                      <video src={url} controls className="w-full h-full" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </section>}
 
