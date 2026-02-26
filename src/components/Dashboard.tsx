@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send, Play, X, Navigation, MapPin, User } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send, Play, X, Navigation, MapPin, User, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -365,9 +366,10 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
-    const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
     const [showInstallBanner, setShowInstallBanner] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [decisionDialog, setDecisionDialog] = useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null });
     const companyName = localStorage.getItem('company_name') || '';
     const today = new Date();
     const currentMonth = format(today, 'MMMM', { locale: ptBR });
@@ -441,6 +443,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           agendado: '📅 Reaberto'
         };
         toast.success(labels[status] || 'Status atualizado');
+        setDecisionDialog({ open: false, appointment: null });
+      }
+    });
+
+    const deleteAppointmentMutation = useMutation({
+      mutationFn: async (id: string) => {
+        const { error } = await supabase.from('appointments').delete().eq('id', id);
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        toast.success('Agendamento removido');
       }
     });
 
@@ -647,19 +662,46 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
               {overdueAppointments.slice(0, 5).map((apt: any) => (
                 <div 
                   key={apt.id} 
-                  className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-2 cursor-pointer hover:bg-red-500/10 transition-colors"
-                  onClick={() => onNavigateToTab?.('appointments')}
+                  className="flex items-center justify-between bg-red-500/5 border border-red-500/20 rounded-lg p-3"
                 >
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-red-500" />
-                    <div>
-                      <p className="text-sm font-medium">{apt.clients?.name || 'Cliente'} - {apt.products?.name || 'Serviço'}</p>
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <Clock className="w-4 h-4 text-red-500 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{apt.clients?.name || 'Cliente'} - {apt.products?.name || 'Serviço'}</p>
                       <p className="text-xs text-muted-foreground">
-                        Agendado: {format(new Date(apt.appointment_date), 'dd/MM/yyyy HH:mm')} • Há {apt.daysOverdue} dia(s)
+                        {format(new Date(apt.appointment_date), 'dd/MM/yyyy HH:mm')} • Há {apt.daysOverdue} dia(s)
                       </p>
                     </div>
                   </div>
-                  <Badge variant="destructive" className="text-[10px] shrink-0">Ver →</Badge>
+                  <div className="flex gap-1.5 shrink-0 ml-2">
+                    <Button 
+                      size="sm"
+                      className="h-8 px-2 text-xs bg-green-600 hover:bg-green-700"
+                      onClick={() => updateAppointmentStatus.mutate({ id: apt.id, status: 'concluido' })}
+                    >
+                      <CheckCircle className="w-3 h-3 mr-1" /> Feito
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="destructive"
+                      className="h-8 px-2 text-xs"
+                      onClick={() => updateAppointmentStatus.mutate({ id: apt.id, status: 'cancelado' })}
+                    >
+                      <X className="w-3 h-3 mr-1" /> Não feito
+                    </Button>
+                    <Button 
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => {
+                        if (window.confirm('Remover este agendamento permanentemente?')) {
+                          deleteAppointmentMutation.mutate(apt.id);
+                        }
+                      }}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -844,14 +886,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
             </CardHeader>
             <CardContent className="space-y-2">
               {overdueAppointments.slice(0, 4).map((apt: any) => (
-                <div key={apt.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-3 h-3 text-destructive" />
-                    <span className="font-medium truncate max-w-[150px]">{apt.clients?.name || 'Cliente'}</span>
+                <div key={apt.id} className="flex items-center justify-between p-2 bg-muted/50 rounded-lg text-sm gap-2">
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <AlertTriangle className="w-3 h-3 text-destructive shrink-0" />
+                    <span className="font-medium truncate">{apt.clients?.name || 'Cliente'}</span>
+                    <Badge variant="destructive" className="text-[10px] shrink-0">
+                      {apt.daysOverdue}d
+                    </Badge>
                   </div>
-                  <Badge variant="destructive" className="text-[10px]">
-                    {apt.daysOverdue}d atrás
-                  </Badge>
+                  <div className="flex gap-1 shrink-0">
+                    <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700"
+                      onClick={() => updateAppointmentStatus.mutate({ id: apt.id, status: 'concluido' })}>
+                      ✓ Feito
+                    </Button>
+                    <Button size="sm" variant="destructive" className="h-7 px-2 text-[10px]"
+                      onClick={() => updateAppointmentStatus.mutate({ id: apt.id, status: 'cancelado' })}>
+                      ✗ Não
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>
@@ -1094,6 +1146,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                             }}
                           >
                             ↩️ Reabrir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 text-destructive hover:text-destructive"
+                            onClick={() => {
+                              if (window.confirm('Remover este agendamento permanentemente?')) {
+                                deleteAppointmentMutation.mutate(apt.id);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-3 h-3 mr-1" /> Excluir
                           </Button>
                         </div>
                       )}
