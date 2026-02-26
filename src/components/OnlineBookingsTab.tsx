@@ -38,19 +38,64 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const queryClient = useQueryClient();
   const [bookings, setBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
+    return localStorage.getItem('online-booking-notifications') !== 'false';
+  });
+  const [prevCount, setPrevCount] = useState<number | null>(null);
 
   const bookingUrl = `${window.location.origin}/agendar?u=${userId}`;
+
+  const playNotificationSound = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.setValueAtTime(800, ctx.currentTime);
+      osc.frequency.setValueAtTime(1000, ctx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(800, ctx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.5);
+    } catch (e) { /* silent fail */ }
+  };
+
+  const toggleNotifications = () => {
+    const newVal = !notificationsEnabled;
+    setNotificationsEnabled(newVal);
+    localStorage.setItem('online-booking-notifications', String(newVal));
+    toast({ title: newVal ? "🔔 Notificações ativadas" : "🔕 Notificações desativadas" });
+  };
 
   useEffect(() => {
     loadBookings();
     const channel = supabase
       .channel('online-bookings')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'online_bookings' }, () => {
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'online_bookings' }, (payload) => {
+        loadBookings();
+        if (notificationsEnabled) {
+          playNotificationSound();
+          toast({ title: "🔔 Novo agendamento online!", description: `${(payload.new as any).client_name} - ${(payload.new as any).service_name}` });
+          // Browser notification
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('Novo Agendamento Online!', {
+              body: `${(payload.new as any).client_name} - ${(payload.new as any).service_name}`,
+              icon: '/icon-192x192.png'
+            });
+          }
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'online_bookings' }, () => {
+        loadBookings();
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'online_bookings' }, () => {
         loadBookings();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [notificationsEnabled]);
 
   const loadBookings = async () => {
     const { data } = await (supabase.from('online_bookings') as any)
@@ -213,6 +258,11 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                 window.open(formatWhatsAppUrl('', msg), '_blank');
               }}>
               📱 Enviar via WhatsApp
+            </Button>
+            <Button size="sm" variant="outline" 
+              className={notificationsEnabled ? "border-green-500/30 text-green-400 hover:bg-green-500/10" : "border-slate-500/30 text-slate-400 hover:bg-slate-500/10"}
+              onClick={toggleNotifications}>
+              {notificationsEnabled ? <><Bell className="w-3 h-3 mr-1" /> Notificações ON</> : <><Bell className="w-3 h-3 mr-1" /> Notificações OFF</>}
             </Button>
             <Button size="sm" variant="outline" className="border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
               onClick={checkForUpdates}>
