@@ -95,7 +95,9 @@ const ServicesUnifiedTab: React.FC = () => {
     endDate: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
     intervalMonths: '6', monthlyValue: '', notes: '',
     serviceType: 'preventiva', equipmentCount: '1',
-    responsibleName: '', responsibleCpf: '',
+    responsibleName: '', responsibleCpf: '', responsiblePhone: '', responsibleRg: '',
+    equipmentBrand: '', equipmentModel: '', equipmentBtus: '', equipmentLocation: '',
+    serviceAddress: '', paymentMethod: 'mensal', contractType: 'residencial',
   });
 
   // ============ QUERIES ============
@@ -127,13 +129,24 @@ const ServicesUnifiedTab: React.FC = () => {
     mutationFn: async (data: typeof contractFormData) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Usuário não autenticado');
+      // Build enriched notes with all extra fields
+      const extraData = {
+        responsibleName: data.responsibleName, responsibleCpf: data.responsibleCpf,
+        responsiblePhone: data.responsiblePhone, responsibleRg: data.responsibleRg,
+        equipmentBrand: data.equipmentBrand, equipmentModel: data.equipmentModel,
+        equipmentBtus: data.equipmentBtus, equipmentLocation: data.equipmentLocation,
+        serviceAddress: data.serviceAddress, paymentMethod: data.paymentMethod,
+        contractType: data.contractType, equipmentCount: data.equipmentCount,
+        serviceType: data.serviceType,
+      };
+      const enrichedNotes = JSON.stringify({ userNotes: data.notes || '', ...extraData });
       const { error } = await supabase.from('maintenance_contracts').insert({
         user_id: user.id, client_id: parseInt(data.clientId),
         title: data.title, description: data.description || null,
         start_date: data.startDate, end_date: data.endDate || null,
         cleaning_interval_months: parseInt(data.intervalMonths),
         monthly_value: parseFloat(data.monthlyValue) || 0,
-        notes: data.notes || null
+        notes: enrichedNotes
       });
       if (error) throw error;
     },
@@ -179,7 +192,9 @@ const ServicesUnifiedTab: React.FC = () => {
       endDate: format(addYears(new Date(), 1), 'yyyy-MM-dd'),
       intervalMonths: '6', monthlyValue: '', notes: '',
       serviceType: 'preventiva', equipmentCount: '1',
-      responsibleName: '', responsibleCpf: '',
+      responsibleName: '', responsibleCpf: '', responsiblePhone: '', responsibleRg: '',
+      equipmentBrand: '', equipmentModel: '', equipmentBtus: '', equipmentLocation: '',
+      serviceAddress: '', paymentMethod: 'mensal', contractType: 'residencial',
     });
   };
 
@@ -663,8 +678,12 @@ const ServicesUnifiedTab: React.FC = () => {
           <DialogHeader>
             <DialogTitle>Contrato #{viewContractDialog && String(viewContractDialog.contract_number).padStart(4, '0')}</DialogTitle>
           </DialogHeader>
-          {viewContractDialog && (
-            <div className="space-y-4">
+          {viewContractDialog && (() => {
+            let extraData: any = {};
+            try { extraData = JSON.parse(viewContractDialog.notes || '{}'); } catch { extraData = { userNotes: viewContractDialog.notes }; }
+            return (
+            <ScrollArea className="max-h-[65vh]">
+            <div className="space-y-4 pr-2">
               <div className="grid grid-cols-2 gap-3">
                 <div><Label className="text-xs text-muted-foreground">Cliente</Label><p className="font-medium">{viewContractDialog.client.name}</p></div>
                 <div><Label className="text-xs text-muted-foreground">Status</Label><div className="mt-1">{getContractStatusBadge(viewContractDialog)}</div></div>
@@ -675,23 +694,64 @@ const ServicesUnifiedTab: React.FC = () => {
                 <div><Label className="text-xs text-muted-foreground">Intervalo</Label><p>A cada {viewContractDialog.cleaning_interval_months} meses</p></div>
                 <div><Label className="text-xs text-muted-foreground">Próx. Manutenção</Label><p>{format(getNextMaintenanceDate(viewContractDialog), 'dd/MM/yyyy')}</p></div>
               </div>
-              {viewContractDialog.description && (
-                <div><Label className="text-xs text-muted-foreground">Descrição</Label><p className="text-sm">{viewContractDialog.description}</p></div>
+
+              {/* Responsável */}
+              {(extraData.responsibleName || extraData.responsiblePhone) && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase">👤 Responsável</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {extraData.responsibleName && <div><span className="text-muted-foreground text-xs">Nome:</span> <span className="font-medium">{extraData.responsibleName}</span></div>}
+                    {extraData.responsiblePhone && <div><span className="text-muted-foreground text-xs">Telefone:</span> <span className="font-medium">{extraData.responsiblePhone}</span></div>}
+                    {extraData.responsibleCpf && <div><span className="text-muted-foreground text-xs">CPF:</span> <span>{extraData.responsibleCpf}</span></div>}
+                    {extraData.responsibleRg && <div><span className="text-muted-foreground text-xs">RG:</span> <span>{extraData.responsibleRg}</span></div>}
+                  </div>
+                </div>
               )}
-              {viewContractDialog.notes && (
-                <div><Label className="text-xs text-muted-foreground">Observações</Label><p className="text-sm italic">{viewContractDialog.notes}</p></div>
+
+              {/* Equipamento */}
+              {(extraData.equipmentBrand || extraData.equipmentBtus) && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase">❄️ Equipamento</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {extraData.equipmentBrand && <div><span className="text-muted-foreground text-xs">Marca:</span> <span className="font-medium">{extraData.equipmentBrand}</span></div>}
+                    {extraData.equipmentModel && <div><span className="text-muted-foreground text-xs">Modelo:</span> <span>{extraData.equipmentModel}</span></div>}
+                    {extraData.equipmentBtus && <div><span className="text-muted-foreground text-xs">BTUs:</span> <span>{extraData.equipmentBtus}</span></div>}
+                    {extraData.equipmentLocation && <div><span className="text-muted-foreground text-xs">Local:</span> <span>{extraData.equipmentLocation}</span></div>}
+                    {extraData.equipmentCount && <div><span className="text-muted-foreground text-xs">Qtd:</span> <span>{extraData.equipmentCount}</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Detalhes */}
+              {(extraData.contractType || extraData.paymentMethod || extraData.serviceAddress) && (
+                <div className="pt-2 border-t">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase">📋 Detalhes</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {extraData.contractType && <div><span className="text-muted-foreground text-xs">Tipo:</span> <span className="capitalize">{extraData.contractType}</span></div>}
+                    {extraData.paymentMethod && <div><span className="text-muted-foreground text-xs">Pagamento:</span> <span className="capitalize">{extraData.paymentMethod}</span></div>}
+                    {extraData.serviceType && <div><span className="text-muted-foreground text-xs">Serviço:</span> <span className="capitalize">{extraData.serviceType}</span></div>}
+                    {extraData.serviceAddress && <div className="col-span-2"><span className="text-muted-foreground text-xs">Endereço:</span> <span>{extraData.serviceAddress}</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {viewContractDialog.description && (
+                <div className="pt-2 border-t"><Label className="text-xs text-muted-foreground">Descrição</Label><p className="text-sm">{viewContractDialog.description}</p></div>
+              )}
+              {extraData.userNotes && (
+                <div><Label className="text-xs text-muted-foreground">Observações</Label><p className="text-sm italic">{extraData.userNotes}</p></div>
               )}
               {viewContractDialog.client.address && (
-                <div><Label className="text-xs text-muted-foreground">Endereço</Label><p className="text-sm">{viewContractDialog.client.address}</p></div>
+                <div><Label className="text-xs text-muted-foreground">Endereço do Cliente</Label><p className="text-sm">{viewContractDialog.client.address}</p></div>
               )}
               <div className="flex gap-2 pt-2">
                 <Button className="flex-1" onClick={() => { generateContractPDF(viewContractDialog); }}>
                   <Download className="w-4 h-4 mr-2" /> Baixar PDF
                 </Button>
-                {viewContractDialog.client.telefone && (
+                {(extraData.responsiblePhone || viewContractDialog.client.telefone) && (
                   <Button variant="outline" className="text-green-600 border-green-300"
                     onClick={() => {
-                      const phone = formatPhoneForWhatsApp(viewContractDialog.client.telefone!);
+                      const phone = formatPhoneForWhatsApp(extraData.responsiblePhone || viewContractDialog.client.telefone!);
                       window.open(`https://wa.me/${phone}`, '_blank');
                     }}>
                     <Phone className="w-4 h-4 mr-2" /> WhatsApp
@@ -699,7 +759,9 @@ const ServicesUnifiedTab: React.FC = () => {
                 )}
               </div>
             </div>
-          )}
+            </ScrollArea>
+            );
+          })()}
         </DialogContent>
       </Dialog>
 
@@ -761,10 +823,61 @@ const ServicesUnifiedTab: React.FC = () => {
               <div><Label>Valor/mês (R$)</Label><Input type="number" value={contractFormData.monthlyValue} onChange={(e) => setContractFormData(p => ({ ...p, monthlyValue: e.target.value }))} placeholder="0.00" /></div>
               <div><Label>Equipamentos</Label><Input type="number" value={contractFormData.equipmentCount} onChange={(e) => setContractFormData(p => ({ ...p, equipmentCount: e.target.value }))} /></div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div><Label>Responsável</Label><Input value={contractFormData.responsibleName} onChange={(e) => setContractFormData(p => ({ ...p, responsibleName: e.target.value }))} placeholder="Nome" /></div>
-              <div><Label>CPF</Label><Input value={contractFormData.responsibleCpf} onChange={(e) => setContractFormData(p => ({ ...p, responsibleCpf: e.target.value }))} placeholder="000.000.000-00" /></div>
+            {/* Responsável / Contato */}
+            <div className="pt-2 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">👤 Responsável / Contato</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Nome do Responsável</Label><Input value={contractFormData.responsibleName} onChange={(e) => setContractFormData(p => ({ ...p, responsibleName: e.target.value }))} placeholder="Com quem falou" /></div>
+                <div><Label>Telefone</Label><Input value={contractFormData.responsiblePhone} onChange={(e) => setContractFormData(p => ({ ...p, responsiblePhone: e.target.value }))} placeholder="(00) 00000-0000" /></div>
+                <div><Label>CPF</Label><Input value={contractFormData.responsibleCpf} onChange={(e) => setContractFormData(p => ({ ...p, responsibleCpf: e.target.value }))} placeholder="000.000.000-00" /></div>
+                <div><Label>RG</Label><Input value={contractFormData.responsibleRg} onChange={(e) => setContractFormData(p => ({ ...p, responsibleRg: e.target.value }))} placeholder="00.000.000-0" /></div>
+              </div>
             </div>
+
+            {/* Equipamento */}
+            <div className="pt-2 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">❄️ Equipamento</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Marca</Label><Input value={contractFormData.equipmentBrand} onChange={(e) => setContractFormData(p => ({ ...p, equipmentBrand: e.target.value }))} placeholder="Ex: Samsung, LG, Springer" /></div>
+                <div><Label>Modelo</Label><Input value={contractFormData.equipmentModel} onChange={(e) => setContractFormData(p => ({ ...p, equipmentModel: e.target.value }))} placeholder="Ex: Split Inverter" /></div>
+                <div><Label>BTUs</Label><Input type="number" value={contractFormData.equipmentBtus} onChange={(e) => setContractFormData(p => ({ ...p, equipmentBtus: e.target.value }))} placeholder="Ex: 12000" /></div>
+                <div><Label>Local do Equipamento</Label><Input value={contractFormData.equipmentLocation} onChange={(e) => setContractFormData(p => ({ ...p, equipmentLocation: e.target.value }))} placeholder="Ex: Sala, Quarto, Escritório" /></div>
+              </div>
+            </div>
+
+            {/* Detalhes adicionais */}
+            <div className="pt-2 border-t">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">📋 Detalhes do Contrato</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label>Tipo de Contrato</Label>
+                  <Select value={contractFormData.contractType} onValueChange={(v) => setContractFormData(p => ({ ...p, contractType: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="residencial">🏠 Residencial</SelectItem>
+                      <SelectItem value="comercial">🏢 Comercial</SelectItem>
+                      <SelectItem value="industrial">🏭 Industrial</SelectItem>
+                      <SelectItem value="condominio">🏗️ Condomínio</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Forma de Pagamento</Label>
+                  <Select value={contractFormData.paymentMethod} onValueChange={(v) => setContractFormData(p => ({ ...p, paymentMethod: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="mensal">Mensal</SelectItem>
+                      <SelectItem value="trimestral">Trimestral</SelectItem>
+                      <SelectItem value="semestral">Semestral</SelectItem>
+                      <SelectItem value="anual">Anual</SelectItem>
+                      <SelectItem value="avista">À Vista</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="col-span-2"><Label>Endereço do Serviço</Label><Input value={contractFormData.serviceAddress} onChange={(e) => setContractFormData(p => ({ ...p, serviceAddress: e.target.value }))} placeholder="Endereço completo onde será prestado o serviço" /></div>
+              </div>
+            </div>
+
             <div><Label>Descrição</Label><Textarea value={contractFormData.description} onChange={(e) => setContractFormData(p => ({ ...p, description: e.target.value }))} placeholder="Serviços inclusos, equipamentos, locais..." rows={3} /></div>
             <div><Label>Observações</Label><Textarea value={contractFormData.notes} onChange={(e) => setContractFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Cláusulas adicionais, condições especiais..." rows={2} /></div>
           </div>
