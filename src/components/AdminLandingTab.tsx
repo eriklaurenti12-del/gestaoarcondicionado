@@ -26,14 +26,17 @@ const LANDING_KEYS = [
   'landing_cor_fundo', 'landing_cor_botao_cta',
   'landing_countdown_texto', 'landing_countdown_desconto',
   'landing_notif_intervalo', 'landing_notif_som', 'landing_notif_ativa',
+  'landing_notif_acoes', 'landing_notif_nomes', 'landing_notif_cidades',
   'landing_oferta1_titulo', 'landing_oferta1_descricao', 'landing_oferta1_badge', 'landing_oferta1_ativa',
   'landing_oferta1_btn_texto', 'landing_oferta1_features',
   'landing_oferta2_titulo', 'landing_oferta2_descricao', 'landing_oferta2_badge', 'landing_oferta2_ativa',
   'landing_oferta2_btn_texto', 'landing_oferta2_features',
-  'landing_depoimento1_nome', 'landing_depoimento1_role', 'landing_depoimento1_texto', 'landing_depoimento1_estrelas',
-  'landing_depoimento2_nome', 'landing_depoimento2_role', 'landing_depoimento2_texto', 'landing_depoimento2_estrelas',
-  'landing_depoimento3_nome', 'landing_depoimento3_role', 'landing_depoimento3_texto', 'landing_depoimento3_estrelas',
-  'landing_depoimento4_nome', 'landing_depoimento4_role', 'landing_depoimento4_texto', 'landing_depoimento4_estrelas',
+  ...Array.from({length: 4}, (_, i) => [
+    `landing_depoimento${i+1}_nome`, `landing_depoimento${i+1}_role`, 
+    `landing_depoimento${i+1}_texto`, `landing_depoimento${i+1}_estrelas`,
+    `landing_depoimento${i+1}_foto`, `landing_depoimento${i+1}_video`
+  ]).flat(),
+  'landing_video_prova_social_1', 'landing_video_prova_social_2', 'landing_video_prova_social_3',
   'landing_whatsapp_flutuante', 'landing_whatsapp_link', 'landing_whatsapp_mensagem', 'landing_whatsapp_icon_url',
   'landing_template',
   'landing_vsl_url', 'landing_vsl_trava',
@@ -88,6 +91,32 @@ const TestimonialEditor: React.FC<{
           <Label className="text-gray-400 text-xs">Texto do depoimento</Label>
           <Textarea value={settings[`${prefix}_texto`] || ''} onChange={e => update(`${prefix}_texto`, e.target.value)}
             className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[60px] text-sm" />
+        </div>
+        {/* Foto do cliente */}
+        <div>
+          <Label className="text-gray-400 text-xs flex items-center gap-1">
+            <Image className="w-3 h-3" /> URL da Foto do Cliente
+          </Label>
+          <Input value={settings[`${prefix}_foto`] || ''} onChange={e => update(`${prefix}_foto`, e.target.value)}
+            className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
+            placeholder="https://... ou deixe vazio para avatar padrão" />
+          {settings[`${prefix}_foto`] && (
+            <div className="mt-2 flex items-center gap-2">
+              <img src={settings[`${prefix}_foto`]} alt="foto" className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" />
+              <Button variant="ghost" size="sm" onClick={() => update(`${prefix}_foto`, '')} className="text-red-400 h-6 text-xs">
+                <Trash2 className="w-3 h-3 mr-1" /> Remover
+              </Button>
+            </div>
+          )}
+        </div>
+        {/* Vídeo depoimento */}
+        <div>
+          <Label className="text-gray-400 text-xs flex items-center gap-1">
+            <Video className="w-3 h-3" /> URL do Vídeo Depoimento (opcional)
+          </Label>
+          <Input value={settings[`${prefix}_video`] || ''} onChange={e => update(`${prefix}_video`, e.target.value)}
+            className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
+            placeholder="https://youtube.com/watch?v=... ou link direto" />
         </div>
       </CardContent>
     </Card>
@@ -572,10 +601,43 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* DEPOIMENTOS */}
         <TabsContent value="depoimentos">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <TestimonialEditor key={i} index={i} settings={settings} update={update} />
-            ))}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <TestimonialEditor key={i} index={i} settings={settings} update={update} />
+              ))}
+            </div>
+
+            {/* Vídeos de Prova Social */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-white text-base">
+                  <Video className="w-5 h-5 text-red-400" /> Vídeos de Prova Social
+                </CardTitle>
+                <CardDescription className="text-gray-400 text-xs">
+                  Adicione até 3 vídeos de clientes reais (YouTube, Vimeo ou link direto)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[1, 2, 3].map(i => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <Label className="text-gray-400 text-xs">Vídeo {i}</Label>
+                      <Input value={settings[`landing_video_prova_social_${i}`] || ''} 
+                        onChange={e => update(`landing_video_prova_social_${i}`, e.target.value)}
+                        className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
+                        placeholder="https://youtube.com/watch?v=..." />
+                    </div>
+                    {settings[`landing_video_prova_social_${i}`] && (
+                      <Button variant="ghost" size="sm" onClick={() => update(`landing_video_prova_social_${i}`, '')} 
+                        className="text-red-400 h-8 mt-4">
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
@@ -757,25 +819,57 @@ export const AdminLandingTab: React.FC = () => {
             <Card className="bg-[#1a1a24] border-[#2a2a3a]">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra
+                  <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra (Social Proof)
                 </CardTitle>
+                <CardDescription className="text-gray-400 text-xs">
+                  Customize as notificações fake de compra que aparecem na landing page
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label className="text-gray-300 text-sm">Ativas</Label>
-                  <Switch checked={settings.landing_notif_ativa !== 'false'}
-                    onCheckedChange={v => update('landing_notif_ativa', v ? 'true' : 'false')} />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label className="text-gray-300 text-sm">Som</Label>
-                  <Switch checked={settings.landing_notif_som !== 'false'}
-                    onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-gray-300 text-sm">Ativas</Label>
+                    <Switch checked={settings.landing_notif_ativa !== 'false'}
+                      onCheckedChange={v => update('landing_notif_ativa', v ? 'true' : 'false')} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-gray-300 text-sm">Som</Label>
+                    <Switch checked={settings.landing_notif_som !== 'false'}
+                      onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-gray-300 text-sm">Intervalo (segundos)</Label>
                   <Input type="number" value={settings.landing_notif_intervalo || '10'} 
                     onChange={e => update('landing_notif_intervalo', e.target.value)}
                     className="bg-[#0f0f17] border-[#2a2a3a] text-white w-32" min="5" max="60" />
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-sm">Ações das Notificações (uma por linha)</Label>
+                  <Textarea 
+                    value={settings.landing_notif_acoes || 'acabou de assinar\nacabou de renovar\nfez upgrade para anual\nativou sua conta'} 
+                    onChange={e => update('landing_notif_acoes', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    placeholder="acabou de assinar&#10;acabou de renovar&#10;fez upgrade para anual&#10;ativou sua conta" />
+                  <p className="text-xs text-gray-500 mt-1">Cada linha será uma ação diferente exibida nas notificações</p>
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-sm">Nomes (um por linha) — deixe vazio para usar padrão</Label>
+                  <Textarea 
+                    value={settings.landing_notif_nomes || ''} 
+                    onChange={e => update('landing_notif_nomes', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    placeholder="João Silva&#10;Maria Santos&#10;Pedro Oliveira..." />
+                  <p className="text-xs text-gray-500 mt-1">Nomes fictícios para exibir. Vazio = lista padrão de 60 nomes</p>
+                </div>
+                <div>
+                  <Label className="text-gray-300 text-sm">Cidades (uma por linha) — deixe vazio para usar padrão</Label>
+                  <Textarea 
+                    value={settings.landing_notif_cidades || ''} 
+                    onChange={e => update('landing_notif_cidades', e.target.value)}
+                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    placeholder="São Paulo&#10;Rio de Janeiro&#10;Belo Horizonte..." />
+                  <p className="text-xs text-gray-500 mt-1">Cidades para exibir. Vazio = lista padrão de 50 cidades</p>
                 </div>
               </CardContent>
             </Card>
