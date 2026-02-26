@@ -3,11 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2 } from "lucide-react";
+import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useQueryClient } from '@tanstack/react-query';
 
 type OnlineBooking = {
   id: string;
@@ -27,8 +27,15 @@ interface OnlineBookingsTabProps {
   userId: string;
 }
 
+const formatWhatsAppUrl = (phone: string, message: string) => {
+  const clean = phone.replace(/\D/g, '');
+  const fullNumber = clean.startsWith('55') ? clean : `55${clean}`;
+  return `https://wa.me/${fullNumber}?text=${encodeURIComponent(message)}`;
+};
+
 const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [bookings, setBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -36,20 +43,17 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   useEffect(() => {
     loadBookings();
-
-    // Realtime subscription
     const channel = supabase
       .channel('online-bookings')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'online_bookings' }, () => {
         loadBookings();
       })
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, []);
 
   const loadBookings = async () => {
-    const { data, error } = await (supabase.from('online_bookings') as any)
+    const { data } = await (supabase.from('online_bookings') as any)
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
@@ -57,15 +61,83 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     setLoading(false);
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, status: string, booking?: OnlineBooking) => {
     const { error } = await (supabase.from('online_bookings') as any)
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: status === 'confirmado' ? "Agendamento confirmado! ✅" : "Agendamento recusado" });
-      loadBookings();
+      return;
+    }
+    
+    // If confirming, sync to manual agenda
+    if (status === 'confirmado' && booking) {
+      await syncToAgenda(booking);
+    }
+    
+    toast({ title: status === 'confirmado' ? "Agendamento confirmado e adicionado à agenda! ✅" : "Agendamento recusado" });
+    loadBookings();
+    
+    // Send WhatsApp notification
+    if (booking?.client_phone) {
+      const statusMsg = status === 'confirmado' 
+        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}\n\nAguardamos você! 🙏`
+        : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
+      
+      window.open(formatWhatsAppUrl(booking.client_phone, statusMsg), '_blank');
+    }
+  };
+
+  const syncToAgenda = async (booking: OnlineBooking) => {
+    try {
+      // Find or create client
+      let clientId: number | null = null;
+      const cleanPhone = booking.client_phone.replace(/\D/g, '');
+      
+      const { data: existingClients } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', userId)
+        .or(`telefone.ilike.%${cleanPhone.slice(-8)}%,name.ilike.%${booking.client_name}%`)
+        .limit(1);
+      
+      if (existingClients && existingClients.length > 0) {
+        clientId = existingClients[0].id;
+      } else {
+        const { data: newClient } = await supabase
+          .from('clients')
+          .insert({ user_id: userId, name: booking.client_name, telefone: booking.client_phone })
+          .select('id')
+          .single();
+        if (newClient) clientId = newClient.id;
+      }
+
+      // Find service
+      let serviceId: number | null = null;
+      const { data: serviceData } = await supabase
+        .from('products')
+        .select('id')
+        .eq('user_id', userId)
+        .ilike('name', `%${booking.service_name}%`)
+        .limit(1);
+      if (serviceData && serviceData.length > 0) serviceId = serviceData[0].id;
+
+      // Create appointment
+      const dateTime = new Date(`${booking.preferred_date}T${booking.preferred_time}:00`);
+      const { error } = await supabase.from('appointments').insert({
+        user_id: userId,
+        client_id: clientId,
+        service_id: serviceId,
+        appointment_date: dateTime.toISOString(),
+        status: 'confirmado',
+        notes: `Agendamento Online - ${booking.payment_method ? `Pagamento: ${booking.payment_method}` : ''}${booking.notes ? ` | ${booking.notes}` : ''}`
+      });
+
+      if (!error) {
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      }
+    } catch (e) {
+      console.error('Error syncing to agenda:', e);
     }
   };
 
@@ -83,6 +155,18 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     toast({ title: "Link copiado! 📋", description: "Compartilhe com seus clientes" });
   };
 
+  const checkForUpdates = () => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.update().then(() => {
+          toast({ title: "🔍 Verificando atualizações...", description: "Se houver uma nova versão, será aplicada automaticamente." });
+        });
+      });
+    } else {
+      window.location.reload();
+    }
+  };
+
   const pendingCount = bookings.filter(b => b.status === 'pendente').length;
 
   const getStatusBadge = (status: string) => {
@@ -90,6 +174,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       case 'pendente': return <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">⏳ Pendente</Badge>;
       case 'confirmado': return <Badge className="bg-green-500/20 text-green-400 border-green-500/30">✅ Confirmado</Badge>;
       case 'recusado': return <Badge className="bg-red-500/20 text-red-400 border-red-500/30">❌ Recusado</Badge>;
+      case 'cancelado': return <Badge className="bg-slate-500/20 text-slate-400 border-slate-500/30">🚫 Cancelado</Badge>;
       default: return <Badge variant="outline">{status}</Badge>;
     }
   };
@@ -121,14 +206,17 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10"
               onClick={() => {
                 const msg = `Olá! Agende seu serviço de Ar Condicionado online: ${bookingUrl}`;
-                navigator.clipboard.writeText(msg);
-                toast({ title: "Mensagem copiada! 📋" });
+                window.open(formatWhatsAppUrl('', msg), '_blank');
               }}>
-              📱 Copiar para WhatsApp
+              📱 Enviar via WhatsApp
+            </Button>
+            <Button size="sm" variant="outline" className="border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
+              onClick={checkForUpdates}>
+              <RefreshCw className="w-3 h-3 mr-1" /> Procurar Atualização
             </Button>
           </div>
         </CardContent>
@@ -174,7 +262,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                       <div className="flex items-center gap-4 text-sm text-slate-400 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {format(new Date(booking.preferred_date), 'dd/MM/yyyy')}
+                          {format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}
                         </span>
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -202,11 +290,11 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                     <div className="flex items-center gap-2 shrink-0">
                       {booking.status === 'pendente' && (
                         <>
-                          <Button size="sm" onClick={() => updateStatus(booking.id, 'confirmado')}
+                          <Button size="sm" onClick={() => updateStatus(booking.id, 'confirmado', booking)}
                             className="bg-green-600 hover:bg-green-700 text-white text-xs h-8">
                             <Check className="w-3 h-3 mr-1" /> Aceitar
                           </Button>
-                          <Button size="sm" onClick={() => updateStatus(booking.id, 'recusado')}
+                          <Button size="sm" onClick={() => updateStatus(booking.id, 'recusado', booking)}
                             variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs h-8">
                             <X className="w-3 h-3 mr-1" /> Recusar
                           </Button>
@@ -218,7 +306,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                       </Button>
                       {booking.client_phone && (
                         <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
-                          onClick={() => window.open(`https://wa.me/55${booking.client_phone.replace(/\D/g, '')}`, '_blank')}>
+                          onClick={() => {
+                            const msg = `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
+                            window.open(formatWhatsAppUrl(booking.client_phone, msg), '_blank');
+                          }}>
                           <Phone className="w-3 h-3" />
                         </Button>
                       )}

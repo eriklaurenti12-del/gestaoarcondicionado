@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
 };
 
 Deno.serve(async (req) => {
@@ -27,6 +28,24 @@ Deno.serve(async (req) => {
     );
 
     if (req.method === 'GET') {
+      const action = url.searchParams.get('action');
+      
+      // Lookup bookings by phone
+      if (action === 'lookup') {
+        const phone = url.searchParams.get('phone') || '';
+        const { data: bookings } = await supabase
+          .from('online_bookings')
+          .select('id, client_name, client_phone, service_name, preferred_date, preferred_time, payment_method, status, created_at')
+          .eq('user_id', userId)
+          .ilike('client_phone', `%${phone.slice(-8)}%`)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        return new Response(JSON.stringify({ bookings: bookings || [] }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       // Get business info and available services
       const [
         { data: company },
@@ -41,7 +60,6 @@ Deno.serve(async (req) => {
           .gte('appointment_date', new Date().toISOString())
       ]);
 
-      // Calculate busy slots
       const busySlots = (appointments || []).map((a: any) => a.appointment_date);
 
       return new Response(JSON.stringify({
@@ -49,6 +67,35 @@ Deno.serve(async (req) => {
         services: services || [],
         busySlots
       }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (req.method === 'PUT') {
+      const body = await req.json();
+      const { booking_id, action } = body;
+
+      if (action === 'cancel' && booking_id) {
+        const { error } = await supabase
+          .from('online_bookings')
+          .update({ status: 'cancelado', updated_at: new Date().toISOString() })
+          .eq('id', booking_id)
+          .eq('user_id', userId);
+
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ error: 'Invalid action' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
