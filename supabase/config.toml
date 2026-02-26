@@ -11,3 +11,12 @@ verify_jwt = false
 
 [functions.generate-landing-theme]
 verify_jwt = false
+
+[functions.admin-members]
+verify_jwt = false
+
+[functions.admin-update-subscription]
+verify_jwt = false
+
+[functions.accept-team-invite]
+verify_jwt = false

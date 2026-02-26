@@ -20,15 +20,21 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     console.log('[admin-members] Incoming request');
 
-    // Client that validates the incoming JWT (forwarding Authorization)
-    const supabaseAuthed = createClient(supabaseUrl, serviceRoleKey, {
+    const token = authHeader.replace('Bearer ', '');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Validate JWT using anon key client
+    const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabaseAuthed.auth.getUser();
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
     if (authError || !user) {
       console.warn('[admin-members] Unauthorized access attempt', authError?.message);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
