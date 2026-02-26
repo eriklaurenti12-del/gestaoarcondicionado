@@ -733,13 +733,23 @@ const ServicesUnifiedTab: React.FC = () => {
               </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <div><Label>Data Início</Label><Input type="date" value={contractFormData.startDate} onChange={(e) => setContractFormData(p => ({ ...p, startDate: e.target.value }))} /></div>
+              <div><Label>Data Início</Label><Input type="date" value={contractFormData.startDate} onChange={(e) => {
+                const newStart = e.target.value;
+                const months = parseInt(contractFormData.intervalMonths);
+                const newEnd = addMonths(new Date(newStart), months);
+                setContractFormData(p => ({ ...p, startDate: newStart, endDate: format(newEnd, 'yyyy-MM-dd') }));
+              }} /></div>
               <div><Label>Data Fim</Label><Input type="date" value={contractFormData.endDate} onChange={(e) => setContractFormData(p => ({ ...p, endDate: e.target.value }))} /></div>
             </div>
             <div className="grid grid-cols-3 gap-4">
               <div>
                 <Label>Intervalo</Label>
-                <Select value={contractFormData.intervalMonths} onValueChange={(v) => setContractFormData(p => ({ ...p, intervalMonths: v }))}>
+                <Select value={contractFormData.intervalMonths} onValueChange={(v) => {
+                  const months = parseInt(v);
+                  const start = contractFormData.startDate ? new Date(contractFormData.startDate) : new Date();
+                  const newEnd = addMonths(start, months);
+                  setContractFormData(p => ({ ...p, intervalMonths: v, endDate: format(newEnd, 'yyyy-MM-dd') }));
+                }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">1 mês</SelectItem><SelectItem value="2">2 meses</SelectItem>

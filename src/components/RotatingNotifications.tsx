@@ -176,6 +176,20 @@ const RotatingNotifications: React.FC = () => {
     refetchInterval: 300000
   });
 
+  // Fetch maintenance contracts for notifications
+  const { data: maintenanceContracts } = useQuery({
+    queryKey: ['rotating-contracts'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('maintenance_contracts')
+        .select('*, client:clients(name, telefone)')
+        .neq('status', 'cancelado')
+        .order('end_date', { ascending: true });
+      return data || [];
+    },
+    refetchInterval: 300000
+  });
+
   const { data: clients } = useQuery({
     queryKey: ['rotating-birthdays'],
     queryFn: async () => {
@@ -303,6 +317,58 @@ const RotatingNotifications: React.FC = () => {
       }
     });
 
+    // Contract notifications (expiring, next maintenance)
+    maintenanceContracts?.forEach((contract: any) => {
+      const clientName = contract.client?.name || 'Cliente';
+      
+      // Expiring contract
+      if (contract.end_date) {
+        const endDate = new Date(contract.end_date);
+        const daysLeft = differenceInDays(endDate, today);
+        if (daysLeft < 0) {
+          notifications.push({
+            id: `contract-expired-${contract.id}`,
+            icon: <AlertTriangle className="w-5 h-5" />,
+            title: "⚠️ Contrato VENCIDO!",
+            message: `${clientName} - "${contract.title}" vencido há ${Math.abs(daysLeft)} dia(s)!`,
+            color: "from-red-600 to-red-500",
+            priority: 9,
+            type: 'alert'
+          });
+        } else if (daysLeft <= 30) {
+          notifications.push({
+            id: `contract-expiring-${contract.id}`,
+            icon: <Clock className="w-5 h-5" />,
+            title: "Contrato vencendo!",
+            message: `${clientName} - "${contract.title}" vence em ${daysLeft} dia(s)`,
+            color: "from-amber-600 to-yellow-500",
+            priority: 7,
+            type: 'alert'
+          });
+        }
+      }
+
+      // Next maintenance from contract
+      const startDate = new Date(contract.start_date);
+      const interval = contract.cleaning_interval_months || 6;
+      let nextMaint = new Date(startDate);
+      while (nextMaint <= today) {
+        nextMaint = addDays(nextMaint, interval * 30);
+      }
+      const daysToMaint = differenceInDays(nextMaint, today);
+      if (daysToMaint <= 7 && daysToMaint >= 0) {
+        notifications.push({
+          id: `contract-maint-${contract.id}`,
+          icon: <Wrench className="w-5 h-5" />,
+          title: "Manutenção contratual próxima",
+          message: `${clientName} - manutenção em ${daysToMaint} dia(s) (${contract.title})`,
+          color: "from-purple-500 to-violet-500",
+          priority: 8,
+          type: 'alert'
+        });
+      }
+    });
+
     // Birthday notifications with age
     clients?.forEach((client: any) => {
       if (!client.aniversario) return;
@@ -354,7 +420,7 @@ const RotatingNotifications: React.FC = () => {
     });
 
     return notifications;
-  }, [installments, appointments, maintenances, clients, overdueAppointments]);
+  }, [installments, appointments, maintenances, clients, overdueAppointments, maintenanceContracts]);
 
   // Combine and sort all notifications
   const allNotifications = useMemo(() => {
