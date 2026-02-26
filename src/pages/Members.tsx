@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2 } from "lucide-react";
 import { format } from "date-fns";
 
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
@@ -37,10 +37,17 @@ type TeamInvite = {
   id: string;
   invite_code: string;
   status: string;
+  team_role: string;
   accepted_email: string | null;
   accepted_by: string | null;
   created_at: string;
   accepted_at: string | null;
+};
+
+const TEAM_ROLES: Record<string, { label: string; desc: string; icon: any; color: string }> = {
+  painel: { label: 'Painel Admin', desc: 'Acesso apenas ao painel administrativo', icon: Shield, color: 'text-cyan-400' },
+  sistema: { label: 'Sistema Completo', desc: 'Acesso total ao sistema de gestão', icon: Monitor, color: 'text-green-400' },
+  suporte: { label: 'Suporte', desc: 'Acesso para atendimento ao cliente', icon: Headphones, color: 'text-amber-400' },
 };
 
 export default function Members() {
@@ -90,7 +97,7 @@ export default function Members() {
     if (data) setTeamInvites(data as TeamInvite[]);
   };
 
-  const generateTeamInvite = async () => {
+  const generateTeamInvite = async (role: string = 'sistema') => {
     setLoadingInvite(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -99,10 +106,12 @@ export default function Members() {
       const { error } = await supabase.from('team_invites').insert({
         invite_code: code,
         created_by: user.id,
-        status: 'pending'
+        status: 'pending',
+        team_role: role
       });
       if (error) throw error;
-      toast({ title: "Link criado!", description: `Código: ${code}` });
+      const roleLabel = TEAM_ROLES[role]?.label || role;
+      toast({ title: "Link criado!", description: `Convite ${roleLabel}: ${code}` });
       loadTeamInvites();
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
@@ -291,15 +300,43 @@ export default function Members() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-cyan-400" /> Equipe Co-Admin
+                  <UserPlus className="w-5 h-5 text-cyan-400" /> Gestão de Equipe
                 </h2>
-                <p className="text-gray-400 text-sm">Membros que co-administram o sistema</p>
+                <p className="text-gray-400 text-sm">Crie links fixos para convidar membros com funções específicas</p>
               </div>
-              <Button onClick={generateTeamInvite} disabled={loadingInvite}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white">
-                <UserPlus className="w-4 h-4 mr-2" /> Gerar Convite
-              </Button>
             </div>
+
+            {/* Generate invites by role */}
+            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <CardHeader>
+                <CardTitle className="text-white text-lg flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-cyan-400" /> Gerar Link de Convite
+                </CardTitle>
+                <p className="text-gray-400 text-xs">
+                  Escolha a função e gere um link fixo. A pessoa acessa, cria conta e escolhe a função automaticamente.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid sm:grid-cols-3 gap-3">
+                  {Object.entries(TEAM_ROLES).map(([key, info]) => {
+                    const Icon = info.icon;
+                    return (
+                      <button key={key} onClick={() => generateTeamInvite(key)} disabled={loadingInvite}
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#2a2a3a] bg-[#0f0f17] hover:bg-[#1a1a2e] hover:border-cyan-500/30 transition-all group">
+                        <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all">
+                          <Icon className={`w-6 h-6 ${info.color}`} />
+                        </div>
+                        <span className="text-white font-medium text-sm">{info.label}</span>
+                        <span className="text-gray-500 text-xs text-center">{info.desc}</span>
+                        <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-xs mt-1">
+                          + Gerar Link
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Phone Numbers - Direct Team */}
             <Card className="bg-[#1a1a24] border-[#2a2a3a]">
@@ -308,7 +345,7 @@ export default function Members() {
                   <Phone className="w-5 h-5 text-green-400" /> Números da Equipe
                 </CardTitle>
                 <p className="text-gray-400 text-xs">
-                  Cadastre os telefones da equipe. Clientes podem ligar para quem estiver disponível ou selecionar aleatório.
+                  Cadastre os telefones da equipe para suporte.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -319,7 +356,7 @@ export default function Members() {
                         const updated = [...supportNumbers];
                         updated[idx].name = e.target.value;
                         setSupportNumbers(updated);
-                      }} placeholder="Nome do membro" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
+                      }} placeholder="Nome" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
                       <Input value={num.phone} onChange={e => {
                         const updated = [...supportNumbers];
                         updated[idx].phone = e.target.value;
@@ -328,9 +365,9 @@ export default function Members() {
                     </div>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
-                        onClick={() => {
-                          if (num.phone) window.open(`https://wa.me/55${num.phone.replace(/\D/g, '')}`, '_blank');
-                        }}><Phone className="w-4 h-4" /></Button>
+                        onClick={() => { if (num.phone) window.open(`https://wa.me/55${num.phone.replace(/\D/g, '')}`, '_blank'); }}>
+                        <Phone className="w-4 h-4" />
+                      </Button>
                       <Button size="sm" variant="ghost" className="text-red-400 h-8 w-8 p-0" onClick={() => {
                         setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
                       }}><Trash2 className="w-3 h-3" /></Button>
@@ -340,10 +377,10 @@ export default function Members() {
                 <div className="flex gap-2 flex-wrap">
                   <Button size="sm" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}
                     className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">
-                    <UserPlus className="w-3 h-3 mr-1" /> Adicionar Membro
+                    <UserPlus className="w-3 h-3 mr-1" /> Adicionar
                   </Button>
                   <Button size="sm" onClick={saveSupportNumbers}
-                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">Salvar Números</Button>
+                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">Salvar</Button>
                   {supportNumbers.length > 0 && (
                     <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10"
                       onClick={() => {
@@ -353,7 +390,7 @@ export default function Members() {
                         window.open(`https://wa.me/55${random.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${random.name}! Preciso de atendimento.`)}`, '_blank');
                         toast({ title: `Conectando com ${random.name}...` });
                       }}>
-                      🎲 Chamar Aleatório
+                      🎲 Aleatório
                     </Button>
                   )}
                 </div>
@@ -375,27 +412,36 @@ export default function Members() {
                     <TableHeader>
                       <TableRow className="border-[#2a2a3a]">
                         <TableHead className="text-gray-400">Email</TableHead>
-                        <TableHead className="text-gray-400">Código</TableHead>
+                        <TableHead className="text-gray-400">Função</TableHead>
                         <TableHead className="text-gray-400">Aceito em</TableHead>
                         <TableHead className="text-gray-400">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {acceptedInvites.map(invite => (
-                        <TableRow key={invite.id} className="border-[#2a2a3a]">
-                          <TableCell className="text-white font-medium">{invite.accepted_email}</TableCell>
-                          <TableCell><code className="text-cyan-300 text-xs">{invite.invite_code}</code></TableCell>
-                          <TableCell className="text-gray-400 text-sm">
-                            {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yyyy') : '-'}
-                          </TableCell>
-                          <TableCell>
-                            <Button size="sm" variant="destructive" onClick={() => removeTeamMember(invite)}
-                              className="bg-red-600 hover:bg-red-700 text-xs">
-                              <Trash2 className="w-3 h-3 mr-1" /> Remover
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {acceptedInvites.map(invite => {
+                        const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
+                        const RoleIcon = roleInfo.icon;
+                        return (
+                          <TableRow key={invite.id} className="border-[#2a2a3a]">
+                            <TableCell className="text-white font-medium">{invite.accepted_email}</TableCell>
+                            <TableCell>
+                              <Badge className="bg-[#2a2a3a] text-white border-0 gap-1">
+                                <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
+                                {roleInfo.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-gray-400 text-sm">
+                              {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yyyy') : '-'}
+                            </TableCell>
+                            <TableCell>
+                              <Button size="sm" variant="destructive" onClick={() => removeTeamMember(invite)}
+                                className="bg-red-600 hover:bg-red-700 text-xs">
+                                <Trash2 className="w-3 h-3 mr-1" /> Remover
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 )}
@@ -406,20 +452,28 @@ export default function Members() {
             <Card className="bg-[#1a1a24] border-[#2a2a3a]">
               <CardHeader>
                 <CardTitle className="text-white text-lg">
-                  ⏳ Convites Pendentes ({pendingInvites.length})
+                  ⏳ Links Pendentes ({pendingInvites.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {pendingInvites.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center py-4">Nenhum convite pendente.</p>
+                  <p className="text-gray-500 text-sm text-center py-4">Nenhum link pendente.</p>
                 ) : (
                   pendingInvites.map(invite => {
                     const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
+                    const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
+                    const RoleIcon = roleInfo.icon;
                     return (
                       <div key={invite.id} className="flex items-center gap-3 bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
                         <div className="flex-1 min-w-0">
-                          <code className="text-cyan-300 text-sm font-mono">{invite.invite_code}</code>
-                          <p className="text-gray-500 text-xs truncate mt-1">{teamUrl}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <Badge className="bg-[#2a2a3a] text-white border-0 gap-1 text-xs">
+                              <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
+                              {roleInfo.label}
+                            </Badge>
+                            <code className="text-cyan-300 text-xs font-mono">{invite.invite_code}</code>
+                          </div>
+                          <p className="text-gray-500 text-xs truncate">{teamUrl}</p>
                         </div>
                         <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl)}
                           className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a] text-xs">
