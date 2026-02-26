@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send, Play, X, Navigation, MapPin, User } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
@@ -425,6 +425,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
             }
         }
     };
+
+    const updateAppointmentStatus = useMutation({
+      mutationFn: async ({ id, status }: { id: string; status: string }) => {
+        const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+        if (error) throw error;
+      },
+      onSuccess: (_, { status }) => {
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        const labels: Record<string, string> = {
+          confirmado: '✓ Confirmado',
+          concluido: '✅ Concluído',
+          cancelado: '❌ Cancelado',
+          agendado: '📅 Reaberto'
+        };
+        toast.success(labels[status] || 'Status atualizado');
+      }
+    });
 
     const { data, isLoading, isError, error } = useQuery({
         queryKey: ['dashboard'],
@@ -984,30 +1002,145 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       {/* Today's Appointments List */}
       {appointmentStats.todayAppointments.length > 0 && (
         <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" />Atendimentos de Hoje</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="flex items-center gap-2"><CalendarDays className="w-5 h-5" />Serviços Rápidos - Hoje</CardTitle></CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              {appointmentStats.todayAppointments.map((apt: any) => (
-                <div key={apt.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <div>
-                    <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
-                    <span className="text-muted-foreground mx-2">•</span>
-                    <span className="text-sm text-muted-foreground">{apt.products?.name || 'Serviço'}</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="font-semibold text-primary">
-                      {format(new Date(apt.appointment_date), 'HH:mm')}
-                    </span>
-                    <span className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                      apt.status === 'confirmado' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                      apt.status === 'concluído' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
-                      'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'
-                    }`}>
-                      {apt.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+            <div className="space-y-3">
+              {appointmentStats.todayAppointments.map((apt: any) => {
+                const isPast = new Date(apt.appointment_date) < new Date();
+                const isPending = apt.status === 'agendado' || apt.status === 'confirmado';
+                const isDone = apt.status === 'concluido';
+                const isCancelled = apt.status === 'cancelado';
+
+                return (
+                  <Card key={apt.id} className={`border ${
+                    isDone ? 'border-blue-500/30 bg-blue-500/5' :
+                    isCancelled ? 'border-red-500/30 bg-red-500/5 opacity-60' :
+                    isPast && isPending ? 'border-primary/50 bg-primary/5' :
+                    'border-border'
+                  }`}>
+                    <CardContent className="p-3">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2 text-primary font-semibold">
+                          <Clock className="w-4 h-4" />
+                          {format(new Date(apt.appointment_date), 'HH:mm')}
+                        </div>
+                        <Badge variant={
+                          apt.status === 'confirmado' ? 'default' :
+                          apt.status === 'concluido' ? 'outline' :
+                          apt.status === 'cancelado' ? 'destructive' : 'secondary'
+                        } className="text-xs">
+                          {apt.status === 'agendado' ? 'Agendado' :
+                           apt.status === 'confirmado' ? 'Confirmado' :
+                           apt.status === 'concluido' ? 'Concluído' :
+                           apt.status === 'cancelado' ? 'Cancelado' : apt.status}
+                        </Badge>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm">
+                          <User className="w-3 h-3 text-muted-foreground" />
+                          <span className="font-medium">{apt.clients?.name || 'Cliente'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Wrench className="w-3 h-3" />
+                          <span>{apt.products?.name || 'Serviço'}</span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      {isPending && (
+                        <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                          {apt.status !== 'confirmado' && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                              onClick={() => {
+                                updateAppointmentStatus.mutate({ id: apt.id, status: 'confirmado' });
+                              }}
+                            >
+                              <Play className="w-3 h-3 mr-1" /> Confirmar
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                            onClick={() => {
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'concluido' });
+                            }}
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" /> Concluir
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                            onClick={() => {
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'cancelado' });
+                            }}
+                          >
+                            <X className="w-3 h-3 mr-1" /> Cancelar
+                          </Button>
+                        </div>
+                      )}
+                      {(isDone || isCancelled) && (
+                        <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 flex-1"
+                            onClick={() => {
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'agendado' });
+                            }}
+                          >
+                            ↩️ Reabrir
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Navigation + Contact */}
+                      <div className="flex gap-1.5 mt-2">
+                        {apt.clients?.address && (
+                          <>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-6 flex-1 text-muted-foreground"
+                              onClick={() => {
+                                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank');
+                              }}
+                            >
+                              <Navigation className="w-3 h-3 mr-1" /> Maps
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-6 flex-1 text-muted-foreground"
+                              onClick={() => {
+                                window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank');
+                              }}
+                            >
+                              <MapPin className="w-3 h-3 mr-1" /> Waze
+                            </Button>
+                          </>
+                        )}
+                        {apt.clients?.telefone && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-6 text-muted-foreground"
+                            onClick={() => {
+                              window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank');
+                            }}
+                          >
+                            <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
