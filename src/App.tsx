@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import ResetPassword from "./pages/ResetPassword";
 import Members from "./pages/Members";
+import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
 import AwaitingActivation from "./pages/AwaitingActivation";
 
@@ -27,6 +28,7 @@ const App = () => (
             <Route path="/dashboard" element={<Index />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/members" element={<Members />} />
+            <Route path="/agendar" element={<PublicBooking />} />
             <Route path="/awaiting-activation" element={<AwaitingActivation />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

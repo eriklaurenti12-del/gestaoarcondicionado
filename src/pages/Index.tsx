@@ -17,6 +17,7 @@ import ImpostosTab from "@/components/ImpostosTab";
 import BtuCalculator from "@/components/BtuCalculator";
 import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
+import OnlineBookingsTab from "@/components/OnlineBookingsTab";
 import NotificationSettings from "@/components/NotificationSettings";
 import OnboardingTour from "@/components/OnboardingTour";
 import RotatingNotifications from "@/components/RotatingNotifications";
@@ -63,6 +64,7 @@ export default function Index() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string>('');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -118,7 +120,7 @@ export default function Index() {
       .eq('user_id', session.user.id);
 
     setIsSuperAdmin(roles?.some(r => r.role === 'super_admin') || false);
-    
+    setCurrentUserId(session.user.id);
     // Check if first time user (onboarding not completed)
     const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
     const onboardingCompleted = localStorage.getItem(onboardingKey);
@@ -158,6 +160,8 @@ export default function Index() {
         return <Dashboard onNavigateToTab={setActiveTab} />;
       case "appointments":
         return <AppointmentsTab />;
+      case "online-bookings":
+        return currentUserId ? <OnlineBookingsTab userId={currentUserId} /> : null;
       case "cadastros":
         return <CadastrosUnifiedTab />;
       case "documents":
@@ -187,6 +191,7 @@ export default function Index() {
     const titles: Record<string, string> = {
       dashboard: "Painel de Controle",
       appointments: "Agenda de Atendimentos",
+      "online-bookings": "Agendamento Online",
       cadastros: "Clientes & Serviços",
       documents: "Orçamentos & Ordens de Serviço",
       financeiro: "Gestão Financeira",
