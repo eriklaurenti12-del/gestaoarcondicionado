@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -12,6 +12,8 @@ Deno.serve(async (req) => {
 
   try {
     const { invite_code, user_id, user_email, selected_role } = await req.json();
+
+    console.log('[accept-team-invite] Processing invite:', invite_code, 'for user:', user_email, 'role:', selected_role);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -27,17 +29,19 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (inviteError || !invite) {
+      console.error('[accept-team-invite] Invalid invite:', inviteError?.message);
       return new Response(JSON.stringify({ error: 'Convite inválido ou já utilizado' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Determine the role based on selected_role from invite
+    // Use selected_role from the user, or fallback to invite's team_role
     const teamRole = selected_role || invite.team_role || 'sistema';
+    console.log('[accept-team-invite] Team role:', teamRole);
 
     // Mark invite as accepted
-    await supabase.from('team_invites').update({
+    const { error: updateError } = await supabase.from('team_invites').update({
       accepted_by: user_id,
       accepted_email: user_email,
       status: 'accepted',
@@ -45,21 +49,19 @@ Deno.serve(async (req) => {
       accepted_at: new Date().toISOString()
     }).eq('id', invite.id);
 
+    if (updateError) {
+      console.error('[accept-team-invite] Update error:', updateError.message);
+    }
+
     // Give role based on team_role
-    if (teamRole === 'painel') {
-      // Access to admin panel only
-      await supabase.from('user_roles').upsert({
-        user_id,
-        role: 'super_admin'
-      }, { onConflict: 'user_id,role' });
-    } else if (teamRole === 'suporte') {
-      // Support access only - admin role
+    if (teamRole === 'suporte') {
+      // Support - admin role only
       await supabase.from('user_roles').upsert({
         user_id,
         role: 'admin'
       }, { onConflict: 'user_id,role' });
     } else {
-      // Full system access - super_admin
+      // painel or sistema - super_admin role
       await supabase.from('user_roles').upsert({
         user_id,
         role: 'super_admin'
@@ -67,17 +69,24 @@ Deno.serve(async (req) => {
     }
 
     // Activate subscription (lifetime for team members)
-    await supabase.from('subscriptions').update({
+    const { error: subError } = await supabase.from('subscriptions').update({
       plan: 'vitalicio',
       status: 'aprovado',
       is_active: true,
       start_date: new Date().toISOString()
     }).eq('user_id', user_id);
 
+    if (subError) {
+      console.error('[accept-team-invite] Subscription error:', subError.message);
+    }
+
+    console.log('[accept-team-invite] Success for:', user_email);
+
     return new Response(JSON.stringify({ success: true, team_role: teamRole }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   } catch (e) {
+    console.error('[accept-team-invite] Error:', (e as Error).message);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
