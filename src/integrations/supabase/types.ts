@@ -485,6 +485,54 @@ export type Database = {
           },
         ]
       }
+      online_bookings: {
+        Row: {
+          client_email: string | null
+          client_name: string
+          client_phone: string
+          created_at: string
+          id: string
+          notes: string | null
+          payment_method: string | null
+          preferred_date: string
+          preferred_time: string
+          service_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          client_email?: string | null
+          client_name: string
+          client_phone: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          preferred_date: string
+          preferred_time: string
+          service_name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          client_email?: string | null
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_method?: string | null
+          preferred_date?: string
+          preferred_time?: string
+          service_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null

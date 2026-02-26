@@ -1,0 +1,490 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+type ServiceOption = { id: number; name: string; price: number; service_duration?: number };
+type CompanyInfo = { company_name: string; whatsapp?: string; address?: string };
+
+const PAYMENT_METHODS = [
+  { id: 'pix', label: 'PIX', icon: '💰' },
+  { id: 'dinheiro', label: 'Dinheiro', icon: '💵' },
+  { id: 'cartao_credito', label: 'Cartão Crédito', icon: '💳' },
+  { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
+];
+
+const TIME_SLOTS = [
+  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
+  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
+  '17:00', '17:30', '18:00',
+];
+
+export default function PublicBooking() {
+  const [searchParams] = useSearchParams();
+  const userId = searchParams.get('u');
+  const { toast } = useToast();
+
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [company, setCompany] = useState<CompanyInfo>({ company_name: 'AC Service Pro' });
+  const [services, setServices] = useState<ServiceOption[]>([]);
+  const [busySlots, setBusySlots] = useState<string[]>([]);
+  const [step, setStep] = useState(1);
+
+  // Form state
+  const [clientName, setClientName] = useState('');
+  const [clientPhone, setClientPhone] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
+  const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('');
+  const [notes, setNotes] = useState('');
+
+  // Calendar navigation
+  const [calendarStart, setCalendarStart] = useState(startOfDay(new Date()));
+
+  useEffect(() => {
+    if (!userId) return;
+    loadData();
+  }, [userId]);
+
+  const loadData = async () => {
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/public-booking?user_id=${userId}`,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      const data = await res.json();
+      if (data.company) setCompany(data.company);
+      if (data.services) setServices(data.services);
+      if (data.busySlots) setBusySlots(data.busySlots);
+    } catch (e) {
+      console.error('Error loading booking data:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calendarDays = useMemo(() => {
+    const days: Date[] = [];
+    for (let i = 0; i < 14; i++) {
+      const day = addDays(calendarStart, i);
+      if (!isBefore(day, startOfDay(new Date()))) {
+        days.push(day);
+      }
+    }
+    return days;
+  }, [calendarStart]);
+
+  const availableTimes = useMemo(() => {
+    if (!selectedDate) return TIME_SLOTS;
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const busyTimes = busySlots
+      .filter(s => s.startsWith(dateStr))
+      .map(s => format(new Date(s), 'HH:mm'));
+
+    return TIME_SLOTS.filter(t => {
+      if (isToday(selectedDate)) {
+        const now = new Date();
+        const [h, m] = t.split(':').map(Number);
+        if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) return false;
+      }
+      return !busyTimes.includes(t);
+    });
+  }, [selectedDate, busySlots]);
+
+  const handleSubmit = async () => {
+    if (!userId || !selectedDate || !selectedTime || !selectedService) return;
+    setSubmitting(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/public-booking?user_id=${userId}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_name: clientName,
+            client_phone: clientPhone,
+            client_email: clientEmail || undefined,
+            service_name: selectedService.name,
+            preferred_date: format(selectedDate, 'yyyy-MM-dd'),
+            preferred_time: selectedTime,
+            payment_method: paymentMethod || undefined,
+            notes: notes || undefined,
+          })
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setSubmitted(true);
+      } else {
+        throw new Error(data.error || 'Erro ao agendar');
+      }
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+        <Card className="bg-slate-800/80 border-slate-700 max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Snowflake className="w-12 h-12 text-cyan-400 mx-auto mb-4" />
+            <h2 className="text-white text-xl font-bold mb-2">Link inválido</h2>
+            <p className="text-slate-400">Este link de agendamento não é válido. Solicite um novo link ao prestador.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+      </div>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
+        <Card className="bg-slate-800/80 border-green-500/30 max-w-md w-full animate-scale-in">
+          <CardContent className="pt-8 text-center space-y-4">
+            <div className="w-20 h-20 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
+              <CheckCircle className="w-10 h-10 text-green-400" />
+            </div>
+            <h2 className="text-white text-2xl font-bold">Agendamento Solicitado! 🎉</h2>
+            <p className="text-slate-300">
+              Seu pedido de agendamento foi enviado para <strong className="text-cyan-400">{company.company_name}</strong>.
+            </p>
+            <div className="bg-slate-900/50 rounded-xl p-4 space-y-2 text-left">
+              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Serviço:</span> {selectedService?.name}</p>
+              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Data:</span> {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
+              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Horário:</span> {selectedTime}</p>
+              {paymentMethod && <p className="text-slate-400 text-sm"><span className="text-white font-medium">Pagamento:</span> {paymentMethod}</p>}
+            </div>
+            <p className="text-slate-500 text-xs">Você receberá a confirmação em breve.</p>
+            {company.whatsapp && (
+              <Button onClick={() => window.open(`https://wa.me/${company.whatsapp?.replace(/\D/g, '')}`, '_blank')}
+                className="bg-green-600 hover:bg-green-700 text-white w-full mt-2">
+                <Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const canProceed = () => {
+    if (step === 1) return !!selectedService;
+    if (step === 2) return !!selectedDate && !!selectedTime;
+    if (step === 3) return clientName.length > 2 && clientPhone.length > 7;
+    return true;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4 pb-24">
+      {/* Header */}
+      <div className="max-w-lg mx-auto text-center mb-6 pt-4">
+        <div className="flex justify-center mb-3">
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+            <Wind className="w-8 h-8 text-cyan-400" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-white">{company.company_name}</h1>
+        <p className="text-cyan-300/60 text-sm">Agendamento Online</p>
+      </div>
+
+      {/* Progress */}
+      <div className="max-w-lg mx-auto mb-6">
+        <div className="flex items-center justify-between">
+          {['Serviço', 'Data/Hora', 'Seus Dados', 'Confirmar'].map((label, i) => (
+            <div key={i} className="flex items-center">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                step > i + 1 ? 'bg-green-500 text-white' :
+                step === i + 1 ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' :
+                'bg-slate-700 text-slate-400'
+              }`}>
+                {step > i + 1 ? '✓' : i + 1}
+              </div>
+              {i < 3 && <div className={`w-8 sm:w-12 h-0.5 ${step > i + 1 ? 'bg-green-500' : 'bg-slate-700'}`} />}
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between mt-1">
+          {['Serviço', 'Data/Hora', 'Dados', 'Confirmar'].map((label, i) => (
+            <span key={i} className={`text-[10px] ${step === i + 1 ? 'text-cyan-400' : 'text-slate-500'}`}>{label}</span>
+          ))}
+        </div>
+      </div>
+
+      <div className="max-w-lg mx-auto">
+        {/* Step 1: Select Service */}
+        {step === 1 && (
+          <div className="space-y-3 animate-fade-in">
+            <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+              <Snowflake className="w-5 h-5 text-cyan-400" /> Escolha o Serviço
+            </h2>
+            {services.length === 0 ? (
+              <Card className="bg-slate-800/60 border-slate-700">
+                <CardContent className="pt-6 text-center text-slate-400">
+                  Nenhum serviço disponível no momento.
+                </CardContent>
+              </Card>
+            ) : (
+              services.map(service => (
+                <button key={service.id} onClick={() => setSelectedService(service)}
+                  className={`w-full text-left p-4 rounded-xl border transition-all ${
+                    selectedService?.id === service.id
+                      ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10'
+                      : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
+                  }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`font-medium ${selectedService?.id === service.id ? 'text-white' : 'text-slate-200'}`}>
+                        {service.name}
+                      </p>
+                      {service.service_duration && (
+                        <p className="text-xs text-slate-400 flex items-center gap-1 mt-1">
+                          <Clock className="w-3 h-3" /> {service.service_duration} min
+                        </p>
+                      )}
+                    </div>
+                    <Badge className={`text-sm ${selectedService?.id === service.id
+                      ? 'bg-cyan-500 text-white'
+                      : 'bg-slate-700 text-slate-300'}`}>
+                      R$ {service.price.toFixed(2)}
+                    </Badge>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+
+        {/* Step 2: Date & Time */}
+        {step === 2 && (
+          <div className="space-y-4 animate-fade-in">
+            <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-cyan-400" /> Escolha Data e Horário
+            </h2>
+
+            {/* Date picker */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-8 w-8 p-0"
+                  onClick={() => setCalendarStart(prev => addDays(prev, -7))}
+                  disabled={isBefore(addDays(calendarStart, -7), startOfDay(new Date()))}>
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <span className="text-slate-300 text-sm font-medium">
+                  {format(calendarStart, "MMMM yyyy", { locale: ptBR })}
+                </span>
+                <Button size="sm" variant="ghost" className="text-slate-400 hover:text-white h-8 w-8 p-0"
+                  onClick={() => setCalendarStart(prev => addDays(prev, 7))}>
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="grid grid-cols-7 gap-1.5">
+                {calendarDays.map(day => {
+                  const isSelected = selectedDate && format(day, 'yyyy-MM-dd') === format(selectedDate, 'yyyy-MM-dd');
+                  const isSunday = day.getDay() === 0;
+                  return (
+                    <button key={day.toISOString()} onClick={() => { setSelectedDate(day); setSelectedTime(''); }}
+                      disabled={isSunday}
+                      className={`p-2 rounded-lg text-center transition-all ${
+                        isSunday ? 'opacity-30 cursor-not-allowed' :
+                        isSelected ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' :
+                        isToday(day) ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                        'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                      }`}>
+                      <div className="text-[10px] text-slate-500">{format(day, 'EEE', { locale: ptBR })}</div>
+                      <div className="text-sm font-bold">{format(day, 'dd')}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Time slots */}
+            {selectedDate && (
+              <div>
+                <p className="text-slate-400 text-sm mb-2 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Horários disponíveis para {format(selectedDate, "dd/MM")}
+                </p>
+                <div className="grid grid-cols-4 gap-2">
+                  {availableTimes.length === 0 ? (
+                    <p className="col-span-4 text-center text-slate-500 py-4">Sem horários disponíveis neste dia.</p>
+                  ) : (
+                    availableTimes.map(time => (
+                      <button key={time} onClick={() => setSelectedTime(time)}
+                        className={`py-2.5 px-2 rounded-lg text-sm font-medium transition-all ${
+                          selectedTime === time
+                            ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                            : 'bg-slate-800/60 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                        }`}>
+                        {time}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Step 3: Client Info + Payment */}
+        {step === 3 && (
+          <div className="space-y-4 animate-fade-in">
+            <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+              <User className="w-5 h-5 text-cyan-400" /> Seus Dados
+            </h2>
+
+            <div className="space-y-3">
+              <div>
+                <Label className="text-slate-300 text-xs">Nome completo *</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input value={clientName} onChange={e => setClientName(e.target.value)} placeholder="Seu nome"
+                    className="pl-10 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-xs">WhatsApp / Telefone *</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input value={clientPhone} onChange={e => setClientPhone(e.target.value)} placeholder="(11) 99999-9999"
+                    className="pl-10 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                </div>
+              </div>
+              <div>
+                <Label className="text-slate-300 text-xs">Email (opcional)</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Input value={clientEmail} onChange={e => setClientEmail(e.target.value)} placeholder="seu@email.com"
+                    className="pl-10 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                </div>
+              </div>
+            </div>
+
+            {/* Payment method */}
+            <div>
+              <Label className="text-slate-300 text-xs flex items-center gap-1 mb-2">
+                <CreditCard className="w-3 h-3" /> Forma de pagamento preferida
+              </Label>
+              <div className="grid grid-cols-2 gap-2">
+                {PAYMENT_METHODS.map(pm => (
+                  <button key={pm.id} onClick={() => setPaymentMethod(pm.label)}
+                    className={`p-3 rounded-lg border text-sm transition-all flex items-center gap-2 ${
+                      paymentMethod === pm.label
+                        ? 'border-cyan-400 bg-cyan-500/10 text-white'
+                        : 'border-slate-700 bg-slate-800/60 text-slate-300 hover:border-slate-600'
+                    }`}>
+                    <span>{pm.icon}</span> {pm.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-slate-300 text-xs">Observações (opcional)</Label>
+              <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Alguma informação adicional..."
+                className="bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500 min-h-[60px]" />
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Confirm */}
+        {step === 4 && (
+          <div className="space-y-4 animate-fade-in">
+            <h2 className="text-white text-lg font-semibold flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-400" /> Confirme seu Agendamento
+            </h2>
+
+            <Card className="bg-slate-800/60 border-cyan-500/20">
+              <CardContent className="pt-5 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Serviço</span>
+                  <span className="text-white font-medium">{selectedService?.name}</span>
+                </div>
+                <div className="h-px bg-slate-700" />
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Valor</span>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    R$ {selectedService?.price.toFixed(2)}
+                  </Badge>
+                </div>
+                <div className="h-px bg-slate-700" />
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Data</span>
+                  <span className="text-white">{selectedDate && format(selectedDate, "dd 'de' MMMM, EEEE", { locale: ptBR })}</span>
+                </div>
+                <div className="h-px bg-slate-700" />
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Horário</span>
+                  <span className="text-cyan-400 font-bold text-lg">{selectedTime}</span>
+                </div>
+                <div className="h-px bg-slate-700" />
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 text-sm">Cliente</span>
+                  <span className="text-white">{clientName}</span>
+                </div>
+                {paymentMethod && (
+                  <>
+                    <div className="h-px bg-slate-700" />
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-sm">Pagamento</span>
+                      <span className="text-white">{paymentMethod}</span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Navigation */}
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-slate-900 via-slate-900/95 to-transparent">
+          <div className="max-w-lg mx-auto flex gap-3">
+            {step > 1 && (
+              <Button onClick={() => setStep(s => s - 1)} variant="outline"
+                className="flex-1 h-12 bg-slate-800 border-slate-700 text-white hover:bg-slate-700">
+                Voltar
+              </Button>
+            )}
+            {step < 4 ? (
+              <Button onClick={() => setStep(s => s + 1)} disabled={!canProceed()}
+                className="flex-1 h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-medium disabled:opacity-50">
+                Continuar
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={submitting}
+                className="flex-1 h-12 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : '✓ Confirmar Agendamento'}
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

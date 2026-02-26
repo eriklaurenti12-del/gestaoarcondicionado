@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import {
   Sidebar,
@@ -26,6 +26,7 @@ interface AppSidebarProps {
 const mainItems = [
   { id: "dashboard", title: "Painel", icon: BarChart3 },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
+  { id: "online-bookings", title: "Agendamento Online", icon: Globe },
 ];
 
 // Gestão
