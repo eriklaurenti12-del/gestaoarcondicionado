@@ -540,7 +540,7 @@ const Landing: React.FC = () => {
             {features.map((feature, i) => (
               <Card 
                 key={i} 
-                className="bg-white/5 border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:border-cyan-500/50 group"
+                className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 transition-all duration-300 hover:scale-105 hover:!border-cyan-500/50 group"
               >
                 <CardContent className="p-4 md:p-6 text-center">
                   <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3 group-hover:from-cyan-500/30 group-hover:to-blue-500/30 transition-all">
@@ -564,7 +564,7 @@ const Landing: React.FC = () => {
           
           <div className="grid md:grid-cols-2 gap-6">
             {/* Outros sistemas */}
-            <Card className="bg-red-500/5 border-red-500/20">
+            <Card className="!bg-red-500/5 !border-red-500/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-red-400">
                   <X className="w-5 h-5" />
@@ -591,7 +591,7 @@ const Landing: React.FC = () => {
             </Card>
 
             {/* AC Service Pro */}
-            <Card className="bg-green-500/5 border-green-500/30">
+            <Card className="!bg-green-500/5 !border-green-500/30">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-green-400">
                   <CheckCircle className="w-5 h-5" />
@@ -647,7 +647,7 @@ const Landing: React.FC = () => {
 
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {/* Plano Mensal */}
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm relative overflow-hidden">
+            <Card className="!bg-white/5 !border-white/10 backdrop-blur-sm relative overflow-hidden">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center justify-between">
                   <span className="text-white text-lg">{settings.landing_oferta1_titulo || 'Plano Mensal'}</span>
@@ -689,7 +689,7 @@ const Landing: React.FC = () => {
             </Card>
 
             {/* Plano Anual */}
-            <Card className="bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border-cyan-500/50 backdrop-blur-sm relative overflow-hidden">
+            <Card className="!bg-gradient-to-br !from-cyan-500/20 !to-blue-500/20 !border-cyan-500/50 backdrop-blur-sm relative overflow-hidden">
               {settings.landing_oferta2_badge && (
                 <div className="absolute top-3 right-3">
                   <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-lg text-xs">
@@ -773,7 +773,7 @@ const Landing: React.FC = () => {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {testimonials.map((t, i) => (
-              <Card key={i} className="bg-white/5 border-white/10 backdrop-blur-sm hover:border-cyan-500/30 transition-all">
+              <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:border-cyan-500/30 transition-all">
                 <CardContent className="p-5">
                   <div className="flex gap-1 mb-3">
                     {[...Array(t.stars)].map((_, i) => (
@@ -887,7 +887,7 @@ const Landing: React.FC = () => {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[70] flex items-center justify-center p-4"
           onClick={(e) => e.target === e.currentTarget && setShowLogin(false)}
         >
-          <Card className="w-full max-w-sm bg-slate-800/95 border-cyan-500/30 backdrop-blur-lg relative animate-in zoom-in-95">
+          <Card className="w-full max-w-sm !bg-slate-800/95 !border-cyan-500/30 backdrop-blur-lg relative animate-in zoom-in-95">
             <Button
               variant="ghost"
               size="icon"
