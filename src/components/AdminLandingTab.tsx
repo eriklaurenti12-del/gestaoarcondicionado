@@ -27,7 +27,9 @@ const LANDING_KEYS = [
   'landing_countdown_texto', 'landing_countdown_desconto',
   'landing_notif_intervalo', 'landing_notif_som', 'landing_notif_ativa',
   'landing_oferta1_titulo', 'landing_oferta1_descricao', 'landing_oferta1_badge', 'landing_oferta1_ativa',
+  'landing_oferta1_btn_texto', 'landing_oferta1_features',
   'landing_oferta2_titulo', 'landing_oferta2_descricao', 'landing_oferta2_badge', 'landing_oferta2_ativa',
+  'landing_oferta2_btn_texto', 'landing_oferta2_features',
   'landing_depoimento1_nome', 'landing_depoimento1_role', 'landing_depoimento1_texto', 'landing_depoimento1_estrelas',
   'landing_depoimento2_nome', 'landing_depoimento2_role', 'landing_depoimento2_texto', 'landing_depoimento2_estrelas',
   'landing_depoimento3_nome', 'landing_depoimento3_role', 'landing_depoimento3_texto', 'landing_depoimento3_estrelas',
@@ -260,31 +262,7 @@ export const AdminLandingTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Live Preview */}
-      <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-white text-sm">
-              <Eye className="w-4 h-4 text-cyan-400" /> Preview ao Vivo
-            </CardTitle>
-            <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} 
-              className="text-gray-400 hover:text-white h-7">
-              <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-2">
-          <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '350px' }}>
-            <iframe 
-              key={previewKey}
-              src={`https://gestaoarcondicionado.lovable.app/?preview=true&t=${previewKey}`}
-              className="w-full h-full border-0"
-              style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: '200%', height: '200%' }}
-              sandbox="allow-scripts allow-same-origin allow-popups"
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Removed standalone preview - now embedded in Template tab */}
 
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
@@ -309,11 +287,10 @@ export const AdminLandingTab: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {templateOptions.map(tmpl => (
                   <div key={tmpl.id}
-                    onClick={() => update('landing_template', tmpl.id)}
-                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all hover:scale-[1.02] ${
+                    className={`rounded-xl border-2 p-4 transition-all ${
                       settings.landing_template === tmpl.id 
                         ? `${tmpl.color} bg-white/5 shadow-lg` 
                         : 'border-[#2a2a3a] hover:border-[#4a4a5a]'
@@ -330,12 +307,56 @@ export const AdminLandingTab: React.FC = () => {
                       </div>
                     </div>
                     <h3 className="text-white font-bold text-sm mb-1">{tmpl.name}</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed">{tmpl.desc}</p>
-                    {settings.landing_template === tmpl.id && (
-                      <Badge className="mt-2 bg-cyan-500/20 text-cyan-400 border-cyan-500/30">✓ Ativo</Badge>
-                    )}
+                    <p className="text-gray-400 text-xs leading-relaxed mb-3">{tmpl.desc}</p>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant={settings.landing_template === tmpl.id ? "default" : "outline"}
+                        onClick={() => update('landing_template', tmpl.id)}
+                        className={settings.landing_template === tmpl.id 
+                          ? "bg-cyan-500 hover:bg-cyan-600 text-white flex-1" 
+                          : "border-[#3a3a4a] text-white hover:bg-[#2a2a3a] flex-1"}
+                      >
+                        {settings.landing_template === tmpl.id ? '✓ Ativo' : 'Selecionar'}
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => {
+                          update('landing_template', tmpl.id);
+                          // Save instantly then open preview
+                          saveAll().then(() => {
+                            window.open('/', '_blank');
+                          });
+                        }}
+                        className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
+                      >
+                        <Eye className="w-3 h-3 mr-1" /> Preview
+                      </Button>
+                    </div>
                   </div>
                 ))}
+              </div>
+              
+              {/* Instant Preview */}
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-cyan-400" /> Pré-visualização Instantânea
+                  </h4>
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="text-gray-400 hover:text-white h-7">
+                    <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
+                  </Button>
+                </div>
+                <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '500px' }}>
+                  <iframe 
+                    key={previewKey}
+                    src={`/?preview=true&t=${previewKey}`}
+                    className="w-full h-full border-0"
+                    style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '222%', height: '222%' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -466,32 +487,86 @@ export const AdminLandingTab: React.FC = () => {
         {/* OFERTAS */}
         <TabsContent value="ofertas">
           <div className="space-y-4">
-            {[1, 2].map(i => (
-              <Card key={i} className="bg-[#1a1a24] border-[#2a2a3a]">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2 text-white text-base">
-                      <Gift className="w-5 h-5 text-purple-400" /> Oferta {i}
-                    </CardTitle>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-gray-400 text-xs">Ativa</Label>
-                      <Switch checked={settings[`landing_oferta${i}_ativa`] !== 'false'}
-                        onCheckedChange={v => update(`landing_oferta${i}_ativa`, v ? 'true' : 'false')} />
+            {[1, 2].map(i => {
+              const isActive = settings[`landing_oferta${i}_ativa`] !== 'false';
+              const features = (settings[`landing_oferta${i}_features`] || '').split('\n').filter(Boolean);
+              const defaultFeatures = i === 1 
+                ? ['Acesso COMPLETO a tudo', 'Clientes e equipamentos ilimitados', 'Ordens de serviço profissionais', 'Controle financeiro real', 'Suporte humano no WhatsApp']
+                : ['TUDO do mensal incluído', '2 meses DE GRAÇA', 'Suporte VIP prioritário', 'Relatórios avançados', 'Backup automático diário'];
+              
+              return (
+                <Card key={i} className={`bg-[#1a1a24] border-[#2a2a3a] ${!isActive ? 'opacity-50' : ''}`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-white text-base">
+                        <Gift className="w-5 h-5 text-purple-400" /> 
+                        {i === 1 ? '💳 Plano Mensal' : '⭐ Plano Anual'}
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-gray-400 text-xs">{isActive ? 'Visível' : 'Oculto'}</Label>
+                        <Switch checked={isActive}
+                          onCheckedChange={v => update(`landing_oferta${i}_ativa`, v ? 'true' : 'false')} />
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['titulo', 'descricao', 'badge'].map(field => (
-                    <div key={field}>
-                      <Label className="text-gray-300 text-sm capitalize">{field === 'badge' ? 'Badge (ex: POPULAR)' : field}</Label>
-                      <Input value={settings[`landing_oferta${i}_${field}`] || ''} 
-                        onChange={e => update(`landing_oferta${i}_${field}`, e.target.value)}
-                        className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                    {!isActive && (
+                      <p className="text-xs text-amber-400 mt-1">⚠️ Este plano está oculto na landing page e no checkout</p>
+                    )}
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <Label className="text-gray-300 text-sm">Título do Plano</Label>
+                        <Input value={settings[`landing_oferta${i}_titulo`] || ''} 
+                          onChange={e => update(`landing_oferta${i}_titulo`, e.target.value)}
+                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                          placeholder={i === 1 ? 'Plano Mensal' : 'Plano Anual'} />
+                      </div>
+                      <div>
+                        <Label className="text-gray-300 text-sm">Descrição</Label>
+                        <Input value={settings[`landing_oferta${i}_descricao`] || ''} 
+                          onChange={e => update(`landing_oferta${i}_descricao`, e.target.value)}
+                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                          placeholder="Descrição curta do plano" />
+                      </div>
+                      <div>
+                        <Label className="text-gray-300 text-sm">Badge (ex: POPULAR, MAIS ESCOLHIDO)</Label>
+                        <Input value={settings[`landing_oferta${i}_badge`] || ''} 
+                          onChange={e => update(`landing_oferta${i}_badge`, e.target.value)}
+                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                          placeholder="Deixe vazio para não mostrar" />
+                      </div>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
+                    <div>
+                      <Label className="text-gray-300 text-sm">Texto do Botão CTA</Label>
+                      <Input value={settings[`landing_oferta${i}_btn_texto`] || ''} 
+                        onChange={e => update(`landing_oferta${i}_btn_texto`, e.target.value)}
+                        className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                        placeholder={i === 1 ? `Começar por R$ ${settings.landing_preco_mensal || '39,90'}` : `QUERO ECONOMIZAR R$ ${settings.landing_economia_anual || '108'}`} />
+                    </div>
+                    <div>
+                      <Label className="text-gray-300 text-sm">Lista de Benefícios (um por linha)</Label>
+                      <Textarea 
+                        value={settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')} 
+                        onChange={e => update(`landing_oferta${i}_features`, e.target.value)}
+                        className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[120px] text-sm font-mono"
+                        placeholder="Um benefício por linha" />
+                      <p className="text-xs text-gray-500 mt-1">Cada linha vira um item com ✓ na landing page</p>
+                    </div>
+                    {/* Preview dos benefícios */}
+                    <div className="bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                      <ul className="space-y-1.5">
+                        {(settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')).split('\n').filter(Boolean).map((f: string, idx: number) => (
+                          <li key={idx} className="flex items-center gap-2 text-sm text-gray-300">
+                            <span className="text-green-400">✓</span> {f}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </TabsContent>
 
