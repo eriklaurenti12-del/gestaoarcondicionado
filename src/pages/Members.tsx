@@ -62,7 +62,7 @@ export default function Members() {
   const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
   const [loadingInvite, setLoadingInvite] = useState(false);
 
-  const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
+  const publishedUrl = window.location.origin;
 
   useEffect(() => {
     checkSuperAdmin();
@@ -82,9 +82,12 @@ export default function Members() {
     const { error } = await supabase.from('admin_settings').upsert({
       key: 'support_team_numbers',
       value: JSON.stringify(supportNumbers.filter(n => n.name && n.phone)),
-      description: 'Números da equipe de suporte'
+      description: 'Números da equipe de suporte',
+      updated_at: new Date().toISOString()
     }, { onConflict: 'key' });
-    if (!error) {
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
       toast({ title: "Salvo!", description: "Números de suporte atualizados." });
     }
   };
@@ -103,7 +106,7 @@ export default function Members() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const code = crypto.randomUUID().slice(0, 8).toUpperCase();
-      const { error } = await supabase.from('team_invites').insert({
+      const { error } = await (supabase.from('team_invites') as any).insert({
         invite_code: code,
         created_by: user.id,
         status: 'pending',
