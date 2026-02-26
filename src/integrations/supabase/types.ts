@@ -1027,6 +1027,7 @@ export type Database = {
           id: string
           invite_code: string
           status: string
+          team_role: string
         }
         Insert: {
           accepted_at?: string | null
@@ -1037,6 +1038,7 @@ export type Database = {
           id?: string
           invite_code: string
           status?: string
+          team_role?: string
         }
         Update: {
           accepted_at?: string | null
@@ -1047,6 +1049,7 @@ export type Database = {
           id?: string
           invite_code?: string
           status?: string
+          team_role?: string
         }
         Relationships: []
       }
