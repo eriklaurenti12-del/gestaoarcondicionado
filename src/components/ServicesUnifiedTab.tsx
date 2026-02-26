@@ -23,7 +23,8 @@ import {
   Bell, Send, MessageSquare, Clock, AlertTriangle, 
   Users, Calendar, RefreshCw, Search, CheckCircle, Mail,
   Snowflake, MapPin, DollarSign, Plus, User, History,
-  FileText, Trash2, Download, Eye, Phone, Building2, ScrollText
+  FileText, Trash2, Download, Eye, Phone, Building2, ScrollText,
+  Paperclip, Upload, XCircle, Info
 } from 'lucide-react';
 
 // ============================================================
@@ -523,6 +524,12 @@ const ServicesUnifiedTab: React.FC = () => {
   const [terminationContract, setTerminationContract] = useState<Contract | null>(null);
   const [terminationType, setTerminationType] = useState<'quebra' | 'finalizacao'>('finalizacao');
   const [terminationReason, setTerminationReason] = useState('');
+  
+  // Attachment states
+  const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  const [attachContract, setAttachContract] = useState<Contract | null>(null);
+  const [attachType, setAttachType] = useState<'signed' | 'cancellation'>('signed');
+  const [attachFile, setAttachFile] = useState<File | null>(null);
 
   const deleteContractMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -1414,8 +1421,21 @@ const ServicesUnifiedTab: React.FC = () => {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              <Button size="sm" variant="outline" onClick={() => openScheduleDialog(service)}><Calendar className="w-4 h-4" /></Button>
-                              <Button size="sm" onClick={() => sendMaintenanceReminder(service)} disabled={!service.clientPhone} className="bg-green-600 hover:bg-green-700"><MessageSquare className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="outline" onClick={() => openScheduleDialog(service)} title="Agendar manutenção"><Calendar className="w-4 h-4" /></Button>
+                              <Button size="sm" onClick={() => sendMaintenanceReminder(service)} disabled={!service.clientPhone} className="bg-green-600 hover:bg-green-700" title="Enviar lembrete"><MessageSquare className="w-4 h-4" /></Button>
+                              <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive h-8 w-8 p-0" 
+                                onClick={() => {
+                                  if (window.confirm('Excluir este registro do histórico?')) {
+                                    supabase.from('appointments').delete().eq('id', service.id).then(() => {
+                                      queryClient.invalidateQueries({ queryKey: ['services-history'] });
+                                      queryClient.invalidateQueries({ queryKey: ['service-reminders'] });
+                                      toast.success('Registro excluído');
+                                    });
+                                  }
+                                }}
+                                title="Excluir">
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1504,6 +1524,16 @@ const ServicesUnifiedTab: React.FC = () => {
                                 onClick={() => { setTerminationContract(contract); setTerminationDialogOpen(true); }}
                                 title="Encerrar/Rescindir">
                                 <FileText className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-blue-600 border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                onClick={() => { setAttachContract(contract); setAttachType('signed'); setAttachDialogOpen(true); }}
+                                title="Anexar documento assinado">
+                                <Paperclip className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="text-red-500 border-red-300 hover:bg-red-50 dark:hover:bg-red-950"
+                                onClick={() => { setAttachContract(contract); setAttachType('cancellation'); setAttachDialogOpen(true); }}
+                                title="Anexar cancelamento">
+                                <XCircle className="w-4 h-4" />
                               </Button>
                               <Button size="sm" variant="destructive" onClick={() => {
                                 if (window.confirm('Excluir contrato permanentemente?')) deleteContractMutation.mutate(contract.id);
@@ -1701,6 +1731,95 @@ const ServicesUnifiedTab: React.FC = () => {
               className={terminationType === 'quebra' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}>
               <Download className="w-4 h-4 mr-2" />
               Gerar Documento e Encerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attachment Dialog */}
+      <Dialog open={attachDialogOpen} onOpenChange={setAttachDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {attachType === 'signed' ? (
+                <><Paperclip className="w-5 h-5 text-blue-500" /> Anexar Documento Assinado</>
+              ) : (
+                <><XCircle className="w-5 h-5 text-red-500" /> Anexar Documento de Cancelamento</>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              {attachContract && `Contrato #${attachContract.contract_number} - ${attachContract.client.name}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="border-2 border-dashed border-muted-foreground/30 rounded-lg p-6 text-center">
+              <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-3">
+                {attachType === 'signed' 
+                  ? 'Selecione o contrato assinado (PDF, imagem)' 
+                  : 'Selecione o documento de cancelamento (PDF, imagem)'}
+              </p>
+              <Input 
+                type="file" 
+                accept=".pdf,.jpg,.jpeg,.png,.webp"
+                onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
+                className="max-w-xs mx-auto"
+              />
+              {attachFile && (
+                <div className="mt-3 p-2 bg-muted/50 rounded flex items-center gap-2 justify-center">
+                  <Paperclip className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium">{attachFile.name}</span>
+                  <span className="text-xs text-muted-foreground">({(attachFile.size / 1024).toFixed(0)} KB)</span>
+                </div>
+              )}
+            </div>
+            <Alert className={attachType === 'signed' ? 'border-blue-200 bg-blue-50 dark:bg-blue-950/20' : 'border-red-200 bg-red-50 dark:bg-red-950/20'}>
+              <Info className="h-4 w-4" />
+              <AlertDescription className="text-xs">
+                {attachType === 'signed' 
+                  ? '📝 Anexe o contrato assinado pelo cliente para manter registro. O arquivo será salvo localmente.'
+                  : '❌ Anexe o documento de cancelamento/rescisão assinado para registro formal.'}
+              </AlertDescription>
+            </Alert>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setAttachDialogOpen(false); setAttachFile(null); }}>Cancelar</Button>
+            <Button 
+              disabled={!attachFile}
+              onClick={() => {
+                if (!attachFile || !attachContract) return;
+                // Save to local storage as base64 for now
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const key = `contract_${attachContract.id}_${attachType}`;
+                  try {
+                    localStorage.setItem(key, JSON.stringify({
+                      name: attachFile.name,
+                      type: attachFile.type,
+                      data: reader.result,
+                      date: new Date().toISOString()
+                    }));
+                    toast.success(`Documento ${attachType === 'signed' ? 'assinado' : 'de cancelamento'} anexado com sucesso!`);
+                    
+                    if (attachType === 'cancellation') {
+                      supabase.from('maintenance_contracts')
+                        .update({ status: 'cancelado' })
+                        .eq('id', attachContract.id)
+                        .then(() => {
+                          queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+                        });
+                    }
+                  } catch {
+                    toast.error('Arquivo muito grande. Tente um arquivo menor.');
+                  }
+                  setAttachDialogOpen(false);
+                  setAttachFile(null);
+                };
+                reader.readAsDataURL(attachFile);
+              }}
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Anexar Documento
             </Button>
           </DialogFooter>
         </DialogContent>

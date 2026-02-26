@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Thermometer, Users, Monitor, Sun, Plus, Trash2, FileDown, Snowflake, Zap, Square } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Thermometer, Users, Monitor, Sun, Plus, Trash2, FileDown, Snowflake, Zap, Square, Ruler, Info, Lightbulb } from "lucide-react";
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -32,7 +33,8 @@ const defaultElectronics: { name: string; btus: number }[] = [
 ];
 
 const BtuCalculator: React.FC = () => {
-  const [area, setArea] = useState<number>(0);
+  const [roomWidth, setRoomWidth] = useState<number>(0);
+  const [roomLength, setRoomLength] = useState<number>(0);
   const [ceilingHeight, setCeilingHeight] = useState<number>(2.7);
   const [people, setPeople] = useState<number>(1);
   const [sunExposure, setSunExposure] = useState<string>('medio');
@@ -41,6 +43,12 @@ const BtuCalculator: React.FC = () => {
   const [selectedElectronic, setSelectedElectronic] = useState<string>('');
   const [clientName, setClientName] = useState('');
   const [roomName, setRoomName] = useState('');
+  const [showTips, setShowTips] = useState(false);
+
+  // Auto-calculate area
+  const area = useMemo(() => {
+    return Math.round((roomWidth * roomLength) * 100) / 100;
+  }, [roomWidth, roomLength]);
 
   const addElectronic = () => {
     if (!selectedElectronic) return;
@@ -99,12 +107,10 @@ const BtuCalculator: React.FC = () => {
     const doc = new jsPDF();
     const pw = doc.internal.pageSize.getWidth();
     
-    // Try to get company logo
     const logo = localStorage.getItem('company_logo');
     const companyName = localStorage.getItem('company_name') || 'AC Service Pro';
     const companyCnpj = localStorage.getItem('company_cnpj') || '';
 
-    // Header
     doc.setFillColor(24, 24, 27);
     doc.rect(0, 0, pw, 45, 'F');
     
@@ -126,7 +132,6 @@ const BtuCalculator: React.FC = () => {
     let y = 55;
     doc.setTextColor(40, 40, 40);
 
-    // Client info
     if (clientName || roomName) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -139,7 +144,6 @@ const BtuCalculator: React.FC = () => {
       y += 6;
     }
 
-    // Parameters
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Parâmetros do Ambiente', 15, y);
@@ -148,7 +152,8 @@ const BtuCalculator: React.FC = () => {
     doc.setFont('helvetica', 'normal');
     
     const params = [
-      `Área: ${area} m²`,
+      `Largura: ${roomWidth} m × Comprimento: ${roomLength} m`,
+      `Área calculada: ${area} m²`,
       `Pé direito: ${ceilingHeight} m`,
       `Pessoas: ${people}`,
       `Exposição solar: ${sunExposure === 'pouco' ? 'Pouca' : sunExposure === 'medio' ? 'Média' : 'Muita'}`,
@@ -157,7 +162,6 @@ const BtuCalculator: React.FC = () => {
     params.forEach(p => { doc.text(p, 15, y); y += 6; });
     y += 4;
 
-    // Electronics
     if (electronics.length > 0) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
@@ -172,7 +176,6 @@ const BtuCalculator: React.FC = () => {
       y += 4;
     }
 
-    // Results
     doc.setFillColor(240, 249, 255);
     doc.roundedRect(15, y, pw - 30, 45, 3, 3, 'F');
     y += 10;
@@ -188,7 +191,6 @@ const BtuCalculator: React.FC = () => {
     doc.setTextColor(0, 150, 0);
     doc.text(`Modelo recomendado: ${calculation.recommended.toLocaleString()} BTUs`, 15 + (pw - 30) / 2, y, { align: 'center' });
 
-    // Footer
     doc.setFontSize(8);
     doc.setTextColor(156, 163, 175);
     doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pw / 2, 285, { align: 'center' });
@@ -239,15 +241,66 @@ const BtuCalculator: React.FC = () => {
           {/* Room Parameters */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Square className="w-4 h-4" /> Ambiente
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Square className="w-4 h-4" /> Ambiente
+                </CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="text-xs h-7 gap-1"
+                  onClick={() => setShowTips(!showTips)}
+                >
+                  <Lightbulb className="w-3 h-3" />
+                  {showTips ? 'Ocultar dicas' : 'Como medir?'}
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <CardContent className="space-y-4">
+              {showTips && (
+                <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+                  <Info className="h-4 w-4 text-blue-600" />
+                  <AlertDescription className="text-sm text-blue-700 dark:text-blue-300 space-y-2">
+                    <p className="font-semibold">📏 Como medir o ambiente:</p>
+                    <ul className="list-disc pl-4 space-y-1 text-xs">
+                      <li><strong>Largura:</strong> Meça a parede menor do cômodo (de ponta a ponta).</li>
+                      <li><strong>Comprimento:</strong> Meça a parede maior do cômodo (de ponta a ponta).</li>
+                      <li><strong>Pé direito:</strong> Meça do chão ao teto. O padrão é 2,70m.</li>
+                      <li>Use uma <strong>trena</strong> ou fita métrica para maior precisão.</li>
+                      <li>Se o ambiente for em <strong>L</strong>, divida em 2 retângulos e some as áreas.</li>
+                      <li>Meça sempre em <strong>metros</strong> (ex: 3,5m = 3 metros e 50cm).</li>
+                    </ul>
+                    <p className="text-xs mt-2 italic">💡 O sistema calcula a área automaticamente: Largura × Comprimento</p>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Área (m²)</Label>
-                  <Input type="number" min={0} value={area || ''} onChange={e => setArea(Number(e.target.value))} placeholder="0" />
+                  <Label className="text-xs flex items-center gap-1">
+                    <Ruler className="w-3 h-3" /> Largura (m)
+                  </Label>
+                  <Input 
+                    type="number" 
+                    min={0} 
+                    step={0.1}
+                    value={roomWidth || ''} 
+                    onChange={e => setRoomWidth(Number(e.target.value))} 
+                    placeholder="0" 
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1">
+                    <Ruler className="w-3 h-3" /> Comprimento (m)
+                  </Label>
+                  <Input 
+                    type="number" 
+                    min={0} 
+                    step={0.1}
+                    value={roomLength || ''} 
+                    onChange={e => setRoomLength(Number(e.target.value))} 
+                    placeholder="0" 
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Pé Direito (m)</Label>
@@ -269,7 +322,23 @@ const BtuCalculator: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <div className="mt-4">
+
+              {/* Auto-calculated area display */}
+              {(roomWidth > 0 || roomLength > 0) && (
+                <div className="flex items-center gap-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                  <Square className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Área calculada: <span className="text-primary font-bold text-lg">{area} m²</span>
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {roomWidth}m × {roomLength}m = {area} m²
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div>
                 <Label className="text-xs">Andar</Label>
                 <Select value={floorLevel} onValueChange={setFloorLevel}>
                   <SelectTrigger className="mt-1.5"><SelectValue /></SelectTrigger>
@@ -362,6 +431,10 @@ const BtuCalculator: React.FC = () => {
               </div>
 
               <div className="space-y-2 pt-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Dimensões</span>
+                  <span className="font-medium">{roomWidth}m × {roomLength}m</span>
+                </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Área ({area}m²)</span>
                   <span className="font-medium">{calculation.baseBtus.toLocaleString()}</span>
