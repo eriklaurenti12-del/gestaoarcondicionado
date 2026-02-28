@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Trash2, FileDown, Pencil, Wrench, Plus, X, Wind, Thermometer, ImagePlus, Loader2 } from "lucide-react";
 import BarcodeScanner from "@/components/BarcodeScanner";
@@ -379,11 +378,11 @@ const ProductsTab: React.FC = () => {
               Serviços & Peças
             </span>
             <div className="flex gap-2">
-              <Button onClick={() => exportToPDF(true)} size="sm" variant="outline" title="PDF com custos e margens (interno)">
+              <Button onClick={() => exportToPDF(true)} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-2" />
                 PDF Interno
               </Button>
-              <Button onClick={() => exportToPDF(false)} size="sm" variant="secondary" title="PDF para cliente (sem custos)">
+              <Button onClick={() => exportToPDF(false)} size="sm" variant="secondary">
                 <FileDown className="w-4 h-4 mr-2" />
                 PDF Cliente
               </Button>
@@ -391,71 +390,53 @@ const ProductsTab: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto -mx-4 sm:mx-0">
-            <div className="min-w-[700px] px-4 sm:px-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Serviço/Peça</TableHead>
-                    <TableHead className="hidden sm:table-cell">Código</TableHead>
-                    <TableHead>Estoque</TableHead>
-                    <TableHead>Custo</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead className="text-center">Margem</TableHead>
-                    <TableHead>Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {isLoadingProducts ? Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
-                  )) : products?.map((product) => {
-                    const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
-                    const profit = Number(product.price) - Number(product.cost_price);
-                    return (
-                      <TableRow key={product.id} className={product.qty <= (product.min_stock || 0) && product.qty < 999 ? "bg-orange-50 dark:bg-orange-950" : ""}>
-                        <TableCell className="font-medium">
-                          <div className="flex items-center gap-2">
-                            {(product as any).image_url ? (
-                              <img src={(product as any).image_url} alt={product.name} className="w-8 h-8 rounded object-cover" />
-                            ) : (
-                              getServiceIcon(product.name)
-                            )}
-                            {product.name}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{product.barcode || "-"}</TableCell>
-                        <TableCell>
-                          {product.qty >= 999 ? (
-                            <span className="text-cyan-600 font-medium">Serviço</span>
-                          ) : (
-                            <span className={product.qty <= (product.min_stock || 0) ? "text-orange-600 font-semibold" : ""}>{product.qty}</span>
-                          )}
-                        </TableCell>
-                        <TableCell>R$ {Number(product.cost_price).toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold">R$ {Number(product.price).toFixed(2)}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex flex-col items-center">
-                            <span className={`font-semibold ${margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
-                              {margin.toFixed(1)}%
-                            </span>
-                            <span className="text-xs text-muted-foreground">R$ {profit.toFixed(2)}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {product.qty < 999 && (
-                              <Button size="sm" variant="outline" onClick={() => handleEditQty(product)}><Pencil className="w-4 h-4" /></Button>
-                            )}
-                            <Button size="sm" variant="outline" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+          {isLoadingProducts ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
-          </div>
+          ) : (
+            <div className="space-y-2">
+              {products?.map((product) => {
+                const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
+                const profit = Number(product.price) - Number(product.cost_price);
+                const isLowStock = product.qty <= (product.min_stock || 0) && product.qty < 999;
+                return (
+                  <div key={product.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${isLowStock ? 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border'}`}>
+                    {(product as any).image_url ? (
+                      <img src={(product as any).image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        {getServiceIcon(product.name)}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate">{product.name}</p>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                        {product.qty >= 999 ? (
+                          <span className="text-cyan-600 font-medium">Serviço</span>
+                        ) : (
+                          <span className={isLowStock ? "text-orange-600 font-semibold" : ""}>Estoque: {product.qty}</span>
+                        )}
+                        <span>Custo: R$ {Number(product.cost_price).toFixed(2)}</span>
+                        <span className={`font-medium ${margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
+                          {margin.toFixed(0)}% (R$ {profit.toFixed(2)})
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="font-bold text-sm">R$ {Number(product.price).toFixed(2)}</p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      {product.qty < 999 && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditQty(product)}><Pencil className="w-3.5 h-3.5" /></Button>
+                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
