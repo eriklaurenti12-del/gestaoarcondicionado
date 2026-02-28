@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         { data: appointments }
       ] = await Promise.all([
         supabase.from('company_data').select('company_name, whatsapp, address').eq('user_id', userId).maybeSingle(),
-        supabase.from('products').select('id, name, price, service_duration, type').eq('user_id', userId).eq('type', 'service'),
+        supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
           .in('status', ['agendado', 'confirmado'])
@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'POST') {
       const body = await req.json();
-      const { client_name, client_phone, client_email, service_name, preferred_date, preferred_time, payment_method, notes } = body;
+      const { client_name, client_phone, client_email, client_address, client_cep, service_name, preferred_date, preferred_time, payment_method, notes } = body;
 
       if (!client_name || !client_phone || !service_name || !preferred_date || !preferred_time) {
         return new Response(JSON.stringify({ error: 'Campos obrigatórios faltando' }), {
@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
         preferred_date,
         preferred_time,
         payment_method: payment_method || null,
-        notes: notes || null,
+        notes: [notes, client_address ? `📍 ${client_address}` : '', client_cep ? `CEP: ${client_cep}` : ''].filter(Boolean).join(' | ') || null,
         status: 'pendente'
       }).select().single();
 

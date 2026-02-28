@@ -7,11 +7,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle } from "lucide-react";
+import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin } from "lucide-react";
 import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
-type ServiceOption = { id: number; name: string; price: number; service_duration?: number };
+type ServiceOption = { id: number; name: string; price: number; service_duration?: number; image_url?: string };
 type CompanyInfo = { company_name: string; whatsapp?: string; address?: string };
 type BookingResult = {
   id: string;
@@ -63,6 +63,11 @@ export default function PublicBooking() {
   const [clientName, setClientName] = useState('');
   const [clientPhone, setClientPhone] = useState('');
   const [clientEmail, setClientEmail] = useState('');
+  const [clientCep, setClientCep] = useState('');
+  const [clientAddress, setClientAddress] = useState('');
+  const [clientBairro, setClientBairro] = useState('');
+  const [clientCidade, setClientCidade] = useState('');
+  const [loadingCep, setLoadingCep] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceOption | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState('');
@@ -99,6 +104,22 @@ export default function PublicBooking() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCepLookup = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    setClientCep(cleanCep.replace(/(\d{5})(\d{3})/, '$1-$2'));
+    if (cleanCep.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setClientAddress(data.logradouro || '');
+        setClientBairro(data.bairro || '');
+        setClientCidade(`${data.localidade || ''} - ${data.uf || ''}`);
+      }
+    } catch { /* ignore */ } finally { setLoadingCep(false); }
   };
 
   const calendarDays = useMemo(() => {
@@ -143,6 +164,8 @@ export default function PublicBooking() {
             client_name: clientName,
             client_phone: clientPhone,
             client_email: clientEmail || undefined,
+            client_address: [clientAddress, clientBairro, clientCidade].filter(Boolean).join(', ') || undefined,
+            client_cep: clientCep || undefined,
             service_name: selectedService.name,
             preferred_date: format(selectedDate, 'yyyy-MM-dd'),
             preferred_time: selectedTime,
@@ -439,8 +462,15 @@ export default function PublicBooking() {
                           ? 'border-cyan-400 bg-cyan-500/10 shadow-lg shadow-cyan-500/10'
                           : 'border-slate-700 bg-slate-800/60 hover:border-slate-600'
                       }`}>
-                      <div className="flex items-center justify-between">
-                        <div>
+                      <div className="flex items-center gap-3">
+                        {service.image_url ? (
+                          <img src={service.image_url} alt={service.name} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+                            <Snowflake className="w-6 h-6 text-cyan-400/50" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
                           <p className={`font-medium ${selectedService?.id === service.id ? 'text-white' : 'text-slate-200'}`}>
                             {service.name}
                           </p>
@@ -450,7 +480,7 @@ export default function PublicBooking() {
                             </p>
                           )}
                         </div>
-                        <Badge className={`text-sm ${selectedService?.id === service.id
+                        <Badge className={`text-sm flex-shrink-0 ${selectedService?.id === service.id
                           ? 'bg-cyan-500 text-white'
                           : 'bg-slate-700 text-slate-300'}`}>
                           R$ {service.price.toFixed(2)}
@@ -550,8 +580,40 @@ export default function PublicBooking() {
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                       <Input value={clientPhone} onChange={e => setClientPhone(e.target.value)} placeholder="(11) 99999-9999"
                         className="pl-10 bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                  </div>
+                </div>
+
+                {/* Address with CEP */}
+                <div className="space-y-3 p-3 rounded-xl border border-slate-700 bg-slate-800/30">
+                  <Label className="text-slate-300 text-xs flex items-center gap-1">
+                    <MapPin className="w-3 h-3" /> Endereço do Serviço
+                  </Label>
+                  <div>
+                    <Label className="text-slate-400 text-[10px]">CEP</Label>
+                    <div className="relative">
+                      <Input value={clientCep} onChange={e => handleCepLookup(e.target.value)} placeholder="00000-000" maxLength={9}
+                        className="bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                      {loadingCep && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-cyan-400" />}
                     </div>
                   </div>
+                  <div>
+                    <Label className="text-slate-400 text-[10px]">Rua / Logradouro</Label>
+                    <Input value={clientAddress} onChange={e => setClientAddress(e.target.value)} placeholder="Rua, nº, complemento"
+                      className="bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-slate-400 text-[10px]">Bairro</Label>
+                      <Input value={clientBairro} onChange={e => setClientBairro(e.target.value)} placeholder="Bairro"
+                        className="bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                    </div>
+                    <div>
+                      <Label className="text-slate-400 text-[10px]">Cidade - UF</Label>
+                      <Input value={clientCidade} onChange={e => setClientCidade(e.target.value)} placeholder="Cidade - UF"
+                        className="bg-slate-800/60 border-slate-700 text-white placeholder:text-slate-500" />
+                    </div>
+                  </div>
+                </div>
                   <div>
                     <Label className="text-slate-300 text-xs">Email (opcional)</Label>
                     <div className="relative">

@@ -25,13 +25,13 @@ interface AppSidebarProps {
 // Menu Principal - Fluxo do técnico de AC
 const mainItems = [
   { id: "dashboard", title: "Painel", icon: BarChart3 },
+  { id: "cadastros", title: "Cadastros", icon: Users },
   { id: "appointments", title: "Agenda", icon: CalendarDays },
   { id: "online-bookings", title: "Agendamento Online", icon: Globe },
 ];
 
 // Gestão
 const gestaoItems = [
-  { id: "cadastros", title: "Clientes & Serviços", icon: Users },
   { id: "documents", title: "Orçamentos & O.S.", icon: FileText },
   { id: "services", title: "Manutenções", icon: Snowflake },
   { id: "btu-calculator", title: "Medição BTUs", icon: Thermometer },
