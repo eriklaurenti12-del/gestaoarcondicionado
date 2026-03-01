@@ -425,11 +425,8 @@ const RotatingNotifications: React.FC = () => {
   // Combine and sort all notifications
   const allNotifications = useMemo(() => {
     const combined = [...dynamicNotifications, ...systemTips];
-    // Sort by priority (highest first), then shuffle within same priority
-    combined.sort((a, b) => {
-      if (b.priority !== a.priority) return b.priority - a.priority;
-      return Math.random() - 0.5;
-    });
+    // Sort by priority (highest first) - stable sort, no random
+    combined.sort((a, b) => b.priority - a.priority);
     return combined;
   }, [dynamicNotifications]);
 

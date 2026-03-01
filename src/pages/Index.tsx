@@ -27,7 +27,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, RefreshCw } from "lucide-react";
+import { Bell, HelpCircle, RefreshCw, Wind } from "lucide-react";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
@@ -174,7 +174,14 @@ export default function Index() {
   };
 
   if (loading) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <Wind className="w-12 h-12 text-primary animate-spin" style={{ animationDuration: '2s' }} />
+          <p className="text-muted-foreground text-sm">Carregando sistema...</p>
+        </div>
+      </div>
+    );
   }
 
   const allowedTabsByRole: Record<string, string[]> = {

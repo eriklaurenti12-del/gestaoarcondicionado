@@ -33,7 +33,7 @@ const CompanyDataTab: React.FC = () => {
   const [workDays, setWorkDays] = useState('');
   const [description, setDescription] = useState('');
   const [specialties, setSpecialties] = useState('');
-
+  const [additionalEmail, setAdditionalEmail] = useState('');
   const { data: companyData, isLoading } = useQuery({
     queryKey: ['company-data'],
     queryFn: async () => {
@@ -564,8 +564,8 @@ const CompanyDataTab: React.FC = () => {
                 <Input
                   type="email"
                   placeholder="financeiro@empresa.com (opcional)"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={additionalEmail}
+                  onChange={(e) => setAdditionalEmail(e.target.value)}
                 />
               </div>
             </CardContent>
