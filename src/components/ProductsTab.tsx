@@ -340,7 +340,7 @@ const ProductsTab: React.FC = () => {
       const tableData = products?.map(p => {
         const margin = calculateProfitMargin(Number(p.cost_price), Number(p.price));
         const profit = Number(p.price) - Number(p.cost_price);
-        return [p.name, p.barcode || '-', p.qty < 999 ? `${p.qty} un` : 'Serviço',
+        return [p.name, p.barcode || '-', p.type === 'service' ? 'Serviço' : `${p.qty} un`,
           `R$ ${Number(p.cost_price).toFixed(2)}`, `R$ ${Number(p.price).toFixed(2)}`,
           `${margin.toFixed(1)}%`, `R$ ${profit.toFixed(2)}`];
       }) || [];
@@ -359,7 +359,7 @@ const ProductsTab: React.FC = () => {
       doc.setFontSize(11);
       doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
       const tableData = products?.map(p => [p.name, p.barcode || '-',
-        p.qty < 999 ? 'Disponível' : 'Serviço', `R$ ${Number(p.price).toFixed(2)}`]) || [];
+        p.type === 'service' ? 'Serviço' : 'Disponível', `R$ ${Number(p.price).toFixed(2)}`]) || [];
       autoTable(doc, {
         startY: 35,
         head: [['Serviço/Peça', 'Código', 'Disponibilidade', 'Preço']],
@@ -416,7 +416,8 @@ const ProductsTab: React.FC = () => {
               {products?.map((product) => {
                 const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
                 const profit = Number(product.price) - Number(product.cost_price);
-                const isLowStock = product.qty <= (product.min_stock || 0) && product.qty < 999;
+                const isService = product.type === 'service';
+                const isLowStock = !isService && product.qty <= (product.min_stock || 0);
                 return (
                   <div key={product.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${isLowStock ? 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border'}`}>
                     {(product as any).image_url ? (
@@ -429,7 +430,7 @@ const ProductsTab: React.FC = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{product.name}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        {product.qty >= 999 ? (
+                        {isService ? (
                           <Badge variant="outline" className="text-[10px] h-5 px-1.5">Serviço</Badge>
                         ) : (
                           <span className={isLowStock ? "text-orange-600 font-semibold" : ""}>Est: {product.qty}</span>
