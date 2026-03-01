@@ -14,6 +14,7 @@ import { Tables, TablesInsert } from '@/integrations/supabase/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import EditProductDialog from './EditProductDialog';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -55,6 +56,7 @@ const ProductsTab: React.FC = () => {
   const [minStockAlert, setMinStockAlert] = useState(5);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editQty, setEditQty] = useState(0);
+  const [editDialogProduct, setEditDialogProduct] = useState<Product | null>(null);
   const [serviceType, setServiceType] = useState('instalacao');
   const [serviceDuration, setServiceDuration] = useState(60);
   const [productImage, setProductImage] = useState<File | null>(null);
@@ -199,6 +201,22 @@ const ProductsTab: React.FC = () => {
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao atualizar quantidade.", description: error.message });
+    }
+  });
+
+  const updateProductMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const { error } = await supabase.from('products').update(data).eq('id', id);
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      toast({ title: "Sucesso!", description: "Item atualizado." });
+      setEditDialogProduct(null);
+    },
+    onError: (error: Error) => {
+      toast({ variant: "destructive", title: "Erro ao atualizar.", description: error.message });
     }
   });
 
@@ -429,9 +447,7 @@ const ProductsTab: React.FC = () => {
                       <p className="text-[10px] text-muted-foreground">custo: R$ {Number(product.cost_price).toFixed(2)}</p>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      {product.qty < 999 && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEditQty(product)}><Pencil className="w-3.5 h-3.5" /></Button>
-                      )}
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditDialogProduct(product)}><Pencil className="w-3.5 h-3.5" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
                   </div>
@@ -713,6 +729,16 @@ const ProductsTab: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Product Dialog */}
+      {editDialogProduct && (
+        <EditProductDialog
+          product={editDialogProduct}
+          isOpen={!!editDialogProduct}
+          onOpenChange={(open) => { if (!open) setEditDialogProduct(null); }}
+          onSave={(data) => updateProductMutation.mutate({ id: editDialogProduct.id, data })}
+        />
+      )}
     </div>
   );
 };
