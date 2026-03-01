@@ -91,21 +91,13 @@ export function ParticleBackground({ className = "" }: ParticleBackgroundProps) 
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
-
-        // Add a soft glow to the snow
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = this.color;
-
         ctx.fill();
-
-        // Reset shadow for performance
-        ctx.shadowBlur = 0;
       }
     }
 
     const initParticles = () => {
       particles = [];
-      const numberOfParticles = Math.min((canvas.width * canvas.height) / 8000, 200);
+      const numberOfParticles = Math.min((canvas.width * canvas.height) / 12000, 120);
       for (let i = 0; i < numberOfParticles; i++) {
         particles.push(new Particle());
       }
