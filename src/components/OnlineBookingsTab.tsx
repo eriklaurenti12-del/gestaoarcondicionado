@@ -120,7 +120,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       await syncToAgenda(booking);
     }
     
-    toast({ title: status === 'confirmado' ? "Agendamento confirmado e adicionado à agenda! ✅" : "Agendamento recusado" });
+    toast({ title: status === 'confirmado' ? "✅ Confirmado, adicionado à agenda e ao histórico de vendas!" : "Agendamento recusado" });
     loadBookings();
     
     // Send WhatsApp notification
@@ -166,13 +166,19 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
       // Find service
       let serviceId: number | null = null;
+      let servicePrice = 0;
+      let serviceCost = 0;
       const { data: serviceData } = await supabase
         .from('products')
-        .select('id')
+        .select('id, price, cost_price')
         .eq('user_id', userId)
         .ilike('name', `%${booking.service_name}%`)
         .limit(1);
-      if (serviceData && serviceData.length > 0) serviceId = serviceData[0].id;
+      if (serviceData && serviceData.length > 0) {
+        serviceId = serviceData[0].id;
+        servicePrice = Number(serviceData[0].price);
+        serviceCost = Number(serviceData[0].cost_price);
+      }
 
       // Create appointment
       const dateTime = new Date(`${booking.preferred_date}T${booking.preferred_time}:00`);
@@ -187,6 +193,32 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
       if (!error) {
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      }
+
+      // Create sale record so it appears in dashboard and PDV history
+      if (clientId && serviceId && servicePrice > 0) {
+        const paymentMap: Record<string, string> = {
+          'pix': 'PIX', 'dinheiro': 'Dinheiro', 'débito': 'Débito', 'debito': 'Débito',
+          'crédito': 'Crédito', 'credito': 'Crédito', 'cartão': 'Crédito', 'cartao': 'Crédito'
+        };
+        const rawPayment = (booking.payment_method || 'PIX').toLowerCase();
+        const mappedPayment = paymentMap[rawPayment] || 'PIX';
+
+        const { error: saleError } = await supabase.from('sales').insert({
+          product_id: serviceId,
+          client_id: clientId,
+          qty: 1,
+          sale_price: servicePrice,
+          total_profit: servicePrice - serviceCost,
+          payment_method: mappedPayment as any,
+          user_id: userId,
+        });
+
+        if (!saleError) {
+          queryClient.invalidateQueries({ queryKey: ['sales'] });
+          queryClient.invalidateQueries({ queryKey: ['sales-history'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        }
       }
     } catch (e) {
       console.error('Error syncing to agenda:', e);
