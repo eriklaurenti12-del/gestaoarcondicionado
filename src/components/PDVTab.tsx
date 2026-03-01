@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ShoppingCart, Trash2, Plus, Minus, Receipt, CreditCard, Banknote, Smartphone, Search, Wind, Package, User, Check, AlertCircle, FileText, X, History, MessageCircle, UserPlus, PlusCircle, Calculator, DollarSign, Calendar, Filter, Eye } from "lucide-react";
+import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -728,6 +729,26 @@ const PDVTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <TabGuideCards cards={[
+        {
+          icon: ShoppingCart,
+          title: 'PDV',
+          badge: 'Vendas',
+          badgeColor: 'blue',
+          description: <>Registre vendas de <strong>produtos e serviços</strong>. Divida pagamentos entre métodos diferentes e gere comprovantes.</>,
+          onClick: () => setActiveSubTab('venda'),
+          isActive: activeSubTab === 'venda',
+        },
+        {
+          icon: History,
+          title: 'Histórico',
+          badge: 'Consulta',
+          badgeColor: 'purple',
+          description: <>Consulte <strong>todas as vendas</strong> realizadas com filtros por mês, cliente e forma de pagamento.</>,
+          onClick: () => setActiveSubTab('historico'),
+          isActive: activeSubTab === 'historico',
+        },
+      ]} />
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="venda" className="flex items-center gap-1 px-2">

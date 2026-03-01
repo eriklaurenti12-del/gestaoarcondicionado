@@ -35,6 +35,7 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+import TabGuideCards from './TabGuideCards';
 
 const ImpostosTab: React.FC = () => {
   const queryClient = useQueryClient();
@@ -412,6 +413,22 @@ const ImpostosTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <TabGuideCards cards={[
+        {
+          icon: Calculator,
+          title: 'Impostos MEI/ME',
+          badge: 'Obrigatório',
+          badgeColor: 'rose',
+          description: <>Registre <strong>DAS, INSS, FGTS e ISS</strong> mensalmente. Mantenha tudo organizado para o contador.</>,
+        },
+        {
+          icon: FileText,
+          title: 'PDF Contabilidade',
+          badge: 'Exportar',
+          badgeColor: 'blue',
+          description: <>Gere relatórios <strong>prontos para o contador</strong> com receitas, despesas e impostos do mês.</>,
+        },
+      ]} />
       {/* Header com seleção de mês */}
       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>

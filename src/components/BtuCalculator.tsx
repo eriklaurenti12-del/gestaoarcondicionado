@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Thermometer, Users, Monitor, Sun, Plus, Trash2, FileDown, Snowflake, Zap, Square, Ruler, Info, Lightbulb } from "lucide-react";
+import TabGuideCards from './TabGuideCards';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 
@@ -201,6 +202,22 @@ const BtuCalculator: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
+      <TabGuideCards cards={[
+        {
+          icon: Thermometer,
+          title: 'Cálculo de BTUs',
+          badge: 'Técnico',
+          badgeColor: 'cyan',
+          description: <>Calcule a <strong>capacidade ideal</strong> do ar condicionado considerando área, pessoas e eletrônicos. Essencial para orçamentos precisos.</>,
+        },
+        {
+          icon: FileDown,
+          title: 'Laudo PDF',
+          badge: 'Profissional',
+          badgeColor: 'blue',
+          description: <>Gere um <strong>laudo técnico em PDF</strong> com sua marca para entregar ao cliente. Demonstra profissionalismo e justifica o modelo recomendado.</>,
+        },
+      ]} />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-primary/10 rounded-lg">

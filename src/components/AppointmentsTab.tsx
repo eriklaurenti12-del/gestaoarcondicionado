@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt } from "lucide-react";
+import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
@@ -744,6 +745,22 @@ const AppointmentsTab: React.FC = () => {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
+      <TabGuideCards cards={[
+        {
+          icon: Calendar,
+          title: 'Agenda de Serviços',
+          badge: 'Organização',
+          badgeColor: 'blue',
+          description: <>Agende atendimentos a partir de <strong>orçamentos aprovados ou O.S.</strong> Controle horários e evite conflitos.</>,
+        },
+        {
+          icon: ClipboardList,
+          title: 'Acompanhamento',
+          badge: 'Status',
+          badgeColor: 'emerald',
+          description: <>Acompanhe o <strong>status de cada serviço</strong> (agendado, em andamento, concluído). Envie lembretes via WhatsApp.</>,
+        },
+      ]} />
       {/* View Toggle + Action Buttons */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div className="flex rounded-lg border overflow-hidden">
