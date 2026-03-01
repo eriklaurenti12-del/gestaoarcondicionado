@@ -21,17 +21,9 @@ type Product = Tables<'products'>;
 type Expense = { name: string; value: number };
 
 const serviceTypes = [
-  { value: 'instalacao', label: 'Instalação', type: 'service' },
-  { value: 'manutencao', label: 'Manutenção Preventiva', type: 'service' },
-  { value: 'corretiva', label: 'Manutenção Corretiva', type: 'service' },
-  { value: 'limpeza', label: 'Limpeza/Higienização', type: 'service' },
-  { value: 'desinstalacao', label: 'Desinstalação', type: 'service' },
-  { value: 'orcamento', label: 'Orçamento', type: 'service' },
-  { value: 'prestacao', label: 'Prestação de Serviço', type: 'service' },
+  { value: 'prestacao', label: '🔧 Prestação de Serviço', type: 'service' },
+  { value: 'venda', label: '🛒 Venda / Comércio', type: 'piece' },
   { value: 'combo', label: '🎁 Combo (Mesclar Serviços)', type: 'service' },
-  { value: 'produto_venda', label: '🛒 Produto para Venda', type: 'piece' },
-  { value: 'peca', label: 'Peça/Material', type: 'piece' },
-  { value: 'ar_condicionado', label: 'Ar Condicionado (Aparelho)', type: 'piece' },
 ];
 
 const fetchProducts = async (): Promise<Product[]> => {
@@ -454,7 +446,8 @@ const ProductsTab: React.FC = () => {
       {showForm && (
         <Card className="overflow-visible border-primary/30">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Cadastrar Serviço ou Peça</CardTitle>
+            <CardTitle className="text-base">Cadastrar Item</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">Escolha se é um serviço ou um produto para venda</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Type */}
@@ -522,7 +515,7 @@ const ProductsTab: React.FC = () => {
             {/* Name + Image row */}
             <div className="space-y-1.5">
               <Label className="text-xs">
-                {serviceType === 'combo' ? 'Nome do Combo' : 'Nome do Serviço/Peça'}
+                {serviceType === 'combo' ? 'Nome do Combo' : serviceType === 'venda' ? 'Nome do Produto' : 'Nome do Serviço'}
               </Label>
               <div className="flex gap-3">
                 <Input value={productName} onChange={(e) => setProductName(e.target.value)}
@@ -646,40 +639,46 @@ const ProductsTab: React.FC = () => {
               </div>
             )}
 
-            {/* Supplier selection */}
-            <div className="space-y-1.5">
-              <Label className="text-xs">Fornecedor (Opcional)</Label>
-              <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
-                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um fornecedor..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum</SelectItem>
-                  {suppliers?.map(s => (
-                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Supplier & Storage section for sale items */}
+            <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/20">
+              <Label className="text-xs font-semibold">Fornecedor e Estoque</Label>
+              <div className="space-y-1.5">
+                <Label className="text-[11px] text-muted-foreground">Fornecedor</Label>
+                <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                  <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um fornecedor..." /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem fornecedor</SelectItem>
+                    {suppliers?.map(s => (
+                      <SelectItem key={s.id} value={String(s.id)}>
+                        {s.name} {s.contact ? `• ${s.contact}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Cadastre fornecedores na aba Cadastros → Fornecedores</p>
+              </div>
 
-            {/* Storage location */}
-            {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">Local de Armazenamento (Opcional)</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Local / Câmara</Label>
-                    <Input value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="Ex: Câmara 1" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Prateleira</Label>
-                    <Input value={storageShelf} onChange={(e) => setStorageShelf(e.target.value)} placeholder="Ex: A3" className="h-8 text-sm" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] text-muted-foreground">Rua / Seção</Label>
-                    <Input value={storageSection} onChange={(e) => setStorageSection(e.target.value)} placeholder="Ex: Rua 2" className="h-8 text-sm" />
+              {/* Storage location - only for sale items */}
+              {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                  <Label className="text-xs font-semibold">Local de Armazenamento</Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Local / Câmara</Label>
+                      <Input value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="Ex: Câmara 1" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Prateleira</Label>
+                      <Input value={storageShelf} onChange={(e) => setStorageShelf(e.target.value)} placeholder="Ex: A3" className="h-8 text-sm" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px] text-muted-foreground">Rua / Seção</Label>
+                      <Input value={storageSection} onChange={(e) => setStorageSection(e.target.value)} placeholder="Ex: Rua 2" className="h-8 text-sm" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             <Button onClick={handleAddProduct} disabled={addMutation.isPending || uploadingImage}
               className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
