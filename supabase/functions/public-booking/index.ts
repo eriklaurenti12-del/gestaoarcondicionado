@@ -15,8 +15,10 @@ Deno.serve(async (req) => {
     const url = new URL(req.url);
     const userId = url.searchParams.get('user_id');
 
-    if (!userId) {
-      return new Response(JSON.stringify({ error: 'user_id required' }), {
+    // Validate user_id format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!userId || !uuidRegex.test(userId)) {
+      return new Response(JSON.stringify({ error: 'user_id inválido' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -32,7 +34,12 @@ Deno.serve(async (req) => {
       
       // Lookup bookings by phone
       if (action === 'lookup') {
-        const phone = url.searchParams.get('phone') || '';
+        const phone = (url.searchParams.get('phone') || '').replace(/[^0-9]/g, '');
+        if (phone.length < 8) {
+          return new Response(JSON.stringify({ bookings: [] }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
         const { data: bookings } = await supabase
           .from('online_bookings')
           .select('id, client_name, client_phone, service_name, preferred_date, preferred_time, payment_method, status, created_at')
@@ -52,7 +59,7 @@ Deno.serve(async (req) => {
         { data: services },
         { data: appointments }
       ] = await Promise.all([
-        supabase.from('company_data').select('company_name, whatsapp, address').eq('user_id', userId).maybeSingle(),
+        supabase.from('company_data').select('company_name, whatsapp, address, logo_url').eq('user_id', userId).maybeSingle(),
         supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
@@ -104,6 +111,7 @@ Deno.serve(async (req) => {
       const body = await req.json();
       const { client_name, client_phone, client_email, client_address, client_cep, service_name, preferred_date, preferred_time, payment_method, notes } = body;
 
+      // Input validation
       if (!client_name || !client_phone || !service_name || !preferred_date || !preferred_time) {
         return new Response(JSON.stringify({ error: 'Campos obrigatórios faltando' }), {
           status: 400,
@@ -111,16 +119,34 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Sanitize inputs
+      const safeName = String(client_name).slice(0, 100).trim();
+      const safePhone = String(client_phone).replace(/[^0-9()\-\s+]/g, '').slice(0, 20);
+      const safeEmail = client_email ? String(client_email).slice(0, 255).trim() : null;
+      const safeService = String(service_name).slice(0, 200).trim();
+      const safeDate = String(preferred_date).slice(0, 10);
+      const safeTime = String(preferred_time).slice(0, 5);
+      const safePayment = payment_method ? String(payment_method).slice(0, 50) : null;
+      const safeNotes = [notes ? String(notes).slice(0, 500) : '', client_address ? `📍 ${String(client_address).slice(0, 300)}` : '', client_cep ? `CEP: ${String(client_cep).slice(0, 10)}` : ''].filter(Boolean).join(' | ') || null;
+
+      // Date format validation
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(safeDate) || !/^\d{2}:\d{2}$/.test(safeTime)) {
+        return new Response(JSON.stringify({ error: 'Formato de data/hora inválido' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
       const { data, error } = await supabase.from('online_bookings').insert({
         user_id: userId,
-        client_name,
-        client_phone,
-        client_email: client_email || null,
-        service_name,
-        preferred_date,
-        preferred_time,
-        payment_method: payment_method || null,
-        notes: [notes, client_address ? `📍 ${client_address}` : '', client_cep ? `CEP: ${client_cep}` : ''].filter(Boolean).join(' | ') || null,
+        client_name: safeName,
+        client_phone: safePhone,
+        client_email: safeEmail,
+        service_name: safeService,
+        preferred_date: safeDate,
+        preferred_time: safeTime,
+        payment_method: safePayment,
+        notes: safeNotes,
         status: 'pendente'
       }).select().single();
 

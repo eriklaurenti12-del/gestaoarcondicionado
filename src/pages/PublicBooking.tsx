@@ -12,7 +12,7 @@ import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type ServiceOption = { id: number; name: string; price: number; service_duration?: number; image_url?: string };
-type CompanyInfo = { company_name: string; whatsapp?: string; address?: string };
+type CompanyInfo = { company_name: string; whatsapp?: string; address?: string; logo_url?: string };
 type BookingResult = {
   id: string;
   client_name: string;
@@ -323,9 +323,13 @@ export default function PublicBooking() {
       {/* Header */}
       <div className="max-w-lg mx-auto text-center mb-6 pt-4">
         <div className="flex justify-center mb-3">
-          <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-            <Wind className="w-8 h-8 text-cyan-400" />
-          </div>
+          {company.logo_url ? (
+            <img src={company.logo_url} alt={company.company_name} className="w-16 h-16 rounded-2xl object-contain border border-cyan-500/30 bg-slate-800/50" />
+          ) : (
+            <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
+              <Wind className="w-8 h-8 text-cyan-400" />
+            </div>
+          )}
         </div>
         <h1 className="text-2xl font-bold text-white">{company.company_name}</h1>
         <p className="text-cyan-300/60 text-sm">Agendamento Online</p>
