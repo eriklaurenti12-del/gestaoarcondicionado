@@ -106,6 +106,16 @@ export default function Members() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Reuse existing pending link for this role to avoid duplicates
+      const existingPending = teamInvites.find(i => i.status === 'pending' && i.team_role === role);
+      if (existingPending) {
+        const existingUrl = `${publishedUrl}/auth?team=${existingPending.invite_code}`;
+        await navigator.clipboard.writeText(existingUrl);
+        toast({ title: 'Link já existe', description: `Copiado: ${TEAM_ROLES[role]?.label}` });
+        return;
+      }
+
       const code = crypto.randomUUID().slice(0, 8).toUpperCase();
       const { error } = await (supabase.from('team_invites') as any).insert({
         invite_code: code,

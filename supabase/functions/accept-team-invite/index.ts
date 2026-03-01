@@ -11,16 +11,37 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { invite_code, user_id, user_email, member_name, selected_role } = await req.json();
+    const { action, invite_code, user_id, user_email, member_name, selected_role } = await req.json();
 
-    console.log('[accept-team-invite] Processing invite:', invite_code, 'for user:', user_email, 'name:', member_name, 'role:', selected_role);
+    console.log('[accept-team-invite] Request action:', action || 'accept', 'invite:', invite_code);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Check if invite exists and is pending
+    // Validate invite publicly (used on /auth?team=... before signup)
+    if (action === 'validate') {
+      const { data: invite, error: inviteError } = await supabase
+        .from('team_invites')
+        .select('invite_code, team_role, status')
+        .eq('invite_code', invite_code)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (inviteError || !invite) {
+        return new Response(JSON.stringify({ valid: false, error: 'Convite inválido ou expirado' }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ valid: true, team_role: invite.team_role }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Check if invite exists and is pending for acceptance
     const { data: invite, error: inviteError } = await supabase
       .from('team_invites')
       .select('*')
@@ -36,8 +57,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use the invite's predefined role (not user-selected)
-    const teamRole = selected_role || invite.team_role || 'sistema';
+    // Always enforce the role from the invite (prevents privilege escalation)
+    const teamRole = invite.team_role || selected_role || 'sistema';
     console.log('[accept-team-invite] Team role:', teamRole);
 
     // Mark invite as accepted
