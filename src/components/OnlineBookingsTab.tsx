@@ -266,44 +266,42 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   return (
     <div className="space-y-6">
       {/* Booking Link */}
-      <Card className="bg-gradient-to-br from-cyan-900/20 to-blue-900/20 border-cyan-500/30">
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
         <CardHeader>
           <CardTitle className="text-white flex items-center gap-2">
-            <ExternalLink className="w-5 h-5 text-cyan-400" />
+            <ExternalLink className="w-5 h-5 text-primary" />
             Link de Agendamento Online
             {pendingCount > 0 && (
               <Badge className="bg-red-500 text-white animate-pulse ml-2">{pendingCount} novo(s)</Badge>
             )}
           </CardTitle>
-          <p className="text-cyan-300/60 text-sm">Compartilhe este link com seus clientes para agendamento automático</p>
+          <p className="text-muted-foreground text-sm">Compartilhe este link com seus clientes para agendamento automático</p>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2">
-            <div className="flex-1 bg-[#0a0a0f] rounded-lg p-3 border border-cyan-500/20 truncate">
-              <code className="text-cyan-300 text-sm">{bookingUrl}</code>
+            <div className="flex-1 bg-muted rounded-lg p-3 border border-border truncate">
+              <code className="text-primary text-sm">{bookingUrl}</code>
             </div>
-            <Button onClick={copyLink} className="bg-cyan-600 hover:bg-cyan-700 text-white">
+            <Button onClick={copyLink} className="bg-primary hover:bg-primary/90 text-primary-foreground">
               <Copy className="w-4 h-4 mr-1" /> Copiar
             </Button>
-            <Button onClick={() => window.open(bookingUrl, '_blank')} variant="outline"
-              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
+            <Button onClick={() => window.open(bookingUrl, '_blank')} variant="outline">
               <ExternalLink className="w-4 h-4" />
             </Button>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+            <Button size="sm" variant="outline"
               onClick={() => {
                 const msg = `Olá! Agende seu serviço de Ar Condicionado online: ${bookingUrl}`;
                 window.open(formatWhatsAppUrl('', msg), '_blank');
               }}>
               📱 Enviar via WhatsApp
             </Button>
-            <Button size="sm" variant="outline" 
-              className={notificationsEnabled ? "border-green-500/30 text-green-400 hover:bg-green-500/10" : "border-slate-500/30 text-slate-400 hover:bg-slate-500/10"}
+            <Button size="sm" variant="outline"
               onClick={toggleNotifications}>
               {notificationsEnabled ? <><Bell className="w-3 h-3 mr-1" /> Notificações ON</> : <><Bell className="w-3 h-3 mr-1" /> Notificações OFF</>}
             </Button>
-            <Button size="sm" variant="outline" className="border-slate-500/30 text-slate-400 hover:bg-slate-500/10"
+            <Button size="sm" variant="outline"
               onClick={checkForUpdates}>
               <RefreshCw className="w-3 h-3 mr-1" /> Procurar Atualização
             </Button>
@@ -312,22 +310,22 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       </Card>
 
       {/* Bookings List */}
-      <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white flex items-center gap-2">
-            <Bell className="w-5 h-5 text-amber-400" />
+          <CardTitle className="flex items-center gap-2">
+            <Bell className="w-5 h-5 text-primary" />
             Agendamentos Online
-            <Badge className="bg-[#2a2a3a] text-white border-0">{bookings.length}</Badge>
+            <Badge variant="secondary">{bookings.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin text-cyan-400" />
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
             </div>
           ) : bookings.length === 0 ? (
-            <div className="text-center py-10 text-slate-400">
-              <Calendar className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+            <div className="text-center py-10 text-muted-foreground">
+              <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
               <p>Nenhum agendamento online ainda.</p>
               <p className="text-xs mt-1">Compartilhe o link acima com seus clientes!</p>
             </div>
@@ -337,18 +335,18 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                 <div key={booking.id}
                   className={`p-4 rounded-xl border transition-all ${
                     booking.status === 'pendente'
-                      ? 'border-amber-500/30 bg-amber-500/5'
+                      ? 'border-amber-500/30 bg-amber-500/10'
                       : booking.status === 'confirmado'
-                        ? 'border-green-500/20 bg-green-500/5'
-                        : 'border-[#2a2a3a] bg-[#0f0f17]'
+                        ? 'border-green-500/20 bg-green-500/10'
+                        : 'border-border bg-muted/30'
                   }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white font-semibold">{booking.client_name}</span>
+                        <span className="font-semibold">{booking.client_name}</span>
                         {getStatusBadge(booking.status)}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-slate-400 flex-wrap">
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}
@@ -357,11 +355,11 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                           <Clock className="w-3 h-3" />
                           {booking.preferred_time}
                         </span>
-                        <span className="flex items-center gap-1 text-cyan-400">
+                        <span className="flex items-center gap-1 text-primary">
                           {booking.service_name}
                         </span>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Phone className="w-3 h-3" /> {booking.client_phone}
                         </span>
@@ -381,13 +379,13 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                               <a 
                                 href={`https://www.google.com/maps/search/${encodeURIComponent(addressMatch[1].trim())}`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 hover:underline"
+                                className="flex items-center gap-1 text-xs text-primary hover:underline"
                               >
                                 📍 {addressMatch[1].trim()}
-                                {cepMatch && <span className="text-slate-500">| CEP: {cepMatch[1]}</span>}
+                                {cepMatch && <span className="text-muted-foreground">| CEP: {cepMatch[1]}</span>}
                               </a>
                             )}
-                            {userNote && <p className="text-xs text-slate-500 italic">"{userNote}"</p>}
+                            {userNote && <p className="text-xs text-muted-foreground italic">"{userNote}"</p>}
                           </div>
                         );
                       })()}
@@ -397,21 +395,21 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                       {booking.status === 'pendente' && (
                         <>
                           <Button size="sm" onClick={() => updateStatus(booking.id, 'confirmado', booking)}
-                            className="bg-green-600 hover:bg-green-700 text-white text-xs h-8">
+                            className="text-xs h-8">
                             <Check className="w-3 h-3 mr-1" /> Aceitar
                           </Button>
                           <Button size="sm" onClick={() => updateStatus(booking.id, 'recusado', booking)}
-                            variant="outline" className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs h-8">
+                            variant="destructive" className="text-xs h-8">
                             <X className="w-3 h-3 mr-1" /> Recusar
                           </Button>
                         </>
                       )}
-                      <Button size="sm" variant="ghost" className="text-slate-500 hover:text-red-400 h-8 w-8 p-0"
+                      <Button size="sm" variant="ghost" className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
                         onClick={() => deleteBooking(booking.id)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                       {booking.client_phone && (
-                        <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                           onClick={() => {
                           const addrMatch = booking.notes?.match(/📍\s*([^|]+)/);
                             const addrText = addrMatch ? `\n📍 Local: ${addrMatch[1].trim()}` : '';

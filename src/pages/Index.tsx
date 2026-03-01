@@ -236,15 +236,20 @@ export default function Index() {
                     variant="ghost"
                     size="icon"
                     className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
-                    onClick={() => {
-                      if ('serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then((reg) => {
-                          reg.update().then(() => {
-                            toast.info("Verificando atualizações...");
-                          });
-                        });
-                      } else {
-                        window.location.reload();
+                    onClick={async () => {
+                      toast.info("🔍 Verificando atualizações...");
+                      try {
+                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                          const reg = await navigator.serviceWorker.ready;
+                          await reg.update();
+                          toast.success("✅ Verificação concluída! Se houver atualização, será aplicada.");
+                        } else {
+                          toast.info("🔄 Recarregando para buscar atualizações...");
+                          setTimeout(() => window.location.reload(), 1000);
+                        }
+                      } catch {
+                        toast.info("🔄 Recarregando...");
+                        setTimeout(() => window.location.reload(), 1000);
                       }
                     }}
                     title="Procurar atualização"
