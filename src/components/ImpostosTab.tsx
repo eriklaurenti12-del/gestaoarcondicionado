@@ -103,14 +103,14 @@ const ImpostosTab: React.FC = () => {
         supabase
           .from('sales')
           .select('sale_price, qty, products(type)')
-          .gte('sale_date', startDate)
-          .lte('sale_date', endDate),
+          .gte('sale_date', startDate + 'T00:00:00')
+          .lte('sale_date', endDate + 'T23:59:59'),
         supabase
           .from('appointments')
           .select('*, products(price, type)')
-          .eq('status', 'concluído')
-          .gte('appointment_date', startDate)
-          .lte('appointment_date', endDate),
+          .in('status', ['concluído', 'concluido'])
+          .gte('appointment_date', startDate + 'T00:00:00')
+          .lte('appointment_date', endDate + 'T23:59:59'),
         supabase
           .from('fixed_expenses')
           .select('amount, category')
@@ -146,6 +146,23 @@ const ImpostosTab: React.FC = () => {
       };
     }
   });
+
+  // Auto-pull data when month changes and no saved record exists
+  React.useEffect(() => {
+    if (!taxRecord && monthlyRevenue) {
+      setFormData(prev => ({
+        ...prev,
+        total_revenue: monthlyRevenue.total,
+        revenue_from_services: monthlyRevenue.services,
+        revenue_from_products: monthlyRevenue.products,
+        total_expenses: monthlyRevenue.expenses.total,
+        fuel_expenses: monthlyRevenue.expenses.fuel,
+        material_expenses: monthlyRevenue.expenses.material,
+        equipment_expenses: monthlyRevenue.expenses.equipment,
+        other_expenses: monthlyRevenue.expenses.other
+      }));
+    }
+  }, [monthlyRevenue, taxRecord, selectedMonth]);
 
   // Load form data when tax record changes
   React.useEffect(() => {

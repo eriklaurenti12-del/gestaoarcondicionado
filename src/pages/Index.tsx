@@ -66,6 +66,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -120,8 +121,20 @@ export default function Index() {
       .select('role')
       .eq('user_id', session.user.id);
 
-    setIsSuperAdmin(roles?.some(r => r.role === 'super_admin') || false);
+    const isSA = roles?.some(r => r.role === 'super_admin') || false;
+    setIsSuperAdmin(isSA);
     setCurrentUserId(session.user.id);
+
+    // Determine team role from invite
+    const { data: teamInvite } = await supabase
+      .from('team_invites')
+      .select('team_role')
+      .eq('accepted_by', session.user.id)
+      .eq('status', 'accepted')
+      .maybeSingle();
+    
+    const teamRole = teamInvite?.team_role || '';
+    setUserRole(isSA ? 'super_admin' : teamRole);
     // Check if first time user (onboarding not completed)
     const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
     const onboardingCompleted = localStorage.getItem(onboardingKey);
@@ -219,6 +232,7 @@ export default function Index() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               isSuperAdmin={isSuperAdmin}
+              userRole={userRole}
               onNavigateMembers={() => navigate("/members")}
               onSignOut={handleSignOut}
             />

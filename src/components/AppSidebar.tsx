@@ -20,6 +20,7 @@ interface AppSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   isSuperAdmin: boolean;
+  userRole?: string;
   onNavigateMembers: () => void;
   onSignOut: () => void;
 }
@@ -63,7 +64,7 @@ const sectionIconMap: Record<string, any> = {
   Snowflake, ClipboardList, ShoppingCart, Wallet, Settings,
 };
 
-export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
+export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onNavigateMembers, onSignOut }: AppSidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
@@ -94,7 +95,30 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
     staleTime: 30 * 1000,
   });
 
-  const sections = sidebarConfig?.sections || defaultSections;
+  // Filter sections based on team role
+  const filterSectionsByRole = (sections: any[]) => {
+    // Super admin and regular users (no team role) get everything
+    if (!userRole || userRole === 'super_admin' || userRole === 'sistema') return sections;
+    
+    // Role-specific tab access
+    const roleTabAccess: Record<string, string[]> = {
+      painel: ['dashboard'], // Painel Admin: only dashboard
+      suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'], // Suporte: dashboard + agenda + clients
+    };
+    
+    const allowedTabs = roleTabAccess[userRole];
+    if (!allowedTabs) return sections;
+    
+    return sections
+      .map((section: any) => ({
+        ...section,
+        items: section.items.filter((item: any) => allowedTabs.includes(item.id))
+      }))
+      .filter((section: any) => section.items.length > 0);
+  };
+
+  const allSections = sidebarConfig?.sections || defaultSections;
+  const sections = filterSectionsByRole(allSections);
   const companyName = companyData?.company_name || 'Minha Empresa';
 
   const renderMenuItems = (items: { id: string; title: string }[]) => (
