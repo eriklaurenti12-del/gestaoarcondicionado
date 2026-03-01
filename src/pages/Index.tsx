@@ -177,7 +177,21 @@ export default function Index() {
     return null;
   }
 
+  const allowedTabsByRole: Record<string, string[]> = {
+    painel: ['dashboard'],
+    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'],
+    sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
+    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
+    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
+  };
+
+  const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['']).includes(tab);
+
   const renderContent = () => {
+    if (!canAccessTab(activeTab)) {
+      return <Dashboard onNavigateToTab={setActiveTab} />;
+    }
+
     switch (activeTab) {
       case "dashboard":
         return <Dashboard onNavigateToTab={setActiveTab} />;
@@ -206,7 +220,7 @@ export default function Index() {
       case "company":
         return <CompanyDataTab />;
       default:
-        return <Dashboard />;
+        return <Dashboard onNavigateToTab={setActiveTab} />;
     }
   };
 
@@ -239,7 +253,10 @@ export default function Index() {
           <div className="flex w-full relative z-10">
             <AppSidebar
               activeTab={activeTab}
-              onTabChange={setActiveTab}
+              onTabChange={(tab) => {
+                if (canAccessTab(tab)) setActiveTab(tab);
+                else setActiveTab('dashboard');
+              }}
               isSuperAdmin={isSuperAdmin}
               userRole={userRole}
               onNavigateMembers={() => navigate("/members")}

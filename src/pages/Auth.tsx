@@ -60,21 +60,21 @@ export default function Auth() {
 
   const validateTeamInvite = async (code: string) => {
     try {
-      const { data, error } = await supabase
-        .from('team_invites')
-        .select('team_role, status')
-        .eq('invite_code', code)
-        .eq('status', 'pending')
-        .maybeSingle();
-      
-      if (error || !data) {
+      const { data, error } = await supabase.functions.invoke('accept-team-invite', {
+        body: { action: 'validate', invite_code: code }
+      });
+
+      if (error || !data?.valid) {
         setInviteValid(false);
+        setInviteRole(null);
         return;
       }
-      setInviteRole(data.team_role);
+
+      setInviteRole(data.team_role || 'sistema');
       setInviteValid(true);
     } catch {
       setInviteValid(false);
+      setInviteRole(null);
     }
   };
 
