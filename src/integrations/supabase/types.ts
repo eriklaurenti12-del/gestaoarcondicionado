@@ -962,28 +962,46 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          address: string | null
+          cnpj_cpf: string | null
           contact: string | null
+          contact_person: string | null
           created_at: string
           email: string | null
           id: number
           name: string
+          notes: string | null
+          payment_terms: string | null
           user_id: string
+          website: string | null
         }
         Insert: {
+          address?: string | null
+          cnpj_cpf?: string | null
           contact?: string | null
+          contact_person?: string | null
           created_at?: string
           email?: string | null
           id?: number
           name: string
+          notes?: string | null
+          payment_terms?: string | null
           user_id: string
+          website?: string | null
         }
         Update: {
+          address?: string | null
+          cnpj_cpf?: string | null
           contact?: string | null
+          contact_person?: string | null
           created_at?: string
           email?: string | null
           id?: number
           name?: string
+          notes?: string | null
+          payment_terms?: string | null
           user_id?: string
+          website?: string | null
         }
         Relationships: []
       }
