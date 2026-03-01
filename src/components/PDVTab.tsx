@@ -973,7 +973,7 @@ const PDVTab: React.FC = () => {
                   </Button>
                   <Button 
                     onClick={handleFinalizeSale} 
-                    disabled={cart.length === 0 || !selectedClient || saleMutation.isPending}
+                    disabled={cart.length === 0 || saleMutation.isPending}
                     className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
                   >
                     <Receipt className="w-4 h-4 mr-2" />
