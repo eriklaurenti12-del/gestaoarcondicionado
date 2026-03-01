@@ -27,6 +27,11 @@ type Sale = Tables<'sales'> & {
 };
 type PaymentMethod = 'Dinheiro' | 'PIX' | 'Débito' | 'Crédito';
 
+interface SplitPayment {
+  method: PaymentMethod;
+  amount: number;
+}
+
 interface CartItem {
   product: Product;
   quantity: number;
@@ -55,8 +60,17 @@ const PDVTab: React.FC = () => {
   const [searchClient, setSearchClient] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   
+  // Split payment
+  const [splitPayments, setSplitPayments] = useState<SplitPayment[]>([]);
+  const [splitMethod, setSplitMethod] = useState<PaymentMethod>('PIX');
+  const [splitAmount, setSplitAmount] = useState<string>("");
+  
   // Cash payment
   const [amountReceived, setAmountReceived] = useState<string>("");
+  
+  // Manual WhatsApp for receipt
+  const [manualWhatsApp, setManualWhatsApp] = useState<string>("");
+  const [manualWhatsAppName, setManualWhatsAppName] = useState<string>("");
   
   // Dialogs
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -74,6 +88,7 @@ const PDVTab: React.FC = () => {
     items: CartItem[];
     paymentMethod: PaymentMethod;
     change?: number;
+    splitPayments?: SplitPayment[];
   } | null>(null);
   
   // New client form
@@ -247,6 +262,38 @@ const PDVTab: React.FC = () => {
     }, 0);
   }, [cart]);
 
+  const splitTotal = useMemo(() => {
+    return splitPayments.reduce((sum, sp) => sum + sp.amount, 0);
+  }, [splitPayments]);
+
+  const splitRemaining = useMemo(() => {
+    return Math.max(0, totalWithFee - splitTotal);
+  }, [totalWithFee, splitTotal]);
+
+  const addSplitPayment = () => {
+    const amount = parseFloat(splitAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ variant: "destructive", title: "Valor inválido", description: "Informe um valor válido." });
+      return;
+    }
+    if (amount > splitRemaining + 0.01) {
+      toast({ variant: "destructive", title: "Valor excede", description: `Restante: R$ ${splitRemaining.toFixed(2)}` });
+      return;
+    }
+    setSplitPayments(prev => [...prev, { method: splitMethod, amount: Math.min(amount, splitRemaining) }]);
+    setSplitAmount("");
+  };
+
+  const removeSplitPayment = (index: number) => {
+    setSplitPayments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const fillRemainingToSplit = () => {
+    if (splitRemaining > 0) {
+      setSplitAmount(splitRemaining.toFixed(2));
+    }
+  };
+
   const salesStats = useMemo(() => {
     if (!filteredSalesHistory) return { total: 0, count: 0, profit: 0 };
     return {
@@ -361,6 +408,8 @@ const PDVTab: React.FC = () => {
     setInstallments(1);
     setPaymentFee(0);
     setAmountReceived("");
+    setSplitPayments([]);
+    setSplitAmount("");
   };
 
   // Add new client
@@ -516,8 +565,9 @@ const PDVTab: React.FC = () => {
         total: totalWithFee,
         client: selectedClient,
         items: [...cart],
-        paymentMethod,
-        change: paymentMethod === 'Dinheiro' ? change : undefined
+        paymentMethod: splitPayments.length > 0 ? splitPayments[0].method : paymentMethod,
+        change: paymentMethod === 'Dinheiro' && splitPayments.length === 0 ? change : undefined,
+        splitPayments: splitPayments.length > 0 ? [...splitPayments] : undefined,
       });
       
       setShowConfirmDialog(false);
@@ -533,7 +583,13 @@ const PDVTab: React.FC = () => {
       toast({ variant: "destructive", title: "Carrinho vazio", description: "Adicione itens ao carrinho." });
       return;
     }
-    if (paymentMethod === 'Dinheiro' && parseFloat(amountReceived) < totalWithFee) {
+    // If split payments, check total is covered
+    if (splitPayments.length > 0 && splitRemaining > 0.01) {
+      toast({ variant: "destructive", title: "Pagamento incompleto", description: `Faltam R$ ${splitRemaining.toFixed(2)} para cobrir o total.` });
+      return;
+    }
+    // If single payment with cash, check received amount
+    if (splitPayments.length === 0 && paymentMethod === 'Dinheiro' && parseFloat(amountReceived) < totalWithFee) {
       toast({ variant: "destructive", title: "Valor insuficiente", description: "O valor recebido é menor que o total." });
       return;
     }
@@ -607,31 +663,47 @@ const PDVTab: React.FC = () => {
     toast({ title: "Comprovante gerado!", description: "PDF salvo com sucesso." });
   };
 
-  const sendReceiptWhatsApp = () => {
-    if (!lastSaleData?.client?.telefone) {
-      toast({ variant: "destructive", title: "Sem telefone", description: "Cliente não possui telefone cadastrado." });
+  const sendReceiptWhatsApp = (useManual?: boolean) => {
+    let phone = '';
+    
+    if (useManual && manualWhatsApp.trim()) {
+      phone = manualWhatsApp.replace(/\D/g, '');
+    } else if (lastSaleData?.client?.telefone) {
+      phone = lastSaleData.client.telefone.replace(/\D/g, '');
+    } else {
+      toast({ variant: "destructive", title: "Sem número", description: "Informe um número de WhatsApp." });
       return;
     }
     
-    const phone = lastSaleData.client.telefone.replace(/\D/g, '');
-    const itemsList = lastSaleData.items.map(i => 
+    const itemsList = lastSaleData!.items.map(i => 
       `• ${i.product.name} (${i.quantity}x) - R$ ${(Number(i.product.price) * i.quantity).toFixed(2)}`
     ).join('\n');
     
     let message = `🧾 *COMPROVANTE DE VENDA*\n\n`;
     message += `*${companyData?.company_name || 'AC Service Pro'}*\n`;
-    message += `Venda #${lastSaleData.id}\n`;
+    message += `Venda #${lastSaleData!.id}\n`;
     message += `Data: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
     message += `*Itens:*\n${itemsList}\n\n`;
-    message += `*Total: R$ ${lastSaleData.total.toFixed(2)}*\n`;
-    message += `Pagamento: ${lastSaleData.paymentMethod}`;
-    if (lastSaleData.change && lastSaleData.change > 0) {
-      message += `\nTroco: R$ ${lastSaleData.change.toFixed(2)}`;
+    message += `*Total: R$ ${lastSaleData!.total.toFixed(2)}*\n`;
+    
+    if (lastSaleData!.splitPayments && lastSaleData!.splitPayments.length > 0) {
+      message += `\n*Pagamento dividido:*\n`;
+      lastSaleData!.splitPayments.forEach(sp => {
+        message += `• ${sp.method}: R$ ${sp.amount.toFixed(2)}\n`;
+      });
+    } else {
+      message += `Pagamento: ${lastSaleData!.paymentMethod}`;
+    }
+    
+    if (lastSaleData!.change && lastSaleData!.change > 0) {
+      message += `\nTroco: R$ ${lastSaleData!.change.toFixed(2)}`;
     }
     message += `\n\nObrigado pela preferência! 🙏`;
     
     window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
     toast({ title: "WhatsApp aberto!", description: "Comprovante enviado." });
+    setManualWhatsApp("");
+    setManualWhatsAppName("");
   };
 
   const getPaymentIcon = (method: string) => {
@@ -887,8 +959,8 @@ const PDVTab: React.FC = () => {
                   </Select>
                 </div>
 
-                {/* Cash - Amount received and change */}
-                {paymentMethod === 'Dinheiro' && (
+                {/* Cash - Amount received and change (only when no split) */}
+                {paymentMethod === 'Dinheiro' && splitPayments.length === 0 && (
                   <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20 space-y-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Valor Recebido</Label>
@@ -915,8 +987,8 @@ const PDVTab: React.FC = () => {
                   </div>
                 )}
 
-                {/* Credit options */}
-                {paymentMethod === 'Crédito' && (
+                {/* Credit options (only when no split) */}
+                {paymentMethod === 'Crédito' && splitPayments.length === 0 && (
                   <div className="grid grid-cols-2 gap-2">
                     <div className="space-y-1">
                       <Label className="text-xs">Parcelas</Label>
@@ -943,6 +1015,80 @@ const PDVTab: React.FC = () => {
                     </div>
                   </div>
                 )}
+
+                {/* Split Payment Section */}
+                <div className="border rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold">💳 Dividir Pagamento</Label>
+                    {splitRemaining > 0 && splitPayments.length > 0 && (
+                      <Badge variant="outline" className="text-amber-600 border-amber-600">
+                        Faltam R$ {splitRemaining.toFixed(2)}
+                      </Badge>
+                    )}
+                    {splitPayments.length > 0 && splitRemaining <= 0.01 && (
+                      <Badge variant="outline" className="text-green-600 border-green-600">
+                        ✓ Quitado
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  {splitPayments.length > 0 && (
+                    <div className="space-y-1">
+                      {splitPayments.map((sp, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-2 rounded bg-muted/50 text-sm">
+                          <div className="flex items-center gap-2">
+                            {getPaymentIcon(sp.method)}
+                            <span>{sp.method}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">R$ {sp.amount.toFixed(2)}</span>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive" onClick={() => removeSplitPayment(idx)}>
+                              <X className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(splitPayments.length === 0 || splitRemaining > 0.01) && (
+                    <div className="flex gap-2 items-end">
+                      <div className="flex-1">
+                        <Select value={splitMethod} onValueChange={(v) => setSplitMethod(v as PaymentMethod)}>
+                          <SelectTrigger className="h-9">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                            <SelectItem value="PIX">PIX</SelectItem>
+                            <SelectItem value="Débito">Débito</SelectItem>
+                            <SelectItem value="Crédito">Crédito</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={splitAmount}
+                          onChange={(e) => setSplitAmount(e.target.value)}
+                          placeholder="Valor"
+                          className="h-9"
+                          onFocus={() => { if (!splitAmount) setSplitAmount(splitRemaining > 0 ? splitRemaining.toFixed(2) : totalWithFee.toFixed(2)); }}
+                        />
+                      </div>
+                      <Button size="sm" className="h-9" onClick={addSplitPayment} disabled={!splitAmount || cartTotal === 0}>
+                        <Plus className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {splitPayments.length > 0 && (
+                    <Button variant="ghost" size="sm" className="text-xs text-destructive" onClick={() => setSplitPayments([])}>
+                      Limpar divisão
+                    </Button>
+                  )}
+                </div>
 
                 {/* Totals */}
                 <div className="border-t pt-3 space-y-1">
@@ -1140,13 +1286,24 @@ const PDVTab: React.FC = () => {
           
           <div className="space-y-4">
             <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-sm"><strong>Cliente:</strong> {selectedClient?.name}</p>
+              <p className="text-sm"><strong>Cliente:</strong> {selectedClient?.name || 'Venda Balcão'}</p>
               <p className="text-sm"><strong>Itens:</strong> {cart.reduce((sum, item) => sum + item.quantity, 0)}</p>
-              <p className="text-sm"><strong>Pagamento:</strong> {paymentMethod}{installments > 1 ? ` (${installments}x)` : ''}</p>
-              {paymentMethod === 'Dinheiro' && parseFloat(amountReceived) > 0 && (
+              {splitPayments.length > 0 ? (
+                <div className="mt-1 space-y-1">
+                  <p className="text-sm font-semibold">Pagamento dividido:</p>
+                  {splitPayments.map((sp, idx) => (
+                    <p key={idx} className="text-sm ml-2">• {sp.method}: R$ {sp.amount.toFixed(2)}</p>
+                  ))}
+                </div>
+              ) : (
                 <>
-                  <p className="text-sm"><strong>Recebido:</strong> R$ {amountReceived}</p>
-                  <p className="text-sm"><strong>Troco:</strong> R$ {change.toFixed(2)}</p>
+                  <p className="text-sm"><strong>Pagamento:</strong> {paymentMethod}{installments > 1 ? ` (${installments}x)` : ''}</p>
+                  {paymentMethod === 'Dinheiro' && parseFloat(amountReceived) > 0 && (
+                    <>
+                      <p className="text-sm"><strong>Recebido:</strong> R$ {amountReceived}</p>
+                      <p className="text-sm"><strong>Troco:</strong> R$ {change.toFixed(2)}</p>
+                    </>
+                  )}
                 </>
               )}
               <p className="text-lg font-bold mt-2 text-green-600">Total: R$ {totalWithFee.toFixed(2)}</p>
@@ -1211,6 +1368,38 @@ const PDVTab: React.FC = () => {
             {lastSaleData?.change && lastSaleData.change > 0 && (
               <p className="text-muted-foreground">Troco: R$ {lastSaleData.change.toFixed(2)}</p>
             )}
+           </div>
+
+          {/* Split payments summary */}
+          {lastSaleData?.splitPayments && lastSaleData.splitPayments.length > 0 && (
+            <div className="text-sm space-y-1 bg-muted/50 rounded p-2">
+              <p className="font-semibold text-xs text-muted-foreground">Pagamento dividido:</p>
+              {lastSaleData.splitPayments.map((sp, idx) => (
+                <div key={idx} className="flex justify-between">
+                  <span>{sp.method}</span>
+                  <span className="font-medium">R$ {sp.amount.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Manual WhatsApp input */}
+          <div className="space-y-2 border-t pt-3">
+            <Label className="text-xs text-muted-foreground">Enviar comprovante para WhatsApp (número manual)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                value={manualWhatsAppName}
+                onChange={(e) => setManualWhatsAppName(e.target.value)}
+                placeholder="Nome (opcional)"
+                className="h-9"
+              />
+              <Input
+                value={manualWhatsApp}
+                onChange={(e) => setManualWhatsApp(e.target.value)}
+                placeholder="(00) 00000-0000"
+                className="h-9"
+              />
+            </div>
           </div>
 
           <DialogFooter className="flex flex-col sm:flex-row gap-2">
@@ -1224,14 +1413,24 @@ const PDVTab: React.FC = () => {
               <FileText className="w-4 h-4 mr-2" />
               PDF
             </Button>
-            <Button 
-              onClick={sendReceiptWhatsApp} 
-              disabled={!lastSaleData?.client?.telefone}
-              className="flex-1 bg-green-600 hover:bg-green-700"
-            >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              WhatsApp
-            </Button>
+            {lastSaleData?.client?.telefone ? (
+              <Button 
+                onClick={() => sendReceiptWhatsApp(false)} 
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                WhatsApp Cliente
+              </Button>
+            ) : null}
+            {manualWhatsApp.trim() && (
+              <Button 
+                onClick={() => sendReceiptWhatsApp(true)} 
+                className="flex-1 bg-green-600 hover:bg-green-700"
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar Manual
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
