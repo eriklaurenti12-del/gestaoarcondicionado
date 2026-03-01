@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2, Menu, GripVertical, Save } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2, Menu, GripVertical, Save, AlertTriangle, HardDrive } from "lucide-react";
 import { format } from "date-fns";
 
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
@@ -221,6 +221,25 @@ export default function Members() {
     try {
       await updateSubscription(targetUserId, 'mensal', 'cancelado');
       toast({ title: "Usuário Banido", description: `${email} foi banido.`, variant: "destructive" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const deleteUserPermanently = async (targetUserId: string, email: string, deleteData: boolean) => {
+    const msg = deleteData 
+      ? `⚠️ EXCLUIR PERMANENTEMENTE ${email} E TODOS OS DADOS? Esta ação é IRREVERSÍVEL!`
+      : `Excluir a conta de ${email}? Os dados serão mantidos.`;
+    if (!window.confirm(msg)) return;
+    if (deleteData && !window.confirm(`ÚLTIMA CONFIRMAÇÃO: Todos os clientes, vendas, agendamentos, financeiro de ${email} serão apagados para sempre. Continuar?`)) return;
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
+        body: { target_user_id: targetUserId, delete_data: deleteData }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Usuário excluído", description: `${email} foi removido permanentemente.`, variant: "destructive" });
+      await loadMembers();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     }
@@ -618,21 +637,27 @@ export default function Members() {
                                   <Shield className="w-3 h-3 mr-1" /> Protegido
                                 </Badge>
                               ) : (
-                                <div className="flex gap-2">
+                                <div className="flex gap-1 flex-wrap">
                                   <Button size="sm"
                                     variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
                                     onClick={() => updateSubscription(member.id, member.subscription?.plan || 'mensal',
                                       member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado')}
-                                    className={`text-xs whitespace-nowrap ${
-                                      member.subscription?.status === 'aprovado' 
-                                        ? '' 
-                                        : ''
-                                    }`}>
+                                    className="text-xs whitespace-nowrap">
                                     {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
                                   </Button>
                                   <Button size="sm" variant="destructive" onClick={() => banUser(member.id, member.email)}
                                     className="text-xs" title="Banir">
                                     <Ban className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="outline" 
+                                    onClick={() => deleteUserPermanently(member.id, member.email, false)}
+                                    className="text-xs" title="Excluir conta (manter dados)">
+                                    <UserX className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" variant="destructive" 
+                                    onClick={() => deleteUserPermanently(member.id, member.email, true)}
+                                    className="text-xs" title="Excluir tudo permanentemente">
+                                    <Trash2 className="w-3 h-3" />
                                   </Button>
                                 </div>
                               )}

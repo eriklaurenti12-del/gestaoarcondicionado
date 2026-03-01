@@ -29,6 +29,7 @@ const serviceTypes = [
   { value: 'orcamento', label: 'Orçamento', type: 'service' },
   { value: 'prestacao', label: 'Prestação de Serviço', type: 'service' },
   { value: 'combo', label: '🎁 Combo (Mesclar Serviços)', type: 'service' },
+  { value: 'produto_venda', label: '🛒 Produto para Venda', type: 'piece' },
   { value: 'peca', label: 'Peça/Material', type: 'piece' },
   { value: 'ar_condicionado', label: 'Ar Condicionado (Aparelho)', type: 'piece' },
 ];
