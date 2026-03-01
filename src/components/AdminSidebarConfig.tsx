@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from '@tanstack/react-query';
 import { Save, GripVertical, Menu, RotateCcw } from "lucide-react";
 
 const defaultSections = [
@@ -41,6 +42,7 @@ type DragSource = {
 
 const AdminSidebarConfig: React.FC = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [sections, setSections] = useState(defaultSections);
   const [saving, setSaving] = useState(false);
   const [dragSource, setDragSource] = useState<DragSource | null>(null);
@@ -76,7 +78,8 @@ const AdminSidebarConfig: React.FC = () => {
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Menu salvo!", description: "As alterações serão aplicadas ao recarregar." });
+      queryClient.invalidateQueries({ queryKey: ['sidebar-config'] });
+      toast({ title: "Menu salvo!", description: "As alterações foram aplicadas." });
     }
     setSaving(false);
   };

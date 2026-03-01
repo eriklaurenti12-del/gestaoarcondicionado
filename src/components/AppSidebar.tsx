@@ -91,7 +91,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
       if (error) return null;
       return data?.value ? JSON.parse(data.value) : null;
     },
-    staleTime: 10 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 
   const sections = sidebarConfig?.sections || defaultSections;
