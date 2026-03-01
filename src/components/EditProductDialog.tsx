@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -10,7 +10,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
-import { Wrench, Package, DollarSign, MapPin, Clock } from 'lucide-react';
+import { Wrench, Package, DollarSign, MapPin, Clock, Camera, X, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const productSchema = z.object({
   name: z.string().min(1, 'Nome é obrigatório'),
@@ -37,6 +38,11 @@ interface EditProductDialogProps {
 }
 
 const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, onOpenChange, onSave }) => {
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productSchema),
     defaultValues: {},
@@ -70,25 +76,65 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
         storage_shelf: product.storage_shelf || '',
         storage_section: product.storage_section || '',
       });
+      setImagePreview(product.image_url || null);
+      setImageFile(null);
     }
   }, [product, isOpen, form]);
 
-  const onSubmit = (data: ProductFormValues) => {
-    const update: TablesUpdate<'products'> = {
-      name: data.name,
-      type: data.type,
-      price: data.price,
-      cost_price: data.cost_price,
-      qty: isService ? 999 : data.qty,
-      min_stock: isService ? 0 : data.min_stock,
-      barcode: data.barcode || null,
-      service_duration: isService ? (data.service_duration || 60) : null,
-      supplier_id: data.supplier_id && data.supplier_id !== 'none' ? parseInt(data.supplier_id) : null,
-      storage_location: data.storage_location || null,
-      storage_shelf: data.storage_shelf || null,
-      storage_section: data.storage_section || null,
-    };
-    onSave(update);
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Imagem muito grande (máx 5MB)');
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!imageFile) return imagePreview; // keep existing
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const fileExt = imageFile.name.split('.').pop();
+    const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from('product-images').upload(fileName, imageFile);
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+    return urlData.publicUrl;
+  };
+
+  const onSubmit = async (data: ProductFormValues) => {
+    try {
+      setUploading(true);
+      const finalImageUrl = await uploadImage();
+      const update: TablesUpdate<'products'> = {
+        name: data.name,
+        type: data.type,
+        price: data.price,
+        cost_price: data.cost_price,
+        qty: isService ? 999 : data.qty,
+        min_stock: isService ? 0 : data.min_stock,
+        barcode: data.barcode || null,
+        service_duration: isService ? (data.service_duration || 60) : null,
+        supplier_id: data.supplier_id && data.supplier_id !== 'none' ? parseInt(data.supplier_id) : null,
+        storage_location: data.storage_location || null,
+        storage_shelf: data.storage_shelf || null,
+        storage_section: data.storage_section || null,
+        image_url: finalImageUrl,
+      };
+      onSave(update);
+    } catch (error: any) {
+      toast.error('Erro ao salvar: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -103,6 +149,25 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Imagem */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium flex items-center gap-1"><Camera className="w-3.5 h-3.5" /> Imagem</p>
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+              {imagePreview ? (
+                <div className="relative w-24 h-24">
+                  <img src={imagePreview} alt="Preview" className="w-24 h-24 rounded-lg object-cover border" />
+                  <button type="button" onClick={removeImage} className="absolute -top-2 -right-2 bg-destructive text-destructive-foreground rounded-full p-0.5">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center text-muted-foreground hover:border-primary/50 transition-colors">
+                  <Camera className="w-5 h-5 mb-1" />
+                  <span className="text-[10px]">Adicionar</span>
+                </button>
+              )}
+            </div>
+
             {/* Tipo */}
             <FormField control={form.control} name="type" render={({ field }) => (
               <FormItem>
@@ -225,8 +290,10 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={uploading}>Cancelar</Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? <><Loader2 className="w-4 h-4 mr-1 animate-spin" /> Salvando...</> : 'Salvar Alterações'}
+              </Button>
             </DialogFooter>
           </form>
         </Form>
