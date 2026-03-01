@@ -11,9 +11,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { invite_code, user_id, user_email, selected_role } = await req.json();
+    const { invite_code, user_id, user_email, member_name, selected_role } = await req.json();
 
-    console.log('[accept-team-invite] Processing invite:', invite_code, 'for user:', user_email, 'role:', selected_role);
+    console.log('[accept-team-invite] Processing invite:', invite_code, 'for user:', user_email, 'name:', member_name, 'role:', selected_role);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -36,14 +36,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Use selected_role from the user, or fallback to invite's team_role
+    // Use the invite's predefined role (not user-selected)
     const teamRole = selected_role || invite.team_role || 'sistema';
     console.log('[accept-team-invite] Team role:', teamRole);
 
     // Mark invite as accepted
     const { error: updateError } = await supabase.from('team_invites').update({
       accepted_by: user_id,
-      accepted_email: user_email,
+      accepted_email: member_name || user_email,
       status: 'accepted',
       team_role: teamRole,
       accepted_at: new Date().toISOString()
@@ -53,9 +53,15 @@ Deno.serve(async (req) => {
       console.error('[accept-team-invite] Update error:', updateError.message);
     }
 
+    // Update profile with the member name
+    if (member_name) {
+      await supabase.from('profiles').update({
+        username: member_name
+      }).eq('user_id', user_id);
+    }
+
     // Give role based on team_role
     if (teamRole === 'suporte') {
-      // Support - admin role only
       await supabase.from('user_roles').upsert({
         user_id,
         role: 'admin'
@@ -68,7 +74,7 @@ Deno.serve(async (req) => {
       }, { onConflict: 'user_id,role' });
     }
 
-    // Activate subscription (lifetime for team members) - upsert to handle new users
+    // Activate subscription (lifetime for team members)
     const { error: subError } = await supabase.from('subscriptions').upsert({
       user_id,
       plan: 'vitalicio',
@@ -79,7 +85,6 @@ Deno.serve(async (req) => {
 
     if (subError) {
       console.error('[accept-team-invite] Subscription error:', subError.message);
-      // Try insert if upsert fails
       await supabase.from('subscriptions').insert({
         user_id,
         plan: 'vitalicio',
@@ -89,7 +94,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('[accept-team-invite] Success for:', user_email);
+    console.log('[accept-team-invite] Success for:', member_name || user_email);
 
     return new Response(JSON.stringify({ success: true, team_role: teamRole }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

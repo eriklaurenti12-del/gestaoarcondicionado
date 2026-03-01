@@ -97,13 +97,13 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   // Filter sections based on team role
   const filterSectionsByRole = (sections: any[]) => {
-    // Super admin and regular users (no team role) get everything
+    // No role = regular owner user, super_admin = owner, sistema = full access team member
     if (!userRole || userRole === 'super_admin' || userRole === 'sistema') return sections;
     
     // Role-specific tab access
     const roleTabAccess: Record<string, string[]> = {
-      painel: ['dashboard'], // Painel Admin: only dashboard
-      suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'], // Suporte: dashboard + agenda + clients
+      painel: ['dashboard'],
+      suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'],
     };
     
     const allowedTabs = roleTabAccess[userRole];

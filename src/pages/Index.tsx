@@ -133,8 +133,17 @@ export default function Index() {
       .eq('status', 'accepted')
       .maybeSingle();
     
+    // Team members get their specific team_role regardless of DB role
+    // Only the original super admin (no team invite) gets full access
     const teamRole = teamInvite?.team_role || '';
-    setUserRole(isSA ? 'super_admin' : teamRole);
+    if (teamRole) {
+      // This is a team member - use their team role for access control
+      setUserRole(teamRole);
+      // Only 'sistema' team members can see super admin menu
+      setIsSuperAdmin(false);
+    } else {
+      setUserRole(isSA ? 'super_admin' : '');
+    }
     // Check if first time user (onboarding not completed)
     const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
     const onboardingCompleted = localStorage.getItem(onboardingKey);
