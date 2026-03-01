@@ -48,8 +48,14 @@ type Notification = {
   visible: boolean;
 };
 
-const playNotificationSound = () => {
+const playNotificationSound = (soundUrl?: string) => {
   try {
+    if (soundUrl) {
+      const audio = new Audio(soundUrl);
+      audio.volume = 0.3;
+      audio.play().catch(() => {});
+      return;
+    }
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
@@ -68,6 +74,7 @@ const playNotificationSound = () => {
 interface SubscriptionNotificationsProps {
   interval?: number;
   soundEnabled?: boolean;
+  soundUrl?: string;
   precoMensal?: string;
   precoAnual?: string;
   customActions?: string;
@@ -78,6 +85,7 @@ interface SubscriptionNotificationsProps {
 export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps> = ({ 
   interval = 10000, 
   soundEnabled = true,
+  soundUrl,
   precoMensal = '39,90',
   precoAnual = '370',
   customActions,
@@ -122,7 +130,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
     const newNotification: Notification = { id: Date.now() + Math.random(), name, city, plan, actionType, visible: true };
     setNotifications(prev => [...prev.slice(-1), newNotification]);
 
-    if (hasInteracted.current && soundEnabled) playNotificationSound();
+    if (hasInteracted.current && soundEnabled) playNotificationSound(soundUrl);
 
     setTimeout(() => {
       setNotifications(prev => prev.map(n => n.id === newNotification.id ? { ...n, visible: false } : n));
@@ -133,7 +141,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
     const initialTimeout = setTimeout(createNotification, 5000);
     const timer = setInterval(createNotification, interval);
     return () => { clearTimeout(initialTimeout); clearInterval(timer); };
-  }, [interval, precoMensal, precoAnual, customActions, customNames, customCities]);
+  }, [interval, precoMensal, precoAnual, customActions, customNames, customCities, soundUrl]);
 
   const dismissNotification = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, visible: false } : n));
