@@ -4,8 +4,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Trash2, FileDown, Edit, Eye, ChevronDown, ChevronUp, Package } from "lucide-react";
+import { Trash2, FileDown, Edit, Eye, ChevronDown, ChevronUp, Package, MessageCircle, Send } from "lucide-react";
 import AddSupplierDialog from './AddSupplierDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
@@ -18,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 
 const fetchSuppliers = async () => {
@@ -59,6 +62,12 @@ const SuppliersTab: React.FC = () => {
   const [viewSupplier, setViewSupplier] = useState<any>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [userId, setUserId] = useState<string>("");
+  
+  // WhatsApp send dialog
+  const [showWhatsAppDialog, setShowWhatsAppDialog] = useState(false);
+  const [whatsAppName, setWhatsAppName] = useState("");
+  const [whatsAppNumber, setWhatsAppNumber] = useState("");
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -111,7 +120,7 @@ const SuppliersTab: React.FC = () => {
     }
   };
 
-  const exportToPDF = () => {
+  const generatePDFDoc = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text('Relatório de Fornecedores', 14, 22);
@@ -129,8 +138,46 @@ const SuppliersTab: React.FC = () => {
       head: [['Nome', 'Contato (Pessoa)', 'Telefone', 'E-mail', 'CNPJ/CPF']],
       body: tableData,
     });
+    return doc;
+  };
+
+  const exportToPDF = () => {
+    const doc = generatePDFDoc();
     doc.save('fornecedores.pdf');
     toast({ title: "PDF exportado!" });
+  };
+
+  const handleSendWhatsApp = () => {
+    const phone = whatsAppNumber.replace(/\D/g, '');
+    if (!phone) {
+      toast({ variant: "destructive", title: "Número obrigatório", description: "Informe o número de WhatsApp." });
+      return;
+    }
+    
+    // Generate PDF and save it first
+    const doc = generatePDFDoc();
+    doc.save('fornecedores.pdf');
+    
+    // Build WhatsApp message
+    let message = `📋 *Relatório de Fornecedores*\n\n`;
+    if (whatsAppName) message += `Para: ${whatsAppName}\n`;
+    message += `Data: ${new Date().toLocaleDateString('pt-BR')}\n\n`;
+    
+    suppliers?.forEach((s: any) => {
+      message += `▸ *${s.name}*`;
+      if (s.contact_person) message += ` (${s.contact_person})`;
+      if (s.contact) message += ` - ${s.contact}`;
+      message += `\n`;
+    });
+    
+    message += `\n_Total: ${suppliers?.length || 0} fornecedores_`;
+    message += `\n\n⚠️ O PDF foi salvo no dispositivo. Anexe-o manualmente nesta conversa.`;
+
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+    toast({ title: "WhatsApp aberto!", description: "Anexe o PDF salvo manualmente." });
+    setShowWhatsAppDialog(false);
+    setWhatsAppName("");
+    setWhatsAppNumber("");
   };
 
   const formatCurrency = (value: number) => {
@@ -147,6 +194,10 @@ const SuppliersTab: React.FC = () => {
               <Button onClick={exportToPDF} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-2" />
                 Exportar PDF
+              </Button>
+              <Button onClick={() => setShowWhatsAppDialog(true)} size="sm" variant="outline" className="text-green-600 border-green-600 hover:bg-green-50 dark:hover:bg-green-900/20">
+                <MessageCircle className="w-4 h-4 mr-2" />
+                Enviar WhatsApp
               </Button>
               <Button onClick={() => setIsAddDialogOpen(true)}>
                 Adicionar Fornecedor
@@ -334,6 +385,46 @@ const SuppliersTab: React.FC = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* WhatsApp Send Dialog */}
+      <Dialog open={showWhatsAppDialog} onOpenChange={setShowWhatsAppDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageCircle className="w-5 h-5 text-green-500" />
+              Enviar Relatório via WhatsApp
+            </DialogTitle>
+            <DialogDescription>
+              Informe o número e nome do destinatário. O PDF será salvo e você poderá anexá-lo na conversa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome do Destinatário</Label>
+              <Input
+                value={whatsAppName}
+                onChange={(e) => setWhatsAppName(e.target.value)}
+                placeholder="Ex: João Silva"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Número WhatsApp *</Label>
+              <Input
+                value={whatsAppNumber}
+                onChange={(e) => setWhatsAppNumber(e.target.value)}
+                placeholder="(11) 99999-9999"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowWhatsAppDialog(false)}>Cancelar</Button>
+            <Button onClick={handleSendWhatsApp} className="bg-green-600 hover:bg-green-700" disabled={!whatsAppNumber.trim()}>
+              <Send className="w-4 h-4 mr-2" />
+              Enviar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
