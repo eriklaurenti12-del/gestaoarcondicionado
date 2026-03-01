@@ -6,55 +6,55 @@
 
 @layer base {
   :root {
-    /* Modo Claro - Cyan/Blue Professional */
-    --background: 210 25% 97%;
-    --foreground: 210 40% 10%;
+    /* Modo Claro - Blue Professional with Black Text */
+    --background: 210 30% 98%;
+    --foreground: 0 0% 5%;
 
     --card: 0 0% 100%;
-    --card-foreground: 210 40% 10%;
+    --card-foreground: 0 0% 5%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 40% 10%;
+    --popover-foreground: 0 0% 5%;
 
-    --primary: 190 90% 42%;
+    --primary: 210 90% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 80% 48%;
+    --secondary: 200 85% 50%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 20% 92%;
-    --muted-foreground: 210 15% 40%;
+    --muted-foreground: 0 0% 30%;
 
-    --accent: 190 85% 50%;
+    --accent: 200 85% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 210 25% 85%;
+    --border: 210 25% 82%;
     --input: 210 20% 90%;
-    --ring: 190 90% 42%;
+    --ring: 210 90% 45%;
 
     --radius: 0.75rem;
 
     /* Gradientes AC Service */
-    --gradient-primary: linear-gradient(135deg, hsl(190 90% 42%), hsl(210 80% 48%));
-    --gradient-secondary: linear-gradient(180deg, hsl(210 20% 95%), hsl(210 25% 97%));
-    --gradient-glow: linear-gradient(135deg, hsl(190 90% 42% / 0.15), hsl(210 80% 48% / 0.15));
+    --gradient-primary: linear-gradient(135deg, hsl(210 90% 45%), hsl(200 85% 50%));
+    --gradient-secondary: linear-gradient(180deg, hsl(210 20% 95%), hsl(210 30% 98%));
+    --gradient-glow: linear-gradient(135deg, hsl(210 90% 45% / 0.15), hsl(200 85% 50% / 0.15));
 
     /* Sombras para modo claro */
-    --shadow-glow-primary: 0 0 30px hsl(190 90% 42% / 0.2);
-    --shadow-glow-secondary: 0 0 30px hsl(210 80% 48% / 0.2);
-    --shadow-elegant: 0 10px 30px -10px hsl(190 90% 42% / 0.15);
+    --shadow-glow-primary: 0 0 30px hsl(210 90% 45% / 0.2);
+    --shadow-glow-secondary: 0 0 30px hsl(200 85% 50% / 0.2);
+    --shadow-elegant: 0 10px 30px -10px hsl(210 90% 45% / 0.15);
 
-    --sidebar-background: 210 20% 96%;
-    --sidebar-foreground: 210 40% 10%;
-    --sidebar-primary: 190 90% 42%;
+    --sidebar-background: 210 25% 96%;
+    --sidebar-foreground: 0 0% 5%;
+    --sidebar-primary: 210 90% 45%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 20% 90%;
-    --sidebar-accent-foreground: 210 40% 10%;
-    --sidebar-border: 210 25% 85%;
-    --sidebar-ring: 190 90% 42%;
+    --sidebar-accent-foreground: 0 0% 5%;
+    --sidebar-border: 210 25% 82%;
+    --sidebar-ring: 210 90% 45%;
   }
 
   .dark {

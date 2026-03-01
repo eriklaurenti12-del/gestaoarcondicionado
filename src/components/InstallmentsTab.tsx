@@ -385,10 +385,6 @@ const InstallmentsTab: React.FC = () => {
           <p className="text-muted-foreground text-sm">Gerencie todas as parcelas a receber</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowNewDialog(true)} className="bg-green-600 hover:bg-green-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Fiado
-          </Button>
           <Button onClick={exportToPDF} variant="outline">
             <FileText className="w-4 h-4 mr-2" />
             PDF
@@ -712,99 +708,6 @@ const InstallmentsTab: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* New Installment (Fiado) Dialog */}
-      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
-        <DialogContent className="sm:max-w-[450px]">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-green-600" />
-              Novo Fiado / Parcelamento
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <Select value={newClientId} onValueChange={setNewClientId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clients?.map(c => (
-                    <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Descrição (opcional)</Label>
-              <Input
-                placeholder="Ex: Compra de peças, Serviço de manutenção..."
-                value={newDescription}
-                onChange={(e) => setNewDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Valor Total (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0.00"
-                  value={newTotalAmount}
-                  onChange={(e) => setNewTotalAmount(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Nº Parcelas</Label>
-                <Select value={newNumInstallments} onValueChange={setNewNumInstallments}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => (
-                      <SelectItem key={n} value={String(n)}>{n}x</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>1º Vencimento</Label>
-              <Input
-                type="date"
-                value={newFirstDueDate}
-                onChange={(e) => setNewFirstDueDate(e.target.value)}
-              />
-            </div>
-
-            {newTotalAmount && newNumInstallments && (
-              <div className="p-3 bg-muted rounded-lg text-center">
-                <p className="text-sm text-muted-foreground">Valor por parcela:</p>
-                <p className="text-xl font-bold text-primary">
-                  R$ {(parseFloat(newTotalAmount) / parseInt(newNumInstallments)).toFixed(2)}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowNewDialog(false); resetNewForm(); }}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={() => createInstallmentMutation.mutate()}
-              disabled={!newClientId || !newTotalAmount || !newFirstDueDate || createInstallmentMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {createInstallmentMutation.isPending ? 'Salvando...' : 'Criar Parcelas'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

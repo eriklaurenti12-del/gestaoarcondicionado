@@ -1,49 +1,40 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Wallet, Receipt, CreditCard, TrendingUp } from "lucide-react";
-import FinanceiroTab from './FinanceiroTab';
-import FixedExpensesTab from './FixedExpensesTab';
+import { CreditCard, TrendingUp, BarChart3 } from "lucide-react";
 import InstallmentsTab from './InstallmentsTab';
 import ChartsMetrics from './ChartsMetrics';
+import FinanceiroReportsTab from './FinanceiroReportsTab';
 
 const FinanceiroUnifiedTab: React.FC = () => {
-  const [activeSubTab, setActiveSubTab] = useState("financeiro");
+  const [activeSubTab, setActiveSubTab] = useState("parcelas");
 
   return (
-  <div className="space-y-4">
+    <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
-          <TabsTrigger value="financeiro" className="flex items-center gap-1 px-2">
-            <Wallet className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Receitas</span>
-          </TabsTrigger>
-          <TabsTrigger value="gastos" className="flex items-center gap-1 px-2">
-            <Receipt className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Despesas</span>
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3 max-w-lg">
           <TabsTrigger value="parcelas" className="flex items-center gap-1 px-2">
             <CreditCard className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Parcelas</span>
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="flex items-center gap-1 px-2">
-            <TrendingUp className="w-4 h-4 flex-shrink-0" />
+            <BarChart3 className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Relatórios</span>
           </TabsTrigger>
+          <TabsTrigger value="graficos" className="flex items-center gap-1 px-2">
+            <TrendingUp className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Gráficos</span>
+          </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="financeiro" className="mt-4">
-          <FinanceiroTab />
-        </TabsContent>
-
-        <TabsContent value="gastos" className="mt-4">
-          <FixedExpensesTab />
-        </TabsContent>
 
         <TabsContent value="parcelas" className="mt-4">
           <InstallmentsTab />
         </TabsContent>
 
         <TabsContent value="relatorios" className="mt-4">
+          <FinanceiroReportsTab />
+        </TabsContent>
+
+        <TabsContent value="graficos" className="mt-4">
           <ChartsMetrics />
         </TabsContent>
       </Tabs>
