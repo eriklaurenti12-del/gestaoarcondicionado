@@ -148,7 +148,11 @@ const fetchDashboardData = async () => {
     const weekStart = startOfWeek(today, { weekStartsOn: 0 });
     const weekEnd = endOfWeek(today, { weekStartsOn: 0 });
 
-    const todayAppointments = appointmentsList.filter(a => isToday(new Date(a.appointment_date)));
+    const todayAppointments = appointmentsList.filter(a => {
+      const status = (a.status || '').toLowerCase();
+      const isCompleted = status === 'concluido' || status === 'concluído';
+      return isToday(new Date(a.appointment_date)) && !isCompleted;
+    });
     const weekAppointments = appointmentsList.filter(a => {
         const date = new Date(a.appointment_date);
         return date >= weekStart && date <= weekEnd;
