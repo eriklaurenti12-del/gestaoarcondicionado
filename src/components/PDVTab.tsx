@@ -396,9 +396,29 @@ const PDVTab: React.FC = () => {
     mutationFn: async () => {
       if (cart.length === 0) throw new Error("Carrinho vazio");
 
-      // For avulsa sales, we'll use a default client or require one
-      const clientId = selectedClient?.id;
-      if (!clientId) throw new Error("Selecione um cliente");
+      // Walk-in sales: if no client selected, create a temporary "Venda Balcão" client
+      let clientId = selectedClient?.id;
+      if (!clientId) {
+        // Check if "Venda Balcão" client exists, if not create one
+        const { data: walkInClient } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('name', 'Venda Balcão')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        if (walkInClient) {
+          clientId = walkInClient.id;
+        } else {
+          const { data: newClient, error: clientError } = await supabase
+            .from('clients')
+            .insert({ name: 'Venda Balcão', user_id: userId })
+            .select('id')
+            .single();
+          if (clientError) throw clientError;
+          clientId = newClient.id;
+        }
+      }
 
       const salePromises = cart.map(async (item) => {
         // Skip custom products that aren't saved
