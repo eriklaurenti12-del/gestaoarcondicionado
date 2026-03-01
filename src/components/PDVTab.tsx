@@ -529,10 +529,6 @@ const PDVTab: React.FC = () => {
   });
 
   const handleFinalizeSale = () => {
-    if (!selectedClient) {
-      toast({ variant: "destructive", title: "Cliente obrigatório", description: "Selecione ou cadastre um cliente." });
-      return;
-    }
     if (cart.length === 0) {
       toast({ variant: "destructive", title: "Carrinho vazio", description: "Adicione itens ao carrinho." });
       return;
