@@ -130,7 +130,7 @@ const CompanyDataTab: React.FC = () => {
     }
   });
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -143,20 +143,50 @@ const CompanyDataTab: React.FC = () => {
       return;
     }
     
+    // Save to localStorage for PDF access
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       setLogoBase64(base64);
       localStorage.setItem('company_logo', base64);
-      toast({ title: "Logo carregado!" });
     };
     reader.readAsDataURL(file);
+    
+    // Upload to storage for public access (agendamento online)
+    try {
+      const ext = file.name.split('.').pop() || 'png';
+      const fileName = `${userId}/logo.${ext}`;
+      
+      // Remove old logo if exists
+      await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
+      
+      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      
+      // Save logo_url to company_data
+      if (urlData?.publicUrl) {
+        await supabase.from('company_data' as any).update({ logo_url: urlData.publicUrl }).eq('user_id', userId);
+      }
+      
+      toast({ title: "Logo carregado e salvo!" });
+    } catch (err: any) {
+      console.error('Logo upload error:', err);
+      toast({ title: "Logo salvo localmente", description: "Erro ao enviar online: " + err.message });
+    }
   };
 
-  const removeLogo = () => {
+  const removeLogo = async () => {
     setLogoBase64('');
     localStorage.removeItem('company_logo');
     if (fileInputRef.current) fileInputRef.current.value = '';
+    
+    // Remove from storage and DB
+    try {
+      await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
+      await supabase.from('company_data' as any).update({ logo_url: null }).eq('user_id', userId);
+    } catch { /* ignore */ }
   };
 
   const exportToPDF = () => {
@@ -374,7 +404,7 @@ const CompanyDataTab: React.FC = () => {
                 </button>
               )}
               <p className="text-xs text-muted-foreground mt-2 text-center">
-                Aparecerá no PDF exportado
+                Aparecerá no PDF e no agendamento online
               </p>
             </CardContent>
           </Card>
