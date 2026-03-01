@@ -322,9 +322,13 @@ export default function PublicBooking() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 p-4 pb-24">
       {/* Header */}
       <div className="max-w-lg mx-auto text-center mb-6 pt-4">
-        <div className="flex justify-center mb-3">
+        <div className="flex justify-center mb-4">
           {company.logo_url ? (
-            <img src={company.logo_url} alt={company.company_name} className="w-16 h-16 rounded-2xl object-contain border border-cyan-500/30 bg-slate-800/50" />
+            <img 
+              src={company.logo_url} 
+              alt={company.company_name} 
+              className="h-20 max-w-[200px] object-contain drop-shadow-lg" 
+            />
           ) : (
             <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
               <Wind className="w-8 h-8 text-cyan-400" />
