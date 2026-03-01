@@ -392,23 +392,37 @@ export default function PublicBooking() {
                 {booking.payment_method && (
                   <p className="text-xs text-slate-500 flex items-center gap-1"><CreditCard className="w-3 h-3" /> {booking.payment_method}</p>
                 )}
-                {(booking.status === 'pendente' || booking.status === 'confirmado') && (
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" onClick={() => handleCancelBooking(booking.id)}
-                      className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs flex-1">
-                      <XCircle className="w-3 h-3 mr-1" /> Desagendar
-                    </Button>
-                    {company.whatsapp && (
-                      <Button size="sm" variant="outline" onClick={() => {
-                        const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
-                        window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
-                      }}
-                        className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs flex-1">
-                        <Phone className="w-3 h-3 mr-1" /> WhatsApp
+                {/* Action buttons based on status */}
+                <div className="flex flex-col gap-2 pt-2">
+                  {(booking.status === 'pendente' || booking.status === 'confirmado') && (
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => handleCancelBooking(booking.id)}
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs flex-1">
+                        <XCircle className="w-3 h-3 mr-1" /> Desagendar
                       </Button>
-                    )}
-                  </div>
-                )}
+                      {company.whatsapp && (
+                        <Button size="sm" variant="outline" onClick={() => {
+                          const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
+                          window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
+                        }}
+                          className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs flex-1">
+                          <Phone className="w-3 h-3 mr-1" /> WhatsApp
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Confirmed: show contact to request service */}
+                  {booking.status === 'confirmado' && company.whatsapp && (
+                    <Button size="sm" onClick={() => {
+                      const msg = `Olá ${company.company_name}! Meu agendamento de *${booking.service_name}* para o dia *${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}* às *${booking.preferred_time}* foi confirmado.\n\n👤 *${booking.client_name}*\n📱 ${booking.client_phone}\n\nEstou te aguardando! Solicito o serviço conforme combinado.`;
+                      window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
+                    }}
+                      className="bg-green-600 hover:bg-green-700 text-white text-xs w-full">
+                      <Phone className="w-3 h-3 mr-1" /> 📞 Chamar Empresa - Solicitar Serviço
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })}
