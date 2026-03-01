@@ -142,6 +142,14 @@ const CompanyDataTab: React.FC = () => {
       });
       return;
     }
+
+    // Get current user id directly
+    const { data: { session } } = await supabase.auth.getSession();
+    const currentUserId = session?.user?.id;
+    if (!currentUserId) {
+      toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });
+      return;
+    }
     
     // Save to localStorage for PDF access
     const reader = new FileReader();
@@ -152,22 +160,38 @@ const CompanyDataTab: React.FC = () => {
     };
     reader.readAsDataURL(file);
     
-    // Upload to storage for public access (agendamento online)
+    // Upload to storage for public access
     try {
-      const ext = file.name.split('.').pop() || 'png';
-      const fileName = `${userId}/logo.${ext}`;
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'png';
+      const fileName = `${currentUserId}/logo.${ext}`;
       
-      // Remove old logo if exists
-      await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
+      // Remove old logos
+      await supabase.storage.from('product-images').remove([
+        `${currentUserId}/logo.png`, `${currentUserId}/logo.jpg`, 
+        `${currentUserId}/logo.jpeg`, `${currentUserId}/logo.webp`
+      ]);
       
-      const { error: uploadError } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
       
       const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
       
-      // Save logo_url to company_data
       if (urlData?.publicUrl) {
-        await supabase.from('company_data' as any).update({ logo_url: urlData.publicUrl }).eq('user_id', userId);
+        // Add cache buster to URL
+        const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+        const { error: updateError } = await supabase
+          .from('company_data' as any)
+          .update({ logo_url: logoUrl })
+          .eq('user_id', currentUserId);
+        
+        if (updateError) {
+          console.error('Logo URL update error:', updateError);
+          throw updateError;
+        }
+        
+        queryClient.invalidateQueries({ queryKey: ['company-data'] });
       }
       
       toast({ title: "Logo carregado e salvo!" });
