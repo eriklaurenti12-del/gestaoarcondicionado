@@ -44,7 +44,15 @@ const fetchClientHistory = async (clientId: number) => {
 
   if (salesError) throw salesError;
 
-  return { appointments: appointments || [], sales: sales || [] };
+  const { data: serviceOrders, error: soError } = await supabase
+    .from('service_orders')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('created_at', { ascending: false });
+
+  if (soError) throw soError;
+
+  return { appointments: appointments || [], sales: sales || [], serviceOrders: serviceOrders || [] };
 };
 
 const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpen, onOpenChange }) => {
@@ -134,9 +142,11 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
         </div>
 
         <Tabs defaultValue="history" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="history">Histórico</TabsTrigger>
-            <TabsTrigger value="preferences">Preferências</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="history">Agenda</TabsTrigger>
+            <TabsTrigger value="sales">Vendas</TabsTrigger>
+            <TabsTrigger value="orders">O.S.</TabsTrigger>
+            <TabsTrigger value="preferences">Notas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="history" className="mt-4">
@@ -183,6 +193,73 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                               </span>
                             )}
                           </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="sales" className="mt-4">
+            <ScrollArea className="h-[300px] pr-4">
+              {history?.sales?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm">Nenhuma venda registrada</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history?.sales?.map((sale: any) => (
+                    <Card key={sale.id} className="transition-all hover:shadow-sm">
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-sm">{sale.products?.name || 'Produto'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(new Date(sale.sale_date), "dd/MM/yyyy HH:mm", { locale: ptBR })} • {sale.payment_method} • {sale.qty}x
+                            </p>
+                          </div>
+                          <span className="font-bold text-green-600 text-sm">
+                            R$ {(Number(sale.sale_price) * sale.qty).toFixed(2)}
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="orders" className="mt-4">
+            <ScrollArea className="h-[300px] pr-4">
+              {history?.serviceOrders?.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                  <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
+                  <p className="text-sm">Nenhuma O.S. registrada</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {history?.serviceOrders?.map((order: any) => (
+                    <Card key={order.id} className="transition-all hover:shadow-sm">
+                      <CardContent className="p-3">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="font-medium text-sm">O.S. #{order.order_number} - {order.title}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant={order.status === 'concluido' ? 'outline' : order.status === 'cancelado' ? 'destructive' : 'secondary'} className="text-[10px]">
+                                {order.status}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {format(new Date(order.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                            </div>
+                          </div>
+                          <span className="font-bold text-primary text-sm">
+                            R$ {Number(order.total).toFixed(2)}
+                          </span>
                         </div>
                       </CardContent>
                     </Card>

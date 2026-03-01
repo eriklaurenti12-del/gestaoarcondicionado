@@ -1,5 +1,7 @@
 import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Sidebar,
   SidebarContent,
@@ -22,63 +24,101 @@ interface AppSidebarProps {
   onSignOut: () => void;
 }
 
-// Menu Principal - Fluxo do técnico de AC
-const mainItems = [
-  { id: "dashboard", title: "Painel", icon: BarChart3 },
-  { id: "cadastros", title: "Cadastros", icon: Users },
-  { id: "appointments", title: "Agenda", icon: CalendarDays },
-  { id: "online-bookings", title: "Agendamento Online", icon: Globe },
+// Menu items with icons mapping
+const iconMap: Record<string, any> = {
+  dashboard: BarChart3, cadastros: Users, appointments: CalendarDays,
+  "online-bookings": Globe, documents: FileText, services: Snowflake,
+  "btu-calculator": Thermometer, pdv: ShoppingCart, financeiro: Wallet,
+  impostos: TrendingUp, company: Briefcase, "notifications-settings": Bell,
+  backup: Database,
+};
+
+const defaultSections = [
+  { label: "Principal", icon: "Snowflake", items: [
+    { id: "dashboard", title: "Painel" },
+    { id: "cadastros", title: "Cadastros" },
+    { id: "appointments", title: "Agenda" },
+    { id: "online-bookings", title: "Agendamento Online" },
+  ]},
+  { label: "Gestão", icon: "ClipboardList", items: [
+    { id: "documents", title: "Orçamentos & O.S." },
+    { id: "services", title: "Manutenções" },
+    { id: "btu-calculator", title: "Medição BTUs" },
+  ]},
+  { label: "Vendas", icon: "ShoppingCart", items: [
+    { id: "pdv", title: "PDV / Vendas" },
+  ]},
+  { label: "Financeiro", icon: "Wallet", items: [
+    { id: "financeiro", title: "Financeiro" },
+    { id: "impostos", title: "Impostos" },
+  ]},
+  { label: "Configurações", icon: "Settings", items: [
+    { id: "company", title: "Minha Empresa" },
+    { id: "notifications-settings", title: "Notificações" },
+    { id: "backup", title: "Backup" },
+  ]},
 ];
 
-// Gestão
-const gestaoItems = [
-  { id: "documents", title: "Orçamentos & O.S.", icon: FileText },
-  { id: "services", title: "Manutenções", icon: Snowflake },
-  { id: "btu-calculator", title: "Medição BTUs", icon: Thermometer },
-];
-
-// Vendas
-const vendasItems = [
-  { id: "pdv", title: "PDV / Vendas", icon: ShoppingCart },
-];
-
-// Financeiro
-const financeiroItems = [
-  { id: "financeiro", title: "Financeiro", icon: Wallet },
-  { id: "impostos", title: "Impostos", icon: TrendingUp },
-];
-
-// Configurações
-const configItems = [
-  { id: "company", title: "Minha Empresa", icon: Briefcase },
-  { id: "notifications-settings", title: "Notificações", icon: Bell },
-  { id: "backup", title: "Backup", icon: Database },
-];
+const sectionIconMap: Record<string, any> = {
+  Snowflake, ClipboardList, ShoppingCart, Wallet, Settings,
+};
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMembers, onSignOut }: AppSidebarProps) {
   const { theme, toggleTheme } = useTheme();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  const renderMenuItems = (items: typeof mainItems) => (
+  // Fetch company data for branding
+  const { data: companyData } = useQuery({
+    queryKey: ['company-data-sidebar'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('company_data').select('company_name, email').limit(1).single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch custom sidebar config from admin_settings (super admin can customize)
+  const { data: sidebarConfig } = useQuery({
+    queryKey: ['sidebar-config'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'sidebar_config')
+        .maybeSingle();
+      if (error) return null;
+      return data?.value ? JSON.parse(data.value) : null;
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+
+  const sections = sidebarConfig?.sections || defaultSections;
+  const companyName = companyData?.company_name || 'Minha Empresa';
+
+  const renderMenuItems = (items: { id: string; title: string }[]) => (
     <SidebarMenu>
-      {items.map((item) => (
-        <SidebarMenuItem key={item.id}>
-          <SidebarMenuButton
-            onClick={() => onTabChange(item.id)}
-            isActive={activeTab === item.id}
-            tooltip={item.title}
-            className={`transition-all duration-200 ease-out ${
-              activeTab === item.id 
-                ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
-                : "hover:bg-muted hover:translate-x-1"
-            }`}
-          >
-            <item.icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
-            <span className="transition-all duration-300">{item.title}</span>
-          </SidebarMenuButton>
-        </SidebarMenuItem>
-      ))}
+      {items.map((item) => {
+        const Icon = iconMap[item.id] || Wrench;
+        return (
+          <SidebarMenuItem key={item.id}>
+            <SidebarMenuButton
+              onClick={() => onTabChange(item.id)}
+              isActive={activeTab === item.id}
+              tooltip={item.title}
+              className={`transition-all duration-200 ease-out ${
+                activeTab === item.id 
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
+                  : "hover:bg-muted hover:translate-x-1"
+              }`}
+            >
+              <Icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
+              <span className="transition-all duration-300">{item.title}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        );
+      })}
     </SidebarMenu>
   );
 
@@ -90,8 +130,8 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
             <Wind className="w-5 h-5 text-primary" />
           </div>
           <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
-            <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap">
-              AC Service Pro
+            <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap truncate max-w-[150px]">
+              {companyName}
             </span>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão de Ar Condicionado</span>
           </div>
@@ -99,62 +139,22 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, onNavigateMem
       </SidebarHeader>
 
       <SidebarContent className="px-2 py-2">
-        {/* Menu Principal */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <Snowflake className="w-3 h-3 mr-1" />
-            Principal
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(mainItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {sections.map((section: any, idx: number) => {
+          const SectionIcon = sectionIconMap[section.icon] || Settings;
+          return (
+            <SidebarGroup key={idx}>
+              <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+                <SectionIcon className="w-3 h-3" />
+                {section.label}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                {renderMenuItems(section.items)}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          );
+        })}
 
-        {/* Gestão */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <ClipboardList className="w-3 h-3" />
-            Gestão
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(gestaoItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Vendas */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <ShoppingCart className="w-3 h-3" />
-            Vendas
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(vendasItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Financeiro */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <Wallet className="w-3 h-3" />
-            Financeiro
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(financeiroItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Configurações */}
-        <SidebarGroup>
-          <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-            <Settings className="w-3 h-3" />
-            Configurações
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            {renderMenuItems(configItems)}
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {/* Administração */}
+        {/* Super Admin */}
         {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>

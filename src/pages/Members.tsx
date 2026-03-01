@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2 } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2, Menu, GripVertical, Save } from "lucide-react";
 import { format } from "date-fns";
 
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
@@ -18,7 +18,7 @@ import AdminN8nTab from "@/components/AdminN8nTab";
 import AdminLandingTab from "@/components/AdminLandingTab";
 import AdminShareTab from "@/components/AdminShareTab";
 import AdminRaffleTab from "@/components/AdminRaffleTab";
-
+import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 type Member = {
   id: string;
   email: string;
@@ -290,6 +290,9 @@ export default function Members() {
             </TabsTrigger>
             <TabsTrigger value="raffle" className="text-xs rounded-lg">
               <Gift className="w-4 h-4 mr-1" /> Sorteio
+            </TabsTrigger>
+            <TabsTrigger value="sidebar-config" className="text-xs rounded-lg">
+              <Menu className="w-4 h-4 mr-1" /> Menu
             </TabsTrigger>
           </TabsList>
 
@@ -658,6 +661,9 @@ export default function Members() {
           </TabsContent>
           <TabsContent value="raffle" className="mt-6">
             <AdminRaffleTab />
+          </TabsContent>
+          <TabsContent value="sidebar-config" className="mt-6">
+            <AdminSidebarConfig />
           </TabsContent>
         </Tabs>
       </div>
