@@ -276,7 +276,7 @@ const ProductsTab: React.FC = () => {
       price: parseFloat(productPrice),
       cost_price: totalCost || 0,
       barcode: scannedBarcode?.trim() || null,
-      supplier_id: selectedSupplierId ? parseInt(selectedSupplierId) : null,
+      supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
       warranty_months: 12,
       min_stock: isService ? 0 : minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
@@ -651,7 +651,7 @@ const ProductsTab: React.FC = () => {
               <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
                 <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um fornecedor..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {suppliers?.map(s => (
                     <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                   ))}
