@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus, FileDown } from "lucide-react";
+import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus, FileDown, Globe, Link } from "lucide-react";
+import TabGuideCards from './TabGuideCards';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
@@ -294,6 +295,22 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   return (
     <div className="space-y-6">
+      <TabGuideCards cards={[
+        {
+          icon: Globe,
+          title: 'Agendamento Online',
+          badge: 'Automático',
+          badgeColor: 'blue',
+          description: <>Seus clientes agendam <strong>direto pelo link</strong>. Você recebe notificação em tempo real e aprova ou recusa.</>,
+        },
+        {
+          icon: Link,
+          title: 'Link Compartilhável',
+          badge: 'Marketing',
+          badgeColor: 'emerald',
+          description: <>Compartilhe o link nas <strong>redes sociais e WhatsApp</strong>. Aumente seus atendimentos sem esforço.</>,
+        },
+      ]} />
       {/* Booking Link */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
         <CardHeader>

@@ -22,6 +22,7 @@ import {
   Paperclip, Upload, XCircle, Info, Eye, ChevronLeft, ChevronRight,
   ScrollText, Building2, Snowflake, TrendingUp, BarChart3
 } from 'lucide-react';
+import TabGuideCards from './TabGuideCards';
 
 // ============================================================
 // TYPES
@@ -431,6 +432,22 @@ const ServicesUnifiedTab: React.FC = () => {
   // ============ RENDER ============
   return (
     <div className="space-y-6 animate-fade-in">
+      <TabGuideCards cards={[
+        {
+          icon: ScrollText,
+          title: 'Contratos de Manutenção',
+          badge: 'Recorrente',
+          badgeColor: 'emerald',
+          description: <>Cadastre contratos de <strong>manutenção preventiva</strong>. O sistema avisa automaticamente quando a próxima limpeza está chegando.</>,
+        },
+        {
+          icon: Calendar,
+          title: 'Manutenções Agendadas',
+          badge: 'Preventivo',
+          badgeColor: 'amber',
+          description: <>Nunca perca um prazo. Manutenções preventivas <strong>geram receita recorrente</strong> e fidelizam clientes.</>,
+        },
+      ]} />
       {/* Alert for expiring */}
       {(expiringContracts.length > 0 || expiredContracts.length > 0) && (
         <Alert className="border-amber-300 bg-amber-50 dark:bg-amber-950/20">
