@@ -13,7 +13,7 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Image
+  Image, Volume2
 } from "lucide-react";
 
 const LANDING_KEYS = [
@@ -27,6 +27,7 @@ const LANDING_KEYS = [
   'landing_countdown_texto', 'landing_countdown_desconto',
   'landing_notif_intervalo', 'landing_notif_som', 'landing_notif_ativa',
   'landing_notif_acoes', 'landing_notif_nomes', 'landing_notif_cidades',
+  'landing_notif_som_url',
   'landing_oferta1_titulo', 'landing_oferta1_descricao', 'landing_oferta1_badge', 'landing_oferta1_ativa',
   'landing_oferta1_btn_texto', 'landing_oferta1_features',
   'landing_oferta2_titulo', 'landing_oferta2_descricao', 'landing_oferta2_badge', 'landing_oferta2_ativa',
@@ -48,11 +49,11 @@ type LandingSettings = Record<string, string>;
 const ColorInput: React.FC<{ label: string; value: string; onChange: (v: string) => void }> = ({ label, value, onChange }) => (
   <div className="flex items-center gap-3">
     <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)}
-      className="w-10 h-10 rounded-lg border border-[#2a2a3a] cursor-pointer bg-transparent" />
+      className="w-10 h-10 rounded-lg border border-border cursor-pointer bg-transparent" />
     <div className="flex-1">
-      <Label className="text-gray-300 text-xs">{label}</Label>
+      <Label className="text-muted-foreground text-xs">{label}</Label>
       <Input value={value || ''} onChange={e => onChange(e.target.value)}
-        className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-xs" placeholder="#hex" />
+        className="h-8 text-xs" placeholder="#hex" />
     </div>
   </div>
 );
@@ -62,14 +63,14 @@ const TestimonialEditor: React.FC<{
 }> = ({ index, settings, update }) => {
   const prefix = `landing_depoimento${index}`;
   return (
-    <Card className="bg-[#12121a] border-[#2a2a3a]">
+    <Card>
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-cyan-400 font-semibold text-sm">Depoimento {index}</span>
+          <span className="text-primary font-semibold text-sm">Depoimento {index}</span>
           <div className="flex items-center gap-1">
             {[1,2,3,4,5].map(s => (
               <button key={s} onClick={() => update(`${prefix}_estrelas`, String(s))}
-                className={`text-lg ${Number(settings[`${prefix}_estrelas`] || 5) >= s ? 'text-amber-400' : 'text-gray-600'}`}>
+                className={`text-lg ${Number(settings[`${prefix}_estrelas`] || 5) >= s ? 'text-amber-400' : 'text-muted-foreground/30'}`}>
                 ★
               </button>
             ))}
@@ -77,46 +78,42 @@ const TestimonialEditor: React.FC<{
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label className="text-gray-400 text-xs">Nome</Label>
+            <Label className="text-muted-foreground text-xs">Nome</Label>
             <Input value={settings[`${prefix}_nome`] || ''} onChange={e => update(`${prefix}_nome`, e.target.value)}
-              className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" />
+              className="h-8 text-sm" />
           </div>
           <div>
-            <Label className="text-gray-400 text-xs">Cargo / Cidade</Label>
+            <Label className="text-muted-foreground text-xs">Cargo / Cidade</Label>
             <Input value={settings[`${prefix}_role`] || ''} onChange={e => update(`${prefix}_role`, e.target.value)}
-              className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" />
+              className="h-8 text-sm" />
           </div>
         </div>
         <div>
-          <Label className="text-gray-400 text-xs">Texto do depoimento</Label>
+          <Label className="text-muted-foreground text-xs">Texto do depoimento</Label>
           <Textarea value={settings[`${prefix}_texto`] || ''} onChange={e => update(`${prefix}_texto`, e.target.value)}
-            className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[60px] text-sm" />
+            className="min-h-[60px] text-sm" />
         </div>
-        {/* Foto do cliente */}
         <div>
-          <Label className="text-gray-400 text-xs flex items-center gap-1">
+          <Label className="text-muted-foreground text-xs flex items-center gap-1">
             <Image className="w-3 h-3" /> URL da Foto do Cliente
           </Label>
           <Input value={settings[`${prefix}_foto`] || ''} onChange={e => update(`${prefix}_foto`, e.target.value)}
-            className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
-            placeholder="https://... ou deixe vazio para avatar padrão" />
+            className="h-8 text-sm" placeholder="https://... ou deixe vazio para avatar padrão" />
           {settings[`${prefix}_foto`] && (
             <div className="mt-2 flex items-center gap-2">
-              <img src={settings[`${prefix}_foto`]} alt="foto" className="w-10 h-10 rounded-full object-cover border border-cyan-500/30" />
-              <Button variant="ghost" size="sm" onClick={() => update(`${prefix}_foto`, '')} className="text-red-400 h-6 text-xs">
+              <img src={settings[`${prefix}_foto`]} alt="foto" className="w-10 h-10 rounded-full object-cover border border-primary/30" />
+              <Button variant="ghost" size="sm" onClick={() => update(`${prefix}_foto`, '')} className="text-destructive h-6 text-xs">
                 <Trash2 className="w-3 h-3 mr-1" /> Remover
               </Button>
             </div>
           )}
         </div>
-        {/* Vídeo depoimento */}
         <div>
-          <Label className="text-gray-400 text-xs flex items-center gap-1">
+          <Label className="text-muted-foreground text-xs flex items-center gap-1">
             <Video className="w-3 h-3" /> URL do Vídeo Depoimento (opcional)
           </Label>
           <Input value={settings[`${prefix}_video`] || ''} onChange={e => update(`${prefix}_video`, e.target.value)}
-            className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
-            placeholder="https://youtube.com/watch?v=... ou link direto" />
+            className="h-8 text-sm" placeholder="https://youtube.com/watch?v=... ou link direto" />
         </div>
       </CardContent>
     </Card>
@@ -132,6 +129,7 @@ export const AdminLandingTab: React.FC = () => {
   const [previewKey, setPreviewKey] = useState(0);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
+  const soundInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadSettings(); }, []);
 
@@ -175,12 +173,12 @@ export const AdminLandingTab: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'icon') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'video' | 'icon' | 'sound') => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const maxSize = type === 'video' ? 50 * 1024 * 1024 : 2 * 1024 * 1024;
+    const maxSize = type === 'video' ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
     if (file.size > maxSize) {
-      toast({ title: "Arquivo muito grande", description: `Máximo ${type === 'video' ? '50MB' : '2MB'}`, variant: "destructive" });
+      toast({ title: "Arquivo muito grande", description: `Máximo ${type === 'video' ? '50MB' : '5MB'}`, variant: "destructive" });
       return;
     }
     setUploading(true);
@@ -195,10 +193,12 @@ export const AdminLandingTab: React.FC = () => {
       
       if (type === 'video') {
         update('landing_vsl_url', publicUrl);
-      } else {
+      } else if (type === 'icon') {
         update('landing_whatsapp_icon_url', publicUrl);
+      } else if (type === 'sound') {
+        update('landing_notif_som_url', publicUrl);
       }
-      toast({ title: `${type === 'video' ? 'Vídeo' : 'Ícone'} enviado! ✅` });
+      toast({ title: `${type === 'video' ? 'Vídeo' : type === 'sound' ? 'Som' : 'Ícone'} enviado! ✅` });
     } catch (error: any) {
       toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
     } finally {
@@ -207,42 +207,22 @@ export const AdminLandingTab: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-cyan-500" /></div>;
+    return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
 
   const templateOptions = [
-    { 
-      id: 'persuasao', 
-      name: '🎯 Persuasão Total', 
-      desc: 'Hero, dores, comparativo, preços, depoimentos, FAQ e CTAs.',
+    { id: 'persuasao', name: '🎯 Persuasão Total', desc: 'Hero, dores, comparativo, preços, depoimentos, FAQ e CTAs.',
       sections: ['Hero + Urgência', 'Seção de Dor', 'Features', 'Comparativo', 'Preços', 'Depoimentos', 'FAQ', 'CTA Final'],
-      color: 'border-cyan-500',
-      gradient: 'from-cyan-500/20 to-blue-500/20'
-    },
-    { 
-      id: 'vsl', 
-      name: '🎬 VSL (Vídeo)', 
-      desc: 'Foco no vídeo de vendas com preços e CTA.',
+      color: 'border-primary', gradient: 'from-primary/20 to-blue-500/20' },
+    { id: 'vsl', name: '🎬 VSL (Vídeo)', desc: 'Foco no vídeo de vendas com preços e CTA.',
       sections: ['Vídeo Hero', 'CTA Abaixo', 'Preços', 'Depoimentos'],
-      color: 'border-amber-500',
-      gradient: 'from-amber-500/20 to-orange-500/20'
-    },
-    { 
-      id: 'minimalista', 
-      name: '✨ Minimalista', 
-      desc: 'Design limpo e direto. Ultra rápido.',
+      color: 'border-amber-500', gradient: 'from-amber-500/20 to-orange-500/20' },
+    { id: 'minimalista', name: '✨ Minimalista', desc: 'Design limpo e direto. Ultra rápido.',
       sections: ['Hero Limpo', 'Features', 'Preços', 'CTA'],
-      color: 'border-green-500',
-      gradient: 'from-green-500/20 to-emerald-500/20'
-    },
-    { 
-      id: 'custom', 
-      name: '🛠️ Criar do Zero', 
-      desc: 'Página totalmente personalizada. Você decide cada seção, texto e layout.',
+      color: 'border-green-500', gradient: 'from-green-500/20 to-emerald-500/20' },
+    { id: 'custom', name: '🛠️ Criar do Zero', desc: 'Página totalmente personalizada.',
       sections: ['Título Livre', 'Seções Livres', 'CTA Personalizado', 'Layout Aberto'],
-      color: 'border-pink-500',
-      gradient: 'from-pink-500/20 to-purple-500/20'
-    },
+      color: 'border-pink-500', gradient: 'from-pink-500/20 to-purple-500/20' },
   ];
 
   return (
@@ -250,12 +230,12 @@ export const AdminLandingTab: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/20">
-            <Megaphone className="w-6 h-6 text-purple-400" />
+          <div className="p-3 rounded-xl bg-primary/10">
+            <Megaphone className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Editor da Landing Page</h2>
-            <p className="text-gray-400 text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
+            <h2 className="text-xl font-bold">Editor da Landing Page</h2>
+            <p className="text-muted-foreground text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -276,25 +256,21 @@ export const AdminLandingTab: React.FC = () => {
             };
             setSettings(prev => ({ ...prev, ...defaults }));
             toast({ title: "Restaurado! 🔄", description: "Clique 'Salvar Tudo' para aplicar." });
-          }} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+          }} className="text-destructive border-destructive/30 hover:bg-destructive/10">
             <RefreshCw className="w-4 h-4 mr-2" /> Restaurar
           </Button>
-          <Button variant="outline" onClick={() => window.open('/', '_blank')}
-            className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10">
+          <Button variant="outline" onClick={() => window.open('/vendas', '_blank')}>
             <Eye className="w-4 h-4 mr-2" /> Abrir Landing
           </Button>
-          <Button onClick={saveAll} disabled={saving}
-            className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
+          <Button onClick={saveAll} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Salvar Tudo
           </Button>
         </div>
       </div>
 
-      {/* Removed standalone preview - now embedded in Template tab */}
-
       <Tabs defaultValue="template" className="w-full">
-        <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
+        <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="template" className="text-xs"><Layout className="w-3 h-3 mr-1" />Template</TabsTrigger>
           <TabsTrigger value="textos" className="text-xs"><Type className="w-3 h-3 mr-1" />Textos</TabsTrigger>
           <TabsTrigger value="precos" className="text-xs"><DollarSign className="w-3 h-3 mr-1" />Preços</TabsTrigger>
@@ -304,15 +280,16 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="faq" className="text-xs"><HelpCircle className="w-3 h-3 mr-1" />FAQ</TabsTrigger>
           <TabsTrigger value="whatsapp" className="text-xs"><MessageCircle className="w-3 h-3 mr-1" />WhatsApp</TabsTrigger>
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
+          <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
         </TabsList>
 
         {/* TEMPLATE */}
         <TabsContent value="template">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Layout className="w-5 h-5 text-purple-400" /> Escolha o Template
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Layout className="w-5 h-5 text-primary" /> Escolha o Template
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -321,45 +298,29 @@ export const AdminLandingTab: React.FC = () => {
                   <div key={tmpl.id}
                     className={`rounded-xl border-2 p-4 transition-all ${
                       settings.landing_template === tmpl.id 
-                        ? `${tmpl.color} bg-white/5 shadow-lg` 
-                        : 'border-[#2a2a3a] hover:border-[#4a4a5a]'
+                        ? `${tmpl.color} bg-accent/50 shadow-lg` 
+                        : 'border-border hover:border-muted-foreground/30'
                     }`}>
-                    <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-white/5`}>
+                    <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-border/50`}>
                       <div className="space-y-1.5">
                         {tmpl.sections.map((section, i) => (
                           <div key={i} className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-cyan-400' : 'bg-white/30'}`} />
-                            <div className="h-1.5 bg-white/20 rounded-full flex-1" style={{ maxWidth: `${70 + Math.random() * 30}%` }} />
-                            <span className="text-[8px] text-white/40">{section}</span>
+                            <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
+                            <div className="h-1.5 bg-muted-foreground/20 rounded-full flex-1" style={{ maxWidth: `${70 + Math.random() * 30}%` }} />
+                            <span className="text-[8px] text-muted-foreground/60">{section}</span>
                           </div>
                         ))}
                       </div>
                     </div>
-                    <h3 className="text-white font-bold text-sm mb-1">{tmpl.name}</h3>
-                    <p className="text-gray-400 text-xs leading-relaxed mb-3">{tmpl.desc}</p>
+                    <h3 className="font-bold text-sm mb-1">{tmpl.name}</h3>
+                    <p className="text-muted-foreground text-xs leading-relaxed mb-3">{tmpl.desc}</p>
                     <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant={settings.landing_template === tmpl.id ? "default" : "outline"}
-                        onClick={() => update('landing_template', tmpl.id)}
-                        className={settings.landing_template === tmpl.id 
-                          ? "bg-cyan-500 hover:bg-cyan-600 text-white flex-1" 
-                          : "border-[#3a3a4a] text-white hover:bg-[#2a2a3a] flex-1"}
-                      >
+                      <Button size="sm" variant={settings.landing_template === tmpl.id ? "default" : "outline"}
+                        onClick={() => update('landing_template', tmpl.id)} className="flex-1">
                         {settings.landing_template === tmpl.id ? '✓ Ativo' : 'Selecionar'}
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => {
-                          update('landing_template', tmpl.id);
-                          // Save instantly then open preview
-                          saveAll().then(() => {
-                            window.open('/', '_blank');
-                          });
-                        }}
-                        className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10"
-                      >
+                      <Button size="sm" variant="outline"
+                        onClick={() => { update('landing_template', tmpl.id); saveAll().then(() => { window.open('/vendas', '_blank'); }); }}>
                         <Eye className="w-3 h-3 mr-1" /> Preview
                       </Button>
                     </div>
@@ -370,17 +331,17 @@ export const AdminLandingTab: React.FC = () => {
               {/* Instant Preview */}
               <div className="mt-6">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-cyan-400" /> Pré-visualização Instantânea
+                  <h4 className="font-semibold text-sm flex items-center gap-2">
+                    <Eye className="w-4 h-4 text-primary" /> Pré-visualização Instantânea
                   </h4>
-                  <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="text-gray-400 hover:text-white h-7">
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="h-7">
                     <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
                   </Button>
                 </div>
-                <div className="rounded-xl overflow-hidden border border-[#2a2a3a] bg-black relative" style={{ height: '500px' }}>
+                <div className="rounded-xl overflow-hidden border border-border bg-black relative" style={{ height: '500px' }}>
                   <iframe 
                     key={previewKey}
-                    src={`/?preview=true&t=${previewKey}`}
+                    src={`/vendas?preview=true&t=${previewKey}`}
                     className="w-full h-full border-0"
                     style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '222%', height: '222%' }}
                     sandbox="allow-scripts allow-same-origin allow-popups"
@@ -393,10 +354,10 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* TEXTOS */}
         <TabsContent value="textos">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Type className="w-5 h-5 text-cyan-400" /> Textos Principais
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Type className="w-5 h-5 text-primary" /> Textos Principais
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -405,29 +366,27 @@ export const AdminLandingTab: React.FC = () => {
                 { key: 'landing_hero_subtitulo', label: 'Subtítulo' },
               ].map(f => (
                 <div key={f.key}>
-                  <Label className="text-gray-300 text-sm">{f.label}</Label>
-                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                  <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} />
                 </div>
               ))}
               <div>
-                <Label className="text-gray-300 text-sm">Descrição do Hero</Label>
+                <Label className="text-muted-foreground text-sm">Descrição do Hero</Label>
                 <Textarea value={settings.landing_hero_descricao || ''} onChange={e => update('landing_hero_descricao', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px]" />
+                  className="min-h-[80px]" />
               </div>
               <div>
-                <Label className="text-gray-300 text-sm">Frase de Destaque</Label>
+                <Label className="text-muted-foreground text-sm">Frase de Destaque</Label>
                 <Textarea value={settings.landing_frase_destaque || ''} onChange={e => update('landing_frase_destaque', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[60px]" />
+                  className="min-h-[60px]" />
               </div>
               {[
                 { key: 'landing_badge_urgencia', label: 'Badge de Urgência' },
                 { key: 'landing_btn_cta_texto', label: 'Texto do Botão CTA' },
               ].map(f => (
                 <div key={f.key}>
-                  <Label className="text-gray-300 text-sm">{f.label}</Label>
-                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                  <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                  <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} />
                 </div>
               ))}
             </CardContent>
@@ -436,44 +395,35 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* PREÇOS */}
         <TabsContent value="precos">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <DollarSign className="w-5 h-5 text-green-400" /> Preços dos Planos
+              <CardTitle className="flex items-center gap-2 text-base">
+                <DollarSign className="w-5 h-5 text-green-500" /> Preços dos Planos
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-3">
-                  <h4 className="text-cyan-400 font-semibold text-sm">💳 Plano Mensal</h4>
+                <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
+                  <h4 className="text-primary font-semibold text-sm">💳 Plano Mensal</h4>
                   <div>
-                    <Label className="text-gray-300 text-sm">Preço (R$)</Label>
+                    <Label className="text-muted-foreground text-sm">Preço (R$)</Label>
                     <Input value={settings.landing_preco_mensal || ''} onChange={e => update('landing_preco_mensal', e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="39,90" />
+                      placeholder="39,90" />
                   </div>
                 </div>
-                <div className="bg-[#12121a] border border-cyan-500/20 rounded-xl p-4 space-y-3">
-                  <h4 className="text-amber-400 font-semibold text-sm">⭐ Plano Anual</h4>
-                  <div>
-                    <Label className="text-gray-300 text-sm">Preço Anual (R$)</Label>
-                    <Input value={settings.landing_preco_anual || ''} onChange={e => update('landing_preco_anual', e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="370" />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300 text-sm">Preço Original <span className="text-red-400 line-through">(riscado)</span></Label>
-                    <Input value={settings.landing_preco_anual_original || ''} onChange={e => update('landing_preco_anual_original', e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="478,80" />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300 text-sm">Economia (R$)</Label>
-                    <Input value={settings.landing_economia_anual || ''} onChange={e => update('landing_economia_anual', e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="108" />
-                  </div>
-                  <div>
-                    <Label className="text-gray-300 text-sm">Equivalente Mensal (R$)</Label>
-                    <Input value={settings.landing_preco_mensal_equivalente || ''} onChange={e => update('landing_preco_mensal_equivalente', e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder="30,83" />
-                  </div>
+                <div className="bg-muted/30 border border-primary/20 rounded-xl p-4 space-y-3">
+                  <h4 className="text-amber-500 font-semibold text-sm">⭐ Plano Anual</h4>
+                  {[
+                    { key: 'landing_preco_anual', label: 'Preço Anual (R$)', ph: '370' },
+                    { key: 'landing_preco_anual_original', label: 'Preço Original (riscado)', ph: '478,80' },
+                    { key: 'landing_economia_anual', label: 'Economia (R$)', ph: '108' },
+                    { key: 'landing_preco_mensal_equivalente', label: 'Equivalente Mensal (R$)', ph: '30,83' },
+                  ].map(f => (
+                    <div key={f.key}>
+                      <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                      <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
@@ -482,10 +432,10 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* CORES */}
         <TabsContent value="cores">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Palette className="w-5 h-5 text-pink-400" /> Paleta de Cores
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Palette className="w-5 h-5 text-pink-500" /> Paleta de Cores
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -496,7 +446,7 @@ export const AdminLandingTab: React.FC = () => {
               <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
             </CardContent>
           </Card>
-          <div className="mt-4 p-4 rounded-xl border border-[#2a2a3a]" style={{ background: settings.landing_cor_fundo || '#0f172a' }}>
+          <div className="mt-4 p-4 rounded-xl border border-border" style={{ background: settings.landing_cor_fundo || '#0f172a' }}>
             <div className="flex gap-3 justify-center flex-wrap">
               {[
                 { k: 'primaria', label: 'Primária' },
@@ -524,70 +474,56 @@ export const AdminLandingTab: React.FC = () => {
                 : ['TUDO do mensal incluído', '2 meses DE GRAÇA', 'Suporte VIP prioritário', 'Relatórios avançados', 'Backup automático diário'];
               
               return (
-                <Card key={i} className={`bg-[#1a1a24] border-[#2a2a3a] ${!isActive ? 'opacity-50' : ''}`}>
+                <Card key={i} className={`${!isActive ? 'opacity-50' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-white text-base">
-                        <Gift className="w-5 h-5 text-purple-400" /> 
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Gift className="w-5 h-5 text-primary" /> 
                         {i === 1 ? '💳 Plano Mensal' : '⭐ Plano Anual'}
                       </CardTitle>
                       <div className="flex items-center gap-2">
-                        <Label className="text-gray-400 text-xs">{isActive ? 'Visível' : 'Oculto'}</Label>
+                        <Label className="text-muted-foreground text-xs">{isActive ? 'Visível' : 'Oculto'}</Label>
                         <Switch checked={isActive}
                           onCheckedChange={v => update(`landing_oferta${i}_ativa`, v ? 'true' : 'false')} />
                       </div>
                     </div>
                     {!isActive && (
-                      <p className="text-xs text-amber-400 mt-1">⚠️ Este plano está oculto na landing page e no checkout</p>
+                      <p className="text-xs text-amber-500 mt-1">⚠️ Este plano está oculto na landing page e no checkout</p>
                     )}
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <Label className="text-gray-300 text-sm">Título do Plano</Label>
-                        <Input value={settings[`landing_oferta${i}_titulo`] || ''} 
-                          onChange={e => update(`landing_oferta${i}_titulo`, e.target.value)}
-                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                          placeholder={i === 1 ? 'Plano Mensal' : 'Plano Anual'} />
-                      </div>
-                      <div>
-                        <Label className="text-gray-300 text-sm">Descrição</Label>
-                        <Input value={settings[`landing_oferta${i}_descricao`] || ''} 
-                          onChange={e => update(`landing_oferta${i}_descricao`, e.target.value)}
-                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                          placeholder="Descrição curta do plano" />
-                      </div>
-                      <div>
-                        <Label className="text-gray-300 text-sm">Badge (ex: POPULAR, MAIS ESCOLHIDO)</Label>
-                        <Input value={settings[`landing_oferta${i}_badge`] || ''} 
-                          onChange={e => update(`landing_oferta${i}_badge`, e.target.value)}
-                          className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                          placeholder="Deixe vazio para não mostrar" />
-                      </div>
+                      {[
+                        { key: `landing_oferta${i}_titulo`, label: 'Título do Plano', ph: i === 1 ? 'Plano Mensal' : 'Plano Anual' },
+                        { key: `landing_oferta${i}_descricao`, label: 'Descrição', ph: 'Descrição curta do plano' },
+                        { key: `landing_oferta${i}_badge`, label: 'Badge (ex: POPULAR)', ph: 'Deixe vazio para não mostrar' },
+                      ].map(f => (
+                        <div key={f.key}>
+                          <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                          <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
+                        </div>
+                      ))}
                     </div>
                     <div>
-                      <Label className="text-gray-300 text-sm">Texto do Botão CTA</Label>
+                      <Label className="text-muted-foreground text-sm">Texto do Botão CTA</Label>
                       <Input value={settings[`landing_oferta${i}_btn_texto`] || ''} 
                         onChange={e => update(`landing_oferta${i}_btn_texto`, e.target.value)}
-                        className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
                         placeholder={i === 1 ? `Começar por R$ ${settings.landing_preco_mensal || '39,90'}` : `QUERO ECONOMIZAR R$ ${settings.landing_economia_anual || '108'}`} />
                     </div>
                     <div>
-                      <Label className="text-gray-300 text-sm">Lista de Benefícios (um por linha)</Label>
+                      <Label className="text-muted-foreground text-sm">Lista de Benefícios (um por linha)</Label>
                       <Textarea 
                         value={settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')} 
                         onChange={e => update(`landing_oferta${i}_features`, e.target.value)}
-                        className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[120px] text-sm font-mono"
-                        placeholder="Um benefício por linha" />
-                      <p className="text-xs text-gray-500 mt-1">Cada linha vira um item com ✓ na landing page</p>
+                        className="min-h-[120px] text-sm font-mono" placeholder="Um benefício por linha" />
+                      <p className="text-xs text-muted-foreground mt-1">Cada linha vira um item com ✓ na landing page</p>
                     </div>
-                    {/* Preview dos benefícios */}
-                    <div className="bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
-                      <p className="text-xs text-gray-500 mb-2">Preview:</p>
+                    <div className="bg-muted/30 border border-border rounded-lg p-3">
+                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
                       <ul className="space-y-1.5">
                         {(settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')).split('\n').filter(Boolean).map((f: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2 text-sm text-gray-300">
-                            <span className="text-green-400">✓</span> {f}
+                          <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="text-green-500">✓</span> {f}
                           </li>
                         ))}
                       </ul>
@@ -608,13 +544,12 @@ export const AdminLandingTab: React.FC = () => {
               ))}
             </div>
 
-            {/* Vídeos de Prova Social */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Video className="w-5 h-5 text-red-400" /> Vídeos de Prova Social
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Video className="w-5 h-5 text-red-500" /> Vídeos de Prova Social
                 </CardTitle>
-                <CardDescription className="text-gray-400 text-xs">
+                <CardDescription className="text-xs">
                   Adicione até 3 vídeos de clientes reais (YouTube, Vimeo ou link direto)
                 </CardDescription>
               </CardHeader>
@@ -622,15 +557,14 @@ export const AdminLandingTab: React.FC = () => {
                 {[1, 2, 3].map(i => (
                   <div key={i} className="flex items-center gap-3">
                     <div className="flex-1">
-                      <Label className="text-gray-400 text-xs">Vídeo {i}</Label>
+                      <Label className="text-muted-foreground text-xs">Vídeo {i}</Label>
                       <Input value={settings[`landing_video_prova_social_${i}`] || ''} 
                         onChange={e => update(`landing_video_prova_social_${i}`, e.target.value)}
-                        className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" 
-                        placeholder="https://youtube.com/watch?v=..." />
+                        className="h-8 text-sm" placeholder="https://youtube.com/watch?v=..." />
                     </div>
                     {settings[`landing_video_prova_social_${i}`] && (
                       <Button variant="ghost" size="sm" onClick={() => update(`landing_video_prova_social_${i}`, '')} 
-                        className="text-red-400 h-8 mt-4">
+                        className="text-destructive h-8 mt-4">
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     )}
@@ -645,27 +579,27 @@ export const AdminLandingTab: React.FC = () => {
         <TabsContent value="faq">
           <div className="space-y-3">
             {[1,2,3,4,5,6].map(i => (
-              <Card key={i} className="bg-[#12121a] border-[#2a2a3a]">
+              <Card key={i}>
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-cyan-400 font-semibold text-sm">FAQ {i}</span>
+                    <span className="text-primary font-semibold text-sm">FAQ {i}</span>
                     <div className="flex items-center gap-2">
-                      <Label className="text-gray-400 text-xs">Ativa</Label>
+                      <Label className="text-muted-foreground text-xs">Ativa</Label>
                       <Switch checked={settings[`landing_faq${i}_ativa`] !== 'false'}
                         onCheckedChange={v => update(`landing_faq${i}_ativa`, v ? 'true' : 'false')} />
                     </div>
                   </div>
                   <div>
-                    <Label className="text-gray-400 text-xs">Pergunta</Label>
+                    <Label className="text-muted-foreground text-xs">Pergunta</Label>
                     <Input value={settings[`landing_faq${i}_pergunta`] || ''} 
                       onChange={e => update(`landing_faq${i}_pergunta`, e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white h-8 text-sm" />
+                      className="h-8 text-sm" />
                   </div>
                   <div>
-                    <Label className="text-gray-400 text-xs">Resposta</Label>
+                    <Label className="text-muted-foreground text-xs">Resposta</Label>
                     <Textarea value={settings[`landing_faq${i}_resposta`] || ''} 
                       onChange={e => update(`landing_faq${i}_resposta`, e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[50px] text-sm" />
+                      className="min-h-[50px] text-sm" />
                   </div>
                 </CardContent>
               </Card>
@@ -675,43 +609,39 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* WHATSAPP */}
         <TabsContent value="whatsapp">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <MessageCircle className="w-5 h-5 text-green-400" /> Botão WhatsApp Flutuante
+              <CardTitle className="flex items-center gap-2 text-base">
+                <MessageCircle className="w-5 h-5 text-green-500" /> Botão WhatsApp Flutuante
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-gray-300 text-sm">Ativo</Label>
+                <Label className="text-sm">Ativo</Label>
                 <Switch checked={settings.landing_whatsapp_flutuante !== 'false'}
                   onCheckedChange={v => update('landing_whatsapp_flutuante', v ? 'true' : 'false')} />
               </div>
               <div>
-                <Label className="text-gray-300 text-sm">Link do WhatsApp</Label>
+                <Label className="text-muted-foreground text-sm">Link do WhatsApp</Label>
                 <Input value={settings.landing_whatsapp_link || ''} 
                   onChange={e => update('landing_whatsapp_link', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
                   placeholder="https://wa.me/5511999999999" />
               </div>
               <div>
-                <Label className="text-gray-300 text-sm">Mensagem padrão</Label>
+                <Label className="text-muted-foreground text-sm">Mensagem padrão</Label>
                 <Textarea value={settings.landing_whatsapp_mensagem || ''} 
                   onChange={e => update('landing_whatsapp_mensagem', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[60px]" 
-                  placeholder="Olá! Vim pela landing page..." />
+                  className="min-h-[60px]" placeholder="Olá! Vim pela landing page..." />
               </div>
               
-              {/* Custom icon */}
-              <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-3">
-                <Label className="text-gray-300 text-sm flex items-center gap-2">
-                  <Image className="w-4 h-4 text-green-400" /> Ícone personalizado
+              <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
+                <Label className="text-sm flex items-center gap-2">
+                  <Image className="w-4 h-4 text-green-500" /> Ícone personalizado
                 </Label>
                 <div className="flex items-center gap-3">
                   <input ref={iconInputRef} type="file" accept="image/*" className="hidden"
                     onChange={e => handleFileUpload(e, 'icon')} />
-                  <Button variant="outline" onClick={() => iconInputRef.current?.click()} disabled={uploading}
-                    className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a]">
+                  <Button variant="outline" onClick={() => iconInputRef.current?.click()} disabled={uploading}>
                     {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                     Enviar Imagem
                   </Button>
@@ -719,7 +649,7 @@ export const AdminLandingTab: React.FC = () => {
                     <>
                       <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-12 h-12 rounded-full object-cover border-2 border-green-500/30" />
                       <Button variant="ghost" size="sm" onClick={() => update('landing_whatsapp_icon_url', '')}
-                        className="text-red-400 hover:text-red-300">
+                        className="text-destructive">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
@@ -732,46 +662,44 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* VIDEO */}
         <TabsContent value="video">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+          <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white text-base">
-                <Video className="w-5 h-5 text-red-400" /> Vídeo de Vendas (VSL)
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Video className="w-5 h-5 text-red-500" /> Vídeo de Vendas (VSL)
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label className="text-gray-300 text-sm">URL do Vídeo</Label>
+                <Label className="text-muted-foreground text-sm">URL do Vídeo</Label>
                 <Input value={settings.landing_vsl_url || ''} 
                   onChange={e => update('landing_vsl_url', e.target.value)}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
                   placeholder="https://youtube.com/watch?v=..." />
               </div>
               <div className="flex gap-2">
                 <input ref={videoInputRef} type="file" accept="video/*" className="hidden" 
                   onChange={e => handleFileUpload(e, 'video')} />
-                <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploading}
-                  className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a]">
+                <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploading}>
                   {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
                   Upload Vídeo (max 50MB)
                 </Button>
                 {settings.landing_vsl_url && (
                   <Button variant="outline" onClick={() => update('landing_vsl_url', '')}
-                    className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                    className="text-destructive border-destructive/30 hover:bg-destructive/10">
                     <Trash2 className="w-4 h-4 mr-1" /> Remover
                   </Button>
                 )}
               </div>
-              <div className="flex items-center justify-between bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
+              <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg p-3">
                 <div>
-                  <Label className="text-gray-300 text-sm">Travar até assistir</Label>
-                  <p className="text-gray-500 text-xs">Visitante assiste antes de navegar</p>
+                  <Label className="text-sm">Travar até assistir</Label>
+                  <p className="text-muted-foreground text-xs">Visitante assiste antes de navegar</p>
                 </div>
                 <Switch checked={settings.landing_vsl_trava === 'true'}
                   onCheckedChange={v => update('landing_vsl_trava', v ? 'true' : 'false')} />
               </div>
               {settings.landing_vsl_url && (
-                <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4">
-                  <p className="text-gray-400 text-xs mb-2">Preview:</p>
+                <div className="bg-muted/30 border border-border rounded-xl p-4">
+                  <p className="text-muted-foreground text-xs mb-2">Preview:</p>
                   {settings.landing_vsl_url.includes('youtube') || settings.landing_vsl_url.includes('youtu.be') ? (
                     <div className="aspect-video bg-black rounded-lg overflow-hidden">
                       <iframe src={settings.landing_vsl_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
@@ -791,94 +719,147 @@ export const AdminLandingTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* EXTRAS - Countdown + Notificações + Prova Social combined */}
-        <TabsContent value="extras">
+        {/* NOTIFICAÇÕES - Dedicated tab */}
+        <TabsContent value="notificacoes">
           <div className="space-y-4">
-            {/* Countdown */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Clock className="w-5 h-5 text-orange-400" /> Contador Regressivo
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Bell className="w-5 h-5 text-green-500" /> Notificações de Compra (Social Proof)
                 </CardTitle>
-              </CardHeader>
-              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-gray-300 text-sm">Texto</Label>
-                  <Input value={settings.landing_countdown_texto || ''} onChange={e => update('landing_countdown_texto', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                </div>
-                <div>
-                  <Label className="text-gray-300 text-sm">Badge Desconto</Label>
-                  <Input value={settings.landing_countdown_desconto || ''} onChange={e => update('landing_countdown_desconto', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notificações de compra */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Bell className="w-5 h-5 text-green-400" /> Notificações de Compra (Social Proof)
-                </CardTitle>
-                <CardDescription className="text-gray-400 text-xs">
-                  Customize as notificações fake de compra que aparecem na landing page
+                <CardDescription className="text-xs">
+                  Customize as notificações de compra que aparecem na landing page
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Toggles */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-gray-300 text-sm">Ativas</Label>
+                  <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg p-3">
+                    <Label className="text-sm">Ativas</Label>
                     <Switch checked={settings.landing_notif_ativa !== 'false'}
                       onCheckedChange={v => update('landing_notif_ativa', v ? 'true' : 'false')} />
                   </div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-gray-300 text-sm">Som</Label>
+                  <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg p-3">
+                    <Label className="text-sm">Som</Label>
                     <Switch checked={settings.landing_notif_som !== 'false'}
                       onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
                   </div>
                 </div>
+
+                {/* Intervalo */}
                 <div>
-                  <Label className="text-gray-300 text-sm">Intervalo (segundos)</Label>
+                  <Label className="text-muted-foreground text-sm">Intervalo entre notificações (segundos)</Label>
                   <Input type="number" value={settings.landing_notif_intervalo || '10'} 
                     onChange={e => update('landing_notif_intervalo', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white w-32" min="5" max="60" />
+                    className="w-32" min="5" max="60" />
+                  <p className="text-xs text-muted-foreground mt-1">De 5 a 60 segundos entre cada notificação</p>
                 </div>
+
+                {/* Som personalizado */}
+                <Card className="border-dashed">
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Volume2 className="w-5 h-5 text-primary" />
+                      <Label className="font-semibold text-sm">Som Personalizado</Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Anexe um arquivo de áudio (.mp3, .wav, .ogg) ou cole uma URL. Deixe vazio para usar o som padrão do sistema.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <Input value={settings.landing_notif_som_url || ''} 
+                        onChange={e => update('landing_notif_som_url', e.target.value)}
+                        placeholder="https://... ou faça upload abaixo" className="flex-1" />
+                      {settings.landing_notif_som_url && (
+                        <Button variant="ghost" size="sm" onClick={() => update('landing_notif_som_url', '')}
+                          className="text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input ref={soundInputRef} type="file" accept="audio/*" className="hidden"
+                        onChange={e => handleFileUpload(e, 'sound')} />
+                      <Button variant="outline" size="sm" onClick={() => soundInputRef.current?.click()} disabled={uploading}>
+                        {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
+                        Upload Áudio
+                      </Button>
+                      {settings.landing_notif_som_url && (
+                        <Button variant="outline" size="sm" onClick={() => {
+                          const audio = new Audio(settings.landing_notif_som_url);
+                          audio.volume = 0.3;
+                          audio.play().catch(() => {});
+                        }}>
+                          <Volume2 className="w-4 h-4 mr-1" /> Testar Som
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Ações */}
                 <div>
-                  <Label className="text-gray-300 text-sm">Ações das Notificações (uma por linha)</Label>
+                  <Label className="text-muted-foreground text-sm">Ações das Notificações (uma por linha)</Label>
                   <Textarea 
                     value={settings.landing_notif_acoes || 'acabou de assinar\nacabou de renovar\nfez upgrade para anual\nativou sua conta'} 
                     onChange={e => update('landing_notif_acoes', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    className="min-h-[80px] text-sm font-mono"
                     placeholder="acabou de assinar&#10;acabou de renovar&#10;fez upgrade para anual&#10;ativou sua conta" />
-                  <p className="text-xs text-gray-500 mt-1">Cada linha será uma ação diferente exibida nas notificações</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cada linha será uma ação diferente exibida nas notificações</p>
                 </div>
+
+                {/* Nomes */}
                 <div>
-                  <Label className="text-gray-300 text-sm">Nomes (um por linha) — deixe vazio para usar padrão</Label>
+                  <Label className="text-muted-foreground text-sm">Nomes (um por linha) — deixe vazio para usar padrão</Label>
                   <Textarea 
                     value={settings.landing_notif_nomes || ''} 
                     onChange={e => update('landing_notif_nomes', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    className="min-h-[80px] text-sm font-mono"
                     placeholder="João Silva&#10;Maria Santos&#10;Pedro Oliveira..." />
-                  <p className="text-xs text-gray-500 mt-1">Nomes fictícios para exibir. Vazio = lista padrão de 60 nomes</p>
+                  <p className="text-xs text-muted-foreground mt-1">Nomes fictícios para exibir. Vazio = lista padrão de 60 nomes</p>
                 </div>
+
+                {/* Cidades */}
                 <div>
-                  <Label className="text-gray-300 text-sm">Cidades (uma por linha) — deixe vazio para usar padrão</Label>
+                  <Label className="text-muted-foreground text-sm">Cidades (uma por linha) — deixe vazio para usar padrão</Label>
                   <Textarea 
                     value={settings.landing_notif_cidades || ''} 
                     onChange={e => update('landing_notif_cidades', e.target.value)}
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-white min-h-[80px] text-sm font-mono"
+                    className="min-h-[80px] text-sm font-mono"
                     placeholder="São Paulo&#10;Rio de Janeiro&#10;Belo Horizonte..." />
-                  <p className="text-xs text-gray-500 mt-1">Cidades para exibir. Vazio = lista padrão de 50 cidades</p>
+                  <p className="text-xs text-muted-foreground mt-1">Cidades para exibir. Vazio = lista padrão de 50 cidades</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* EXTRAS - Countdown + Prova Social */}
+        <TabsContent value="extras">
+          <div className="space-y-4">
+            {/* Countdown */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Clock className="w-5 h-5 text-orange-500" /> Contador Regressivo
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Texto</Label>
+                  <Input value={settings.landing_countdown_texto || ''} onChange={e => update('landing_countdown_texto', e.target.value)} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Badge Desconto</Label>
+                  <Input value={settings.landing_countdown_desconto || ''} onChange={e => update('landing_countdown_desconto', e.target.value)} />
                 </div>
               </CardContent>
             </Card>
 
             {/* Prova Social */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-white text-base">
-                  <Star className="w-5 h-5 text-amber-400" /> Prova Social & Garantia
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Star className="w-5 h-5 text-amber-500" /> Prova Social & Garantia
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -888,9 +869,8 @@ export const AdminLandingTab: React.FC = () => {
                   { key: 'landing_garantia_dias', label: 'Dias Garantia', ph: '7' },
                 ].map(f => (
                   <div key={f.key}>
-                    <Label className="text-gray-300 text-sm">{f.label}</Label>
-                    <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" placeholder={f.ph} />
+                    <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                    <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
                   </div>
                 ))}
               </CardContent>

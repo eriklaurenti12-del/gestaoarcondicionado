@@ -85,7 +85,7 @@ const Landing: React.FC = () => {
     landing_frase_destaque: 'O único sistema de Ar Condicionado que você realmente vai usar — porque é simples igual WhatsApp, mas organiza TUDO.',
     landing_countdown_texto: '🔥 PROMOÇÃO POR TEMPO LIMITADO!',
     landing_countdown_desconto: '22% OFF Plano Anual',
-    landing_notif_ativa: 'true', landing_notif_som: 'true', landing_notif_intervalo: '10',
+    landing_notif_ativa: 'true', landing_notif_som: 'true', landing_notif_intervalo: '10', landing_notif_som_url: '',
     landing_oferta1_titulo: 'Plano Mensal', landing_oferta1_descricao: 'Para testar e ver resultado rápido',
     landing_oferta1_badge: '', landing_oferta1_ativa: 'true',
     landing_oferta2_titulo: 'Plano Anual', landing_oferta2_descricao: 'Para quem quer economizar de verdade',
@@ -796,6 +796,7 @@ const Landing: React.FC = () => {
         <SubscriptionNotifications 
           interval={Number(settings.landing_notif_intervalo || 10) * 1000}
           soundEnabled={settings.landing_notif_som !== 'false'}
+          soundUrl={settings.landing_notif_som_url || undefined}
           precoMensal={settings.landing_preco_mensal || '39,90'}
           precoAnual={settings.landing_preco_anual || '370'}
           customActions={settings.landing_notif_acoes || ''}
