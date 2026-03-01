@@ -125,8 +125,15 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     
     // Send WhatsApp notification
     if (booking?.client_phone) {
+      // Extract address from notes if available
+      const addressMatch = booking.notes?.match(/📍\s*([^|]+)/);
+      const cepMatch = booking.notes?.match(/CEP:\s*(\S+)/);
+      const addressLine = addressMatch ? `\n📍 Endereço: ${addressMatch[1].trim()}` : '';
+      const cepLine = cepMatch ? `\n🏷️ CEP: ${cepMatch[1].trim()}` : '';
+      const mapsLink = addressMatch ? `\n🗺️ Ver no mapa: https://www.google.com/maps/search/${encodeURIComponent(addressMatch[1].trim())}` : '';
+      
       const statusMsg = status === 'confirmado' 
-        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}\n\nAguardamos você! 🙏`
+        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}${addressLine}${cepLine}${mapsLink}\n\nAguardamos você! 🙏`
         : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
       
       window.open(formatWhatsAppUrl(booking.client_phone, statusMsg), '_blank');
@@ -332,9 +339,26 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                           </span>
                         )}
                       </div>
-                      {booking.notes && (
-                        <p className="text-xs text-slate-500 italic">"{booking.notes}"</p>
-                      )}
+                      {booking.notes && (() => {
+                        const addressMatch = booking.notes?.match(/📍\s*([^|]+)/);
+                        const cepMatch = booking.notes?.match(/CEP:\s*(\S+)/);
+                        const userNote = booking.notes?.replace(/📍[^|]*\|?\s*/g, '').replace(/CEP:\s*\S+\s*\|?\s*/g, '').trim();
+                        return (
+                          <div className="space-y-1">
+                            {addressMatch && (
+                              <a 
+                                href={`https://www.google.com/maps/search/${encodeURIComponent(addressMatch[1].trim())}`}
+                                target="_blank" rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300 hover:underline"
+                              >
+                                📍 {addressMatch[1].trim()}
+                                {cepMatch && <span className="text-slate-500">| CEP: {cepMatch[1]}</span>}
+                              </a>
+                            )}
+                            {userNote && <p className="text-xs text-slate-500 italic">"{userNote}"</p>}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -357,7 +381,9 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                       {booking.client_phone && (
                         <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
                           onClick={() => {
-                            const msg = `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
+                          const addrMatch = booking.notes?.match(/📍\s*([^|]+)/);
+                            const addrText = addrMatch ? `\n📍 Local: ${addrMatch[1].trim()}` : '';
+                            const msg = `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.${addrText}`;
                             window.open(formatWhatsAppUrl(booking.client_phone, msg), '_blank');
                           }}>
                           <Phone className="w-3 h-3" />
