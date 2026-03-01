@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Save, GripVertical, ArrowUp, ArrowDown, Plus, Trash2, Menu } from "lucide-react";
+import { Save, GripVertical, Menu, RotateCcw } from "lucide-react";
 
 const defaultSections = [
   { label: "Principal", icon: "Snowflake", items: [
@@ -33,10 +33,18 @@ const defaultSections = [
   ]},
 ];
 
+type DragSource = {
+  type: 'section' | 'item';
+  sectionIdx: number;
+  itemIdx?: number;
+};
+
 const AdminSidebarConfig: React.FC = () => {
   const { toast } = useToast();
   const [sections, setSections] = useState(defaultSections);
   const [saving, setSaving] = useState(false);
+  const [dragSource, setDragSource] = useState<DragSource | null>(null);
+  const [dragOverTarget, setDragOverTarget] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -78,20 +86,6 @@ const AdminSidebarConfig: React.FC = () => {
     toast({ title: "Menu restaurado ao padrão" });
   };
 
-  const moveSectionUp = (idx: number) => {
-    if (idx === 0) return;
-    const newSections = [...sections];
-    [newSections[idx - 1], newSections[idx]] = [newSections[idx], newSections[idx - 1]];
-    setSections(newSections);
-  };
-
-  const moveSectionDown = (idx: number) => {
-    if (idx >= sections.length - 1) return;
-    const newSections = [...sections];
-    [newSections[idx], newSections[idx + 1]] = [newSections[idx + 1], newSections[idx]];
-    setSections(newSections);
-  };
-
   const updateSectionLabel = (idx: number, label: string) => {
     const newSections = [...sections];
     newSections[idx] = { ...newSections[idx], label };
@@ -107,23 +101,70 @@ const AdminSidebarConfig: React.FC = () => {
     setSections(newSections);
   };
 
-  const moveItemUp = (sectionIdx: number, itemIdx: number) => {
-    if (itemIdx === 0) return;
-    const newSections = [...sections];
-    const items = [...newSections[sectionIdx].items];
-    [items[itemIdx - 1], items[itemIdx]] = [items[itemIdx], items[itemIdx - 1]];
-    newSections[sectionIdx] = { ...newSections[sectionIdx], items };
-    setSections(newSections);
+  // --- Drag & Drop for sections ---
+  const handleSectionDragStart = (e: React.DragEvent, sIdx: number) => {
+    setDragSource({ type: 'section', sectionIdx: sIdx });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
   };
 
-  const moveItemDown = (sectionIdx: number, itemIdx: number) => {
-    const items = sections[sectionIdx].items;
-    if (itemIdx >= items.length - 1) return;
-    const newSections = [...sections];
-    const newItems = [...newSections[sectionIdx].items];
-    [newItems[itemIdx], newItems[itemIdx + 1]] = [newItems[itemIdx + 1], newItems[itemIdx]];
-    newSections[sectionIdx] = { ...newSections[sectionIdx], items: newItems };
-    setSections(newSections);
+  const handleSectionDragOver = (e: React.DragEvent, sIdx: number) => {
+    e.preventDefault();
+    if (dragSource?.type === 'section' && dragSource.sectionIdx !== sIdx) {
+      setDragOverTarget(`section-${sIdx}`);
+    }
+  };
+
+  const handleSectionDrop = (e: React.DragEvent, targetIdx: number) => {
+    e.preventDefault();
+    if (dragSource?.type === 'section' && dragSource.sectionIdx !== targetIdx) {
+      const newSections = [...sections];
+      const [moved] = newSections.splice(dragSource.sectionIdx, 1);
+      newSections.splice(targetIdx, 0, moved);
+      setSections(newSections);
+    }
+    setDragSource(null);
+    setDragOverTarget(null);
+  };
+
+  // --- Drag & Drop for items (within & across sections) ---
+  const handleItemDragStart = (e: React.DragEvent, sIdx: number, iIdx: number) => {
+    e.stopPropagation();
+    setDragSource({ type: 'item', sectionIdx: sIdx, itemIdx: iIdx });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  };
+
+  const handleItemDragOver = (e: React.DragEvent, sIdx: number, iIdx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragSource?.type === 'item') {
+      setDragOverTarget(`item-${sIdx}-${iIdx}`);
+    }
+  };
+
+  const handleItemDrop = (e: React.DragEvent, targetSIdx: number, targetIIdx: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragSource?.type === 'item' && dragSource.itemIdx !== undefined) {
+      const newSections = [...sections];
+      // Remove from source
+      const sourceItems = [...newSections[dragSource.sectionIdx].items];
+      const [movedItem] = sourceItems.splice(dragSource.itemIdx, 1);
+      newSections[dragSource.sectionIdx] = { ...newSections[dragSource.sectionIdx], items: sourceItems };
+      // Insert at target
+      const targetItems = [...newSections[targetSIdx].items];
+      targetItems.splice(targetIIdx, 0, movedItem);
+      newSections[targetSIdx] = { ...newSections[targetSIdx], items: targetItems };
+      setSections(newSections);
+    }
+    setDragSource(null);
+    setDragOverTarget(null);
+  };
+
+  const handleDragEnd = () => {
+    setDragSource(null);
+    setDragOverTarget(null);
   };
 
   return (
@@ -134,10 +175,13 @@ const AdminSidebarConfig: React.FC = () => {
             <Menu className="w-5 h-5 text-primary" />
             Configuração do Menu Lateral
           </h2>
-          <p className="text-muted-foreground text-sm">Reorganize seções, renomeie abas e mude a ordem dos itens</p>
+          <p className="text-muted-foreground text-sm">Arraste para reorganizar seções e itens</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={resetToDefault}>Restaurar Padrão</Button>
+          <Button variant="outline" size="sm" onClick={resetToDefault}>
+            <RotateCcw className="w-3.5 h-3.5 mr-1" />
+            Restaurar
+          </Button>
           <Button onClick={saveConfig} disabled={saving} size="sm">
             <Save className="w-4 h-4 mr-1" />
             {saving ? 'Salvando...' : 'Salvar Menu'}
@@ -146,43 +190,54 @@ const AdminSidebarConfig: React.FC = () => {
       </div>
 
       {sections.map((section, sIdx) => (
-        <Card key={sIdx}>
+        <Card
+          key={sIdx}
+          draggable
+          onDragStart={(e) => handleSectionDragStart(e, sIdx)}
+          onDragOver={(e) => handleSectionDragOver(e, sIdx)}
+          onDrop={(e) => handleSectionDrop(e, sIdx)}
+          onDragEnd={handleDragEnd}
+          className={`transition-all cursor-grab active:cursor-grabbing ${
+            dragOverTarget === `section-${sIdx}` ? 'border-primary ring-2 ring-primary/30' : ''
+          } ${dragSource?.type === 'section' && dragSource.sectionIdx === sIdx ? 'opacity-50' : ''}`}
+        >
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className="flex flex-col gap-1">
-                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => moveSectionUp(sIdx)} disabled={sIdx === 0}>
-                  <ArrowUp className="w-3 h-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => moveSectionDown(sIdx)} disabled={sIdx >= sections.length - 1}>
-                  <ArrowDown className="w-3 h-3" />
-                </Button>
-              </div>
+              <GripVertical className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               <div className="flex-1">
                 <Label className="text-xs text-muted-foreground">Nome da Seção</Label>
                 <Input
                   value={section.label}
                   onChange={(e) => updateSectionLabel(sIdx, e.target.value)}
                   className="h-8 font-semibold"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  draggable={false}
                 />
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-1.5">
             {section.items.map((item, iIdx) => (
-              <div key={item.id} className="flex items-center gap-2 p-2 rounded-lg border bg-muted/30">
+              <div
+                key={item.id}
+                draggable
+                onDragStart={(e) => handleItemDragStart(e, sIdx, iIdx)}
+                onDragOver={(e) => handleItemDragOver(e, sIdx, iIdx)}
+                onDrop={(e) => handleItemDrop(e, sIdx, iIdx)}
+                onDragEnd={handleDragEnd}
+                className={`flex items-center gap-2 p-2 rounded-lg border bg-muted/30 cursor-grab active:cursor-grabbing transition-all ${
+                  dragOverTarget === `item-${sIdx}-${iIdx}` ? 'border-primary bg-primary/10' : ''
+                } ${dragSource?.type === 'item' && dragSource.sectionIdx === sIdx && dragSource.itemIdx === iIdx ? 'opacity-40' : ''}`}
+              >
                 <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                <div className="flex flex-col gap-0.5 mr-1">
-                  <Button size="icon" variant="ghost" className="h-4 w-4" onClick={() => moveItemUp(sIdx, iIdx)} disabled={iIdx === 0}>
-                    <ArrowUp className="w-2.5 h-2.5" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-4 w-4" onClick={() => moveItemDown(sIdx, iIdx)} disabled={iIdx >= section.items.length - 1}>
-                    <ArrowDown className="w-2.5 h-2.5" />
-                  </Button>
-                </div>
                 <Input
                   value={item.title}
                   onChange={(e) => updateItemTitle(sIdx, iIdx, e.target.value)}
                   className="h-7 text-sm flex-1"
+                  onClick={(e) => e.stopPropagation()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  draggable={false}
                 />
                 <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono flex-shrink-0">{item.id}</span>
               </div>
