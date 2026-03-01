@@ -251,49 +251,44 @@ export default function Members() {
   if (!isSuperAdmin || loading) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 relative" style={{ minWidth: '100%' }}>
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-indigo-600/8 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-violet-600/8 rounded-full blur-[120px]"></div>
-      </div>
-      
+    <div className="min-h-screen bg-background p-6 relative" style={{ minWidth: '100%' }}>
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="bg-slate-800/60 border-slate-700 hover:bg-slate-700 text-white">
+            <Button variant="outline" size="sm" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 text-white">
-              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400" />
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
               Painel Super Admin
             </h1>
           </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="bg-slate-800/60 border border-slate-700 flex flex-wrap h-auto gap-1 p-1.5 rounded-xl">
-            <TabsTrigger value="users" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+          <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 rounded-xl">
+            <TabsTrigger value="users" className="text-xs rounded-lg">
               <Users className="w-4 h-4 mr-1" /> Usuários
             </TabsTrigger>
-            <TabsTrigger value="team" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="team" className="text-xs rounded-lg">
               <UserPlus className="w-4 h-4 mr-1" /> Equipe
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="notifications" className="text-xs rounded-lg">
               <Bell className="w-4 h-4 mr-1" /> Notificações
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="integrations" className="text-xs rounded-lg">
               <Zap className="w-4 h-4 mr-1" /> Integrações
             </TabsTrigger>
-            <TabsTrigger value="n8n" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="n8n" className="text-xs rounded-lg">
               <Webhook className="w-4 h-4 mr-1" /> n8n
             </TabsTrigger>
-            <TabsTrigger value="landing" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="landing" className="text-xs rounded-lg">
               <Megaphone className="w-4 h-4 mr-1" /> Landing
             </TabsTrigger>
-            <TabsTrigger value="share" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="share" className="text-xs rounded-lg">
               <Share2 className="w-4 h-4 mr-1" /> Links
             </TabsTrigger>
-            <TabsTrigger value="raffle" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
+            <TabsTrigger value="raffle" className="text-xs rounded-lg">
               <Gift className="w-4 h-4 mr-1" /> Sorteio
             </TabsTrigger>
           </TabsList>
@@ -302,21 +297,21 @@ export default function Members() {
           <TabsContent value="team" className="mt-6 space-y-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-cyan-400" /> Gestão de Equipe
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <UserPlus className="w-5 h-5 text-primary" /> Gestão de Equipe
                 </h2>
-                <p className="text-gray-400 text-sm">Crie links fixos para convidar membros com funções específicas</p>
+                <p className="text-muted-foreground text-sm">Crie links fixos para convidar membros com funções específicas</p>
               </div>
             </div>
 
             {/* Generate invites by role */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-lg flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-cyan-400" /> Gerar Link de Convite
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-primary" /> Gerar Link de Convite
                 </CardTitle>
-                <p className="text-gray-400 text-xs">
-                  Escolha a função e gere um link fixo. A pessoa acessa, cria conta e escolhe a função automaticamente.
+                <p className="text-muted-foreground text-xs">
+                  Escolha a função e gere um link fixo.
                 </p>
               </CardHeader>
               <CardContent>
@@ -325,13 +320,13 @@ export default function Members() {
                     const Icon = info.icon;
                     return (
                       <button key={key} onClick={() => generateTeamInvite(key)} disabled={loadingInvite}
-                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-[#2a2a3a] bg-[#0f0f17] hover:bg-[#1a1a2e] hover:border-cyan-500/30 transition-all group">
-                        <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 group-hover:from-cyan-500/20 group-hover:to-blue-500/20 transition-all">
+                        className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted hover:border-primary/30 transition-all group">
+                        <div className="p-3 rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-all">
                           <Icon className={`w-6 h-6 ${info.color}`} />
                         </div>
-                        <span className="text-white font-medium text-sm">{info.label}</span>
-                        <span className="text-gray-500 text-xs text-center">{info.desc}</span>
-                        <Badge className="bg-cyan-500/10 text-cyan-400 border-cyan-500/20 text-xs mt-1">
+                        <span className="font-medium text-sm">{info.label}</span>
+                        <span className="text-muted-foreground text-xs text-center">{info.desc}</span>
+                        <Badge variant="outline" className="text-xs mt-1">
                           + Gerar Link
                         </Badge>
                       </button>
@@ -342,50 +337,46 @@ export default function Members() {
             </Card>
 
             {/* Phone Numbers - Direct Team */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-lg flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-green-400" /> Números da Equipe
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-green-500" /> Números da Equipe
                 </CardTitle>
-                <p className="text-gray-400 text-xs">
-                  Cadastre os telefones da equipe para suporte.
-                </p>
+                <p className="text-muted-foreground text-xs">Cadastre os telefones da equipe para suporte.</p>
               </CardHeader>
               <CardContent className="space-y-3">
                 {supportNumbers.map((num, idx) => (
-                  <div key={idx} className="flex gap-2 items-center bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
+                  <div key={idx} className="flex gap-2 items-center bg-muted/30 border border-border rounded-lg p-3">
                     <div className="flex-1 space-y-2 sm:space-y-0 sm:flex sm:gap-2">
                       <Input value={num.name} onChange={e => {
                         const updated = [...supportNumbers];
                         updated[idx].name = e.target.value;
                         setSupportNumbers(updated);
-                      }} placeholder="Nome" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
+                      }} placeholder="Nome" className="flex-1" />
                       <Input value={num.phone} onChange={e => {
                         const updated = [...supportNumbers];
                         updated[idx].phone = e.target.value;
                         setSupportNumbers(updated);
-                      }} placeholder="(11) 99999-9999" className="bg-[#12121a] border-[#2a2a3a] text-white flex-1" />
+                      }} placeholder="(11) 99999-9999" className="flex-1" />
                     </div>
                     <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="text-green-400 h-8 w-8 p-0"
+                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
                         onClick={() => { if (num.phone) window.open(`https://wa.me/55${num.phone.replace(/\D/g, '')}`, '_blank'); }}>
                         <Phone className="w-4 h-4" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="text-red-400 h-8 w-8 p-0" onClick={() => {
+                      <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => {
                         setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
                       }}><Trash2 className="w-3 h-3" /></Button>
                     </div>
                   </div>
                 ))}
                 <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}
-                    className="bg-[#2a2a3a] text-white hover:bg-[#3a3a4a]">
+                  <Button size="sm" variant="secondary" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}>
                     <UserPlus className="w-3 h-3 mr-1" /> Adicionar
                   </Button>
-                  <Button size="sm" onClick={saveSupportNumbers}
-                    className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">Salvar</Button>
+                  <Button size="sm" onClick={saveSupportNumbers}>Salvar</Button>
                   {supportNumbers.length > 0 && (
-                    <Button size="sm" variant="outline" className="border-green-500/30 text-green-400 hover:bg-green-500/10"
+                    <Button size="sm" variant="outline"
                       onClick={() => {
                         const available = supportNumbers.filter(n => n.phone);
                         if (available.length === 0) { toast({ title: "Nenhum número cadastrado" }); return; }
@@ -401,23 +392,23 @@ export default function Members() {
             </Card>
 
             {/* Active Team Members */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-lg">
+                <CardTitle className="text-lg">
                   👥 Membros Ativos ({acceptedInvites.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {acceptedInvites.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center py-8">Nenhum membro na equipe ainda.</p>
+                  <p className="text-muted-foreground text-sm text-center py-8">Nenhum membro na equipe ainda.</p>
                 ) : (
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-[#2a2a3a]">
-                        <TableHead className="text-gray-400">Email</TableHead>
-                        <TableHead className="text-gray-400">Função</TableHead>
-                        <TableHead className="text-gray-400">Aceito em</TableHead>
-                        <TableHead className="text-gray-400">Ações</TableHead>
+                         <TableRow className="border-border">
+                        <TableHead>Email</TableHead>
+                        <TableHead>Função</TableHead>
+                        <TableHead>Aceito em</TableHead>
+                        <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -425,20 +416,20 @@ export default function Members() {
                         const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
                         const RoleIcon = roleInfo.icon;
                         return (
-                          <TableRow key={invite.id} className="border-[#2a2a3a]">
-                            <TableCell className="text-white font-medium">{invite.accepted_email}</TableCell>
+                          <TableRow key={invite.id}>
+                            <TableCell className="font-medium">{invite.accepted_email}</TableCell>
                             <TableCell>
-                              <Badge className="bg-[#2a2a3a] text-white border-0 gap-1">
+                              <Badge variant="secondary" className="gap-1">
                                 <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
                                 {roleInfo.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-gray-400 text-sm">
+                            <TableCell className="text-sm">
                               {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yyyy') : '-'}
                             </TableCell>
                             <TableCell>
                               <Button size="sm" variant="destructive" onClick={() => removeTeamMember(invite)}
-                                className="bg-red-600 hover:bg-red-700 text-xs">
+                                className="text-xs">
                                 <Trash2 className="w-3 h-3 mr-1" /> Remover
                               </Button>
                             </TableCell>
@@ -452,38 +443,38 @@ export default function Members() {
             </Card>
 
             {/* Pending Invites */}
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card>
               <CardHeader>
-                <CardTitle className="text-white text-lg">
+                <CardTitle className="text-lg">
                   ⏳ Links Pendentes ({pendingInvites.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {pendingInvites.length === 0 ? (
-                  <p className="text-gray-500 text-sm text-center py-4">Nenhum link pendente.</p>
+                  <p className="text-muted-foreground text-sm text-center py-4">Nenhum link pendente.</p>
                 ) : (
                   pendingInvites.map(invite => {
                     const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
                     const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
                     const RoleIcon = roleInfo.icon;
                     return (
-                      <div key={invite.id} className="flex items-center gap-3 bg-[#0f0f17] border border-[#2a2a3a] rounded-lg p-3">
+                      <div key={invite.id} className="flex items-center gap-3 bg-muted/30 border border-border rounded-lg p-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge className="bg-[#2a2a3a] text-white border-0 gap-1 text-xs">
+                            <Badge variant="secondary" className="gap-1 text-xs">
                               <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
                               {roleInfo.label}
                             </Badge>
-                            <code className="text-cyan-300 text-xs font-mono">{invite.invite_code}</code>
+                            <code className="text-primary text-xs font-mono">{invite.invite_code}</code>
                           </div>
-                          <p className="text-gray-500 text-xs truncate">{teamUrl}</p>
+                          <p className="text-muted-foreground text-xs truncate">{teamUrl}</p>
                         </div>
                         <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl)}
-                          className="border-[#2a2a3a] text-white hover:bg-[#2a2a3a] text-xs">
+                          className="text-xs">
                           <Copy className="w-3 h-3 mr-1" /> Copiar
                         </Button>
                         <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
-                          className="bg-red-600/80 hover:bg-red-700 text-xs">
+                          className="text-xs">
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </div>
@@ -500,16 +491,16 @@ export default function Members() {
 
           <TabsContent value="users" className="mt-6 space-y-6">
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button onClick={loadMembers} variant="outline" className="bg-slate-800/60 border-slate-700 hover:bg-slate-700 text-white">
+              <Button onClick={loadMembers} variant="outline">
                 Atualizar Lista
               </Button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur">
+              <Card className="border-border">
                 <CardContent className="pt-4">
-                  <div className="text-2xl font-bold text-white">{stats.total}</div>
-                  <div className="text-xs text-slate-400">Total</div>
+                  <div className="text-2xl font-bold">{stats.total}</div>
+                  <div className="text-xs text-muted-foreground">Total</div>
                 </CardContent>
               </Card>
               <Card className="bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border-emerald-500/30">
@@ -538,14 +529,14 @@ export default function Members() {
               </Card>
             </div>
 
-            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur">
+            <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <CardTitle className="text-white">Gerenciar Usuários</CardTitle>
+                  <CardTitle>Gerenciar Usuários</CardTitle>
                   <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input placeholder="Buscar por email..." value={search} onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10 bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-600" />
+                      className="pl-10" />
                   </div>
                 </div>
               </CardHeader>
@@ -553,74 +544,74 @@ export default function Members() {
                 <div className="overflow-x-auto touch-pan-x">
                   <Table className="min-w-[900px]">
                     <TableHeader>
-                      <TableRow className="border-slate-700 hover:bg-slate-800/50">
-                        <TableHead className="min-w-[180px] text-slate-400">Email</TableHead>
-                        <TableHead className="min-w-[120px] text-slate-400">WhatsApp</TableHead>
-                        <TableHead className="min-w-[110px] text-slate-400">Plano</TableHead>
-                        <TableHead className="min-w-[100px] text-slate-400">Status</TableHead>
-                        <TableHead className="min-w-[100px] text-slate-400">Cadastro</TableHead>
-                        <TableHead className="min-w-[100px] text-slate-400">Vencimento</TableHead>
-                        <TableHead className="min-w-[180px] text-slate-400">Ações</TableHead>
+                      <TableRow className="border-border">
+                        <TableHead className="min-w-[180px]">Email</TableHead>
+                        <TableHead className="min-w-[120px]">WhatsApp</TableHead>
+                        <TableHead className="min-w-[110px]">Plano</TableHead>
+                        <TableHead className="min-w-[100px]">Status</TableHead>
+                        <TableHead className="min-w-[100px]">Cadastro</TableHead>
+                        <TableHead className="min-w-[100px]">Vencimento</TableHead>
+                        <TableHead className="min-w-[180px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredMembers.map((member) => {
                         const isSuperAdminUser = member.email === 'eriklaurenti09@gmail.com';
                         return (
-                          <TableRow key={member.id} className={`border-slate-700/50 hover:bg-slate-800/30 ${member.subscription?.status === 'cancelado' ? 'bg-rose-950/10' : ''} ${isSuperAdminUser ? 'bg-indigo-950/20 border-l-2 border-l-indigo-500' : ''}`}>
-                            <TableCell className="font-medium text-xs text-white">
+                          <TableRow key={member.id} className={`${member.subscription?.status === 'cancelado' ? 'bg-destructive/5' : ''} ${isSuperAdminUser ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}>
+                            <TableCell className="font-medium text-xs">
                               <div className="flex items-center gap-2">
-                                {isSuperAdminUser && <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />}
+                                {isSuperAdminUser && <Shield className="w-4 h-4 text-primary flex-shrink-0" />}
                                 <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
-                                {isSuperAdminUser && <Badge className="bg-indigo-600 text-white text-[10px]">SUPREMO</Badge>}
+                                {isSuperAdminUser && <Badge className="text-[10px]">SUPREMO</Badge>}
                               </div>
                             </TableCell>
                             <TableCell>
                               {member.phone ? (
                                 <Button size="sm" variant="ghost"
                                   onClick={() => window.open(`https://wa.me/55${member.phone?.replace(/\D/g, '')}`, '_blank')}
-                                  className="text-green-400 hover:text-green-300 hover:bg-green-500/10 h-8 px-2">
+                                  className="h-8 px-2">
                                   <Phone className="w-3 h-3 mr-1" />
                                   <span className="text-xs">{member.phone}</span>
                                 </Button>
-                              ) : <span className="text-gray-500 text-xs">-</span>}
+                              ) : <span className="text-muted-foreground text-xs">-</span>}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-indigo-600 text-white">Vitalício</Badge>
+                                <Badge>Vitalício</Badge>
                               ) : (
                                 <Select value={member.subscription?.plan || 'mensal'}
                                   onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}>
-                                  <SelectTrigger className="w-[100px] h-9 text-xs bg-slate-900/50 border-slate-700 text-white">
+                                  <SelectTrigger className="w-[100px] h-9 text-xs">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent className="bg-slate-800 border-slate-700 min-w-[120px] z-50" position="popper" sideOffset={4} align="start" avoidCollisions={false}>
-                                    <SelectItem value="vitalicio" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">Vitalício</SelectItem>
-                                    <SelectItem value="anual" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Ano</SelectItem>
-                                    <SelectItem value="trimestral" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">3 Meses</SelectItem>
-                                    <SelectItem value="mensal" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Mês</SelectItem>
-                                    <SelectItem value="7dias" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">7 Dias</SelectItem>
-                                    <SelectItem value="1dia" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Dia</SelectItem>
+                                  <SelectContent className="min-w-[120px] z-50" position="popper" sideOffset={4} align="start" avoidCollisions={false}>
+                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
+                                    <SelectItem value="anual">1 Ano</SelectItem>
+                                    <SelectItem value="trimestral">3 Meses</SelectItem>
+                                    <SelectItem value="mensal">1 Mês</SelectItem>
+                                    <SelectItem value="7dias">7 Dias</SelectItem>
+                                    <SelectItem value="1dia">1 Dia</SelectItem>
                                   </SelectContent>
                                 </Select>
                               )}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-indigo-600 text-white">✓ Supremo</Badge>
+                                <Badge>✓ Supremo</Badge>
                               ) : member.subscription && getStatusBadge(member.subscription.status)}
                             </TableCell>
-                            <TableCell className="text-xs text-slate-300">
+                            <TableCell className="text-xs">
                               {format(new Date(member.created_at), 'dd/MM/yyyy')}
                             </TableCell>
-                            <TableCell className="text-xs text-slate-300">
+                            <TableCell className="text-xs">
                               {isSuperAdminUser ? '∞' : member.subscription?.end_date 
                                 ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
                                 : member.subscription?.plan === 'vitalicio' ? '∞' : '-'}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
+                                <Badge variant="outline">
                                   <Shield className="w-3 h-3 mr-1" /> Protegido
                                 </Badge>
                               ) : (
@@ -631,13 +622,13 @@ export default function Members() {
                                       member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado')}
                                     className={`text-xs whitespace-nowrap ${
                                       member.subscription?.status === 'aprovado' 
-                                        ? 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600' 
-                                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white'
+                                        ? '' 
+                                        : ''
                                     }`}>
                                     {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
                                   </Button>
                                   <Button size="sm" variant="destructive" onClick={() => banUser(member.id, member.email)}
-                                    className="text-xs bg-red-600 hover:bg-red-700" title="Banir">
+                                    className="text-xs" title="Banir">
                                     <Ban className="w-3 h-3" />
                                   </Button>
                                 </div>
