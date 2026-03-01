@@ -43,7 +43,7 @@ const EstoqueTab: React.FC = () => {
   const pieces = React.useMemo(() => {
     if (!products) return [];
     return products
-      .filter((p: any) => p.type === 'piece' || p.qty < 999)
+      .filter((p: any) => p.type === 'piece')
       .filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.barcode?.includes(search));
   }, [products, search]);
 
