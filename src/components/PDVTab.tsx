@@ -264,7 +264,10 @@ const PDVTab: React.FC = () => {
       date_added: null,
       service_duration: null,
       supplier_id: null,
-      warranty_months: null
+      warranty_months: null,
+      storage_location: null,
+      storage_shelf: null,
+      storage_section: null
     };
 
     setCart(prev => [...prev, { product: customProduct, quantity: 1, isCustom: true }]);

@@ -27,8 +27,10 @@ const serviceTypes = [
   { value: 'limpeza', label: 'Limpeza/Higienização', type: 'service' },
   { value: 'desinstalacao', label: 'Desinstalação', type: 'service' },
   { value: 'orcamento', label: 'Orçamento', type: 'service' },
+  { value: 'prestacao', label: 'Prestação de Serviço', type: 'service' },
   { value: 'combo', label: '🎁 Combo (Mesclar Serviços)', type: 'service' },
   { value: 'peca', label: 'Peça/Material', type: 'piece' },
+  { value: 'ar_condicionado', label: 'Ar Condicionado (Aparelho)', type: 'piece' },
 ];
 
 const fetchProducts = async (): Promise<Product[]> => {
@@ -67,6 +69,14 @@ const ProductsTab: React.FC = () => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showExpenses, setShowExpenses] = useState(false);
   const [showForm, setShowForm] = useState(false);
+
+  // Supplier
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
+  
+  // Storage location
+  const [storageLocation, setStorageLocation] = useState("");
+  const [storageShelf, setStorageShelf] = useState("");
+  const [storageSection, setStorageSection] = useState("");
 
   // Combo
   const [comboSelectedServices, setComboSelectedServices] = useState<number[]>([]);
@@ -109,6 +119,15 @@ const ProductsTab: React.FC = () => {
   }, [totalCost, productPrice]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
+  
+  const { data: suppliers } = useQuery({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('suppliers').select('*').order('name');
+      if (error) throw error;
+      return data;
+    }
+  });
 
   // Combo calculations
   const comboOriginalTotal = React.useMemo(() => {
@@ -155,6 +174,7 @@ const ProductsTab: React.FC = () => {
       setQty(1); setExpenses([]); setNewExpenseName(""); setNewExpenseValue("");
       setProductImage(null); setProductImagePreview(null); setShowExpenses(false);
       setComboSelectedServices([]); setComboDiscount(""); setShowForm(false);
+      setSelectedSupplierId(""); setStorageLocation(""); setStorageShelf(""); setStorageSection("");
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
@@ -256,7 +276,7 @@ const ProductsTab: React.FC = () => {
       price: parseFloat(productPrice),
       cost_price: totalCost || 0,
       barcode: scannedBarcode?.trim() || null,
-      supplier_id: null,
+      supplier_id: selectedSupplierId ? parseInt(selectedSupplierId) : null,
       warranty_months: 12,
       min_stock: isService ? 0 : minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
@@ -264,6 +284,9 @@ const ProductsTab: React.FC = () => {
       service_duration: isService ? serviceDuration : null,
       type: isService ? 'service' : 'piece',
       image_url: imageUrl,
+      storage_location: storageLocation.trim() || null,
+      storage_shelf: storageShelf.trim() || null,
+      storage_section: storageSection.trim() || null,
     };
 
     addMutation.mutate(productData as any);
@@ -403,6 +426,9 @@ const ProductsTab: React.FC = () => {
                         <span className={`font-medium ${margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
                           {margin.toFixed(0)}% (R$ {profit.toFixed(2)})
                         </span>
+                        {(product as any).storage_location && (
+                          <span className="text-muted-foreground">📍 {(product as any).storage_location}{(product as any).storage_shelf ? ` / ${(product as any).storage_shelf}` : ''}</span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -605,16 +631,51 @@ const ProductsTab: React.FC = () => {
               </div>
             )}
 
-            {/* Piece qty */}
+            {/* Piece qty & stock */}
             {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Quantidade</Label>
+                  <Label className="text-xs">Quantidade em Estoque</Label>
                   <Input type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1" className="h-9" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Estoque Mínimo</Label>
+                  <Label className="text-xs">Estoque Mínimo (Alerta)</Label>
                   <Input type="number" value={minStockAlert} onChange={(e) => setMinStockAlert(Number(e.target.value))} min="0" className="h-9" />
+                </div>
+              </div>
+            )}
+
+            {/* Supplier selection */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Fornecedor (Opcional)</Label>
+              <Select value={selectedSupplierId} onValueChange={setSelectedSupplierId}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um fornecedor..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {suppliers?.map(s => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Storage location */}
+            {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
+              <div className="space-y-2">
+                <Label className="text-xs font-semibold">Local de Armazenamento (Opcional)</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Local / Câmara</Label>
+                    <Input value={storageLocation} onChange={(e) => setStorageLocation(e.target.value)} placeholder="Ex: Câmara 1" className="h-8 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Prateleira</Label>
+                    <Input value={storageShelf} onChange={(e) => setStorageShelf(e.target.value)} placeholder="Ex: A3" className="h-8 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] text-muted-foreground">Rua / Seção</Label>
+                    <Input value={storageSection} onChange={(e) => setStorageSection(e.target.value)} placeholder="Ex: Rua 2" className="h-8 text-sm" />
+                  </div>
                 </div>
               </div>
             )}

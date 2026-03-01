@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Snowflake, Building2 } from "lucide-react";
+import { Users, Snowflake, Building2, Package } from "lucide-react";
 import ClientsTab from './ClientsTab';
 import ProductsTab from './ProductsTab';
 import SuppliersTab from './SuppliersTab';
+import EstoqueTab from './EstoqueTab';
 
 const CadastrosUnifiedTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("clients");
@@ -11,7 +12,7 @@ const CadastrosUnifiedTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-md">
+        <TabsList className="grid w-full grid-cols-4 max-w-lg">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
             <Users className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Clientes</span>
@@ -19,6 +20,10 @@ const CadastrosUnifiedTab: React.FC = () => {
           <TabsTrigger value="products" className="flex items-center gap-1 px-2">
             <Snowflake className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Serviços AC</span>
+          </TabsTrigger>
+          <TabsTrigger value="estoque" className="flex items-center gap-1 px-2">
+            <Package className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Estoque</span>
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="flex items-center gap-1 px-2">
             <Building2 className="w-4 h-4 flex-shrink-0" />
@@ -32,6 +37,10 @@ const CadastrosUnifiedTab: React.FC = () => {
 
         <TabsContent value="products" className="mt-4">
           <ProductsTab />
+        </TabsContent>
+
+        <TabsContent value="estoque" className="mt-4">
+          <EstoqueTab />
         </TabsContent>
 
         <TabsContent value="suppliers" className="mt-4">

@@ -546,6 +546,9 @@ export type Database = {
           price: number
           qty: number
           service_duration: number | null
+          storage_location: string | null
+          storage_section: string | null
+          storage_shelf: string | null
           supplier_id: number | null
           type: string | null
           user_id: string
@@ -563,6 +566,9 @@ export type Database = {
           price: number
           qty?: number
           service_duration?: number | null
+          storage_location?: string | null
+          storage_section?: string | null
+          storage_shelf?: string | null
           supplier_id?: number | null
           type?: string | null
           user_id: string
@@ -580,6 +586,9 @@ export type Database = {
           price?: number
           qty?: number
           service_duration?: number | null
+          storage_location?: string | null
+          storage_section?: string | null
+          storage_shelf?: string | null
           supplier_id?: number | null
           type?: string | null
           user_id?: string
