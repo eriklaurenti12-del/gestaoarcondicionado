@@ -4,10 +4,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus } from "lucide-react";
+import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus, FileDown } from "lucide-react";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 type OnlineBooking = {
   id: string;
@@ -251,6 +253,33 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     }
   };
 
+  const exportBookingsPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Agendamentos Online', 14, 22);
+    doc.setFontSize(10);
+    doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')} | Total: ${bookings.length}`, 14, 30);
+
+    const tableData = bookings.map(b => [
+      b.client_name,
+      b.client_phone,
+      b.service_name,
+      format(new Date(b.preferred_date + 'T12:00:00'), 'dd/MM/yyyy'),
+      b.preferred_time,
+      b.payment_method || '-',
+      b.status === 'confirmado' ? 'Confirmado' : b.status === 'pendente' ? 'Pendente' : b.status === 'recusado' ? 'Recusado' : b.status,
+    ]);
+
+    autoTable(doc, {
+      startY: 35,
+      head: [['Cliente', 'Telefone', 'Serviço', 'Data', 'Hora', 'Pagamento', 'Status']],
+      body: tableData,
+      headStyles: { fillColor: [0, 128, 192] },
+    });
+    doc.save('agendamentos-online.pdf');
+    toast({ title: "PDF exportado!" });
+  };
+
   const pendingCount = bookings.filter(b => b.status === 'pendente').length;
 
   const getStatusBadge = (status: string) => {
@@ -304,6 +333,9 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
             <Button size="sm" variant="outline"
               onClick={checkForUpdates}>
               <RefreshCw className="w-3 h-3 mr-1" /> Procurar Atualização
+            </Button>
+            <Button size="sm" variant="outline" onClick={exportBookingsPDF} disabled={bookings.length === 0}>
+              <FileDown className="w-3 h-3 mr-1" /> Exportar PDF
             </Button>
           </div>
         </CardContent>
