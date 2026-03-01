@@ -365,6 +365,10 @@ export default function FinanceiroTab() {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="w-auto"
           />
+          <Button onClick={() => { fetchRecords(); }} variant="outline" size="sm" title="Atualizar dados">
+            <Loader2 className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+            Atualizar
+          </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm">
             <FileDown className="h-4 w-4 mr-2" />
             Extrato PDF

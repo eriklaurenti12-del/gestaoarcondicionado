@@ -213,14 +213,12 @@ const AppointmentsTab: React.FC = () => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
       
-      // If completing the appointment and has a service, register the sale
+      // If completing the appointment and has a service, register the sale AND financial record
       if (status === 'concluido' && appointment?.service_id && appointment?.client_id && appointment?.products) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           const salePrice = Number(appointment.products.price);
-          const costPrice = 0; // We'd need to fetch this from products table
           
-          // Fetch product cost price
           const { data: productData } = await supabase
             .from('products')
             .select('cost_price')
@@ -237,7 +235,17 @@ const AppointmentsTab: React.FC = () => {
             qty: 1,
             sale_price: salePrice,
             total_profit: profit,
-            payment_method: 'Dinheiro' as const, // Default, can be changed
+            payment_method: 'Dinheiro' as const,
+          });
+
+          // Create financial record
+          await supabase.from('financial_records').insert({
+            user_id: session.user.id,
+            type: 'entrada',
+            amount: salePrice,
+            description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+            payment_method: 'Dinheiro',
+            category: 'Serviço Agenda',
           });
         }
       }
@@ -246,7 +254,9 @@ const AppointmentsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales-financial'] });
+      queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({ title: "Status atualizado!" });
     },
     onError: (error: any) => {
