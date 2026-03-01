@@ -393,20 +393,24 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [decisionDialog, setDecisionDialog] = useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null });
     const [userName, setUserName] = useState('');
-    const companyName = localStorage.getItem('company_name') || '';
+    const [companyName, setCompanyName] = useState('');
     const today = new Date();
     const currentMonth = format(today, 'MMMM', { locale: ptBR });
     const currentDate = format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
     useEffect(() => {
-      const loadUserName = async () => {
+      const loadUserData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: profile } = await supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle();
+          const [{ data: profile }, { data: company }] = await Promise.all([
+            supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle(),
+            supabase.from('company_data').select('company_name').eq('user_id', user.id).maybeSingle(),
+          ]);
           if (profile?.username) setUserName(profile.username);
+          if (company?.company_name) setCompanyName(company.company_name);
         }
       };
-      loadUserName();
+      loadUserData();
     }, []);
 
     useEffect(() => {
@@ -547,9 +551,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
+              {companyName && (
+                <p className="text-xs font-semibold text-primary mb-1">🏢 {companyName}</p>
+              )}
               <h2 className="text-xl sm:text-2xl font-bold">
                 👋 Seja bem-vindo, {userName || 'Profissional'}!
               </h2>
+              {!companyName && (
+                <p className="text-xs text-amber-500 mt-1">⚠️ Cadastre o nome da sua empresa em "Minha Empresa" para aparecer aqui</p>
+              )}
               <p className="text-sm text-muted-foreground capitalize mt-1">
                 📅 {currentDate}
               </p>
