@@ -68,16 +68,25 @@ Deno.serve(async (req) => {
       }, { onConflict: 'user_id,role' });
     }
 
-    // Activate subscription (lifetime for team members)
-    const { error: subError } = await supabase.from('subscriptions').update({
+    // Activate subscription (lifetime for team members) - upsert to handle new users
+    const { error: subError } = await supabase.from('subscriptions').upsert({
+      user_id,
       plan: 'vitalicio',
       status: 'aprovado',
       is_active: true,
       start_date: new Date().toISOString()
-    }).eq('user_id', user_id);
+    }, { onConflict: 'user_id' });
 
     if (subError) {
       console.error('[accept-team-invite] Subscription error:', subError.message);
+      // Try insert if upsert fails
+      await supabase.from('subscriptions').insert({
+        user_id,
+        plan: 'vitalicio',
+        status: 'aprovado',
+        is_active: true,
+        start_date: new Date().toISOString()
+      });
     }
 
     console.log('[accept-team-invite] Success for:', user_email);

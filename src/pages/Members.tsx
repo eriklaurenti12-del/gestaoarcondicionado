@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2, Menu, GripVertical, Save, AlertTriangle, HardDrive } from "lucide-react";
+import { ArrowLeft, Search, Mail, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Copy, Monitor, Headphones, Link2, Menu, GripVertical, Save, AlertTriangle, HardDrive, ExternalLink, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
@@ -62,7 +62,8 @@ export default function Members() {
   const [teamInvites, setTeamInvites] = useState<TeamInvite[]>([]);
   const [loadingInvite, setLoadingInvite] = useState(false);
 
-  const publishedUrl = window.location.origin;
+  // Use published URL for shareable links, fallback to current origin
+  const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
 
   useEffect(() => {
     checkSuperAdmin();
@@ -479,26 +480,40 @@ export default function Members() {
                     const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
                     const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
                     const RoleIcon = roleInfo.icon;
+                    const whatsAppMsg = `🔗 *Convite para a equipe - ${roleInfo.label}*\n\nVocê foi convidado para fazer parte da equipe!\n\nClique no link abaixo para criar sua conta:\n${teamUrl}\n\nCódigo: ${invite.invite_code}`;
+                    const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(whatsAppMsg)}`;
                     return (
-                      <div key={invite.id} className="flex items-center gap-3 bg-muted/30 border border-border rounded-lg p-3">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
+                      <div key={invite.id} className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
                             <Badge variant="secondary" className="gap-1 text-xs">
                               <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
                               {roleInfo.label}
                             </Badge>
                             <code className="text-primary text-xs font-mono">{invite.invite_code}</code>
                           </div>
-                          <p className="text-muted-foreground text-xs truncate">{teamUrl}</p>
+                          <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
+                            className="text-xs h-8 w-8 p-0">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
-                        <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl)}
-                          className="text-xs">
-                          <Copy className="w-3 h-3 mr-1" /> Copiar
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
-                          className="text-xs">
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                        <div className="bg-background/50 rounded-md p-2">
+                          <p className="text-muted-foreground text-xs break-all font-mono">{teamUrl}</p>
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                          <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl)}
+                            className="text-xs flex-1">
+                            <Copy className="w-3 h-3 mr-1" /> Copiar Link
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => window.open(teamUrl, '_blank')}
+                            className="text-xs flex-1">
+                            <ExternalLink className="w-3 h-3 mr-1" /> Abrir Link
+                          </Button>
+                          <Button size="sm" className="text-xs flex-1 bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => window.open(whatsAppUrl, '_blank')}>
+                            <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
+                          </Button>
+                        </div>
                       </div>
                     );
                   })
