@@ -251,49 +251,49 @@ export default function Members() {
   if (!isSuperAdmin || loading) return null;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] p-6 relative" style={{ minWidth: '100%' }}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-6 relative" style={{ minWidth: '100%' }}>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-cyan-600/5 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-blue-600/5 rounded-full blur-[120px]"></div>
+        <div className="absolute top-1/4 -left-20 w-[600px] h-[600px] bg-indigo-600/8 rounded-full blur-[120px]"></div>
+        <div className="absolute bottom-1/3 -right-20 w-[500px] h-[500px] bg-violet-600/8 rounded-full blur-[120px]"></div>
       </div>
       
       <div className="max-w-7xl mx-auto space-y-6 relative z-10">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
+            <Button variant="outline" size="sm" onClick={() => navigate("/")} className="bg-slate-800/60 border-slate-700 hover:bg-slate-700 text-white">
               <ArrowLeft className="w-4 h-4" />
             </Button>
             <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2 text-white">
-              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-cyan-500" />
+              <Shield className="w-6 h-6 sm:w-8 sm:h-8 text-indigo-400" />
               Painel Super Admin
             </h1>
           </div>
         </div>
 
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] flex flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="users" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+          <TabsList className="bg-slate-800/60 border border-slate-700 flex flex-wrap h-auto gap-1 p-1.5 rounded-xl">
+            <TabsTrigger value="users" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Users className="w-4 h-4 mr-1" /> Usuários
             </TabsTrigger>
-            <TabsTrigger value="team" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="team" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <UserPlus className="w-4 h-4 mr-1" /> Equipe
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="notifications" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Bell className="w-4 h-4 mr-1" /> Notificações
             </TabsTrigger>
-            <TabsTrigger value="integrations" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="integrations" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Zap className="w-4 h-4 mr-1" /> Integrações
             </TabsTrigger>
-            <TabsTrigger value="n8n" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="n8n" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Webhook className="w-4 h-4 mr-1" /> n8n
             </TabsTrigger>
-            <TabsTrigger value="landing" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="landing" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Megaphone className="w-4 h-4 mr-1" /> Landing
             </TabsTrigger>
-            <TabsTrigger value="share" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="share" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Share2 className="w-4 h-4 mr-1" /> Links
             </TabsTrigger>
-            <TabsTrigger value="raffle" className="data-[state=active]:bg-cyan-600 data-[state=active]:text-white text-xs">
+            <TabsTrigger value="raffle" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-lg text-slate-400 text-xs rounded-lg transition-all">
               <Gift className="w-4 h-4 mr-1" /> Sorteio
             </TabsTrigger>
           </TabsList>
@@ -500,52 +500,52 @@ export default function Members() {
 
           <TabsContent value="users" className="mt-6 space-y-6">
             <div className="flex flex-wrap gap-2 justify-end">
-              <Button onClick={loadMembers} variant="outline" className="bg-[#1a1a24] border-[#2a2a3a] hover:bg-[#2a2a3a] text-white">
+              <Button onClick={loadMembers} variant="outline" className="bg-slate-800/60 border-slate-700 hover:bg-slate-700 text-white">
                 Atualizar Lista
               </Button>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-              <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+              <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur">
                 <CardContent className="pt-4">
-                  <div className="text-xl font-bold text-white">{stats.total}</div>
-                  <div className="text-xs text-gray-400">Total</div>
+                  <div className="text-2xl font-bold text-white">{stats.total}</div>
+                  <div className="text-xs text-slate-400">Total</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-green-900/30 to-green-950/30 border-green-800/50">
+              <Card className="bg-gradient-to-br from-emerald-500/15 to-emerald-600/5 border-emerald-500/30">
                 <CardContent className="pt-4">
-                  <div className="text-xl font-bold text-green-400">{stats.aprovados}</div>
-                  <div className="text-xs text-green-300/70">✓ Ativos</div>
+                  <div className="text-2xl font-bold text-emerald-400">{stats.aprovados}</div>
+                  <div className="text-xs text-emerald-300/70">✓ Ativos</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-yellow-900/30 to-yellow-950/30 border-yellow-800/50">
+              <Card className="bg-gradient-to-br from-amber-500/15 to-amber-600/5 border-amber-500/30">
                 <CardContent className="pt-4">
-                  <div className="text-xl font-bold text-yellow-400">{stats.aguardando}</div>
-                  <div className="text-xs text-yellow-300/70">⏱ Aguardando</div>
+                  <div className="text-2xl font-bold text-amber-400">{stats.aguardando}</div>
+                  <div className="text-xs text-amber-300/70">⏱ Aguardando</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-red-900/30 to-red-950/30 border-red-800/50">
+              <Card className="bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/30">
                 <CardContent className="pt-4">
-                  <div className="text-xl font-bold text-red-400">{stats.banidos}</div>
-                  <div className="text-xs text-red-300/70">🚫 Banidos</div>
+                  <div className="text-2xl font-bold text-rose-400">{stats.banidos}</div>
+                  <div className="text-xs text-rose-300/70">🚫 Banidos</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-cyan-900/30 to-cyan-950/30 border-cyan-800/50">
+              <Card className="bg-gradient-to-br from-violet-500/15 to-violet-600/5 border-violet-500/30">
                 <CardContent className="pt-4">
-                  <div className="text-xl font-bold text-cyan-400">{stats.vitalicio}</div>
-                  <div className="text-xs text-cyan-300/70">∞ Vitalício</div>
+                  <div className="text-2xl font-bold text-violet-400">{stats.vitalicio}</div>
+                  <div className="text-xs text-violet-300/70">∞ Vitalício</div>
                 </CardContent>
               </Card>
             </div>
 
-            <Card className="bg-[#1a1a24] border-[#2a2a3a]">
+            <Card className="bg-slate-800/50 border-slate-700/50 backdrop-blur">
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <CardTitle className="text-white">Gerenciar Usuários</CardTitle>
                   <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
                     <Input placeholder="Buscar por email..." value={search} onChange={(e) => setSearch(e.target.value)}
-                      className="pl-10 bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600" />
+                      className="pl-10 bg-slate-900/50 border-slate-700 text-white placeholder:text-slate-600" />
                   </div>
                 </div>
               </CardHeader>
@@ -553,26 +553,26 @@ export default function Members() {
                 <div className="overflow-x-auto touch-pan-x">
                   <Table className="min-w-[900px]">
                     <TableHeader>
-                      <TableRow className="border-[#2a2a3a] hover:bg-[#1a1a24]">
-                        <TableHead className="min-w-[180px] text-gray-400">Email</TableHead>
-                        <TableHead className="min-w-[120px] text-gray-400">WhatsApp</TableHead>
-                        <TableHead className="min-w-[110px] text-gray-400">Plano</TableHead>
-                        <TableHead className="min-w-[100px] text-gray-400">Status</TableHead>
-                        <TableHead className="min-w-[100px] text-gray-400">Cadastro</TableHead>
-                        <TableHead className="min-w-[100px] text-gray-400">Vencimento</TableHead>
-                        <TableHead className="min-w-[180px] text-gray-400">Ações</TableHead>
+                      <TableRow className="border-slate-700 hover:bg-slate-800/50">
+                        <TableHead className="min-w-[180px] text-slate-400">Email</TableHead>
+                        <TableHead className="min-w-[120px] text-slate-400">WhatsApp</TableHead>
+                        <TableHead className="min-w-[110px] text-slate-400">Plano</TableHead>
+                        <TableHead className="min-w-[100px] text-slate-400">Status</TableHead>
+                        <TableHead className="min-w-[100px] text-slate-400">Cadastro</TableHead>
+                        <TableHead className="min-w-[100px] text-slate-400">Vencimento</TableHead>
+                        <TableHead className="min-w-[180px] text-slate-400">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredMembers.map((member) => {
                         const isSuperAdminUser = member.email === 'eriklaurenti09@gmail.com';
                         return (
-                          <TableRow key={member.id} className={`border-[#2a2a3a] hover:bg-[#1a1a24]/50 ${member.subscription?.status === 'cancelado' ? 'bg-red-950/20' : ''} ${isSuperAdminUser ? 'bg-cyan-950/20 border-l-2 border-l-cyan-500' : ''}`}>
+                          <TableRow key={member.id} className={`border-slate-700/50 hover:bg-slate-800/30 ${member.subscription?.status === 'cancelado' ? 'bg-rose-950/10' : ''} ${isSuperAdminUser ? 'bg-indigo-950/20 border-l-2 border-l-indigo-500' : ''}`}>
                             <TableCell className="font-medium text-xs text-white">
                               <div className="flex items-center gap-2">
-                                {isSuperAdminUser && <Shield className="w-4 h-4 text-cyan-500 flex-shrink-0" />}
+                                {isSuperAdminUser && <Shield className="w-4 h-4 text-indigo-400 flex-shrink-0" />}
                                 <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
-                                {isSuperAdminUser && <Badge className="bg-cyan-600 text-white text-[10px]">SUPREMO</Badge>}
+                                {isSuperAdminUser && <Badge className="bg-indigo-600 text-white text-[10px]">SUPREMO</Badge>}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -587,40 +587,40 @@ export default function Members() {
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-cyan-600 text-white">Vitalício</Badge>
+                                <Badge className="bg-indigo-600 text-white">Vitalício</Badge>
                               ) : (
                                 <Select value={member.subscription?.plan || 'mensal'}
                                   onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}>
-                                  <SelectTrigger className="w-[100px] h-9 text-xs bg-[#0f0f17] border-[#2a2a3a] text-white">
+                                  <SelectTrigger className="w-[100px] h-9 text-xs bg-slate-900/50 border-slate-700 text-white">
                                     <SelectValue />
                                   </SelectTrigger>
-                                  <SelectContent className="bg-[#1a1a24] border-[#2a2a3a] min-w-[120px] z-50" position="popper" sideOffset={4} align="start" avoidCollisions={false}>
-                                    <SelectItem value="vitalicio" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">Vitalício</SelectItem>
-                                    <SelectItem value="anual" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Ano</SelectItem>
-                                    <SelectItem value="trimestral" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">3 Meses</SelectItem>
-                                    <SelectItem value="mensal" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Mês</SelectItem>
-                                    <SelectItem value="7dias" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">7 Dias</SelectItem>
-                                    <SelectItem value="1dia" className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white cursor-pointer">1 Dia</SelectItem>
+                                  <SelectContent className="bg-slate-800 border-slate-700 min-w-[120px] z-50" position="popper" sideOffset={4} align="start" avoidCollisions={false}>
+                                    <SelectItem value="vitalicio" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">Vitalício</SelectItem>
+                                    <SelectItem value="anual" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Ano</SelectItem>
+                                    <SelectItem value="trimestral" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">3 Meses</SelectItem>
+                                    <SelectItem value="mensal" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Mês</SelectItem>
+                                    <SelectItem value="7dias" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">7 Dias</SelectItem>
+                                    <SelectItem value="1dia" className="text-white hover:bg-slate-700 focus:bg-slate-700 focus:text-white cursor-pointer">1 Dia</SelectItem>
                                   </SelectContent>
                                 </Select>
                               )}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-cyan-600 text-white">✓ Supremo</Badge>
+                                <Badge className="bg-indigo-600 text-white">✓ Supremo</Badge>
                               ) : member.subscription && getStatusBadge(member.subscription.status)}
                             </TableCell>
-                            <TableCell className="text-xs text-gray-300">
+                            <TableCell className="text-xs text-slate-300">
                               {format(new Date(member.created_at), 'dd/MM/yyyy')}
                             </TableCell>
-                            <TableCell className="text-xs text-gray-300">
+                            <TableCell className="text-xs text-slate-300">
                               {isSuperAdminUser ? '∞' : member.subscription?.end_date 
                                 ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
                                 : member.subscription?.plan === 'vitalicio' ? '∞' : '-'}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge className="bg-gradient-to-r from-cyan-600 to-blue-600 text-white">
+                                <Badge className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
                                   <Shield className="w-3 h-3 mr-1" /> Protegido
                                 </Badge>
                               ) : (
@@ -631,8 +631,8 @@ export default function Members() {
                                       member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado')}
                                     className={`text-xs whitespace-nowrap ${
                                       member.subscription?.status === 'aprovado' 
-                                        ? 'bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]' 
-                                        : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white'
+                                        ? 'bg-slate-700 border-slate-600 text-white hover:bg-slate-600' 
+                                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white'
                                     }`}>
                                     {member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}
                                   </Button>

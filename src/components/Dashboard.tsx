@@ -60,7 +60,7 @@ const fetchDashboardData = async () => {
     const productsPromise = supabase.from('products').select('*');
     const clientsPromise = supabase.from('clients').select('*');
     const salesPromise = supabase.from('sales').select('*, clients(name), products(name)');
-    const appointmentsPromise = supabase.from('appointments').select('*, clients(name), products(name)');
+    const appointmentsPromise = supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, cost_price)');
     const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
     const fixedExpensesPromise = supabase.from('fixed_expenses').select('*');
     const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']);
@@ -89,11 +89,33 @@ const fetchDashboardData = async () => {
     const now = new Date();
     const currentMonthPrefix = format(now, 'yyyy-MM');
     const currentMonthSales = salesList.filter(s => {
-      try { return s.sale_date?.startsWith(currentMonthPrefix); } catch { return false; }
+      try { return s.sale_date?.substring(0, 7) === currentMonthPrefix; } catch { return false; }
     });
-    const totalSales = currentMonthSales.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
-    const totalProfit = currentMonthSales.reduce((sum, s) => sum + Number(s.total_profit), 0);
-    const totalItems = currentMonthSales.reduce((sum, s) => sum + s.qty, 0);
+    
+    // Also count revenue from confirmed appointments that may not have sale records
+    const confirmedAppointmentsThisMonth = appointmentsList.filter((a: any) => {
+      try {
+        return a.appointment_date?.substring(0, 7) === currentMonthPrefix && 
+               (a.status === 'concluido' || a.status === 'concluído' || a.status === 'confirmado');
+      } catch { return false; }
+    });
+    
+    // Revenue from sales
+    const salesRevenue = currentMonthSales.reduce((sum, s) => sum + (Number(s.sale_price) * s.qty), 0);
+    
+    // Revenue from confirmed appointments without matching sales (legacy bookings)
+    const salesProductIds = new Set(currentMonthSales.map(s => s.product_id));
+    const appointmentRevenue = confirmedAppointmentsThisMonth
+      .filter((a: any) => a.service_id && !salesProductIds.has(a.service_id))
+      .reduce((sum: number, a: any) => sum + (Number(a.products?.price) || 0), 0);
+    
+    const totalSales = salesRevenue + appointmentRevenue;
+    const totalProfit = currentMonthSales.reduce((sum, s) => sum + Number(s.total_profit), 0) + 
+      confirmedAppointmentsThisMonth
+        .filter((a: any) => a.service_id && !salesProductIds.has(a.service_id))
+        .reduce((sum: number, a: any) => sum + ((Number(a.products?.price) || 0) - (Number(a.products?.cost_price) || 0)), 0);
+    const totalItems = currentMonthSales.reduce((sum, s) => sum + s.qty, 0) + 
+      confirmedAppointmentsThisMonth.filter((a: any) => a.service_id && !salesProductIds.has(a.service_id)).length;
     const profitMargin = totalSales > 0 ? (totalProfit / totalSales) * 100 : 0;
 
     // Previous month for variation
@@ -370,10 +392,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     const [showInstallBanner, setShowInstallBanner] = useState(false);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
     const [decisionDialog, setDecisionDialog] = useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null });
+    const [userName, setUserName] = useState('');
     const companyName = localStorage.getItem('company_name') || '';
     const today = new Date();
     const currentMonth = format(today, 'MMMM', { locale: ptBR });
     const currentDate = format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+
+    useEffect(() => {
+      const loadUserName = async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle();
+          if (profile?.username) setUserName(profile.username);
+        }
+      };
+      loadUserName();
+    }, []);
 
     useEffect(() => {
         if ('Notification' in window) {
@@ -514,7 +548,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-xl sm:text-2xl font-bold">
-                👋 Seja bem-vindo{companyName ? `, ${companyName}` : ''}!
+                👋 Seja bem-vindo, {userName || 'Profissional'}!
               </h2>
               <p className="text-sm text-muted-foreground capitalize mt-1">
                 📅 {currentDate}
