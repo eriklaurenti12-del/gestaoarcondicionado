@@ -148,15 +148,54 @@ const PDVTab: React.FC = () => {
       const startDate = startOfMonth(parseISO(historyMonth + '-01'));
       const endDate = endOfMonth(startDate);
       
-      const { data, error } = await supabase
+      // Get PDV sales
+      const { data: salesData, error: salesError } = await supabase
         .from('sales')
-        .select('*, clients(name, telefone), products(name)')
+        .select('*, clients(name, telefone), products(name, image_url)')
         .gte('sale_date', startDate.toISOString())
         .lte('sale_date', endDate.toISOString())
         .order('sale_date', { ascending: false });
       
-      if (error) throw error;
-      return data as Sale[];
+      if (salesError) throw salesError;
+
+      // Get completed appointments (services done)
+      const { data: appointmentsData } = await supabase
+        .from('appointments')
+        .select('*, clients(name, telefone), products:service_id(name, price, cost_price, image_url)')
+        .eq('status', 'concluido')
+        .gte('appointment_date', startDate.toISOString())
+        .lte('appointment_date', endDate.toISOString())
+        .order('appointment_date', { ascending: false });
+
+      // Convert appointments to sale-like format, but avoid duplicates
+      const saleProductClientPairs = new Set(
+        (salesData || []).map(s => `${s.product_id}-${s.client_id}-${format(new Date(s.sale_date), 'yyyy-MM-dd')}`)
+      );
+
+      const appointmentSales: Sale[] = (appointmentsData || [])
+        .filter(apt => {
+          // Skip if already exists as a sale (synced from online booking)
+          const key = `${apt.service_id}-${apt.client_id}-${format(new Date(apt.appointment_date), 'yyyy-MM-dd')}`;
+          return !saleProductClientPairs.has(key);
+        })
+        .map((apt: any) => ({
+          id: -Math.abs(apt.id?.hashCode?.() || Math.random() * 100000),
+          product_id: apt.service_id || 0,
+          client_id: apt.client_id || 0,
+          qty: 1,
+          sale_price: Number(apt.products?.price || 0),
+          total_profit: Number(apt.products?.price || 0) - Number(apt.products?.cost_price || 0),
+          payment_method: 'PIX' as any,
+          payment_fee_percentage: null,
+          sale_date: apt.appointment_date,
+          user_id: apt.user_id,
+          clients: apt.clients,
+          products: apt.products ? { name: apt.products.name } : null,
+        }));
+
+      return [...(salesData as Sale[] || []), ...appointmentSales].sort(
+        (a, b) => new Date(b.sale_date).getTime() - new Date(a.sale_date).getTime()
+      );
     }
   });
 
@@ -658,13 +697,17 @@ const PDVTab: React.FC = () => {
                           disabled={product.type !== 'service' && product.qty <= 0}
                         >
                           <div className="flex items-center gap-3 w-full">
-                            <div className="p-2 rounded-lg bg-cyan-500/10">
-                              {product.type === 'service' ? (
-                                <Wind className="w-4 h-4 text-cyan-500" />
-                              ) : (
-                                <Package className="w-4 h-4 text-amber-500" />
-                              )}
-                            </div>
+                            {product.image_url ? (
+                              <img src={product.image_url} alt={product.name} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="p-2 rounded-lg bg-cyan-500/10 flex-shrink-0">
+                                {product.type === 'service' ? (
+                                  <Wind className="w-4 h-4 text-cyan-500" />
+                                ) : (
+                                  <Package className="w-4 h-4 text-amber-500" />
+                                )}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium truncate text-sm">{product.name}</p>
                               <div className="flex items-center gap-2 text-xs text-muted-foreground">
