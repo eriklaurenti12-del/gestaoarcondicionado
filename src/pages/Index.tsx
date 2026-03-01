@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle } from "lucide-react";
+import { Bell, HelpCircle, RefreshCw } from "lucide-react";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
@@ -230,6 +231,27 @@ export default function Index() {
                   <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Check for updates button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
+                    onClick={() => {
+                      if ('serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then((reg) => {
+                          reg.update().then(() => {
+                            toast.info("Verificando atualizações...");
+                          });
+                        });
+                      } else {
+                        window.location.reload();
+                      }
+                    }}
+                    title="Procurar atualização"
+                  >
+                    <RefreshCw className="h-5 w-5" />
+                  </Button>
+
                   {/* Help/Onboarding button */}
                   <Button
                     variant="ghost"
