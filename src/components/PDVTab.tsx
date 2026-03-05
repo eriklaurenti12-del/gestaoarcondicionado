@@ -109,6 +109,7 @@ const PDVTab: React.FC = () => {
   const [historyPaymentFilter, setHistoryPaymentFilter] = useState<string>("all");
 
   const clientDropdownRef = useRef<HTMLDivElement>(null);
+  const productSearchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const getUserId = async () => {
@@ -119,6 +120,74 @@ const PDVTab: React.FC = () => {
     };
     getUserId();
   }, []);
+
+  // Keyboard shortcuts for desktop
+  useEffect(() => {
+    const handleKeyboard = (e: KeyboardEvent) => {
+      // Don't trigger if typing in an input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        // F2 always works to focus search
+        if (e.key === 'F2') {
+          e.preventDefault();
+          productSearchRef.current?.focus();
+        }
+        // Escape to blur current input
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      switch (e.key) {
+        case 'F2':
+          e.preventDefault();
+          productSearchRef.current?.focus();
+          break;
+        case 'F4':
+          e.preventDefault();
+          handleFinalizeSale();
+          break;
+        case 'F5':
+          e.preventDefault();
+          // Toggle payment method
+          const methods: PaymentMethod[] = ['PIX', 'Dinheiro', 'Débito', 'Crédito'];
+          const currentIdx = methods.indexOf(paymentMethod);
+          setPaymentMethod(methods[(currentIdx + 1) % methods.length]);
+          toast({ title: `💳 Forma: ${methods[(currentIdx + 1) % methods.length]}` });
+          break;
+        case 'F6':
+          e.preventDefault();
+          setActiveSubTab(activeSubTab === 'venda' ? 'historico' : 'venda');
+          break;
+        case 'F8':
+          e.preventDefault();
+          // Clear cart
+          if (cart.length > 0) {
+            setCart([]);
+            toast({ title: "🗑️ Carrinho limpo" });
+          }
+          break;
+        case 'F9':
+          e.preventDefault();
+          // Select "Venda Balcão" (no client)
+          setSelectedClient(null);
+          setSearchClient("");
+          toast({ title: "👤 Venda Balcão selecionada" });
+          break;
+        case 'Delete':
+          e.preventDefault();
+          if (cart.length > 0) {
+            setCart(prev => prev.slice(0, -1));
+            toast({ title: "Último item removido" });
+          }
+          break;
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  }, [paymentMethod, cart, activeSubTab]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -749,6 +818,24 @@ const PDVTab: React.FC = () => {
           isActive: activeSubTab === 'historico',
         },
       ]} />
+      
+      {/* Keyboard shortcuts bar - desktop */}
+      <div className="hidden md:flex items-center gap-2 p-2 rounded-lg bg-muted/50 border border-border text-[11px] text-muted-foreground flex-wrap">
+        <span className="font-semibold text-foreground mr-1">⌨️ Atalhos:</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F2</kbd><span>Buscar</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F4</kbd><span>Finalizar</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F5</kbd><span>Forma Pgto</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F6</kbd><span>Aba</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F8</kbd><span>Limpar</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">F9</kbd><span>Venda Balcão</span>
+        <span className="text-border">|</span>
+        <kbd className="px-1.5 py-0.5 rounded bg-background border border-border font-mono">Del</kbd><span>Remover último</span>
+      </div>
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="venda" className="flex items-center gap-1 px-2">
@@ -780,7 +867,8 @@ const PDVTab: React.FC = () => {
                 <div className="relative mt-2">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Buscar por nome ou código..."
+                    ref={productSearchRef}
+                    placeholder="Buscar por nome ou código... (F2)"
                     value={searchProduct}
                     onChange={(e) => setSearchProduct(e.target.value)}
                     className="pl-10"
