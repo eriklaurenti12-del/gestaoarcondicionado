@@ -14,7 +14,7 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Image, Volume2, Target, ImagePlus
+  Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy
 } from "lucide-react";
 
 const LANDING_KEYS = [
@@ -45,6 +45,7 @@ const LANDING_KEYS = [
   ...Array.from({length: 6}, (_, i) => [`landing_faq${i+1}_pergunta`, `landing_faq${i+1}_resposta`, `landing_faq${i+1}_ativa`]).flat(),
   'landing_pixel_facebook', 'landing_pixel_google', 'landing_pixel_tiktok',
   'landing_bg_image_url', 'landing_bg_overlay_opacity', 'landing_bg_particles',
+  'landing_bg_effect', 'landing_bg_grid_color', 'landing_bg_grid_opacity', 'landing_bg_glow_color',
   'landing_secao_dor', 'landing_secao_features', 'landing_secao_comparativo',
   'landing_secao_depoimentos', 'landing_secao_faq', 'landing_secao_garantia',
   'landing_hero_bg_image', 'landing_precos_bg_image', 'landing_depoimentos_bg_image',
@@ -881,6 +882,113 @@ export const AdminLandingTab: React.FC = () => {
                   placeholder="Ex: ABCDEF123456" className="font-mono" />
               </CardContent>
             </Card>
+
+            {/* AUTO PIXEL GENERATOR */}
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="w-5 h-5 text-primary" /> 🔗 Gerador Automático de Pixel
+                </CardTitle>
+                <CardDescription>Copie o código abaixo e cole no seu gerenciador de anúncios (Facebook Ads, Google Ads, TikTok Ads).</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {settings.landing_pixel_facebook && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-blue-400">📘 Facebook / Meta Pixel</Label>
+                    <div className="relative">
+                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
+{`<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${settings.landing_pixel_facebook}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>
+<!-- End Facebook Pixel Code -->`}
+                      </pre>
+                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`<!-- Facebook Pixel Code -->\n<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>\n<!-- End Facebook Pixel Code -->`);
+                          toast({ title: "Copiado! ✅", description: "Código do Facebook Pixel copiado." });
+                        }}>
+                        📋 Copiar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {settings.landing_pixel_google && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-amber-400">📊 Google Ads (gtag)</Label>
+                    <div className="relative">
+                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
+{`<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${settings.landing_pixel_google}');
+</script>
+<!-- End Google tag -->`}
+                      </pre>
+                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>\n<script>\nwindow.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', '${settings.landing_pixel_google}');\n</script>\n<!-- End Google tag -->`);
+                          toast({ title: "Copiado! ✅", description: "Código do Google Ads copiado." });
+                        }}>
+                        📋 Copiar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {settings.landing_pixel_tiktok && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-foreground">🎵 TikTok Pixel</Label>
+                    <div className="relative">
+                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
+{`<!-- TikTok Pixel Code -->
+<script>
+!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');
+</script>
+<!-- End TikTok Pixel Code -->`}
+                      </pre>
+                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`<!-- TikTok Pixel Code -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');\n</script>\n<!-- End TikTok Pixel Code -->`);
+                          toast({ title: "Copiado! ✅", description: "Código do TikTok Pixel copiado." });
+                        }}>
+                        📋 Copiar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {!settings.landing_pixel_facebook && !settings.landing_pixel_google && !settings.landing_pixel_tiktok && (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Target className="w-10 h-10 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">Preencha ao menos um ID de pixel acima para gerar o código automaticamente.</p>
+                  </div>
+                )}
+
+                {/* Landing page URL for ads */}
+                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+                  <Label className="text-sm font-semibold mb-2 block">🔗 Link da Landing Page para usar nos Ads</Label>
+                  <div className="flex gap-2">
+                    <Input value={`${window.location.origin}/vendas`} readOnly className="font-mono bg-muted/50" />
+                    <Button variant="outline" onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/vendas`);
+                      toast({ title: "Link copiado! ✅" });
+                    }}>
+                      📋
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">Use este link nos seus anúncios. Os pixels serão disparados automaticamente.</p>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="p-4 rounded-xl bg-muted/50 border border-border">
               <p className="text-sm text-muted-foreground">
                 💡 Os pixels serão injetados automaticamente na landing page (<code>/vendas</code>) após salvar. 
@@ -968,6 +1076,41 @@ export const AdminLandingTab: React.FC = () => {
                   <Switch checked={settings.landing_bg_particles !== 'false'}
                     onCheckedChange={v => update('landing_bg_particles', v ? 'true' : 'false')} />
                 </div>
+
+                {/* Background Effect Type */}
+                <div>
+                  <Label className="text-muted-foreground text-sm">Efeito de Fundo</Label>
+                  <Select value={settings.landing_bg_effect || 'none'} onValueChange={v => update('landing_bg_effect', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum (cor sólida)</SelectItem>
+                      <SelectItem value="grid">🔲 Grade/Mesh (como a imagem)</SelectItem>
+                      <SelectItem value="gradient">🌈 Gradiente animado</SelectItem>
+                      <SelectItem value="dots">⚪ Pontos</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(settings.landing_bg_effect === 'grid' || settings.landing_bg_effect === 'dots') && (
+                  <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border">
+                    <ColorInput label="Cor da Grade/Pontos" value={settings.landing_bg_grid_color || '#6366f1'} onChange={v => update('landing_bg_grid_color', v)} />
+                    <div>
+                      <Label className="text-muted-foreground text-xs">Opacidade da grade ({settings.landing_bg_grid_opacity || '15'}%)</Label>
+                      <input type="range" min="5" max="50" value={settings.landing_bg_grid_opacity || '15'}
+                        onChange={e => update('landing_bg_grid_opacity', e.target.value)}
+                        className="w-full mt-1" />
+                    </div>
+                    <ColorInput label="Cor do Brilho/Glow" value={settings.landing_bg_glow_color || '#7c3aed'} onChange={v => update('landing_bg_glow_color', v)} />
+                  </div>
+                )}
+
+                {settings.landing_bg_effect === 'gradient' && (
+                  <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border">
+                    <ColorInput label="Cor do Gradiente 1" value={settings.landing_bg_grid_color || '#6366f1'} onChange={v => update('landing_bg_grid_color', v)} />
+                    <ColorInput label="Cor do Gradiente 2" value={settings.landing_bg_glow_color || '#7c3aed'} onChange={v => update('landing_bg_glow_color', v)} />
+                  </div>
+                )}
+
                 <div>
                   <Label className="text-muted-foreground text-sm">Velocidade das animações</Label>
                   <Select value={settings.landing_anim_speed || 'normal'} onValueChange={v => update('landing_anim_speed', v)}>
