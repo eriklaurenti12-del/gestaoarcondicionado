@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2 } from "lucide-react";
+import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
@@ -24,6 +24,7 @@ import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import AdminSettingsTab from "@/components/AdminSettingsTab";
+import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import { Switch } from "@/components/ui/switch";
 
 type Member = {
@@ -391,6 +392,9 @@ export default function Members() {
             <TabsTrigger value="settings" className="text-xs rounded-lg">
               <Settings2 className="w-4 h-4 mr-1" /> Config
             </TabsTrigger>
+            <TabsTrigger value="system-guide" className="text-xs rounded-lg">
+              <BookOpen className="w-4 h-4 mr-1" /> Guia PDF
+            </TabsTrigger>
           </TabsList>
 
           {/* ============ TEAM TAB ============ */}
@@ -672,6 +676,9 @@ export default function Members() {
             <AdminGuideCards tab="settings" />
             <AdminSettingsTab />
             <BetaSystemCard />
+          </TabsContent>
+          <TabsContent value="system-guide" className="mt-6">
+            <AdminSystemGuideTab />
           </TabsContent>
         </Tabs>
       </div>

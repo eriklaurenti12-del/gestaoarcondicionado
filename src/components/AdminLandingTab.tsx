@@ -18,6 +18,7 @@ import {
   CreditCard, Link2, CheckCircle2
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
+import { AIFieldHelper } from "@/components/AIFieldHelper";
 
 const LANDING_KEYS = [
   'landing_preco_mensal', 'landing_preco_anual', 'landing_preco_anual_original',
@@ -517,17 +518,20 @@ gtag('config', '${settings.landing_pixel_google}');
                 { key: 'landing_hero_subtitulo', label: 'Subtítulo' },
               ].map(f => (
                 <div key={f.key}>
-                  <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                  <Label className="text-muted-foreground text-sm flex items-center">
+                    {f.label}
+                    <AIFieldHelper context="textos" fieldName={f.label} />
+                  </Label>
                   <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} />
                 </div>
               ))}
               <div>
-                <Label className="text-muted-foreground text-sm">Descrição do Hero</Label>
+                <Label className="text-muted-foreground text-sm flex items-center">Descrição do Hero <AIFieldHelper context="textos" fieldName="descricao" /></Label>
                 <Textarea value={settings.landing_hero_descricao || ''} onChange={e => update('landing_hero_descricao', e.target.value)}
                   className="min-h-[80px]" />
               </div>
               <div>
-                <Label className="text-muted-foreground text-sm">Frase de Destaque</Label>
+                <Label className="text-muted-foreground text-sm flex items-center">Frase de Destaque <AIFieldHelper context="textos" fieldName="frase destaque" /></Label>
                 <Textarea value={settings.landing_frase_destaque || ''} onChange={e => update('landing_frase_destaque', e.target.value)}
                   className="min-h-[60px]" />
               </div>
@@ -536,7 +540,10 @@ gtag('config', '${settings.landing_pixel_google}');
                 { key: 'landing_btn_cta_texto', label: 'Texto do Botão CTA' },
               ].map(f => (
                 <div key={f.key}>
-                  <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                  <Label className="text-muted-foreground text-sm flex items-center">
+                    {f.label}
+                    <AIFieldHelper context="textos" fieldName={f.label} />
+                  </Label>
                   <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} />
                 </div>
               ))}
@@ -570,7 +577,7 @@ gtag('config', '${settings.landing_pixel_google}');
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
-                  <h4 className="text-primary font-semibold text-sm">💳 Plano Mensal</h4>
+                  <h4 className="text-primary font-semibold text-sm flex items-center">💳 Plano Mensal <AIFieldHelper context="precos" fieldName="preco mensal" /></h4>
                   <div>
                     <Label className="text-muted-foreground text-sm">Preço (R$)</Label>
                     <Input value={settings.landing_preco_mensal || ''} onChange={e => update('landing_preco_mensal', e.target.value)}
@@ -588,7 +595,7 @@ gtag('config', '${settings.landing_pixel_google}');
                   </div>
                 </div>
                 <div className="bg-muted/30 border border-primary/20 rounded-xl p-4 space-y-3">
-                  <h4 className="text-amber-500 font-semibold text-sm">⭐ Plano Anual</h4>
+                  <h4 className="text-amber-500 font-semibold text-sm flex items-center">⭐ Plano Anual <AIFieldHelper context="precos" fieldName="preco anual" /></h4>
                   {[
                     { key: 'landing_preco_anual', label: 'Preço Anual (R$)', ph: '370' },
                     { key: 'landing_preco_anual_original', label: 'Preço Original (riscado)', ph: '478,80' },
@@ -1405,19 +1412,16 @@ gtag('config', '${settings.landing_pixel_google}');
                   Ativar Checkout na Landing Page
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Quando ativado, os botões da landing redirecionam para o link de pagamento. Quando desativado, redirecionam para o cadastro no sistema.
+                  Os botões da landing redirecionam automaticamente para o link de pagamento. Funciona com links daqui OU das Configurações de Checkout.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
-                  <div>
-                    <p className="text-sm font-medium">Checkout Ativo</p>
-                    <p className="text-xs text-muted-foreground">Botões CTA redirecionam para pagamento externo</p>
-                  </div>
-                  <Switch 
-                    checked={settings.landing_checkout_ativo === 'true'} 
-                    onCheckedChange={v => update('landing_checkout_ativo', v ? 'true' : 'false')} 
-                  />
+                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                  <p className="text-xs text-green-600 dark:text-green-400">
+                    <strong>✅ Como funciona:</strong> O sistema usa automaticamente qualquer link disponível. 
+                    Se você já configurou links na aba <strong>Config → Checkout</strong>, eles serão usados como fallback. 
+                    Links aqui têm prioridade.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -1438,6 +1442,7 @@ gtag('config', '${settings.landing_pixel_google}');
                   <Label className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">Mensal</Badge>
                     Link do Plano Mensal
+                    <AIFieldHelper context="checkout" fieldName="link checkout mensal" />
                   </Label>
                   <Input 
                     value={settings.landing_checkout_mensal_link || ''} 
@@ -1449,6 +1454,7 @@ gtag('config', '${settings.landing_pixel_google}');
                   <Label className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">Anual</Badge>
                     Link do Plano Anual
+                    <AIFieldHelper context="checkout" fieldName="link checkout anual" />
                   </Label>
                   <Input 
                     value={settings.landing_checkout_anual_link || ''} 
