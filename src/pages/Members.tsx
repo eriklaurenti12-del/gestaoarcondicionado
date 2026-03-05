@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight } from "lucide-react";
+import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2 } from "lucide-react";
+import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
 import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
@@ -22,6 +23,8 @@ import AdminShareTab from "@/components/AdminShareTab";
 import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
+import AdminSettingsTab from "@/components/AdminSettingsTab";
+import { Switch } from "@/components/ui/switch";
 
 type Member = {
   id: string;
@@ -297,6 +300,36 @@ export default function Members() {
     </div>
   );
 
+  const BetaSystemCard = () => {
+    const { isBeta, toggleBeta } = useBetaMode();
+    return (
+      <Card className="mt-6 border-accent/30">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Zap className="w-5 h-5 text-accent" />
+            Sistema Beta (Simplificado)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            O Sistema Beta é uma interface simplificada com navegação por abas inferiores, ideal para uso rápido no celular. 
+            Inclui Agenda, Clientes e Financeiro em uma interface mais intuitiva. Você pode alternar entre os dois a qualquer momento.
+          </p>
+          <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+            <div>
+              <p className="text-sm font-medium">Ativar Sistema Beta</p>
+              <p className="text-xs text-muted-foreground">Ao ativar, será redirecionado para o modo simplificado</p>
+            </div>
+            <Switch checked={isBeta} onCheckedChange={() => { toggleBeta(); if (!isBeta) navigate('/beta'); }} />
+          </div>
+          <Button variant="outline" size="sm" onClick={() => { if (!isBeta) toggleBeta(); navigate('/beta'); }}>
+            <Zap className="w-4 h-4 mr-2" /> Acessar Sistema Beta Agora
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background p-6" style={{ minWidth: '100%' }}>
       <div className="max-w-7xl mx-auto space-y-6">
@@ -338,6 +371,9 @@ export default function Members() {
             </TabsTrigger>
             <TabsTrigger value="sidebar-config" className="text-xs rounded-lg">
               <Menu className="w-4 h-4 mr-1" /> Menu
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="text-xs rounded-lg">
+              <Settings2 className="w-4 h-4 mr-1" /> Config
             </TabsTrigger>
           </TabsList>
 
@@ -616,6 +652,11 @@ export default function Members() {
           <TabsContent value="share" className="mt-6"><AdminShareTab /></TabsContent>
           <TabsContent value="raffle" className="mt-6"><AdminRaffleTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
+          <TabsContent value="settings" className="mt-6">
+            <AdminGuideCards tab="settings" />
+            <AdminSettingsTab />
+            <BetaSystemCard />
+          </TabsContent>
         </Tabs>
       </div>
     </div>

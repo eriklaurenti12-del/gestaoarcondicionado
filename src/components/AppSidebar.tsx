@@ -1,5 +1,7 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useBetaMode } from "@/contexts/BetaModeContext";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -66,6 +68,8 @@ const sectionIconMap: Record<string, any> = {
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onNavigateMembers, onSignOut }: AppSidebarProps) {
   const { theme, toggleTheme } = useTheme();
+  const { toggleBeta } = useBetaMode();
+  const betaNavigate = useNavigate();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -205,6 +209,16 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
       <SidebarFooter className="p-2 border-t border-border">
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => { toggleBeta(); betaNavigate('/beta'); }}
+              tooltip="Acessar Sistema Beta"
+              className="hover:bg-accent/10 text-accent transition-all duration-200 hover:translate-x-1"
+            >
+              <Zap className="w-4 h-4 transition-transform duration-300 hover:scale-110" />
+              <span>Sistema Beta</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={toggleTheme}
