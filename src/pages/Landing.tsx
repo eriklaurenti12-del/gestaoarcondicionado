@@ -18,6 +18,7 @@ import {
 import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
 import { PromoCountdown } from "@/components/PromoCountdown";
 import InteractiveBackground from "@/components/InteractiveBackground";
+import { GridBackground } from "@/components/GridBackground";
 
 type AdminSettings = Record<string, string>;
 
@@ -88,6 +89,7 @@ const Landing: React.FC = () => {
     landing_notif_ativa: 'true', landing_notif_som: 'true', landing_notif_intervalo: '10', landing_notif_som_url: '',
     landing_pixel_facebook: '', landing_pixel_google: '', landing_pixel_tiktok: '',
     landing_bg_image_url: '', landing_bg_overlay_opacity: '70', landing_bg_particles: 'true',
+    landing_bg_effect: 'none', landing_bg_grid_color: '#6366f1', landing_bg_grid_opacity: '15', landing_bg_glow_color: '#7c3aed',
     landing_secao_dor: 'true', landing_secao_features: 'true', landing_secao_comparativo: 'true',
     landing_secao_depoimentos: 'true', landing_secao_faq: 'true', landing_secao_garantia: 'true',
     landing_hero_bg_image: '', landing_precos_bg_image: '', landing_depoimentos_bg_image: '',
@@ -501,7 +503,16 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: PERSUASÃO ────────────────────────────────────────
   const renderPersuasao = () => (
     <>
-      {settings.landing_bg_particles !== 'false' && (
+      {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
+        <GridBackground 
+          effect={settings.landing_bg_effect as 'grid' | 'dots' | 'gradient'} 
+          gridColor={settings.landing_bg_grid_color || '#6366f1'}
+          gridOpacity={Number(settings.landing_bg_grid_opacity || 15)}
+          glowColor={settings.landing_bg_glow_color || '#7c3aed'}
+          fondoColor={settings.landing_cor_fundo || '#0f172a'}
+        />
+      )}
+      {settings.landing_bg_particles !== 'false' && !settings.landing_bg_effect?.match(/grid|dots|gradient/) && (
         <InteractiveBackground color1={`${settings.landing_cor_primaria}26`} color2={`${settings.landing_cor_secundaria}20`} color3={`${settings.landing_cor_destaque}15`} />
       )}
       {settings.landing_bg_image_url && (
@@ -631,7 +642,10 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: VSL (VIDEO SALES LETTER) ─────────────────────────
   const renderVSL = () => (
     <>
-      {settings.landing_bg_particles !== 'false' && <InteractiveBackground color1="#f59e0b26" color2="#ef444420" color3="#8b5cf615" />}
+      {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
+        <GridBackground effect={settings.landing_bg_effect as 'grid' | 'dots' | 'gradient'} gridColor={settings.landing_bg_grid_color || '#6366f1'} gridOpacity={Number(settings.landing_bg_grid_opacity || 15)} glowColor={settings.landing_bg_glow_color || '#7c3aed'} fondoColor={settings.landing_cor_fundo || '#0f172a'} />
+      )}
+      {settings.landing_bg_particles !== 'false' && !settings.landing_bg_effect?.match(/grid|dots|gradient/) && <InteractiveBackground color1="#f59e0b26" color2="#ef444420" color3="#8b5cf615" />}
       {settings.landing_bg_image_url && (
         <>
           <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
@@ -777,7 +791,10 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: CUSTOM / CRIAR DO ZERO ───────────────────────────
   const renderCustom = () => (
     <>
-      {settings.landing_bg_particles !== 'false' && <InteractiveBackground color1="#8b5cf626" color2="#ec489920" color3="#06b6d415" />}
+      {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
+        <GridBackground effect={settings.landing_bg_effect as 'grid' | 'dots' | 'gradient'} gridColor={settings.landing_bg_grid_color || '#6366f1'} gridOpacity={Number(settings.landing_bg_grid_opacity || 15)} glowColor={settings.landing_bg_glow_color || '#7c3aed'} fondoColor={settings.landing_cor_fundo || '#0f172a'} />
+      )}
+      {settings.landing_bg_particles !== 'false' && !settings.landing_bg_effect?.match(/grid|dots|gradient/) && <InteractiveBackground color1="#8b5cf626" color2="#ec489920" color3="#06b6d415" />}
       {settings.landing_bg_image_url && (
         <>
           <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
