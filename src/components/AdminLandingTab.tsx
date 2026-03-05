@@ -22,6 +22,7 @@ import { AdminGuideCards } from "@/components/AdminGuideCards";
 const LANDING_KEYS = [
   'landing_preco_mensal', 'landing_preco_anual', 'landing_preco_anual_original',
   'landing_economia_anual', 'landing_preco_mensal_equivalente',
+  'landing_preco_mensal_original',
   'landing_hero_titulo', 'landing_hero_subtitulo', 'landing_hero_descricao',
   'landing_social_proof_count', 'landing_social_proof_rating',
   'landing_garantia_dias', 'landing_btn_cta_texto', 'landing_badge_urgencia', 'landing_frase_destaque',
@@ -50,10 +51,14 @@ const LANDING_KEYS = [
   'landing_bg_effect', 'landing_bg_grid_color', 'landing_bg_grid_opacity', 'landing_bg_glow_color',
   'landing_secao_dor', 'landing_secao_features', 'landing_secao_comparativo',
   'landing_secao_depoimentos', 'landing_secao_faq', 'landing_secao_garantia',
+  'landing_secao_hero', 'landing_secao_precos', 'landing_secao_urgencia_final', 'landing_secao_cta_final',
   'landing_hero_bg_image', 'landing_precos_bg_image', 'landing_depoimentos_bg_image',
   'landing_hero_font_size', 'landing_anim_speed',
   'landing_checkout_ativo', 'landing_checkout_mensal_link', 'landing_checkout_anual_link',
   'landing_checkout_redirect_sistema',
+  'landing_banner_ativo', 'landing_banner_texto', 'landing_banner_cor', 'landing_banner_link',
+  'landing_preco_mensal_riscado', 'landing_preco_anual_riscado',
+  'landing_nome_riscado_ativo', 'landing_nome_riscado_texto',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -140,6 +145,7 @@ export const AdminLandingTab: React.FC = () => {
   const [settings, setSettings] = useState<LandingSettings>({});
   const [previewKey, setPreviewKey] = useState(0);
   const [pixelTab, setPixelTab] = useState<'facebook' | 'google' | 'tiktok'>('facebook');
+  const [generatingAI, setGeneratingAI] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
@@ -246,6 +252,64 @@ export const AdminLandingTab: React.FC = () => {
       }
     };
     input.click();
+  };
+
+  const generateWithAI = async (type: string) => {
+    setGeneratingAI(type);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-landing-copy', {
+        body: { type, context: settings.landing_hero_descricao || '' }
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const gen = data.generated;
+
+      if (type === 'hero') {
+        update('landing_hero_titulo', gen.titulo);
+        update('landing_hero_subtitulo', gen.subtitulo);
+        update('landing_hero_descricao', gen.descricao);
+        update('landing_badge_urgencia', gen.badge_urgencia);
+        update('landing_frase_destaque', gen.frase_destaque);
+        update('landing_btn_cta_texto', gen.btn_cta);
+      } else if (type === 'faq') {
+        gen.faqs?.forEach((faq: any, i: number) => {
+          if (i < 6) {
+            update(`landing_faq${i+1}_pergunta`, faq.pergunta);
+            update(`landing_faq${i+1}_resposta`, faq.resposta);
+            update(`landing_faq${i+1}_ativa`, 'true');
+          }
+        });
+      } else if (type === 'depoimentos') {
+        gen.depoimentos?.forEach((dep: any, i: number) => {
+          if (i < 4) {
+            update(`landing_depoimento${i+1}_nome`, dep.nome);
+            update(`landing_depoimento${i+1}_role`, dep.role);
+            update(`landing_depoimento${i+1}_texto`, dep.texto);
+            update(`landing_depoimento${i+1}_estrelas`, dep.estrelas || '5');
+          }
+        });
+      } else if (type === 'ofertas') {
+        if (gen.plano1) {
+          update('landing_oferta1_titulo', gen.plano1.titulo);
+          update('landing_oferta1_descricao', gen.plano1.descricao);
+          update('landing_oferta1_badge', gen.plano1.badge);
+          update('landing_oferta1_btn_texto', gen.plano1.btn_texto);
+          update('landing_oferta1_features', gen.plano1.features?.join('\n') || '');
+        }
+        if (gen.plano2) {
+          update('landing_oferta2_titulo', gen.plano2.titulo);
+          update('landing_oferta2_descricao', gen.plano2.descricao);
+          update('landing_oferta2_badge', gen.plano2.badge);
+          update('landing_oferta2_btn_texto', gen.plano2.btn_texto);
+          update('landing_oferta2_features', gen.plano2.features?.join('\n') || '');
+        }
+      }
+      toast({ title: "✨ Textos gerados com IA!", description: "Revise e clique 'Salvar Tudo' para aplicar." });
+    } catch (err: any) {
+      toast({ title: "Erro na geração", description: err.message, variant: "destructive" });
+    } finally {
+      setGeneratingAI(null);
+    }
   };
 
   // Generate pixel head code
@@ -436,9 +500,16 @@ gtag('config', '${settings.landing_pixel_google}');
           <AdminGuideCards tab="landing-textos" />
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Type className="w-5 h-5 text-primary" /> Textos Principais
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Type className="w-5 h-5 text-primary" /> Textos Principais
+                </CardTitle>
+                <Button size="sm" variant="outline" onClick={() => generateWithAI('hero')} disabled={!!generatingAI}
+                  className="border-primary/30 text-primary hover:bg-primary/10">
+                  {generatingAI === 'hero' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                  Gerar com IA
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
@@ -469,6 +540,20 @@ gtag('config', '${settings.landing_pixel_google}');
                   <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} />
                 </div>
               ))}
+
+              {/* Nome/Texto Riscado */}
+              <div className="border-t border-border pt-3 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="text-sm font-medium">✏️ Texto Riscado (Comparação)</Label>
+                  <Switch checked={settings.landing_nome_riscado_ativo === 'true'}
+                    onCheckedChange={v => update('landing_nome_riscado_ativo', v ? 'true' : 'false')} />
+                </div>
+                {settings.landing_nome_riscado_ativo === 'true' && (
+                  <Input value={settings.landing_nome_riscado_texto || ''} onChange={e => update('landing_nome_riscado_texto', e.target.value)}
+                    placeholder="Ex: Planilhas, cadernos, WhatsApp..." className="text-sm" />
+                )}
+                <p className="text-xs text-muted-foreground mt-1">Exibe um texto riscado no hero para comparação visual</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -490,6 +575,16 @@ gtag('config', '${settings.landing_pixel_google}');
                     <Label className="text-muted-foreground text-sm">Preço (R$)</Label>
                     <Input value={settings.landing_preco_mensal || ''} onChange={e => update('landing_preco_mensal', e.target.value)}
                       placeholder="39,90" />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-sm">Preço Original Riscado (R$)</Label>
+                    <Input value={settings.landing_preco_mensal_original || ''} onChange={e => update('landing_preco_mensal_original', e.target.value)}
+                      placeholder="Ex: 59,90 (deixe vazio para não mostrar)" />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">Exibir preço riscado</Label>
+                    <Switch checked={settings.landing_preco_mensal_riscado === 'true'}
+                      onCheckedChange={v => update('landing_preco_mensal_riscado', v ? 'true' : 'false')} />
                   </div>
                 </div>
                 <div className="bg-muted/30 border border-primary/20 rounded-xl p-4 space-y-3">
@@ -548,6 +643,13 @@ gtag('config', '${settings.landing_pixel_google}');
         {/* OFERTAS */}
         <TabsContent value="ofertas">
           <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => generateWithAI('ofertas')} disabled={!!generatingAI}
+                className="border-primary/30 text-primary hover:bg-primary/10">
+                {generatingAI === 'ofertas' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                Gerar Ofertas com IA
+              </Button>
+            </div>
             {[1, 2].map(i => {
               const isActive = settings[`landing_oferta${i}_ativa`] !== 'false';
               const defaultFeatures = i === 1 
@@ -606,6 +708,13 @@ gtag('config', '${settings.landing_pixel_google}');
         <TabsContent value="depoimentos">
           <AdminGuideCards tab="landing-depoimentos" />
           <div className="space-y-4">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => generateWithAI('depoimentos')} disabled={!!generatingAI}
+                className="border-primary/30 text-primary hover:bg-primary/10">
+                {generatingAI === 'depoimentos' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                Gerar Depoimentos com IA
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map(i => (
                 <TestimonialEditor key={i} index={i} settings={settings} update={update} />
@@ -644,6 +753,13 @@ gtag('config', '${settings.landing_pixel_google}');
         <TabsContent value="faq">
           <AdminGuideCards tab="landing-faq" />
           <div className="space-y-3">
+            <div className="flex justify-end">
+              <Button size="sm" variant="outline" onClick={() => generateWithAI('faq')} disabled={!!generatingAI}
+                className="border-primary/30 text-primary hover:bg-primary/10">
+                {generatingAI === 'faq' ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+                Gerar FAQ com IA
+              </Button>
+            </div>
             {[1,2,3,4,5,6].map(i => (
               <Card key={i}>
                 <CardContent className="p-4 space-y-3">
@@ -1141,12 +1257,16 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
+                  { key: 'landing_secao_hero', label: '🏠 Hero (Topo)' },
                   { key: 'landing_secao_dor', label: '😰 Seção de Dor (Problemas)' },
                   { key: 'landing_secao_features', label: '⚡ Funcionalidades' },
                   { key: 'landing_secao_comparativo', label: '📊 Comparativo' },
+                  { key: 'landing_secao_precos', label: '💰 Preços' },
                   { key: 'landing_secao_depoimentos', label: '💬 Depoimentos' },
                   { key: 'landing_secao_faq', label: '❓ FAQ' },
                   { key: 'landing_secao_garantia', label: '🛡️ Garantia' },
+                  { key: 'landing_secao_urgencia_final', label: '⚠️ Urgência Final' },
+                  { key: 'landing_secao_cta_final', label: '🎯 CTA Final' },
                 ].map(s => (
                   <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
                     <span className="text-sm font-medium">{s.label}</span>
@@ -1199,6 +1319,40 @@ gtag('config', '${settings.landing_pixel_google}');
         <TabsContent value="extras">
           <AdminGuideCards tab="landing-extras" />
           <div className="space-y-4">
+            {/* Banner Promocional */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Megaphone className="w-5 h-5 text-primary" /> Banner Promocional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <Label className="text-sm">Banner Ativo</Label>
+                  <Switch checked={settings.landing_banner_ativo === 'true'}
+                    onCheckedChange={v => update('landing_banner_ativo', v ? 'true' : 'false')} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Texto do Banner</Label>
+                  <Input value={settings.landing_banner_texto || ''} onChange={e => update('landing_banner_texto', e.target.value)}
+                    placeholder="🔥 Promoção especial: 50% OFF no primeiro mês!" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <ColorInput label="Cor do Banner" value={settings.landing_banner_cor || '#ef4444'} onChange={v => update('landing_banner_cor', v)} />
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Link (opcional)</Label>
+                    <Input value={settings.landing_banner_link || ''} onChange={e => update('landing_banner_link', e.target.value)}
+                      placeholder="https://..." className="h-8 text-sm" />
+                  </div>
+                </div>
+                {settings.landing_banner_ativo === 'true' && settings.landing_banner_texto && (
+                  <div className="rounded-lg p-3 text-center text-white text-sm font-medium" style={{ background: settings.landing_banner_cor || '#ef4444' }}>
+                    {settings.landing_banner_texto}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
