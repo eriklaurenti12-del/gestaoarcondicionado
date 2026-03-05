@@ -3,14 +3,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, ClipboardList, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, Download, ShoppingCart, FileText } from "lucide-react";
+import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type PortalSession = {
   memberId: string;
@@ -125,6 +127,10 @@ export default function TeamPortalLogin() {
 // ============ PORTAL DASHBOARD ============
 function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogout: () => void }) {
   const { toast } = useToast();
+  const [clientSearch, setClientSearch] = useState("");
+  const [newClientName, setNewClientName] = useState("");
+  const [newClientPhone, setNewClientPhone] = useState("");
+  const [showNewClient, setShowNewClient] = useState(false);
 
   const { data: todayAppointments = [], refetch: refetchApts } = useQuery({
     queryKey: ['portal-today', session.ownerId],
@@ -154,13 +160,75 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     refetchInterval: 30000,
   });
 
+  const { data: portalClients = [], refetch: refetchClients } = useQuery({
+    queryKey: ['portal-clients', session.ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('team-portal-data', {
+        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'clients' }
+      });
+      if (error) throw error;
+      return data?.clients || [];
+    },
+  });
+
+  const { data: portalFinancial = [] } = useQuery({
+    queryKey: ['portal-financial', session.ownerId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('team-portal-data', {
+        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'financial' }
+      });
+      if (error) throw error;
+      return data?.financial || [];
+    },
+  });
+
   const completed = todayAppointments.filter((a: any) => a.status === 'concluido').length;
   const pending = todayAppointments.filter((a: any) => a.status !== 'concluido' && a.status !== 'cancelado').length;
+
+  const filteredClients = (portalClients as any[]).filter((c: any) =>
+    c.name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.telefone?.includes(clientSearch)
+  );
 
   const handleRefresh = () => {
     refetchApts();
     refetchBookings();
+    refetchClients();
     toast({ title: "Atualizado! ✓" });
+  };
+
+  const exportAgendaPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Agenda do Dia', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Equipe: ${session.memberName} | ${format(new Date(), 'dd/MM/yyyy')}`, 14, 28);
+    autoTable(doc, {
+      startY: 35,
+      head: [['Horário', 'Cliente', 'Serviço', 'Status']],
+      body: todayAppointments.map((a: any) => [a.time || '-', a.client_name || '-', a.service || '-', a.status || '-']),
+    });
+    doc.save('agenda-equipe.pdf');
+    toast({ title: '📄 PDF baixado!' });
+  };
+
+  const exportClientesPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Clientes', 14, 20);
+    autoTable(doc, {
+      startY: 30,
+      head: [['Nome', 'Telefone', 'Endereço']],
+      body: (portalClients as any[]).map((c: any) => [c.name || '-', c.telefone || '-', c.address || '-']),
+    });
+    doc.save('clientes-equipe.pdf');
+    toast({ title: '📄 PDF baixado!' });
+  };
+
+  const canAccess = (feature: string) => {
+    const role = session.role;
+    if (role === 'admin' || role === 'gerente') return true;
+    if (role === 'suporte') return ['agenda', 'clientes', 'financeiro', 'pendentes'].includes(feature);
+    return ['agenda', 'pendentes'].includes(feature);
   };
 
   return (
@@ -174,7 +242,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             </div>
             <div>
               <h1 className="font-bold text-lg">Olá, {session.memberName}!</h1>
-              <p className="text-sm opacity-80">{pending} serviço{pending !== 1 ? 's' : ''} pendente{pending !== 1 ? 's' : ''}</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="text-[10px]">{session.role}</Badge>
+                <span className="text-sm opacity-80">{pending} pendente{pending !== 1 ? 's' : ''}</span>
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -216,12 +287,17 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
         {/* Tabs */}
         <Tabs defaultValue="today">
-          <TabsList className="w-full">
-            <TabsTrigger value="today" className="flex-1 text-xs">📋 Agenda Hoje</TabsTrigger>
+          <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="today" className="flex-1 text-xs">📋 Agenda</TabsTrigger>
             <TabsTrigger value="pending" className="flex-1 text-xs">⏳ Pendentes</TabsTrigger>
+            {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-xs">👥 Clientes</TabsTrigger>}
+            {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-xs">💰 Financeiro</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="today" className="mt-3 space-y-3">
+            <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportAgendaPDF}>
+              <Download className="w-4 h-4" /> Exportar Agenda PDF
+            </Button>
             {todayAppointments.length === 0 ? (
               <Card>
                 <CardContent className="py-10 text-center">
@@ -252,7 +328,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                       {apt.phone && (
                         <Button size="sm" variant="outline" className="h-8 w-8 p-0"
                           onClick={() => window.open(`https://wa.me/55${apt.phone.replace(/\D/g, '')}`, '_blank')}>
-                          📱
+                          <Phone className="w-4 h-4 text-green-500" />
                         </Button>
                       )}
                     </div>
@@ -284,7 +360,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                       </div>
                       <Button size="sm" variant="outline" className="h-8 w-8 p-0"
                         onClick={() => window.open(`https://wa.me/55${b.client_phone?.replace(/\D/g, '')}`, '_blank')}>
-                        📱
+                        <Phone className="w-4 h-4 text-green-500" />
                       </Button>
                     </div>
                   </CardContent>
@@ -292,6 +368,90 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               ))
             )}
           </TabsContent>
+
+          {canAccess('clientes') && (
+            <TabsContent value="clientes" className="mt-3 space-y-3">
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
+                </div>
+                <Button size="icon" variant="outline" onClick={exportClientesPDF}><Download className="w-4 h-4" /></Button>
+              </div>
+
+              {filteredClients.length === 0 ? (
+                <Card>
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p>Nenhum cliente encontrado</p>
+                  </CardContent>
+                </Card>
+              ) : (
+                filteredClients.slice(0, 30).map((client: any) => (
+                  <Card key={client.id}>
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary">{client.name?.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{client.name}</p>
+                          <p className="text-xs text-muted-foreground">{client.telefone || 'Sem telefone'}</p>
+                        </div>
+                      </div>
+                      {client.telefone && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8"
+                          onClick={() => window.open(`https://wa.me/55${client.telefone.replace(/\D/g, '')}`, '_blank')}>
+                          <Phone className="w-3.5 h-3.5 text-green-500" />
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </TabsContent>
+          )}
+
+          {canAccess('financeiro') && (
+            <TabsContent value="financeiro" className="mt-3 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Receitas</p>
+                    <p className="text-xl font-bold text-green-500">
+                      R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'receita').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Despesas</p>
+                    <p className="text-xl font-bold text-destructive">
+                      R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'despesa').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              {(portalFinancial as any[]).slice(0, 10).map((rec: any, idx: number) => (
+                <Card key={rec.id || idx}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${rec.type === 'receita' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                        <DollarSign className={`w-4 h-4 ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
+                        <p className="text-xs text-muted-foreground">{rec.record_date ? format(new Date(rec.record_date), 'dd/MM/yyyy') : '-'}</p>
+                      </div>
+                    </div>
+                    <p className={`font-bold text-sm ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`}>
+                      {rec.type === 'receita' ? '+' : '-'}R$ {Number(rec.amount || 0).toFixed(2)}
+                    </p>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
