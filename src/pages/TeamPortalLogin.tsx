@@ -7,9 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, Download, ShoppingCart, FileText } from "lucide-react";
-import { format, startOfDay } from "date-fns";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { 
+  Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, 
+  ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, 
+  Download, Package, Headphones, MessageCircle, ArrowLeft, Truck
+} from "lucide-react";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -127,22 +131,30 @@ export default function TeamPortalLogin() {
 // ============ PORTAL DASHBOARD ============
 function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogout: () => void }) {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState("today");
   const [clientSearch, setClientSearch] = useState("");
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
+  const [newClientAddress, setNewClientAddress] = useState("");
   const [showNewClient, setShowNewClient] = useState(false);
+
+  const fetchPortalData = async (type: string, extra?: Record<string, any>) => {
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
+    const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+    
+    const { data, error } = await supabase.functions.invoke('team-portal-data', {
+      body: { owner_id: session.ownerId, member_id: session.memberId, type, start, end, ...extra }
+    });
+    if (error) throw error;
+    return data;
+  };
 
   const { data: todayAppointments = [], refetch: refetchApts } = useQuery({
     queryKey: ['portal-today', session.ownerId],
     queryFn: async () => {
-      const today = new Date();
-      const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-      const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
-
-      const { data, error } = await supabase.functions.invoke('team-portal-data', {
-        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'appointments', start, end }
-      });
-      if (error) throw error;
+      const data = await fetchPortalData('appointments');
       return data?.appointments || [];
     },
     refetchInterval: 30000,
@@ -151,10 +163,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const { data: pendingBookings = [], refetch: refetchBookings } = useQuery({
     queryKey: ['portal-bookings', session.ownerId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('team-portal-data', {
-        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'bookings' }
-      });
-      if (error) throw error;
+      const data = await fetchPortalData('bookings');
       return data?.bookings || [];
     },
     refetchInterval: 30000,
@@ -163,10 +172,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const { data: portalClients = [], refetch: refetchClients } = useQuery({
     queryKey: ['portal-clients', session.ownerId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('team-portal-data', {
-        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'clients' }
-      });
-      if (error) throw error;
+      const data = await fetchPortalData('clients');
       return data?.clients || [];
     },
   });
@@ -174,11 +180,32 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const { data: portalFinancial = [] } = useQuery({
     queryKey: ['portal-financial', session.ownerId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('team-portal-data', {
-        body: { owner_id: session.ownerId, member_id: session.memberId, type: 'financial' }
-      });
-      if (error) throw error;
+      const data = await fetchPortalData('financial');
       return data?.financial || [];
+    },
+  });
+
+  const { data: portalProducts = [] } = useQuery({
+    queryKey: ['portal-products', session.ownerId],
+    queryFn: async () => {
+      const data = await fetchPortalData('products');
+      return data?.products || [];
+    },
+  });
+
+  const { data: supportMembers = [] } = useQuery({
+    queryKey: ['portal-support', session.ownerId],
+    queryFn: async () => {
+      const data = await fetchPortalData('support_members');
+      return data?.members || [];
+    },
+  });
+
+  const { data: portalSuppliers = [] } = useQuery({
+    queryKey: ['portal-suppliers', session.ownerId],
+    queryFn: async () => {
+      const data = await fetchPortalData('suppliers');
+      return data?.suppliers || [];
     },
   });
 
@@ -190,22 +217,56 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   );
 
   const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['portal-'] });
     refetchApts();
     refetchBookings();
     refetchClients();
     toast({ title: "Atualizado! ✓" });
   };
 
+  const handleAddClient = async () => {
+    if (!newClientName.trim()) {
+      toast({ title: 'Informe o nome', variant: 'destructive' });
+      return;
+    }
+    try {
+      const data = await fetchPortalData('add_client', {
+        client_name: newClientName.trim(),
+        client_phone: newClientPhone.trim(),
+        client_address: newClientAddress.trim(),
+      });
+      if (data?.error) throw new Error(data.error);
+      toast({ title: '✅ Cliente cadastrado!' });
+      setNewClientName('');
+      setNewClientPhone('');
+      setNewClientAddress('');
+      setShowNewClient(false);
+      refetchClients();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const canAccess = (feature: string) => {
+    const role = session.role;
+    if (role === 'admin' || role === 'gerente' || role === 'suporte') return true;
+    if (role === 'sistema') return ['agenda', 'pendentes', 'clientes', 'suporte'].includes(feature);
+    return ['agenda', 'pendentes'].includes(feature);
+  };
+
+  // PDF exports
   const exportAgendaPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
     doc.text('Agenda do Dia', 14, 20);
     doc.setFontSize(10);
-    doc.text(`Equipe: ${session.memberName} | ${format(new Date(), 'dd/MM/yyyy')}`, 14, 28);
+    doc.text(`Equipe: ${session.memberName} | ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
     autoTable(doc, {
       startY: 35,
-      head: [['Horário', 'Cliente', 'Serviço', 'Status']],
-      body: todayAppointments.map((a: any) => [a.time || '-', a.client_name || '-', a.service || '-', a.status || '-']),
+      head: [['Horário', 'Cliente', 'Telefone', 'Status', 'Obs']],
+      body: todayAppointments.map((a: any) => [
+        a.time || '-', a.client_name || '-', a.phone || '-', a.status || '-', a.notes || ''
+      ]),
     });
     doc.save('agenda-equipe.pdf');
     toast({ title: '📄 PDF baixado!' });
@@ -214,21 +275,65 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const exportClientesPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text('Clientes', 14, 20);
+    doc.text('Lista de Clientes', 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Total: ${(portalClients as any[]).length} | Gerado: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
     autoTable(doc, {
-      startY: 30,
-      head: [['Nome', 'Telefone', 'Endereço']],
-      body: (portalClients as any[]).map((c: any) => [c.name || '-', c.telefone || '-', c.address || '-']),
+      startY: 35,
+      head: [['Nome', 'Telefone', 'Email', 'Endereço']],
+      body: (portalClients as any[]).map((c: any) => [
+        c.name || '-', c.telefone || '-', c.email || '-', c.address || '-'
+      ]),
     });
-    doc.save('clientes-equipe.pdf');
+    doc.save('clientes.pdf');
     toast({ title: '📄 PDF baixado!' });
   };
 
-  const canAccess = (feature: string) => {
-    const role = session.role;
-    if (role === 'admin' || role === 'gerente') return true;
-    if (role === 'suporte') return ['agenda', 'clientes', 'financeiro', 'pendentes'].includes(feature);
-    return ['agenda', 'pendentes'].includes(feature);
+  const exportFinanceiroPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Relatório Financeiro', 14, 20);
+    doc.setFontSize(10);
+    const totalR = (portalFinancial as any[]).filter((r: any) => r.type === 'receita').reduce((s: number, r: any) => s + Number(r.amount), 0);
+    const totalD = (portalFinancial as any[]).filter((r: any) => r.type === 'despesa').reduce((s: number, r: any) => s + Number(r.amount), 0);
+    doc.text(`Receitas: R$ ${totalR.toFixed(2)} | Despesas: R$ ${totalD.toFixed(2)} | Saldo: R$ ${(totalR - totalD).toFixed(2)}`, 14, 28);
+    autoTable(doc, {
+      startY: 35,
+      head: [['Data', 'Descrição', 'Tipo', 'Pagamento', 'Valor']],
+      body: (portalFinancial as any[]).map((r: any) => [
+        r.record_date ? format(new Date(r.record_date), 'dd/MM/yyyy') : '-',
+        r.description || r.category || '-',
+        r.type === 'receita' ? 'Receita' : 'Despesa',
+        r.payment_method || '-',
+        `R$ ${Number(r.amount || 0).toFixed(2)}`
+      ]),
+    });
+    doc.save('financeiro.pdf');
+    toast({ title: '📄 PDF baixado!' });
+  };
+
+  const exportProdutosPDF = () => {
+    const doc = new jsPDF();
+    doc.setFontSize(18);
+    doc.text('Produtos e Serviços', 14, 20);
+    autoTable(doc, {
+      startY: 30,
+      head: [['Nome', 'Tipo', 'Preço', 'Estoque']],
+      body: (portalProducts as any[]).map((p: any) => [
+        p.name, p.type === 'service' ? 'Serviço' : 'Produto',
+        `R$ ${Number(p.price).toFixed(2)}`, p.type === 'service' ? '-' : String(p.qty)
+      ]),
+    });
+    doc.save('produtos-servicos.pdf');
+    toast({ title: '📄 PDF baixado!' });
+  };
+
+  const roleLabel: Record<string, string> = {
+    admin: '👑 Admin',
+    gerente: '📊 Gerente',
+    suporte: '🎧 Suporte',
+    sistema: '💻 Sistema',
+    tecnico: '🔧 Técnico',
   };
 
   return (
@@ -243,7 +348,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             <div>
               <h1 className="font-bold text-lg">Olá, {session.memberName}!</h1>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-[10px]">{session.role}</Badge>
+                <Badge variant="secondary" className="text-[10px]">{roleLabel[session.role] || session.role}</Badge>
                 <span className="text-sm opacity-80">{pending} pendente{pending !== 1 ? 's' : ''}</span>
               </div>
             </div>
@@ -261,39 +366,49 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <CalendarDays className="w-5 h-5 mx-auto text-primary mb-1" />
-              <div className="text-2xl font-bold">{todayAppointments.length}</div>
-              <div className="text-xs text-muted-foreground">Hoje</div>
+        <div className="grid grid-cols-4 gap-2">
+          <Card className="cursor-pointer" onClick={() => setActiveTab('today')}>
+            <CardContent className="pt-3 pb-2 text-center">
+              <CalendarDays className="w-4 h-4 mx-auto text-primary mb-1" />
+              <div className="text-xl font-bold">{todayAppointments.length}</div>
+              <div className="text-[10px] text-muted-foreground">Hoje</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <ClipboardList className="w-5 h-5 mx-auto text-emerald-500 mb-1" />
-              <div className="text-2xl font-bold text-emerald-500">{completed}</div>
-              <div className="text-xs text-muted-foreground">Concluídos</div>
+          <Card className="cursor-pointer" onClick={() => setActiveTab('clientes')}>
+            <CardContent className="pt-3 pb-2 text-center">
+              <Users className="w-4 h-4 mx-auto text-blue-500 mb-1" />
+              <div className="text-xl font-bold">{(portalClients as any[]).length}</div>
+              <div className="text-[10px] text-muted-foreground">Clientes</div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="pt-4 pb-3 text-center">
-              <Clock className="w-5 h-5 mx-auto text-amber-500 mb-1" />
-              <div className="text-2xl font-bold text-amber-500">{pendingBookings.length}</div>
-              <div className="text-xs text-muted-foreground">Pendentes</div>
+          <Card className="cursor-pointer" onClick={() => setActiveTab('pending')}>
+            <CardContent className="pt-3 pb-2 text-center">
+              <Clock className="w-4 h-4 mx-auto text-amber-500 mb-1" />
+              <div className="text-xl font-bold text-amber-500">{pendingBookings.length}</div>
+              <div className="text-[10px] text-muted-foreground">Pendentes</div>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer" onClick={() => setActiveTab('suporte')}>
+            <CardContent className="pt-3 pb-2 text-center">
+              <Headphones className="w-4 h-4 mx-auto text-green-500 mb-1" />
+              <div className="text-xl font-bold text-green-500">{(supportMembers as any[]).length}</div>
+              <div className="text-[10px] text-muted-foreground">Suporte</div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="today">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="today" className="flex-1 text-xs">📋 Agenda</TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1 text-xs">⏳ Pendentes</TabsTrigger>
-            {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-xs">👥 Clientes</TabsTrigger>}
-            {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-xs">💰 Financeiro</TabsTrigger>}
+            <TabsTrigger value="today" className="flex-1 text-[11px] px-2">📋 Agenda</TabsTrigger>
+            <TabsTrigger value="pending" className="flex-1 text-[11px] px-2">⏳ Pendentes</TabsTrigger>
+            {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>}
+            {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>}
+            {canAccess('produtos') && <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>}
+            <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">🎧 Suporte</TabsTrigger>
           </TabsList>
 
+          {/* === AGENDA === */}
           <TabsContent value="today" className="mt-3 space-y-3">
             <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportAgendaPDF}>
               <Download className="w-4 h-4" /> Exportar Agenda PDF
@@ -303,7 +418,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 <CardContent className="py-10 text-center">
                   <CalendarDays className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="font-medium">Nenhum serviço hoje</p>
-                  <p className="text-sm text-muted-foreground">Quando tiver agendamentos, eles aparecerão aqui.</p>
                   <Button size="sm" variant="outline" className="mt-4" onClick={handleRefresh}>
                     <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
                   </Button>
@@ -338,13 +452,13 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             )}
           </TabsContent>
 
+          {/* === PENDENTES === */}
           <TabsContent value="pending" className="mt-3 space-y-3">
             {pendingBookings.length === 0 ? (
               <Card>
                 <CardContent className="py-10 text-center">
                   <Clock className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
                   <p className="font-medium">Nenhum agendamento pendente</p>
-                  <p className="text-sm text-muted-foreground">Novos agendamentos online aparecerão aqui.</p>
                 </CardContent>
               </Card>
             ) : (
@@ -369,6 +483,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             )}
           </TabsContent>
 
+          {/* === CLIENTES === */}
           {canAccess('clientes') && (
             <TabsContent value="clientes" className="mt-3 space-y-3">
               <div className="flex gap-2">
@@ -377,7 +492,30 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                   <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
                 </div>
                 <Button size="icon" variant="outline" onClick={exportClientesPDF}><Download className="w-4 h-4" /></Button>
+                <Button size="icon" onClick={() => setShowNewClient(!showNewClient)}><Plus className="w-4 h-4" /></Button>
               </div>
+
+              {/* New client form */}
+              {showNewClient && (
+                <Card className="border-primary/30">
+                  <CardHeader className="pb-2 pt-3 px-4">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Plus className="w-4 h-4" /> Cadastrar Novo Cliente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="px-4 pb-4 space-y-2">
+                    <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="h-10" />
+                    <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} className="h-10" />
+                    <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} className="h-10" />
+                    <div className="flex gap-2">
+                      <Button onClick={handleAddClient} className="flex-1">
+                        <Plus className="w-4 h-4 mr-1" /> Cadastrar
+                      </Button>
+                      <Button variant="outline" onClick={() => setShowNewClient(false)}>Cancelar</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {filteredClients.length === 0 ? (
                 <Card>
@@ -387,7 +525,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                   </CardContent>
                 </Card>
               ) : (
-                filteredClients.slice(0, 30).map((client: any) => (
+                filteredClients.slice(0, 50).map((client: any) => (
                   <Card key={client.id}>
                     <CardContent className="p-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -397,6 +535,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                         <div>
                           <p className="font-medium text-sm">{client.name}</p>
                           <p className="text-xs text-muted-foreground">{client.telefone || 'Sem telefone'}</p>
+                          {client.email && <p className="text-[10px] text-muted-foreground">{client.email}</p>}
                         </div>
                       </div>
                       {client.telefone && (
@@ -412,8 +551,12 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             </TabsContent>
           )}
 
+          {/* === FINANCEIRO === */}
           {canAccess('financeiro') && (
             <TabsContent value="financeiro" className="mt-3 space-y-3">
+              <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportFinanceiroPDF}>
+                <Download className="w-4 h-4" /> Exportar Financeiro PDF
+              </Button>
               <div className="grid grid-cols-2 gap-3">
                 <Card>
                   <CardContent className="p-4 text-center">
@@ -432,7 +575,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                   </CardContent>
                 </Card>
               </div>
-              {(portalFinancial as any[]).slice(0, 10).map((rec: any, idx: number) => (
+              {(portalFinancial as any[]).slice(0, 15).map((rec: any, idx: number) => (
                 <Card key={rec.id || idx}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -441,7 +584,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                       </div>
                       <div>
                         <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
-                        <p className="text-xs text-muted-foreground">{rec.record_date ? format(new Date(rec.record_date), 'dd/MM/yyyy') : '-'}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">{rec.record_date ? format(new Date(rec.record_date), 'dd/MM/yyyy') : '-'}</p>
+                          {rec.payment_method && <Badge variant="outline" className="text-[9px]">{rec.payment_method}</Badge>}
+                        </div>
                       </div>
                     </div>
                     <p className={`font-bold text-sm ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`}>
@@ -452,6 +598,128 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               ))}
             </TabsContent>
           )}
+
+          {/* === PRODUTOS === */}
+          {canAccess('produtos') && (
+            <TabsContent value="produtos" className="mt-3 space-y-3">
+              <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportProdutosPDF}>
+                <Download className="w-4 h-4" /> Exportar Produtos PDF
+              </Button>
+              <div className="grid grid-cols-2 gap-3">
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Serviços</p>
+                    <p className="text-xl font-bold text-primary">
+                      {(portalProducts as any[]).filter((p: any) => p.type === 'service').length}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4 text-center">
+                    <p className="text-xs text-muted-foreground">Produtos</p>
+                    <p className="text-xl font-bold">
+                      {(portalProducts as any[]).filter((p: any) => p.type !== 'service').length}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+              {(portalProducts as any[]).map((p: any) => (
+                <Card key={p.id}>
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg ${p.type === 'service' ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
+                        <Package className={`w-4 h-4 ${p.type === 'service' ? 'text-primary' : 'text-amber-500'}`} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{p.name}</p>
+                        <Badge variant="outline" className="text-[9px]">{p.type === 'service' ? 'Serviço' : 'Produto'}</Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
+                      {p.type !== 'service' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          )}
+
+          {/* === SUPORTE ONLINE === */}
+          <TabsContent value="suporte" className="mt-3 space-y-3">
+            <Card className="border-green-500/30 bg-green-500/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Headphones className="w-6 h-6 text-green-500" />
+                  <div>
+                    <h3 className="font-bold text-sm">Suporte Online</h3>
+                    <p className="text-xs text-muted-foreground">Escolha um membro da equipe para contato direto via WhatsApp</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {(supportMembers as any[]).length === 0 ? (
+              <Card>
+                <CardContent className="py-8 text-center text-muted-foreground">
+                  <Headphones className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                  <p className="font-medium">Nenhum suporte disponível</p>
+                  <p className="text-xs">Membros com telefone cadastrado aparecem aqui.</p>
+                </CardContent>
+              </Card>
+            ) : (
+              (supportMembers as any[]).map((m: any) => (
+                <Card key={m.id} className="hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                        <span className="text-sm font-bold text-green-500">{m.name?.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{m.name}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[9px]">{roleLabel[m.role] || m.role}</Badge>
+                          <span className="flex items-center gap-1 text-[10px] text-green-500">
+                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Online
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button size="sm" className="gap-1.5 bg-green-500 hover:bg-green-600 text-white"
+                      onClick={() => window.open(`https://wa.me/55${m.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${m.name}, preciso de ajuda! Sou ${session.memberName} do portal da equipe.`)}`, '_blank')}>
+                      <MessageCircle className="w-4 h-4" /> Chamar
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+
+            {/* Suppliers quick access */}
+            {canAccess('fornecedores') && (portalSuppliers as any[]).length > 0 && (
+              <>
+                <div className="flex items-center gap-2 mt-4">
+                  <Truck className="w-4 h-4 text-muted-foreground" />
+                  <h3 className="text-sm font-medium text-muted-foreground">Fornecedores</h3>
+                </div>
+                {(portalSuppliers as any[]).slice(0, 10).map((s: any) => (
+                  <Card key={s.id}>
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-sm">{s.name}</p>
+                        <p className="text-xs text-muted-foreground">{s.contact_person || s.contact || '-'}</p>
+                      </div>
+                      {s.contact && (
+                        <Button size="icon" variant="ghost" className="h-8 w-8"
+                          onClick={() => window.open(`https://wa.me/55${s.contact.replace(/\D/g, '')}`, '_blank')}>
+                          <Phone className="w-3.5 h-3.5 text-green-500" />
+                        </Button>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+          </TabsContent>
         </Tabs>
       </div>
     </div>
