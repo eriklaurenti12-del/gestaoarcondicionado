@@ -502,6 +502,22 @@ const RotatingNotifications: React.FC = () => {
         <div className="relative p-4">
           <div className="absolute top-2 right-2 flex gap-1">
             <button
+              onClick={() => {
+                try {
+                  const saved = localStorage.getItem('notification_settings');
+                  const settings = saved ? JSON.parse(saved) : {};
+                  settings.rotatingBanner = false;
+                  localStorage.setItem('notification_settings', JSON.stringify(settings));
+                } catch {}
+                setIsDismissed(true);
+                setIsVisible(false);
+              }}
+              className="p-1 rounded-full hover:bg-white/20 transition-colors text-white/60 hover:text-white text-[10px] font-medium"
+              title="Não exibir mais"
+            >
+              🔕 Desativar
+            </button>
+            <button
               onClick={handleDismissAll}
               className="p-1 rounded-full hover:bg-white/20 transition-colors text-white/60 hover:text-white text-xs"
               title="Ocultar todas"
