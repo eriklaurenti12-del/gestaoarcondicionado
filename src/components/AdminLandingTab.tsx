@@ -14,7 +14,7 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy
+  Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy, Code, ExternalLink, Globe
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 
@@ -136,6 +136,7 @@ export const AdminLandingTab: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [settings, setSettings] = useState<LandingSettings>({});
   const [previewKey, setPreviewKey] = useState(0);
+  const [pixelTab, setPixelTab] = useState<'facebook' | 'google' | 'tiktok'>('facebook');
   const videoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
@@ -215,6 +216,69 @@ export const AdminLandingTab: React.FC = () => {
     }
   };
 
+  const handleBgUpload = async (key: string) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async (ev: any) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        toast({ title: "Máximo 10MB", variant: "destructive" });
+        return;
+      }
+      setUploading(true);
+      try {
+        const ext = file.name.split('.').pop();
+        const fileName = `bg-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('landing-media').upload(fileName, file, { upsert: true });
+        if (uploadError) throw uploadError;
+        const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
+        update(key, publicUrl);
+        toast({ title: "Imagem enviada! ✅" });
+      } catch (err: any) {
+        toast({ title: "Erro", description: err.message, variant: "destructive" });
+      } finally {
+        setUploading(false);
+      }
+    };
+    input.click();
+  };
+
+  // Generate pixel head code
+  const getPixelHeadCode = () => {
+    const parts: string[] = [];
+    if (settings.landing_pixel_facebook) {
+      parts.push(`<!-- Facebook Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '${settings.landing_pixel_facebook}');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>
+<!-- End Facebook Pixel Code -->`);
+    }
+    if (settings.landing_pixel_google) {
+      parts.push(`<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${settings.landing_pixel_google}');
+</script>
+<!-- End Google tag -->`);
+    }
+    if (settings.landing_pixel_tiktok) {
+      parts.push(`<!-- TikTok Pixel Code -->
+<script>
+!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');
+</script>
+<!-- End TikTok Pixel Code -->`);
+    }
+    return parts.join('\n\n');
+  };
+
   if (loading) {
     return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
   }
@@ -229,10 +293,15 @@ export const AdminLandingTab: React.FC = () => {
     { id: 'minimalista', name: '✨ Minimalista', desc: 'Design limpo e direto. Ultra rápido.',
       sections: ['Hero Limpo', 'Features', 'Preços', 'CTA'],
       color: 'border-green-500', gradient: 'from-green-500/20 to-emerald-500/20' },
+    { id: 'moderna', name: '🌐 Moderna', desc: 'Design escuro com grade mesh, glassmorphism e efeitos neon.',
+      sections: ['Hero Neon', 'Features Grid', 'Preços Glass', 'Depoimentos', 'FAQ', 'CTA'],
+      color: 'border-violet-500', gradient: 'from-violet-500/20 to-indigo-500/20' },
     { id: 'custom', name: '🛠️ Criar do Zero', desc: 'Página totalmente personalizada.',
       sections: ['Título Livre', 'Seções Livres', 'CTA Personalizado', 'Layout Aberto'],
       color: 'border-pink-500', gradient: 'from-pink-500/20 to-purple-500/20' },
   ];
+
+  const landingUrl = `${window.location.origin}/vendas`;
 
   return (
     <div className="space-y-4">
@@ -291,7 +360,7 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="whatsapp" className="text-xs"><MessageCircle className="w-3 h-3 mr-1" />WhatsApp</TabsTrigger>
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
           <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
-          <TabsTrigger value="pixel" className="text-xs"><Target className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
+          <TabsTrigger value="pixel" className="text-xs"><Code className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
           <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
         </TabsList>
@@ -305,17 +374,18 @@ export const AdminLandingTab: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {templateOptions.map(tmpl => (
                   <div key={tmpl.id}
-                    className={`rounded-xl border-2 p-4 transition-all ${
+                    className={`rounded-xl border-2 p-4 transition-all cursor-pointer ${
                       settings.landing_template === tmpl.id 
                         ? `${tmpl.color} bg-accent/50 shadow-lg` 
                         : 'border-border hover:border-muted-foreground/30'
-                    }`}>
+                    }`}
+                    onClick={() => update('landing_template', tmpl.id)}>
                     <div className={`bg-gradient-to-br ${tmpl.gradient} rounded-lg p-3 mb-3 border border-border/50`}>
                       <div className="space-y-1.5">
-                        {tmpl.sections.map((section, i) => (
+                        {tmpl.sections.slice(0, 4).map((section, i) => (
                           <div key={i} className="flex items-center gap-2">
                             <div className={`w-1.5 h-1.5 rounded-full ${i === 0 ? 'bg-primary' : 'bg-muted-foreground/30'}`} />
                             <div className="h-1.5 bg-muted-foreground/20 rounded-full flex-1" style={{ maxWidth: `${70 + Math.random() * 30}%` }} />
@@ -326,16 +396,9 @@ export const AdminLandingTab: React.FC = () => {
                     </div>
                     <h3 className="font-bold text-sm mb-1">{tmpl.name}</h3>
                     <p className="text-muted-foreground text-xs leading-relaxed mb-3">{tmpl.desc}</p>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant={settings.landing_template === tmpl.id ? "default" : "outline"}
-                        onClick={() => update('landing_template', tmpl.id)} className="flex-1">
-                        {settings.landing_template === tmpl.id ? '✓ Ativo' : 'Selecionar'}
-                      </Button>
-                      <Button size="sm" variant="outline"
-                        onClick={() => { update('landing_template', tmpl.id); saveAll().then(() => { window.open('/vendas', '_blank'); }); }}>
-                        <Eye className="w-3 h-3 mr-1" /> Preview
-                      </Button>
-                    </div>
+                    <Button size="sm" variant={settings.landing_template === tmpl.id ? "default" : "outline"} className="w-full">
+                      {settings.landing_template === tmpl.id ? '✓ Ativo' : 'Selecionar'}
+                    </Button>
                   </div>
                 ))}
               </div>
@@ -446,6 +509,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* CORES */}
         <TabsContent value="cores">
+          <AdminGuideCards tab="landing-cores" />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -482,7 +546,6 @@ export const AdminLandingTab: React.FC = () => {
           <div className="space-y-4">
             {[1, 2].map(i => {
               const isActive = settings[`landing_oferta${i}_ativa`] !== 'false';
-              const features = (settings[`landing_oferta${i}_features`] || '').split('\n').filter(Boolean);
               const defaultFeatures = i === 1 
                 ? ['Acesso COMPLETO a tudo', 'Clientes e equipamentos ilimitados', 'Ordens de serviço profissionais', 'Controle financeiro real', 'Suporte humano no WhatsApp']
                 : ['TUDO do mensal incluído', '2 meses DE GRAÇA', 'Suporte VIP prioritário', 'Relatórios avançados', 'Backup automático diário'];
@@ -501,9 +564,6 @@ export const AdminLandingTab: React.FC = () => {
                           onCheckedChange={v => update(`landing_oferta${i}_ativa`, v ? 'true' : 'false')} />
                       </div>
                     </div>
-                    {!isActive && (
-                      <p className="text-xs text-amber-500 mt-1">⚠️ Este plano está oculto na landing page e no checkout</p>
-                    )}
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -530,17 +590,6 @@ export const AdminLandingTab: React.FC = () => {
                         value={settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')} 
                         onChange={e => update(`landing_oferta${i}_features`, e.target.value)}
                         className="min-h-[120px] text-sm font-mono" placeholder="Um benefício por linha" />
-                      <p className="text-xs text-muted-foreground mt-1">Cada linha vira um item com ✓ na landing page</p>
-                    </div>
-                    <div className="bg-muted/30 border border-border rounded-lg p-3">
-                      <p className="text-xs text-muted-foreground mb-2">Preview:</p>
-                      <ul className="space-y-1.5">
-                        {(settings[`landing_oferta${i}_features`] || defaultFeatures.join('\n')).split('\n').filter(Boolean).map((f: string, idx: number) => (
-                          <li key={idx} className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span className="text-green-500">✓</span> {f}
-                          </li>
-                        ))}
-                      </ul>
                     </div>
                   </CardContent>
                 </Card>
@@ -564,9 +613,6 @@ export const AdminLandingTab: React.FC = () => {
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Video className="w-5 h-5 text-red-500" /> Vídeos de Prova Social
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  Adicione até 3 vídeos de clientes reais (YouTube, Vimeo ou link direto)
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[1, 2, 3].map(i => (
@@ -663,9 +709,8 @@ export const AdminLandingTab: React.FC = () => {
                   </Button>
                   {settings.landing_whatsapp_icon_url && (
                     <>
-                      <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-12 h-12 rounded-full object-cover border-2 border-green-500/30" />
-                      <Button variant="ghost" size="sm" onClick={() => update('landing_whatsapp_icon_url', '')}
-                        className="text-destructive">
+                      <img src={settings.landing_whatsapp_icon_url} alt="icon" className="w-10 h-10 rounded-full object-cover border" />
+                      <Button variant="ghost" size="sm" onClick={() => update('landing_whatsapp_icon_url', '')} className="text-destructive">
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </>
@@ -676,7 +721,7 @@ export const AdminLandingTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* VIDEO */}
+        {/* VÍDEO */}
         <TabsContent value="video">
           <AdminGuideCards tab="landing-video" />
           <Card>
@@ -688,12 +733,11 @@ export const AdminLandingTab: React.FC = () => {
             <CardContent className="space-y-4">
               <div>
                 <Label className="text-muted-foreground text-sm">URL do Vídeo</Label>
-                <Input value={settings.landing_vsl_url || ''} 
-                  onChange={e => update('landing_vsl_url', e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..." />
+                <Input value={settings.landing_vsl_url || ''} onChange={e => update('landing_vsl_url', e.target.value)}
+                  placeholder="https://youtube.com/watch?v=... ou link direto" />
               </div>
-              <div className="flex gap-2">
-                <input ref={videoInputRef} type="file" accept="video/*" className="hidden" 
+              <div className="flex items-center gap-3">
+                <input ref={videoInputRef} type="file" accept="video/*" className="hidden"
                   onChange={e => handleFileUpload(e, 'video')} />
                 <Button variant="outline" onClick={() => videoInputRef.current?.click()} disabled={uploading}>
                   {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Upload className="w-4 h-4 mr-2" />}
@@ -714,29 +758,11 @@ export const AdminLandingTab: React.FC = () => {
                 <Switch checked={settings.landing_vsl_trava === 'true'}
                   onCheckedChange={v => update('landing_vsl_trava', v ? 'true' : 'false')} />
               </div>
-              {settings.landing_vsl_url && (
-                <div className="bg-muted/30 border border-border rounded-xl p-4">
-                  <p className="text-muted-foreground text-xs mb-2">Preview:</p>
-                  {settings.landing_vsl_url.includes('youtube') || settings.landing_vsl_url.includes('youtu.be') ? (
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                      <iframe src={settings.landing_vsl_url.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
-                        className="w-full h-full" allowFullScreen />
-                    </div>
-                  ) : settings.landing_vsl_url.includes('vimeo') ? (
-                    <div className="aspect-video bg-black rounded-lg overflow-hidden">
-                      <iframe src={settings.landing_vsl_url.replace('vimeo.com/', 'player.vimeo.com/video/')}
-                        className="w-full h-full" allowFullScreen />
-                    </div>
-                  ) : (
-                    <video src={settings.landing_vsl_url} controls className="w-full rounded-lg max-h-64" />
-                  )}
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* NOTIFICAÇÕES - Dedicated tab */}
+        {/* NOTIFICAÇÕES */}
         <TabsContent value="notificacoes">
           <AdminGuideCards tab="landing-notificacoes" />
           <div className="space-y-4">
@@ -745,12 +771,8 @@ export const AdminLandingTab: React.FC = () => {
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Bell className="w-5 h-5 text-green-500" /> Notificações de Compra (Social Proof)
                 </CardTitle>
-                <CardDescription className="text-xs">
-                  Customize as notificações de compra que aparecem na landing page
-                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Toggles */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg p-3">
                     <Label className="text-sm">Ativas</Label>
@@ -763,33 +785,24 @@ export const AdminLandingTab: React.FC = () => {
                       onCheckedChange={v => update('landing_notif_som', v ? 'true' : 'false')} />
                   </div>
                 </div>
-
-                {/* Intervalo */}
                 <div>
-                  <Label className="text-muted-foreground text-sm">Intervalo entre notificações (segundos)</Label>
+                  <Label className="text-muted-foreground text-sm">Intervalo (segundos)</Label>
                   <Input type="number" value={settings.landing_notif_intervalo || '10'} 
                     onChange={e => update('landing_notif_intervalo', e.target.value)}
                     className="w-32" min="5" max="60" />
-                  <p className="text-xs text-muted-foreground mt-1">De 5 a 60 segundos entre cada notificação</p>
                 </div>
-
-                {/* Som personalizado */}
                 <Card className="border-dashed">
                   <CardContent className="p-4 space-y-3">
                     <div className="flex items-center gap-2">
                       <Volume2 className="w-5 h-5 text-primary" />
                       <Label className="font-semibold text-sm">Som Personalizado</Label>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      Anexe um arquivo de áudio (.mp3, .wav, .ogg) ou cole uma URL. Deixe vazio para usar o som padrão do sistema.
-                    </p>
                     <div className="flex items-center gap-3">
                       <Input value={settings.landing_notif_som_url || ''} 
                         onChange={e => update('landing_notif_som_url', e.target.value)}
-                        placeholder="https://... ou faça upload abaixo" className="flex-1" />
+                        placeholder="https://... ou faça upload" className="flex-1" />
                       {settings.landing_notif_som_url && (
-                        <Button variant="ghost" size="sm" onClick={() => update('landing_notif_som_url', '')}
-                          className="text-destructive">
+                        <Button variant="ghost" size="sm" onClick={() => update('landing_notif_som_url', '')} className="text-destructive">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       )}
@@ -807,201 +820,199 @@ export const AdminLandingTab: React.FC = () => {
                           audio.volume = 0.3;
                           audio.play().catch(() => {});
                         }}>
-                          <Volume2 className="w-4 h-4 mr-1" /> Testar Som
+                          <Volume2 className="w-4 h-4 mr-1" /> Testar
                         </Button>
                       )}
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Ações */}
                 <div>
-                  <Label className="text-muted-foreground text-sm">Ações das Notificações (uma por linha)</Label>
+                  <Label className="text-muted-foreground text-sm">Ações (uma por linha)</Label>
                   <Textarea 
                     value={settings.landing_notif_acoes || 'acabou de assinar\nacabou de renovar\nfez upgrade para anual\nativou sua conta'} 
                     onChange={e => update('landing_notif_acoes', e.target.value)}
-                    className="min-h-[80px] text-sm font-mono"
-                    placeholder="acabou de assinar&#10;acabou de renovar&#10;fez upgrade para anual&#10;ativou sua conta" />
-                  <p className="text-xs text-muted-foreground mt-1">Cada linha será uma ação diferente exibida nas notificações</p>
+                    className="min-h-[80px] text-sm font-mono" />
                 </div>
-
-                {/* Nomes */}
                 <div>
-                  <Label className="text-muted-foreground text-sm">Nomes (um por linha) — deixe vazio para usar padrão</Label>
-                  <Textarea 
-                    value={settings.landing_notif_nomes || ''} 
-                    onChange={e => update('landing_notif_nomes', e.target.value)}
-                    className="min-h-[80px] text-sm font-mono"
-                    placeholder="João Silva&#10;Maria Santos&#10;Pedro Oliveira..." />
-                  <p className="text-xs text-muted-foreground mt-1">Nomes fictícios para exibir. Vazio = lista padrão de 60 nomes</p>
+                  <Label className="text-muted-foreground text-sm">Nomes (um por linha)</Label>
+                  <Textarea value={settings.landing_notif_nomes || ''} onChange={e => update('landing_notif_nomes', e.target.value)}
+                    className="min-h-[60px] text-sm font-mono" placeholder="Vazio = lista padrão" />
                 </div>
-
-                {/* Cidades */}
                 <div>
-                  <Label className="text-muted-foreground text-sm">Cidades (uma por linha) — deixe vazio para usar padrão</Label>
-                  <Textarea 
-                    value={settings.landing_notif_cidades || ''} 
-                    onChange={e => update('landing_notif_cidades', e.target.value)}
-                    className="min-h-[80px] text-sm font-mono"
-                    placeholder="São Paulo&#10;Rio de Janeiro&#10;Belo Horizonte..." />
-                  <p className="text-xs text-muted-foreground mt-1">Cidades para exibir. Vazio = lista padrão de 50 cidades</p>
+                  <Label className="text-muted-foreground text-sm">Cidades (uma por linha)</Label>
+                  <Textarea value={settings.landing_notif_cidades || ''} onChange={e => update('landing_notif_cidades', e.target.value)}
+                    className="min-h-[60px] text-sm font-mono" placeholder="Vazio = lista padrão" />
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        {/* PIXEL ADS */}
+        {/* PIXEL ADS - REDESIGNED */}
         <TabsContent value="pixel">
           <AdminGuideCards tab="landing-pixel" />
           <div className="space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="w-5 h-5 text-blue-500" /> Facebook / Meta Pixel
-                </CardTitle>
-                <CardDescription>Cole apenas o ID do Pixel (ex: 123456789012345). Será injetado automaticamente na landing page.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Input value={settings.landing_pixel_facebook || ''} onChange={e => update('landing_pixel_facebook', e.target.value)}
-                  placeholder="Ex: 123456789012345" className="font-mono" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="w-5 h-5 text-amber-500" /> Google Ads (gtag)
-                </CardTitle>
-                <CardDescription>Cole o ID de conversão do Google Ads (ex: AW-123456789).</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Input value={settings.landing_pixel_google || ''} onChange={e => update('landing_pixel_google', e.target.value)}
-                  placeholder="Ex: AW-123456789" className="font-mono" />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Target className="w-5 h-5 text-foreground" /> TikTok Pixel
-                </CardTitle>
-                <CardDescription>Cole o ID do Pixel do TikTok (ex: ABCDEF123456).</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Input value={settings.landing_pixel_tiktok || ''} onChange={e => update('landing_pixel_tiktok', e.target.value)}
-                  placeholder="Ex: ABCDEF123456" className="font-mono" />
+            {/* URL da Landing */}
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Globe className="w-5 h-5 text-primary" />
+                  <Label className="font-semibold text-sm">URL da Landing Page</Label>
+                </div>
+                <div className="flex gap-2">
+                  <Input value={landingUrl} readOnly className="font-mono bg-muted/50" />
+                  <Button variant="outline" onClick={() => {
+                    navigator.clipboard.writeText(landingUrl);
+                    toast({ title: "Link copiado! ✅" });
+                  }}>
+                    <Copy className="w-4 h-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Esta é a URL que você vai usar nos seus anúncios. Cole no campo "URL de destino" do gerenciador de anúncios.</p>
               </CardContent>
             </Card>
 
-            {/* AUTO PIXEL GENERATOR */}
-            <Card className="border-primary/30">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Sparkles className="w-5 h-5 text-primary" /> 🔗 Gerador Automático de Pixel
-                </CardTitle>
-                <CardDescription>Copie o código abaixo e cole no seu gerenciador de anúncios (Facebook Ads, Google Ads, TikTok Ads).</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {settings.landing_pixel_facebook && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-blue-400">📘 Facebook / Meta Pixel</Label>
-                    <div className="relative">
-                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
-{`<!-- Facebook Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${settings.landing_pixel_facebook}');
-fbq('track', 'PageView');
-</script>
-<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>
-<!-- End Facebook Pixel Code -->`}
-                      </pre>
-                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`<!-- Facebook Pixel Code -->\n<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>\n<!-- End Facebook Pixel Code -->`);
-                          toast({ title: "Copiado! ✅", description: "Código do Facebook Pixel copiado." });
-                        }}>
-                        📋 Copiar
-                      </Button>
-                    </div>
-                  </div>
-                )}
+            {/* Platform Tabs */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="flex border-b border-border">
+                  {[
+                    { key: 'facebook' as const, label: 'Facebook', icon: '📘', color: 'text-blue-400 border-blue-400' },
+                    { key: 'google' as const, label: 'Google Ads', icon: '📊', color: 'text-amber-400 border-amber-400' },
+                    { key: 'tiktok' as const, label: 'TikTok', icon: '🎵', color: 'text-foreground border-foreground' },
+                  ].map(p => (
+                    <button key={p.key}
+                      onClick={() => setPixelTab(p.key)}
+                      className={`flex-1 py-3 px-4 text-sm font-medium transition-all border-b-2 ${
+                        pixelTab === p.key 
+                          ? `${p.color} bg-muted/30` 
+                          : 'border-transparent text-muted-foreground hover:text-foreground hover:bg-muted/20'
+                      }`}>
+                      <span className="mr-1">{p.icon}</span> {p.label}
+                    </button>
+                  ))}
+                </div>
 
-                {settings.landing_pixel_google && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-amber-400">📊 Google Ads (gtag)</Label>
-                    <div className="relative">
-                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
-{`<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>
-<script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
-gtag('config', '${settings.landing_pixel_google}');
-</script>
-<!-- End Google tag -->`}
-                      </pre>
-                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>\n<script>\nwindow.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', '${settings.landing_pixel_google}');\n</script>\n<!-- End Google tag -->`);
-                          toast({ title: "Copiado! ✅", description: "Código do Google Ads copiado." });
-                        }}>
-                        📋 Copiar
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <div className="p-4 space-y-4">
+                  {pixelTab === 'facebook' && (
+                    <>
+                      <div>
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Code className="w-4 h-4 text-blue-400" /> ID do Pixel Facebook
+                        </Label>
+                        <p className="text-xs text-muted-foreground mb-2">Facebook Business → Gerenciador de Eventos → Fontes de dados → Pixel ID</p>
+                        <Input value={settings.landing_pixel_facebook || ''} onChange={e => update('landing_pixel_facebook', e.target.value)}
+                          placeholder="1234567890123456" className="font-mono" />
+                      </div>
+                      {settings.landing_pixel_facebook && (
+                        <div className="rounded-lg bg-muted/30 border border-border p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs font-semibold text-blue-400">Código gerado automaticamente</Label>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                              const code = `<!-- Facebook Pixel Code -->\n<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>\n<!-- End Facebook Pixel Code -->`;
+                              navigator.clipboard.writeText(code);
+                              toast({ title: "Código copiado! ✅" });
+                            }}>
+                              <Copy className="w-3 h-3 mr-1" /> Copiar código
+                            </Button>
+                          </div>
+                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`fbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');`}</pre>
+                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                {settings.landing_pixel_tiktok && (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-foreground">🎵 TikTok Pixel</Label>
-                    <div className="relative">
-                      <pre className="bg-muted/50 border border-border rounded-lg p-3 text-xs font-mono overflow-x-auto whitespace-pre-wrap max-h-32">
-{`<!-- TikTok Pixel Code -->
-<script>
-!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');
-</script>
-<!-- End TikTok Pixel Code -->`}
-                      </pre>
-                      <Button size="sm" variant="outline" className="absolute top-2 right-2"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`<!-- TikTok Pixel Code -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');\n</script>\n<!-- End TikTok Pixel Code -->`);
-                          toast({ title: "Copiado! ✅", description: "Código do TikTok Pixel copiado." });
-                        }}>
-                        📋 Copiar
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                  {pixelTab === 'google' && (
+                    <>
+                      <div>
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Code className="w-4 h-4 text-amber-400" /> ID de Conversão Google Ads
+                        </Label>
+                        <p className="text-xs text-muted-foreground mb-2">Google Ads → Ferramentas → Conversões → Tag ID (ex: AW-123456789)</p>
+                        <Input value={settings.landing_pixel_google || ''} onChange={e => update('landing_pixel_google', e.target.value)}
+                          placeholder="AW-123456789" className="font-mono" />
+                      </div>
+                      {settings.landing_pixel_google && (
+                        <div className="rounded-lg bg-muted/30 border border-border p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs font-semibold text-amber-400">Código gerado automaticamente</Label>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                              const code = `<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>\n<script>\nwindow.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', '${settings.landing_pixel_google}');\n</script>`;
+                              navigator.clipboard.writeText(code);
+                              toast({ title: "Código copiado! ✅" });
+                            }}>
+                              <Copy className="w-3 h-3 mr-1" /> Copiar código
+                            </Button>
+                          </div>
+                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`gtag('config', '${settings.landing_pixel_google}');`}</pre>
+                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
+                        </div>
+                      )}
+                    </>
+                  )}
 
-                {!settings.landing_pixel_facebook && !settings.landing_pixel_google && !settings.landing_pixel_tiktok && (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Target className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">Preencha ao menos um ID de pixel acima para gerar o código automaticamente.</p>
-                  </div>
-                )}
-
-                {/* Landing page URL for ads */}
-                <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
-                  <Label className="text-sm font-semibold mb-2 block">🔗 Link da Landing Page para usar nos Ads</Label>
-                  <div className="flex gap-2">
-                    <Input value={`${window.location.origin}/vendas`} readOnly className="font-mono bg-muted/50" />
-                    <Button variant="outline" onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/vendas`);
-                      toast({ title: "Link copiado! ✅" });
-                    }}>
-                      📋
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">Use este link nos seus anúncios. Os pixels serão disparados automaticamente.</p>
+                  {pixelTab === 'tiktok' && (
+                    <>
+                      <div>
+                        <Label className="text-sm font-medium flex items-center gap-2">
+                          <Code className="w-4 h-4" /> ID do Pixel TikTok
+                        </Label>
+                        <p className="text-xs text-muted-foreground mb-2">TikTok Ads Manager → Ativos → Eventos → Gerenciar → Pixel ID</p>
+                        <Input value={settings.landing_pixel_tiktok || ''} onChange={e => update('landing_pixel_tiktok', e.target.value)}
+                          placeholder="ABCDEF123456" className="font-mono" />
+                      </div>
+                      {settings.landing_pixel_tiktok && (
+                        <div className="rounded-lg bg-muted/30 border border-border p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-xs font-semibold">Código gerado automaticamente</Label>
+                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                              const code = `<!-- TikTok Pixel Code -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');\n</script>`;
+                              navigator.clipboard.writeText(code);
+                              toast({ title: "Código copiado! ✅" });
+                            }}>
+                              <Copy className="w-3 h-3 mr-1" /> Copiar código
+                            </Button>
+                          </div>
+                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`ttq.load('${settings.landing_pixel_tiktok}');\nttq.page();`}</pre>
+                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
+            {/* Full Head Code Generator */}
+            {(settings.landing_pixel_facebook || settings.landing_pixel_google || settings.landing_pixel_tiktok) && (
+              <Card className="border-primary/30">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Sparkles className="w-5 h-5 text-primary" /> Código Completo para &lt;head&gt;
+                    </CardTitle>
+                    <Button size="sm" onClick={() => {
+                      navigator.clipboard.writeText(getPixelHeadCode());
+                      toast({ title: "Código completo copiado! ✅", description: "Cole na tag <head> do seu site ou gerenciador de anúncios." });
+                    }}>
+                      <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
+                    </Button>
+                  </div>
+                  <CardDescription>Todos os pixels combinados em um único bloco. Cole no &lt;head&gt; do site ou no gerenciador de tags.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <pre className="bg-muted/50 border border-border rounded-lg p-3 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap max-h-48">
+                    {getPixelHeadCode()}
+                  </pre>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="p-4 rounded-xl bg-muted/50 border border-border">
               <p className="text-sm text-muted-foreground">
-                💡 Os pixels serão injetados automaticamente na landing page (<code>/vendas</code>) após salvar. 
-                Eventos de <strong>PageView</strong> são disparados ao carregar a página, e eventos de <strong>Lead/Conversion</strong> ao clicar nos botões de checkout.
+                💡 Os pixels são <strong>injetados automaticamente</strong> na landing page após salvar. 
+                Eventos de <strong>PageView</strong> disparam ao carregar e <strong>Lead/Conversion</strong> ao clicar nos botões de checkout.
               </p>
             </div>
           </div>
@@ -1011,12 +1022,13 @@ gtag('config', '${settings.landing_pixel_google}');
         <TabsContent value="background">
           <AdminGuideCards tab="landing-background" />
           <div className="space-y-4">
+            {/* Imagem de fundo global */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <ImagePlus className="w-5 h-5 text-primary" /> Imagem de Fundo
+                  <ImagePlus className="w-5 h-5 text-primary" /> Imagem de Fundo Global
                 </CardTitle>
-                <CardDescription>Faça upload de uma imagem para usar como fundo da landing page.</CardDescription>
+                <CardDescription>Imagem de fundo aplicada em toda a landing page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {settings.landing_bg_image_url && (
@@ -1028,45 +1040,15 @@ gtag('config', '${settings.landing_pixel_google}');
                     </Button>
                   </div>
                 )}
-                <div>
-                  <Label className="text-muted-foreground text-sm">URL da imagem ou faça upload</Label>
-                  <div className="flex gap-2 mt-1">
-                    <Input value={settings.landing_bg_image_url || ''} onChange={e => update('landing_bg_image_url', e.target.value)}
-                      placeholder="https://... ou faça upload" className="flex-1" />
-                    <Button variant="outline" onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = 'image/*';
-                      input.onchange = async (ev: any) => {
-                        const file = ev.target.files?.[0];
-                        if (!file) return;
-                        if (file.size > 10 * 1024 * 1024) {
-                          toast({ title: "Máximo 10MB", variant: "destructive" });
-                          return;
-                        }
-                        setUploading(true);
-                        try {
-                          const ext = file.name.split('.').pop();
-                          const fileName = `bg-${Date.now()}.${ext}`;
-                          const { error: uploadError } = await supabase.storage.from('landing-media').upload(fileName, file, { upsert: true });
-                          if (uploadError) throw uploadError;
-                          const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
-                          update('landing_bg_image_url', publicUrl);
-                          toast({ title: "Imagem enviada! ✅" });
-                        } catch (err: any) {
-                          toast({ title: "Erro", description: err.message, variant: "destructive" });
-                        } finally {
-                          setUploading(false);
-                        }
-                      };
-                      input.click();
-                    }} disabled={uploading}>
-                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    </Button>
-                  </div>
+                <div className="flex gap-2">
+                  <Input value={settings.landing_bg_image_url || ''} onChange={e => update('landing_bg_image_url', e.target.value)}
+                    placeholder="URL da imagem ou faça upload" className="flex-1" />
+                  <Button variant="outline" onClick={() => handleBgUpload('landing_bg_image_url')} disabled={uploading}>
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  </Button>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground text-sm">Opacidade do overlay escuro ({settings.landing_bg_overlay_opacity || '70'}%)</Label>
+                  <Label className="text-muted-foreground text-sm">Opacidade do overlay ({settings.landing_bg_overlay_opacity || '70'}%)</Label>
                   <input type="range" min="0" max="100" value={settings.landing_bg_overlay_opacity || '70'}
                     onChange={e => update('landing_bg_overlay_opacity', e.target.value)}
                     className="w-full mt-1" />
@@ -1074,27 +1056,30 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardContent>
             </Card>
 
+            {/* Efeitos Visuais */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
-                  <Palette className="w-5 h-5 text-primary" /> Efeitos & Partículas
+                  <Sparkles className="w-5 h-5 text-violet-500" /> Efeitos Visuais
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Partículas interativas</Label>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <div>
+                    <Label className="text-sm font-medium">Partículas interativas</Label>
+                    <p className="text-xs text-muted-foreground">Efeito de partículas flutuantes no fundo</p>
+                  </div>
                   <Switch checked={settings.landing_bg_particles !== 'false'}
                     onCheckedChange={v => update('landing_bg_particles', v ? 'true' : 'false')} />
                 </div>
 
-                {/* Background Effect Type */}
                 <div>
                   <Label className="text-muted-foreground text-sm">Efeito de Fundo</Label>
                   <Select value={settings.landing_bg_effect || 'none'} onValueChange={v => update('landing_bg_effect', v)}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Nenhum (cor sólida)</SelectItem>
-                      <SelectItem value="grid">🔲 Grade/Mesh (como a imagem)</SelectItem>
+                      <SelectItem value="grid">🔲 Grade/Mesh</SelectItem>
                       <SelectItem value="gradient">🌈 Gradiente animado</SelectItem>
                       <SelectItem value="dots">⚪ Pontos</SelectItem>
                     </SelectContent>
@@ -1105,10 +1090,9 @@ gtag('config', '${settings.landing_pixel_google}');
                   <div className="space-y-3 p-3 rounded-lg bg-muted/30 border border-border">
                     <ColorInput label="Cor da Grade/Pontos" value={settings.landing_bg_grid_color || '#6366f1'} onChange={v => update('landing_bg_grid_color', v)} />
                     <div>
-                      <Label className="text-muted-foreground text-xs">Opacidade da grade ({settings.landing_bg_grid_opacity || '15'}%)</Label>
+                      <Label className="text-muted-foreground text-xs">Opacidade ({settings.landing_bg_grid_opacity || '15'}%)</Label>
                       <input type="range" min="5" max="50" value={settings.landing_bg_grid_opacity || '15'}
-                        onChange={e => update('landing_bg_grid_opacity', e.target.value)}
-                        className="w-full mt-1" />
+                        onChange={e => update('landing_bg_grid_opacity', e.target.value)} className="w-full mt-1" />
                     </div>
                     <ColorInput label="Cor do Brilho/Glow" value={settings.landing_bg_glow_color || '#7c3aed'} onChange={v => update('landing_bg_glow_color', v)} />
                   </div>
@@ -1132,30 +1116,30 @@ gtag('config', '${settings.landing_pixel_google}');
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <ColorInput label="Cor Primária" value={settings.landing_cor_primaria || '#06b6d4'} onChange={v => update('landing_cor_primaria', v)} />
-                  <ColorInput label="Cor Secundária" value={settings.landing_cor_secundaria || '#3b82f6'} onChange={v => update('landing_cor_secundaria', v)} />
-                  <ColorInput label="Cor Destaque" value={settings.landing_cor_destaque || '#f59e0b'} onChange={v => update('landing_cor_destaque', v)} />
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <ColorInput label="Cor do Fundo" value={settings.landing_cor_fundo || '#0f172a'} onChange={v => update('landing_cor_fundo', v)} />
-                  <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
-                </div>
+
+                {/* Preview do efeito */}
+                {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
+                  <div className="rounded-xl overflow-hidden border border-border relative" style={{ height: '120px', background: settings.landing_cor_fundo || '#0f172a' }}>
+                    <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-xs">
+                      Preview: {settings.landing_bg_effect === 'grid' ? 'Grade/Mesh' : settings.landing_bg_effect === 'dots' ? 'Pontos' : 'Gradiente'}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
+            {/* Visibilidade das Seções */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Eye className="w-5 h-5 text-emerald-500" /> Visibilidade das Seções
                 </CardTitle>
-                <CardDescription>Escolha quais seções aparecem na landing page</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
                   { key: 'landing_secao_dor', label: '😰 Seção de Dor (Problemas)' },
                   { key: 'landing_secao_features', label: '⚡ Funcionalidades' },
-                  { key: 'landing_secao_comparativo', label: '📊 Comparativo (Antes x Depois)' },
+                  { key: 'landing_secao_comparativo', label: '📊 Comparativo' },
                   { key: 'landing_secao_depoimentos', label: '💬 Depoimentos' },
                   { key: 'landing_secao_faq', label: '❓ FAQ' },
                   { key: 'landing_secao_garantia', label: '🛡️ Garantia' },
@@ -1169,12 +1153,13 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardContent>
             </Card>
 
+            {/* Fundos por Seção */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
                   <Image className="w-5 h-5 text-violet-500" /> Fundos por Seção
                 </CardTitle>
-                <CardDescription>Imagens de fundo específicas para cada parte da página</CardDescription>
+                <CardDescription>Imagens de fundo específicas para cada seção</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {[
@@ -1187,30 +1172,7 @@ gtag('config', '${settings.landing_pixel_google}');
                     <div className="flex gap-2">
                       <Input value={settings[s.key] || ''} onChange={e => update(s.key, e.target.value)}
                         placeholder="URL da imagem" className="flex-1" />
-                      <Button variant="outline" size="icon" onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'image/*';
-                        input.onchange = async (ev: any) => {
-                          const file = ev.target.files?.[0];
-                          if (!file) return;
-                          setUploading(true);
-                          try {
-                            const ext = file.name.split('.').pop();
-                            const fileName = `section-bg-${Date.now()}.${ext}`;
-                            const { error: uploadError } = await supabase.storage.from('landing-media').upload(fileName, file, { upsert: true });
-                            if (uploadError) throw uploadError;
-                            const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
-                            update(s.key, publicUrl);
-                            toast({ title: "Upload concluído! ✅" });
-                          } catch (err: any) {
-                            toast({ title: "Erro", description: err.message, variant: "destructive" });
-                          } finally {
-                            setUploading(false);
-                          }
-                        };
-                        input.click();
-                      }} disabled={uploading}>
+                      <Button variant="outline" size="icon" onClick={() => handleBgUpload(s.key)} disabled={uploading}>
                         <Upload className="w-4 h-4" />
                       </Button>
                       {settings[s.key] && (
@@ -1229,11 +1191,10 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
 
-        {/* EXTRAS - Countdown + Prova Social */}
+        {/* EXTRAS */}
         <TabsContent value="extras">
           <AdminGuideCards tab="landing-extras" />
           <div className="space-y-4">
-            {/* Countdown */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -1251,8 +1212,6 @@ gtag('config', '${settings.landing_pixel_google}');
                 </div>
               </CardContent>
             </Card>
-
-            {/* Prova Social */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-base">

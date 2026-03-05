@@ -882,6 +882,77 @@ const Landing: React.FC = () => {
     </>
   );
 
+  // ─── TEMPLATE: MODERNA ──────────────────────────────────────────
+  const renderModerna = () => (
+    <>
+      <GridBackground effect="grid" gridColor="#6366f1" gridOpacity={12} glowColor="#7c3aed" fondoColor={settings.landing_cor_fundo || '#0a0a1a'} />
+      {settings.landing_bg_image_url && (
+        <>
+          <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
+          <div className="fixed inset-0 z-0" style={{ backgroundColor: `rgba(0,0,0,${Number(settings.landing_bg_overlay_opacity || 70) / 100})` }} />
+        </>
+      )}
+
+      {/* Hero */}
+      <section className="pt-32 pb-16 px-4 min-h-[90vh] flex items-center relative">
+        <div className="container mx-auto text-center relative z-10">
+          <Badge className="bg-indigo-500/20 text-indigo-300 border-indigo-500/30 mb-6 text-sm px-4 py-1.5 backdrop-blur-sm">
+            <Sparkles className="w-4 h-4 mr-1" /> {settings.landing_badge_urgencia || 'Tecnologia de ponta para técnicos'}
+          </Badge>
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight tracking-tight">
+            <span className="bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400 bg-clip-text text-transparent">{settings.landing_hero_titulo}</span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-400 mb-4 max-w-2xl mx-auto">{settings.landing_hero_descricao}</p>
+          <p className="text-violet-300 mb-8 font-medium">{settings.landing_frase_destaque}</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all backdrop-blur-sm border border-white/10" onClick={() => handleCheckout('anual')}>
+              <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
+            </Button>
+          </div>
+          <div className="mt-8 inline-flex items-center gap-4 bg-white/5 backdrop-blur-md rounded-2xl px-6 py-4 border border-white/10">
+            <div className="flex items-center gap-1">{[...Array(5)].map((_, i) => <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />)}</div>
+            <span className="text-gray-300 text-sm"><strong className="text-white">{settings.landing_social_proof_count}+</strong> técnicos ativos</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Features */}
+      {settings.landing_secao_features !== 'false' && (
+        <section className="py-16 px-4">
+          <div className="container mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">
+              Tudo em <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">um só lugar</span>
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {features.map((f, i) => (
+                <div key={i} className="bg-white/5 backdrop-blur-sm rounded-2xl p-5 border border-white/10 hover:border-indigo-500/40 transition-all hover:bg-white/10 text-center group">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500/20 to-violet-500/20 flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform">
+                    <f.icon className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <h3 className="font-semibold text-white text-sm mb-1">{f.title}</h3>
+                  <p className="text-xs text-gray-500">{f.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <PricingSection />
+      {settings.landing_secao_depoimentos !== 'false' && <TestimonialsSection />}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <FaqSection />}
+
+      <section className="py-16 px-4">
+        <div className="container mx-auto text-center">
+          <h2 className="text-3xl font-bold mb-6">Comece <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">agora</span></h2>
+          <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+            <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto}
+          </Button>
+        </div>
+      </section>
+    </>
+  );
+
   // ─── MAIN RENDER ────────────────────────────────────────────────
 
   return (
@@ -906,6 +977,7 @@ const Landing: React.FC = () => {
       {template === 'persuasao' && renderPersuasao()}
       {template === 'vsl' && renderVSL()}
       {template === 'minimalista' && renderMinimalista()}
+      {template === 'moderna' && renderModerna()}
       {template === 'custom' && renderCustom()}
 
       <Footer />
