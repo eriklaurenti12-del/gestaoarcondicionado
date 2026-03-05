@@ -293,6 +293,123 @@ Deno.serve(async (req) => {
       });
     }
 
+    // === SUBSCRIBERS: list all users with subscriptions ===
+    if (type === 'subscribers') {
+      // Only gerente/admin/suporte can access
+      if (!['admin', 'gerente', 'suporte'].includes(member.role)) {
+        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data: users } = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 });
+      const { data: subs } = await supabase.from('subscriptions').select('*');
+      const { data: profiles } = await supabase.from('profiles').select('user_id, username, phone, created_at');
+
+      const subscribers = (users?.users || []).map((u: any) => {
+        const sub = (subs || []).find((s: any) => s.user_id === u.id);
+        const profile = (profiles || []).find((p: any) => p.user_id === u.id);
+        return {
+          id: u.id,
+          email: u.email,
+          username: profile?.username || u.email?.split('@')[0],
+          phone: profile?.phone || null,
+          created_at: profile?.created_at || u.created_at,
+          plan: sub?.plan || 'mensal',
+          status: sub?.status || 'pendente',
+          is_active: sub?.is_active || false,
+          start_date: sub?.start_date || null,
+          end_date: sub?.end_date || null,
+        };
+      });
+
+      return new Response(JSON.stringify({ subscribers }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === ACTIVATE / DEACTIVATE SUBSCRIBER ===
+    if (type === 'activate_subscriber') {
+      if (!['admin', 'gerente', 'suporte'].includes(member.role)) {
+        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { target_user_id, plan, activate } = body;
+      if (!target_user_id) {
+        return new Response(JSON.stringify({ error: 'ID do usuário obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const startDate = new Date();
+      let endDate: Date | null = null;
+      const selectedPlan = plan || 'mensal';
+
+      if (activate && selectedPlan !== 'vitalicio') {
+        endDate = new Date();
+        if (selectedPlan === 'anual') endDate.setFullYear(endDate.getFullYear() + 1);
+        else if (selectedPlan === 'trimestral') endDate.setMonth(endDate.getMonth() + 3);
+        else endDate.setMonth(endDate.getMonth() + 1);
+      }
+
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', target_user_id)
+        .maybeSingle();
+
+      const updateData = {
+        plan: selectedPlan,
+        status: activate ? 'aprovado' : 'cancelado',
+        is_active: !!activate,
+        start_date: activate ? startDate.toISOString() : null,
+        end_date: endDate?.toISOString() || null,
+        payment_date: activate ? startDate.toISOString() : null,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (existingSub) {
+        await supabase.from('subscriptions').update(updateData).eq('user_id', target_user_id);
+      } else {
+        await supabase.from('subscriptions').insert({ user_id: target_user_id, ...updateData });
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === CREATE APPOINTMENT ===
+    if (type === 'create_appointment') {
+      const { client_id, appointment_date, notes: aptNotes, service_id } = body;
+      if (!client_id || !appointment_date) {
+        return new Response(JSON.stringify({ error: 'Cliente e data obrigatórios' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data, error } = await supabase.from('appointments').insert({
+        user_id: owner_id,
+        client_id: Number(client_id),
+        service_id: service_id ? Number(service_id) : null,
+        appointment_date,
+        notes: aptNotes || `Agendado via portal por ${member.name}`,
+        status: 'agendado',
+      }).select().single();
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, appointment: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Tipo inválido' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
