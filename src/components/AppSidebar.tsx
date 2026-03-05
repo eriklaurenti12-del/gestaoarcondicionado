@@ -107,7 +107,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     // Role-specific tab access
     const roleTabAccess: Record<string, string[]> = {
       painel: ['dashboard'],
-      suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'],
+      suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents'],
     };
     
     const allowedTabs = roleTabAccess[userRole];

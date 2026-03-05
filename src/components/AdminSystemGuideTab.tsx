@@ -1,21 +1,23 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { 
-  FileText, Download, Loader2, BookOpen, BarChart3, Users, CalendarDays, 
-  Wrench, ShoppingCart, Wallet, Settings, FileCheck, Snowflake, Globe,
-  Thermometer, Database, Bell, HelpCircle
+  Download, Loader2, BookOpen, BarChart3, Users, CalendarDays, 
+  Wrench, ShoppingCart, Wallet, Settings, FileCheck, Globe,
+  Thermometer, Database, Bell, Shield, Zap, Share2
 } from "lucide-react";
 import jsPDF from 'jspdf';
 import { AdminGuideCards } from "@/components/AdminGuideCards";
+import { supabase } from "@/integrations/supabase/client";
 
-const systemSections = [
+const getSystemSections = (stats: any) => [
   {
     title: '1. PAINEL PRINCIPAL (Dashboard)',
     icon: BarChart3,
     steps: [
       'Ao entrar no sistema, você verá o Painel Principal com métricas em tempo real.',
+      `Atualmente você tem ${stats.clients || 0} clientes, ${stats.products || 0} serviços/peças e ${stats.appointments || 0} agendamentos cadastrados.`,
       'Os cards mostram: total de clientes, agendamentos do dia, faturamento mensal e OS pendentes.',
       'Use os gráficos para acompanhar evolução de receita e serviços mês a mês.',
       'Clique em qualquer métrica para ir diretamente à seção correspondente.',
@@ -58,6 +60,7 @@ const systemSections = [
     icon: FileCheck,
     steps: [
       'Em "Orçamentos & O.S.", crie documentos profissionais para seus clientes.',
+      `Você tem ${stats.quotes || 0} orçamentos e ${stats.orders || 0} ordens de serviço registradas.`,
       'Orçamento: adicione serviços, peças, quantidades e valores. O total é calculado automaticamente.',
       'Aplique descontos por porcentagem ou valor fixo.',
       'Converta um orçamento aprovado em Ordem de Serviço com um clique.',
@@ -129,7 +132,18 @@ const systemSections = [
     ]
   },
   {
-    title: '12. NOTIFICAÇÕES',
+    title: '12. EQUIPE E PORTAL',
+    icon: Shield,
+    steps: [
+      `Você tem ${stats.teamMembers || 0} membro(s) na equipe cadastrados.`,
+      'Cadastre membros com nome, WhatsApp e PIN de 4 dígitos.',
+      'Funções: Painel Admin (somente Dashboard), Suporte (Dashboard + Agenda + Cadastros), Sistema Completo.',
+      'Membros acessam pelo link /portal com nome + PIN, sem precisar de email.',
+      'O admin pode desativar membros a qualquer momento.',
+    ]
+  },
+  {
+    title: '13. NOTIFICAÇÕES',
     icon: Bell,
     steps: [
       'Configure alertas para parcelas vencendo, agendamentos do dia e manutenções.',
@@ -138,7 +152,7 @@ const systemSections = [
     ]
   },
   {
-    title: '13. BACKUP',
+    title: '14. BACKUP',
     icon: Database,
     steps: [
       'Em "Backup", exporte todos os dados do sistema para segurança.',
@@ -146,10 +160,58 @@ const systemSections = [
       'Os dados são exportados em formato que pode ser reimportado.',
     ]
   },
+  {
+    title: '15. LANDING PAGE & MARKETING',
+    icon: Share2,
+    steps: [
+      'No painel admin, edite completamente sua landing page de vendas.',
+      'Use a IA para gerar textos, FAQ, depoimentos e ofertas.',
+      'Configure pixel do Facebook, Google e TikTok para anúncios.',
+      'Links de checkout integrados com Kiwify, Hotmart ou outras plataformas.',
+      'Ative o banner promocional e contagem regressiva.',
+    ]
+  },
+  {
+    title: '16. SISTEMA BETA',
+    icon: Zap,
+    steps: [
+      'Acesse o "Sistema Beta" no menu lateral para testar novas funcionalidades.',
+      'O modo beta inclui recursos experimentais que serão incorporados ao sistema principal.',
+      'Relate bugs ou problemas encontrados para melhoria contínua.',
+    ]
+  },
 ];
 
 export const AdminSystemGuideTab: React.FC = () => {
   const [generating, setGenerating] = useState(false);
+  const [stats, setStats] = useState<any>({});
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      const [clients, products, appointments, quotes, orders, team] = await Promise.all([
+        supabase.from('clients').select('id', { count: 'exact', head: true }),
+        supabase.from('products').select('id', { count: 'exact', head: true }),
+        supabase.from('appointments').select('id', { count: 'exact', head: true }),
+        supabase.from('quotes').select('id', { count: 'exact', head: true }),
+        supabase.from('service_orders').select('id', { count: 'exact', head: true }),
+        supabase.from('team_members').select('id', { count: 'exact', head: true }),
+      ]);
+      setStats({
+        clients: clients.count || 0,
+        products: products.count || 0,
+        appointments: appointments.count || 0,
+        quotes: quotes.count || 0,
+        orders: orders.count || 0,
+        teamMembers: team.count || 0,
+      });
+    } catch {}
+  };
+
+  const systemSections = getSystemSections(stats);
 
   const generatePDF = () => {
     setGenerating(true);
@@ -173,10 +235,15 @@ export const AdminSystemGuideTab: React.FC = () => {
       doc.setTextColor(148, 163, 184);
       doc.text('Guia Completo do Sistema', pageWidth / 2, 95, { align: 'center' });
       doc.setFontSize(10);
-      doc.text('Manual Passo a Passo', pageWidth / 2, 108, { align: 'center' });
+      doc.text(`${systemSections.length} seções • Manual Atualizado`, pageWidth / 2, 108, { align: 'center' });
       doc.setFontSize(9);
       doc.setTextColor(100, 116, 139);
-      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')}`, pageWidth / 2, 130, { align: 'center' });
+      doc.text(`Gerado em ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}`, pageWidth / 2, 125, { align: 'center' });
+      
+      // Stats on cover
+      doc.setTextColor(6, 182, 212);
+      doc.setFontSize(10);
+      doc.text(`📊 ${stats.clients || 0} Clientes | ${stats.products || 0} Serviços | ${stats.appointments || 0} Agendamentos`, pageWidth / 2, 145, { align: 'center' });
 
       // Table of contents
       addPage();
@@ -187,10 +254,10 @@ export const AdminSystemGuideTab: React.FC = () => {
       doc.text('Índice', margin, y);
       y += 12;
       doc.setFontSize(10);
-      systemSections.forEach((section, i) => {
+      systemSections.forEach((section) => {
         checkPage(8);
         doc.setTextColor(71, 85, 105);
-        doc.text(`${section.title}`, margin, y);
+        doc.text(section.title, margin, y);
         y += 7;
       });
 
@@ -200,7 +267,6 @@ export const AdminSystemGuideTab: React.FC = () => {
         doc.setFillColor(255, 255, 255);
         doc.rect(0, 0, pageWidth, 297, 'F');
 
-        // Section title
         doc.setFillColor(6, 182, 212);
         doc.rect(margin, y - 4, contentWidth, 10, 'F');
         doc.setTextColor(255, 255, 255);
@@ -208,13 +274,11 @@ export const AdminSystemGuideTab: React.FC = () => {
         doc.text(section.title, margin + 4, y + 3);
         y += 16;
 
-        // Steps
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(10);
         section.steps.forEach((step, i) => {
           checkPage(14);
           doc.setTextColor(6, 182, 212);
-          doc.setFontSize(10);
           doc.text(`${i + 1}.`, margin, y);
           doc.setTextColor(51, 65, 85);
           const lines = doc.splitTextToSize(step, contentWidth - 12);
@@ -223,7 +287,6 @@ export const AdminSystemGuideTab: React.FC = () => {
         });
       });
 
-      // Footer on last page
       checkPage(30);
       y += 10;
       doc.setFillColor(240, 249, 255);
@@ -252,13 +315,32 @@ export const AdminSystemGuideTab: React.FC = () => {
           </div>
           <div>
             <h2 className="text-xl font-bold">Guia Completo do Sistema</h2>
-            <p className="text-muted-foreground text-sm">Manual passo a passo de todas as funcionalidades</p>
+            <p className="text-muted-foreground text-sm">
+              {systemSections.length} seções • Atualizado automaticamente com seus dados
+            </p>
           </div>
         </div>
         <Button onClick={generatePDF} disabled={generating} size="lg" className="gap-2">
           {generating ? <Loader2 className="w-5 h-5 animate-spin" /> : <Download className="w-5 h-5" />}
           {generating ? 'Gerando PDF...' : 'Baixar PDF Completo'}
         </Button>
+      </div>
+
+      {/* Stats summary */}
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+        {[
+          { label: 'Clientes', value: stats.clients },
+          { label: 'Serviços', value: stats.products },
+          { label: 'Agendamentos', value: stats.appointments },
+          { label: 'Orçamentos', value: stats.quotes },
+          { label: 'O.S.', value: stats.orders },
+          { label: 'Equipe', value: stats.teamMembers },
+        ].map(s => (
+          <div key={s.label} className="p-2 rounded-lg bg-muted/50 text-center">
+            <p className="text-lg font-bold text-primary">{s.value ?? '...'}</p>
+            <p className="text-[10px] text-muted-foreground">{s.label}</p>
+          </div>
+        ))}
       </div>
 
       <div className="grid gap-4">

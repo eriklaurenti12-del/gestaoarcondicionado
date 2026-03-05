@@ -27,7 +27,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, RefreshCw, Wind } from "lucide-react";
+import { Bell, HelpCircle, RefreshCw, Wind, Zap } from "lucide-react";
+import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
@@ -186,7 +187,7 @@ export default function Index() {
 
   const allowedTabsByRole: Record<string, string[]> = {
     painel: ['dashboard'],
-    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros'],
+    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents'],
     sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
     super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
     '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
@@ -278,6 +279,16 @@ export default function Index() {
                   <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Beta access button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-accent"
+                    onClick={() => navigate('/beta')}
+                    title="Sistema Beta"
+                  >
+                    <Zap className="h-5 w-5" />
+                  </Button>
                   {/* Check for updates button */}
                   <Button
                     variant="ghost"
