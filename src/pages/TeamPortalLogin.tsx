@@ -138,6 +138,8 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
   const [showNewClient, setShowNewClient] = useState(false);
+  const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
+  const [supportRequests, setSupportRequests] = useState<any[]>([]);
 
   const fetchPortalData = async (type: string, extra?: Record<string, any>) => {
     const today = new Date();
@@ -150,6 +152,28 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     if (error) throw error;
     return data;
   };
+
+  // === HEARTBEAT: keep online status updated ===
+  useEffect(() => {
+    const sendHeartbeat = async () => {
+      try {
+        const data = await fetchPortalData('heartbeat');
+        if (data?.online) setOnlineMembers(data.online);
+        if (data?.requests) setSupportRequests(data.requests);
+      } catch (e) {
+        console.error('Heartbeat error:', e);
+      }
+    };
+
+    sendHeartbeat(); // initial
+    const interval = setInterval(sendHeartbeat, 30000); // every 30s
+
+    return () => {
+      clearInterval(interval);
+      // Go offline on unmount
+      fetchPortalData('go_offline').catch(() => {});
+    };
+  }, [session.memberId]);
 
   const { data: todayAppointments = [], refetch: refetchApts } = useQuery({
     queryKey: ['portal-today', session.ownerId],
@@ -199,6 +223,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
       const data = await fetchPortalData('support_members');
       return data?.members || [];
     },
+    refetchInterval: 30000,
   });
 
   const { data: portalSuppliers = [] } = useQuery({
@@ -242,6 +267,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
       setNewClientAddress('');
       setShowNewClient(false);
       refetchClients();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    }
+  };
+
+  const handleResolveRequest = async (requestId: string) => {
+    try {
+      await fetchPortalData('resolve_request', { request_id: requestId });
+      setSupportRequests(prev => prev.filter(r => r.id !== requestId));
+      toast({ title: '✅ Solicitação resolvida!' });
     } catch (err: any) {
       toast({ title: 'Erro', description: err.message, variant: 'destructive' });
     }
@@ -342,14 +377,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
       <div className="bg-primary text-primary-foreground p-4">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary-foreground/20">
+            <div className="p-2 rounded-full bg-primary-foreground/20 relative">
               <Wind className="w-5 h-5" />
+              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-primary animate-pulse" />
             </div>
             <div>
               <h1 className="font-bold text-lg">Olá, {session.memberName}!</h1>
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-[10px]">{roleLabel[session.role] || session.role}</Badge>
                 <span className="text-sm opacity-80">{pending} pendente{pending !== 1 ? 's' : ''}</span>
+                <span className="text-[10px] opacity-60">• {onlineMembers.length} online</span>
               </div>
             </div>
           </div>
@@ -363,6 +400,47 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </div>
         </div>
       </div>
+
+      {/* Support Requests Alert */}
+      {supportRequests.length > 0 && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <Card className="border-amber-500/50 bg-amber-500/5">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <MessageCircle className="w-4 h-4 text-amber-500" />
+                <span className="font-bold text-sm text-amber-700 dark:text-amber-400">
+                  {supportRequests.length} solicitação(ões) de suporte pendente(s)
+                </span>
+              </div>
+              <div className="space-y-2">
+                {supportRequests.slice(0, 5).map((req: any) => (
+                  <div key={req.id} className="flex items-center justify-between bg-background rounded-lg p-2 border">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{req.requester_name}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {req.requester_phone || req.requester_email || '-'} • {req.request_type}
+                      </p>
+                      {req.message && <p className="text-xs text-muted-foreground mt-0.5 truncate">💬 {req.message}</p>}
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      {req.requester_phone && (
+                        <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
+                          onClick={() => window.open(`https://wa.me/55${req.requester_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${req.requester_name}! Sou ${session.memberName} do suporte. Como posso ajudar?`)}`, '_blank')}>
+                          <Phone className="w-3 h-3" />
+                        </Button>
+                      )}
+                      <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                        onClick={() => handleResolveRequest(req.id)}>
+                        ✓
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Stats */}
@@ -391,8 +469,8 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <Card className="cursor-pointer" onClick={() => setActiveTab('suporte')}>
             <CardContent className="pt-3 pb-2 text-center">
               <Headphones className="w-4 h-4 mx-auto text-green-500 mb-1" />
-              <div className="text-xl font-bold text-green-500">{(supportMembers as any[]).length}</div>
-              <div className="text-[10px] text-muted-foreground">Suporte</div>
+              <div className="text-xl font-bold text-green-500">{onlineMembers.length}</div>
+              <div className="text-[10px] text-muted-foreground">Online</div>
             </CardContent>
           </Card>
         </div>
@@ -405,7 +483,14 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>}
             {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>}
             {canAccess('produtos') && <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>}
-            <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">🎧 Suporte</TabsTrigger>
+            <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">
+              🎧 Suporte
+              {supportRequests.length > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
+                  {supportRequests.length}
+                </span>
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* === AGENDA === */}
@@ -495,7 +580,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 <Button size="icon" onClick={() => setShowNewClient(!showNewClient)}><Plus className="w-4 h-4" /></Button>
               </div>
 
-              {/* New client form */}
               {showNewClient && (
                 <Card className="border-primary/30">
                   <CardHeader className="pb-2 pt-3 px-4">
@@ -647,24 +731,88 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
           {/* === SUPORTE ONLINE === */}
           <TabsContent value="suporte" className="mt-3 space-y-3">
+            {/* Online members indicator */}
             <Card className="border-green-500/30 bg-green-500/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <Headphones className="w-6 h-6 text-green-500" />
                   <div>
-                    <h3 className="font-bold text-sm">Suporte Online</h3>
-                    <p className="text-xs text-muted-foreground">Escolha um membro da equipe para contato direto via WhatsApp</p>
+                    <h3 className="font-bold text-sm">Equipe Online Agora</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {onlineMembers.length} membro{onlineMembers.length !== 1 ? 's' : ''} conectado{onlineMembers.length !== 1 ? 's' : ''} no portal
+                    </p>
                   </div>
                 </div>
+                {onlineMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {onlineMembers.map((m: any) => (
+                      <div key={m.member_id || m.id} className="flex items-center gap-1.5 bg-background rounded-full px-3 py-1 border">
+                        <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span className="text-xs font-medium">{m.member_name}</span>
+                        <Badge variant="outline" className="text-[8px] h-4">{roleLabel[m.member_role] || m.member_role}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Pending Support Requests */}
+            {supportRequests.length > 0 && (
+              <>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-amber-500" />
+                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                    Solicitações de Suporte ({supportRequests.length})
+                  </h3>
+                </div>
+                {supportRequests.map((req: any) => (
+                  <Card key={req.id} className="border-l-4 border-l-amber-500">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">{req.requester_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            📱 {req.requester_phone || 'Sem telefone'} • {req.requester_email || ''}
+                          </p>
+                          <Badge variant="outline" className="text-[9px] mt-1">{req.request_type}</Badge>
+                          {req.message && (
+                            <p className="text-xs mt-1 p-2 bg-muted rounded">💬 {req.message}</p>
+                          )}
+                          <p className="text-[10px] text-muted-foreground mt-1">
+                            {req.created_at ? format(new Date(req.created_at), 'dd/MM HH:mm') : ''}
+                          </p>
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          {req.requester_phone && (
+                            <Button size="sm" variant="outline" className="h-8 gap-1 text-[10px]"
+                              onClick={() => window.open(`https://wa.me/55${req.requester_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${req.requester_name}! Sou ${session.memberName} do suporte. Vi sua solicitação e estou aqui para ajudar!`)}`, '_blank')}>
+                              <Phone className="w-3 h-3" /> Chamar
+                            </Button>
+                          )}
+                          <Button size="sm" className="h-8 gap-1 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => handleResolveRequest(req.id)}>
+                            ✓ Resolvido
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </>
+            )}
+
+            {/* Support Members Directory */}
+            <div className="flex items-center gap-2 mt-2">
+              <Users className="w-4 h-4 text-muted-foreground" />
+              <h3 className="text-sm font-medium text-muted-foreground">Diretório da Equipe</h3>
+            </div>
 
             {(supportMembers as any[]).length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center text-muted-foreground">
                   <Headphones className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="font-medium">Nenhum suporte disponível</p>
-                  <p className="text-xs">Membros com telefone cadastrado aparecem aqui.</p>
+                  <p className="font-medium">Nenhum membro com telefone cadastrado</p>
                 </CardContent>
               </Card>
             ) : (
@@ -672,20 +820,21 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 <Card key={m.id} className="hover:shadow-md transition-shadow">
                   <CardContent className="p-4 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
-                        <span className="text-sm font-bold text-green-500">{m.name?.charAt(0)}</span>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${m.is_online ? 'bg-green-500/10' : 'bg-muted'}`}>
+                        <span className={`text-sm font-bold ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>{m.name?.charAt(0)}</span>
                       </div>
                       <div>
                         <p className="font-medium text-sm">{m.name}</p>
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="text-[9px]">{roleLabel[m.role] || m.role}</Badge>
-                          <span className="flex items-center gap-1 text-[10px] text-green-500">
-                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" /> Online
+                          <span className={`flex items-center gap-1 text-[10px] ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${m.is_online ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/50'}`} />
+                            {m.is_online ? 'Online' : 'Offline'}
                           </span>
                         </div>
                       </div>
                     </div>
-                    <Button size="sm" className="gap-1.5 bg-green-500 hover:bg-green-600 text-white"
+                    <Button size="sm" className={`gap-1.5 ${m.is_online ? 'bg-green-500 hover:bg-green-600' : 'bg-muted-foreground/50'} text-white`}
                       onClick={() => window.open(`https://wa.me/55${m.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${m.name}, preciso de ajuda! Sou ${session.memberName} do portal da equipe.`)}`, '_blank')}>
                       <MessageCircle className="w-4 h-4" /> Chamar
                     </Button>

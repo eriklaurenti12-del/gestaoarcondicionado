@@ -40,6 +40,117 @@ Deno.serve(async (req) => {
       });
     }
 
+    // === HEARTBEAT / ONLINE STATUS ===
+    if (type === 'heartbeat') {
+      await supabase.from('team_online_status').upsert({
+        member_id: member_id,
+        owner_id: owner_id,
+        member_name: member.name,
+        member_role: member.role,
+        member_phone: member.phone,
+        last_seen_at: new Date().toISOString(),
+        is_online: true,
+      }, { onConflict: 'member_id' });
+
+      // Mark members offline if last_seen > 2 min ago
+      await supabase.from('team_online_status')
+        .update({ is_online: false })
+        .eq('owner_id', owner_id)
+        .lt('last_seen_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
+
+      // Get online members
+      const { data: online } = await supabase
+        .from('team_online_status')
+        .select('*')
+        .eq('owner_id', owner_id)
+        .eq('is_online', true);
+
+      // Get pending support requests
+      const { data: requests } = await supabase
+        .from('support_requests')
+        .select('*')
+        .eq('owner_id', owner_id)
+        .eq('status', 'pendente')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      return new Response(JSON.stringify({ online: online || [], requests: requests || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === LOGOUT / GO OFFLINE ===
+    if (type === 'go_offline') {
+      await supabase.from('team_online_status')
+        .update({ is_online: false })
+        .eq('member_id', member_id);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === RESOLVE SUPPORT REQUEST ===
+    if (type === 'resolve_request') {
+      const { request_id } = body;
+      await supabase.from('support_requests')
+        .update({ status: 'resolvido', assigned_member_id: member_id, resolved_at: new Date().toISOString() })
+        .eq('id', request_id);
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === GET ONLINE SUPPORT MEMBERS (public - for clients) ===
+    if (type === 'online_support') {
+      // Mark stale members offline
+      await supabase.from('team_online_status')
+        .update({ is_online: false })
+        .eq('owner_id', owner_id)
+        .lt('last_seen_at', new Date(Date.now() - 2 * 60 * 1000).toISOString());
+
+      const { data: online } = await supabase
+        .from('team_online_status')
+        .select('member_name, member_role, member_phone, is_online, last_seen_at')
+        .eq('owner_id', owner_id)
+        .eq('is_online', true);
+
+      return new Response(JSON.stringify({ online: online || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === CREATE SUPPORT REQUEST (from client/user) ===
+    if (type === 'create_support_request') {
+      const { requester_name, requester_phone, requester_email, request_type, message } = body;
+      if (!requester_name) {
+        return new Response(JSON.stringify({ error: 'Nome é obrigatório' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const { data, error } = await supabase.from('support_requests').insert({
+        owner_id,
+        requester_name,
+        requester_phone: requester_phone || null,
+        requester_email: requester_email || null,
+        request_type: request_type || 'ajuda',
+        message: message || null,
+      }).select().single();
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      return new Response(JSON.stringify({ success: true, request: data }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === APPOINTMENTS ===
     if (type === 'appointments') {
       const { data: appointments } = await supabase
         .from('appointments')
@@ -142,7 +253,6 @@ Deno.serve(async (req) => {
     }
 
     if (type === 'support_members') {
-      // Get all active team members with phone numbers as support contacts
       const { data: members } = await supabase
         .from('team_members')
         .select('id, name, phone, role')
@@ -150,7 +260,22 @@ Deno.serve(async (req) => {
         .eq('is_active', true)
         .not('phone', 'is', null);
 
-      return new Response(JSON.stringify({ members: members || [] }), {
+      // Get online status for each member
+      const memberIds = (members || []).map((m: any) => m.id);
+      const { data: onlineData } = await supabase
+        .from('team_online_status')
+        .select('member_id, is_online, last_seen_at')
+        .in('member_id', memberIds.length > 0 ? memberIds : ['none']);
+
+      const onlineMap = new Map((onlineData || []).map((o: any) => [o.member_id, o]));
+
+      const enriched = (members || []).map((m: any) => ({
+        ...m,
+        is_online: onlineMap.get(m.id)?.is_online || false,
+        last_seen_at: onlineMap.get(m.id)?.last_seen_at || null,
+      }));
+
+      return new Response(JSON.stringify({ members: enriched }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }

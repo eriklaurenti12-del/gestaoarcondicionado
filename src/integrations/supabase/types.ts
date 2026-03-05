@@ -1008,6 +1008,59 @@ export type Database = {
         }
         Relationships: []
       }
+      support_requests: {
+        Row: {
+          assigned_member_id: string | null
+          created_at: string
+          id: string
+          message: string | null
+          owner_id: string
+          request_type: string
+          requester_email: string | null
+          requester_name: string
+          requester_phone: string | null
+          resolved_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_member_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          owner_id: string
+          request_type?: string
+          requester_email?: string | null
+          requester_name: string
+          requester_phone?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_member_id?: string | null
+          created_at?: string
+          id?: string
+          message?: string | null
+          owner_id?: string
+          request_type?: string
+          requester_email?: string | null
+          requester_name?: string
+          requester_phone?: string | null
+          resolved_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_requests_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tax_records: {
         Row: {
           created_at: string
@@ -1166,6 +1219,50 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      team_online_status: {
+        Row: {
+          created_at: string
+          id: string
+          is_online: boolean
+          last_seen_at: string
+          member_id: string
+          member_name: string
+          member_phone: string | null
+          member_role: string
+          owner_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_online?: boolean
+          last_seen_at?: string
+          member_id: string
+          member_name: string
+          member_phone?: string | null
+          member_role?: string
+          owner_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_online?: boolean
+          last_seen_at?: string
+          member_id?: string
+          member_name?: string
+          member_phone?: string | null
+          member_role?: string
+          owner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_online_status_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: true
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
