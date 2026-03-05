@@ -1,0 +1,1 @@
+UPDATE team_members SET role = 'gerente' WHERE id = '628f91a6-2b56-4d19-b63e-45ed7d78af8b';
