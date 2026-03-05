@@ -50,10 +50,10 @@ type TeamMember = {
   created_at: string;
 };
 
-const TEAM_ROLES: Record<string, { label: string; icon: any; color: string }> = {
-  painel: { label: 'Painel Admin', icon: Shield, color: 'text-cyan-400' },
-  sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400' },
-  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400' },
+const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; description: string }> = {
+  painel: { label: 'Painel Admin', icon: Shield, color: 'text-cyan-400', description: 'Apenas visualiza o Dashboard' },
+  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400', description: 'Dashboard, Agenda, Agendamento Online, Cadastros' },
+  sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Acesso total ao sistema (sem painel admin)' },
 };
 
 const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
@@ -264,21 +264,32 @@ export default function Members() {
 
   // Team member form (shared between add and edit)
   const MemberForm = ({ isEdit }: { isEdit: boolean }) => (
-    <div className="space-y-4">
+    <div className="space-y-4" onClick={e => e.stopPropagation()} onPointerDown={e => e.stopPropagation()}>
       <div className="space-y-2">
         <Label>Nome *</Label>
-        <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do membro" />
+        <Input 
+          value={newName} 
+          onChange={e => { e.stopPropagation(); setNewName(e.target.value); }} 
+          onPointerDown={e => e.stopPropagation()}
+          placeholder="Nome do membro" 
+        />
       </div>
       <div className="space-y-2">
         <Label>WhatsApp</Label>
-        <Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(11) 99999-9999" />
+        <Input 
+          value={newPhone} 
+          onChange={e => { e.stopPropagation(); setNewPhone(e.target.value); }} 
+          onPointerDown={e => e.stopPropagation()}
+          placeholder="(11) 99999-9999" 
+        />
       </div>
       <div className="space-y-2">
         <Label>PIN de Acesso (4 dígitos) {isEdit && '(deixe vazio para manter)'}</Label>
         <Input
           type="text" inputMode="numeric" maxLength={4}
           value={newPin}
-          onChange={e => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          onChange={e => { e.stopPropagation(); setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4)); }}
+          onPointerDown={e => e.stopPropagation()}
           placeholder={isEdit ? "••••" : "0000"}
           className="text-center text-xl tracking-[0.5em] font-mono"
         />
@@ -289,7 +300,12 @@ export default function Members() {
           <SelectTrigger><SelectValue /></SelectTrigger>
           <SelectContent>
             {Object.entries(TEAM_ROLES).map(([key, info]) => (
-              <SelectItem key={key} value={key}>{info.label}</SelectItem>
+              <SelectItem key={key} value={key}>
+                <div className="flex flex-col">
+                  <span>{info.label}</span>
+                  <span className="text-[10px] text-muted-foreground">{info.description}</span>
+                </div>
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -401,7 +417,7 @@ export default function Members() {
                       <UserPlus className="w-4 h-4 mr-1" /> Novo Membro
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
                     <DialogHeader>
                       <DialogTitle>Adicionar Membro</DialogTitle>
                     </DialogHeader>
@@ -532,7 +548,7 @@ export default function Members() {
 
             {/* Edit Dialog */}
             <Dialog open={!!editingMember} onOpenChange={(open) => { if (!open) { setEditingMember(null); resetForm(); } }}>
-              <DialogContent>
+              <DialogContent onPointerDownOutside={(e) => e.preventDefault()} onInteractOutside={(e) => e.preventDefault()}>
                 <DialogHeader>
                   <DialogTitle>Editar Membro</DialogTitle>
                 </DialogHeader>
