@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
     const { member_name, pin } = await req.json();
 
     if (!member_name || !pin || pin.length !== 4) {
-      return new Response(JSON.stringify({ error: 'Nome e PIN são obrigatórios' }), {
+      return new Response(JSON.stringify({ error: 'Nome e PIN de 4 dígitos são obrigatórios' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -24,7 +24,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Find accepted team invite matching the name
+    console.log('[team-portal-login] Looking for member:', member_name);
+
+    // Find accepted team invite matching the name or phone
     const { data: invites } = await supabase
       .from('team_invites')
       .select('accepted_email, accepted_by, team_role')
@@ -36,56 +38,73 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Match by name (case-insensitive)
-    const match = invites.find((i: any) =>
-      i.accepted_email?.toLowerCase() === member_name.trim().toLowerCase()
+    // Try to match by name (case-insensitive)
+    let userId: string | null = null;
+
+    const nameMatch = invites.find((i: any) =>
+      i.accepted_email?.toLowerCase().trim() === member_name.trim().toLowerCase()
     );
 
-    if (!match || !match.accepted_by) {
+    if (nameMatch?.accepted_by) {
+      userId = nameMatch.accepted_by;
+    } else {
       // Try matching by phone in profiles
-      const { data: profileMatch } = await supabase
-        .from('profiles')
-        .select('user_id, username')
-        .or(`phone.ilike.%${member_name.replace(/\D/g, '').slice(-8)}%,username.ilike.${member_name.trim()}`)
-        .maybeSingle();
+      const cleanInput = member_name.replace(/\D/g, '');
+      if (cleanInput.length >= 8) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, username, phone');
 
-      if (!profileMatch) {
-        return new Response(JSON.stringify({ error: 'Membro não encontrado. Verifique o nome ou telefone.' }), {
-          status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        if (profiles) {
+          for (const profile of profiles) {
+            const cleanPhone = profile.phone?.replace(/\D/g, '') || '';
+            if (cleanPhone.endsWith(cleanInput.slice(-8))) {
+              // Verify this user is a team member
+              const isTeam = invites.find((i: any) => i.accepted_by === profile.user_id);
+              if (isTeam) {
+                userId = profile.user_id;
+                break;
+              }
+            }
+          }
+        }
       }
 
-      // Verify this user is actually a team member
-      const teamInvite = invites.find((i: any) => i.accepted_by === profileMatch.user_id);
-      if (!teamInvite) {
-        return new Response(JSON.stringify({ error: 'Usuário não é membro da equipe' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      // Also try matching username in profiles
+      if (!userId) {
+        const { data: profileByName } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .ilike('username', member_name.trim())
+          .maybeSingle();
 
-      // Find auth user email
-      const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(profileMatch.user_id);
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: 'Erro ao buscar usuário' }), {
-          status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        if (profileByName) {
+          const isTeam = invites.find((i: any) => i.accepted_by === profileByName.user_id);
+          if (isTeam) {
+            userId = profileByName.user_id;
+          }
+        }
       }
+    }
 
-      const teamPassword = `team${pin}00`;
-      return new Response(JSON.stringify({ email: user.email, password: teamPassword }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    if (!userId) {
+      return new Response(JSON.stringify({ error: 'Membro não encontrado. Verifique o nome ou telefone.' }), {
+        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Found by name in team_invites - get auth user email
-    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(match.accepted_by);
-    if (userError || !user) {
+    // Get the auth user email
+    const { data: { user }, error: userError } = await supabase.auth.admin.getUserById(userId);
+    if (userError || !user?.email) {
+      console.error('[team-portal-login] getUserById error:', userError?.message);
       return new Response(JSON.stringify({ error: 'Erro ao buscar credenciais' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
     const teamPassword = `team${pin}00`;
+
+    console.log('[team-portal-login] Found user:', user.email);
 
     return new Response(JSON.stringify({ email: user.email, password: teamPassword }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
