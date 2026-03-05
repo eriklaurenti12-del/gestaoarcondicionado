@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 interface Notification {
   id: string;
@@ -206,6 +207,7 @@ const AdminNotificationsPanel: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <AdminGuideCards tab="notifications" />
       {/* Live indicator */}
       {liveIndicator && (
         <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 rounded-xl p-3 flex items-center gap-3 animate-pulse">

@@ -18,6 +18,7 @@ import {
   FileJson, ToggleLeft, Layers, Wallet, ChevronDown, ChevronUp,
   Bot, MessageSquare, Sparkles, HelpCircle
 } from "lucide-react";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 const WEBHOOK_URL = `https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/payment-webhook`;
 const LEGACY_WEBHOOK_URL = `https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/ggcheckout-webhook`;
@@ -266,6 +267,7 @@ export const AdminIntegrationsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <AdminGuideCards tab="integrations" />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

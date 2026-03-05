@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Link, MessageCircle, Calendar, Loader2, ExternalLink, Settings2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 type AdminSetting = {
   id: string;
@@ -115,6 +116,7 @@ export const AdminSettingsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <AdminGuideCards tab="settings" />
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
           <Settings2 className="w-6 h-6 text-cyan-400" />
