@@ -295,6 +295,13 @@ const Landing: React.FC = () => {
 
   const Header = () => (
     <div className="fixed top-0 left-0 right-0 z-[60]">
+      {settings.landing_banner_ativo === 'true' && settings.landing_banner_texto && (
+        <div className="text-center py-2 px-4 text-white text-sm font-medium cursor-pointer" 
+          style={{ background: settings.landing_banner_cor || '#ef4444' }}
+          onClick={() => settings.landing_banner_link && window.open(settings.landing_banner_link, '_blank')}>
+          {settings.landing_banner_texto}
+        </div>
+      )}
       <PromoCountdown endDate={settings.promo_end_date || undefined} text={settings.landing_countdown_texto} discountBadge={settings.landing_countdown_desconto} />
       <header className={`backdrop-blur-lg border-b ${template === 'minimalista' ? 'bg-white/90 border-gray-200' : 'bg-slate-900/80 border-cyan-500/20'}`}>
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
