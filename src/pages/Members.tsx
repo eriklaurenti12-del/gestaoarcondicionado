@@ -54,8 +54,9 @@ type TeamMember = {
 
 const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; description: string }> = {
   painel: { label: 'Painel Admin', icon: Shield, color: 'text-cyan-400', description: 'Apenas visualiza o Dashboard' },
-  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400', description: 'Dashboard, Agenda, Agendamento Online, Cadastros, Financeiro, PDV, Orçamentos' },
-  sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Acesso total ao sistema (sem painel admin)' },
+  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400', description: 'Agenda, Clientes, Financeiro, Produtos, Assinantes, Agendar' },
+  gerente: { label: 'Gerente', icon: Shield, color: 'text-purple-400', description: 'Acesso total incluindo gestão de assinantes' },
+  sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Agenda, Clientes, Agendar e Suporte' },
 };
 
 const publishedUrl = 'https://gestaoarcondicionado.lovable.app';

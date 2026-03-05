@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { 
   Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, 
   ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, 
-  Download, Package, Headphones, MessageCircle, ArrowLeft, Truck
+  Download, Package, Headphones, MessageCircle, ArrowLeft, Truck,
+  UserCheck, UserX, Shield, CalendarPlus, CheckCircle2
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -140,6 +142,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const [showNewClient, setShowNewClient] = useState(false);
   const [onlineMembers, setOnlineMembers] = useState<any[]>([]);
   const [supportRequests, setSupportRequests] = useState<any[]>([]);
+  const [subscriberSearch, setSubscriberSearch] = useState("");
+  const [activatingUser, setActivatingUser] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState("mensal");
+  // Scheduling state
+  const [scheduleClientId, setScheduleClientId] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleNotes, setScheduleNotes] = useState("");
+  const [scheduleServiceId, setScheduleServiceId] = useState("");
+  const [scheduling, setScheduling] = useState(false);
 
   const fetchPortalData = async (type: string, extra?: Record<string, any>) => {
     const today = new Date();
@@ -234,12 +246,38 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     },
   });
 
+  const { data: portalSubscribers = [], refetch: refetchSubscribers } = useQuery({
+    queryKey: ['portal-subscribers', session.ownerId],
+    queryFn: async () => {
+      if (!canAccessFeature('assinantes')) return [];
+      const data = await fetchPortalData('subscribers');
+      return data?.subscribers || [];
+    },
+    refetchInterval: 60000,
+  });
+
+  const canAccessFeature = (feature: string) => {
+    const role = session.role;
+    if (role === 'admin' || role === 'gerente') return true;
+    if (role === 'suporte') return ['agenda', 'pendentes', 'clientes', 'financeiro', 'produtos', 'suporte', 'assinantes', 'agendar'].includes(feature);
+    if (role === 'sistema') return ['agenda', 'pendentes', 'clientes', 'suporte', 'agendar'].includes(feature);
+    return ['agenda', 'pendentes'].includes(feature);
+  };
+
   const completed = todayAppointments.filter((a: any) => a.status === 'concluido').length;
   const pending = todayAppointments.filter((a: any) => a.status !== 'concluido' && a.status !== 'cancelado').length;
 
   const filteredClients = (portalClients as any[]).filter((c: any) =>
     c.name?.toLowerCase().includes(clientSearch.toLowerCase()) || c.telefone?.includes(clientSearch)
   );
+
+  const filteredSubscribers = (portalSubscribers as any[]).filter((s: any) =>
+    s.email?.toLowerCase().includes(subscriberSearch.toLowerCase()) ||
+    s.username?.toLowerCase().includes(subscriberSearch.toLowerCase())
+  );
+
+  const pendingSubscribers = (portalSubscribers as any[]).filter((s: any) => s.status === 'pendente');
+  const activeSubscribers = (portalSubscribers as any[]).filter((s: any) => s.status === 'aprovado' && s.is_active);
 
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ['portal-'] });
@@ -282,11 +320,53 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     }
   };
 
-  const canAccess = (feature: string) => {
-    const role = session.role;
-    if (role === 'admin' || role === 'gerente' || role === 'suporte') return true;
-    if (role === 'sistema') return ['agenda', 'pendentes', 'clientes', 'suporte'].includes(feature);
-    return ['agenda', 'pendentes'].includes(feature);
+  const canAccess = (feature: string) => canAccessFeature(feature);
+
+  const handleActivateSubscriber = async (targetUserId: string, activate: boolean) => {
+    setActivatingUser(targetUserId);
+    try {
+      const data = await fetchPortalData('activate_subscriber', {
+        target_user_id: targetUserId,
+        plan: selectedPlan,
+        activate,
+      });
+      if (data?.error) throw new Error(data.error);
+      toast({ title: activate ? '✅ Acesso liberado!' : '🚫 Acesso bloqueado!' });
+      refetchSubscribers();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setActivatingUser(null);
+    }
+  };
+
+  const handleCreateAppointment = async () => {
+    if (!scheduleClientId || !scheduleDate || !scheduleTime) {
+      toast({ title: 'Preencha cliente, data e horário', variant: 'destructive' });
+      return;
+    }
+    setScheduling(true);
+    try {
+      const appointmentDate = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
+      const data = await fetchPortalData('create_appointment', {
+        client_id: scheduleClientId,
+        appointment_date: appointmentDate,
+        notes: scheduleNotes || `Agendado via portal por ${session.memberName}`,
+        service_id: scheduleServiceId || null,
+      });
+      if (data?.error) throw new Error(data.error);
+      toast({ title: '✅ Serviço agendado!' });
+      setScheduleClientId('');
+      setScheduleDate('');
+      setScheduleTime('');
+      setScheduleNotes('');
+      setScheduleServiceId('');
+      refetchApts();
+    } catch (err: any) {
+      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } finally {
+      setScheduling(false);
+    }
   };
 
   // PDF exports
@@ -444,7 +524,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
       <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Stats */}
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-5 gap-2">
           <Card className="cursor-pointer" onClick={() => setActiveTab('today')}>
             <CardContent className="pt-3 pb-2 text-center">
               <CalendarDays className="w-4 h-4 mx-auto text-primary mb-1" />
@@ -466,6 +546,15 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               <div className="text-[10px] text-muted-foreground">Pendentes</div>
             </CardContent>
           </Card>
+          {canAccess('assinantes') && (
+            <Card className="cursor-pointer" onClick={() => setActiveTab('assinantes')}>
+              <CardContent className="pt-3 pb-2 text-center">
+                <Shield className="w-4 h-4 mx-auto text-purple-500 mb-1" />
+                <div className="text-xl font-bold text-purple-500">{pendingSubscribers.length}</div>
+                <div className="text-[10px] text-muted-foreground">Novos</div>
+              </CardContent>
+            </Card>
+          )}
           <Card className="cursor-pointer" onClick={() => setActiveTab('suporte')}>
             <CardContent className="pt-3 pb-2 text-center">
               <Headphones className="w-4 h-4 mx-auto text-green-500 mb-1" />
@@ -480,9 +569,20 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="today" className="flex-1 text-[11px] px-2">📋 Agenda</TabsTrigger>
             <TabsTrigger value="pending" className="flex-1 text-[11px] px-2">⏳ Pendentes</TabsTrigger>
+            {canAccess('agendar') && <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>}
             {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>}
             {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>}
             {canAccess('produtos') && <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>}
+            {canAccess('assinantes') && (
+              <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
+                🛡️ Assinantes
+                {pendingSubscribers.length > 0 && (
+                  <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
+                    {pendingSubscribers.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
             <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">
               🎧 Suporte
               {supportRequests.length > 0 && (
@@ -722,6 +822,187 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                     <div className="text-right">
                       <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
                       {p.type !== 'service' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+          )}
+
+          {/* === AGENDAR SERVIÇO === */}
+          {canAccess('agendar') && (
+            <TabsContent value="agendar" className="mt-3 space-y-3">
+              <Card className="border-primary/30">
+                <CardHeader className="pb-2 pt-4 px-4">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CalendarPlus className="w-5 h-5 text-primary" /> Agendar Novo Serviço
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-4 space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Cliente *</Label>
+                    <Select value={scheduleClientId} onValueChange={setScheduleClientId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                      <SelectContent>
+                        {(portalClients as any[]).map((c: any) => (
+                          <SelectItem key={c.id} value={String(c.id)}>
+                            {c.name} {c.telefone ? `• ${c.telefone}` : ''}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Serviço (opcional)</Label>
+                    <Select value={scheduleServiceId} onValueChange={setScheduleServiceId}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
+                      <SelectContent>
+                        {(portalProducts as any[]).filter((p: any) => p.type === 'service').map((p: any) => (
+                          <SelectItem key={p.id} value={String(p.id)}>
+                            {p.name} • R$ {Number(p.price).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Data *</Label>
+                      <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Horário *</Label>
+                      <Input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Observações</Label>
+                    <Input placeholder="Notas sobre o serviço..." value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} />
+                  </div>
+                  <Button className="w-full" onClick={handleCreateAppointment} disabled={scheduling}>
+                    {scheduling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarPlus className="w-4 h-4 mr-2" />}
+                    Agendar Serviço
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setActiveTab('clientes')}>
+                Cliente não cadastrado? Vá para 👥 Clientes e cadastre primeiro
+              </Button>
+            </TabsContent>
+          )}
+
+          {/* === ASSINANTES === */}
+          {canAccess('assinantes') && (
+            <TabsContent value="assinantes" className="mt-3 space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar por email ou nome..." value={subscriberSearch} onChange={e => setSubscriberSearch(e.target.value)} className="pl-9" />
+              </div>
+
+              {/* Summary cards */}
+              <div className="grid grid-cols-3 gap-2">
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Ativos</p>
+                    <p className="text-xl font-bold text-green-500">{activeSubscribers.length}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Pendentes</p>
+                    <p className="text-xl font-bold text-amber-500">{pendingSubscribers.length}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Total</p>
+                    <p className="text-xl font-bold">{(portalSubscribers as any[]).length}</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Pending first */}
+              {pendingSubscribers.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                    ⏳ Aguardando Ativação ({pendingSubscribers.length})
+                  </h3>
+                  {pendingSubscribers.map((sub: any) => (
+                    <Card key={sub.id} className="border-l-4 border-l-amber-500">
+                      <CardContent className="p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{sub.email}</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy') : '-'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                              <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="mensal">Mensal</SelectItem>
+                                <SelectItem value="trimestral">Trimestral</SelectItem>
+                                <SelectItem value="anual">Anual</SelectItem>
+                                <SelectItem value="vitalicio">Vitalício</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                              disabled={activatingUser === sub.id}
+                              onClick={() => handleActivateSubscriber(sub.id, true)}>
+                              {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+
+              {/* All subscribers */}
+              <h3 className="text-sm font-medium text-muted-foreground">Todos os Assinantes</h3>
+              {filteredSubscribers.map((sub: any) => (
+                <Card key={sub.id}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${sub.is_active && sub.status === 'aprovado' ? 'bg-green-500/10' : 'bg-muted'}`}>
+                          <span className={`text-xs font-bold ${sub.is_active && sub.status === 'aprovado' ? 'text-green-500' : 'text-muted-foreground'}`}>
+                            {sub.email?.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{sub.email}</p>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Badge variant={sub.status === 'aprovado' ? 'default' : sub.status === 'pendente' ? 'secondary' : 'destructive'} className="text-[8px] h-4">
+                              {sub.status === 'aprovado' ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
+                            </Badge>
+                            <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
+                            {sub.end_date && (
+                              <span className="text-[9px] text-muted-foreground">
+                                até {format(new Date(sub.end_date), 'dd/MM/yy')}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        {sub.status !== 'aprovado' || !sub.is_active ? (
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
+                            disabled={activatingUser === sub.id}
+                            onClick={() => handleActivateSubscriber(sub.id, true)}>
+                            <UserCheck className="w-3 h-3 text-green-500" />
+                          </Button>
+                        ) : (
+                          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
+                            disabled={activatingUser === sub.id}
+                            onClick={() => handleActivateSubscriber(sub.id, false)}>
+                            <UserX className="w-3 h-3 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
