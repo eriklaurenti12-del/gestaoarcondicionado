@@ -398,6 +398,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     const [decisionDialog, setDecisionDialog] = useState<{ open: boolean; appointment: any | null }>({ open: false, appointment: null });
     const [userName, setUserName] = useState('');
     const [companyName, setCompanyName] = useState('');
+    const [checkoutLinks, setCheckoutLinks] = useState<{ mensal: string; anual: string }>({ mensal: '', anual: '' });
     const today = new Date();
     const currentMonth = format(today, 'MMMM', { locale: ptBR });
     const currentDate = format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
@@ -406,12 +407,21 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       const loadUserData = async () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const [{ data: profile }, { data: company }] = await Promise.all([
+          const [{ data: profile }, { data: company }, { data: settings }] = await Promise.all([
             supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle(),
             supabase.from('company_data').select('company_name').eq('user_id', user.id).maybeSingle(),
+            supabase.from('admin_settings').select('key, value').in('key', ['checkout_mensal', 'checkout_anual']),
           ]);
           if (profile?.username) setUserName(profile.username);
           if (company?.company_name) setCompanyName(company.company_name);
+          if (settings) {
+            const links = { mensal: '', anual: '' };
+            settings.forEach((s: any) => {
+              if (s.key === 'checkout_mensal' && s.value) links.mensal = s.value;
+              if (s.key === 'checkout_anual' && s.value) links.anual = s.value;
+            });
+            setCheckoutLinks(links);
+          }
         }
       };
       loadUserData();
@@ -548,6 +558,37 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       ? Math.max(0, Math.min(100, (subscriptionData.hoursRemaining / 24) * 100))
       : 0;
 
+    // Calculate days remaining for all plan types
+    const planDaysRemaining = (() => {
+      if (!subscriptionData?.subscription) return null;
+      const sub = subscriptionData.subscription;
+      if (sub.plan === 'vitalicio') return null;
+      if (sub.end_date) {
+        return Math.max(0, differenceInDays(new Date(sub.end_date), new Date()));
+      }
+      return subscriptionData.daysRemaining;
+    })();
+
+    const planTotalDays = (() => {
+      if (!subscriptionData?.subscription) return 365;
+      const sub = subscriptionData.subscription;
+      if (sub.start_date && sub.end_date) {
+        return Math.max(1, differenceInDays(new Date(sub.end_date), new Date(sub.start_date)));
+      }
+      if (sub.plan === 'anual') return 365;
+      if (sub.plan === 'trimestral') return 90;
+      return 30;
+    })();
+
+    const planProgressPercent = planDaysRemaining !== null 
+      ? Math.max(0, Math.min(100, (planDaysRemaining / planTotalDays) * 100))
+      : 100;
+
+    const isExpiringSoon30 = planDaysRemaining !== null && planDaysRemaining <= 30 && planDaysRemaining > 0;
+    const formatEndDate = subscriptionData?.subscription?.end_date 
+      ? format(new Date(subscriptionData.subscription.end_date), 'dd/MM/yyyy')
+      : null;
+
     return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -585,7 +626,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         <Card className={`border-2 ${
           subscriptionData.isTrial 
             ? 'border-cyan-500/50 bg-gradient-to-r from-cyan-500/10 to-blue-500/10' 
-            : subscriptionData.isExpiringSoon 
+            : (isExpiringSoon30 || subscriptionData.isExpiringSoon)
               ? 'border-amber-500/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10'
               : subscriptionData.subscription?.plan === 'vitalicio'
                 ? 'border-green-500/50 bg-gradient-to-r from-green-500/10 to-emerald-500/10'
@@ -597,71 +638,90 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-full ${
                     subscriptionData.isTrial ? 'bg-cyan-500/20' :
-                    subscriptionData.isExpiringSoon ? 'bg-amber-500/20' :
+                    (isExpiringSoon30 || subscriptionData.isExpiringSoon) ? 'bg-amber-500/20' :
                     subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-500/20' : 'bg-primary/10'
                   }`}>
                     {subscriptionData.subscription?.plan === 'vitalicio' ? (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <Trophy className="w-5 h-5 text-green-500" />
                     ) : subscriptionData.isTrial ? (
                       <Clock className="w-5 h-5 text-cyan-500 animate-pulse" />
-                    ) : subscriptionData.isExpiringSoon ? (
+                    ) : (isExpiringSoon30 || subscriptionData.isExpiringSoon) ? (
                       <AlertTriangle className="w-5 h-5 text-amber-500" />
                     ) : (
-                      <Shield className="w-5 h-5 text-primary" />
+                      <CheckCircle className="w-5 h-5 text-green-500" />
                     )}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <h3 className="font-semibold text-sm">
                         {subscriptionData.isTrial 
                           ? '⏰ Período de Teste' 
                           : subscriptionData.subscription?.plan === 'vitalicio'
-                            ? '🏆 Licença Vitalícia'
-                            : subscriptionData.isExpiringSoon
-                              ? '⚠️ Renovação Necessária'
-                              : '✅ Licença Ativa'
+                            ? '👑 Plano vitalício'
+                            : `👑 Plano ${subscriptionData.subscription?.plan || 'ativo'}`
                         }
                       </h3>
-                      <Badge className={`text-[10px] ${
+                      <Badge className={`text-[10px] font-bold ${
                         subscriptionData.isTrial ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900 dark:text-cyan-300' :
                         subscriptionData.subscription?.plan === 'vitalicio' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
-                        subscriptionData.isExpiringSoon ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' :
+                        (isExpiringSoon30 || subscriptionData.isExpiringSoon) ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' :
                         'bg-primary/10 text-primary'
                       }`}>
                         {subscriptionData.subscription?.plan?.toUpperCase() || 'TRIAL'}
                       </Badge>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null
                         ? `Restam ${subscriptionData.hoursRemaining} hora${subscriptionData.hoursRemaining !== 1 ? 's' : ''} de teste`
                         : subscriptionData.subscription?.plan === 'vitalicio'
-                          ? 'Acesso ilimitado ao sistema'
-                          : subscriptionData.daysRemaining !== null && subscriptionData.daysRemaining > 0
-                            ? `Vence em ${subscriptionData.daysRemaining} dia${subscriptionData.daysRemaining !== 1 ? 's' : ''}`
-                            : 'Licença ativa'
+                          ? '✅ Acesso ilimitado ao sistema'
+                          : formatEndDate && planDaysRemaining !== null
+                            ? `Válido até ${formatEndDate} • ${planDaysRemaining} dia${planDaysRemaining !== 1 ? 's' : ''} restante${planDaysRemaining !== 1 ? 's' : ''}`
+                            : '✅ Licença ativa'
                       }
                     </p>
                   </div>
                 </div>
-                {(subscriptionData.isTrial || subscriptionData.isExpiringSoon) && (
-                  <a
-                    href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar/renovar%20minha%20licença%20AC%20Service%20Pro"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700">
-                      Ativar Licença
-                    </Button>
-                  </a>
+                {/* Payment buttons when expiring */}
+                {(subscriptionData.isTrial || isExpiringSoon30 || subscriptionData.isExpiringSoon) && (
+                  <div className="flex flex-wrap gap-2">
+                    {checkoutLinks.mensal && (
+                      <a href={checkoutLinks.mensal} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" variant="outline" className="text-xs border-primary text-primary hover:bg-primary hover:text-primary-foreground">
+                          <CreditCard className="w-3.5 h-3.5 mr-1" />
+                          Mensal
+                        </Button>
+                      </a>
+                    )}
+                    {checkoutLinks.anual && (
+                      <a href={checkoutLinks.anual} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm" className="text-xs bg-green-600 hover:bg-green-700 text-white">
+                          <Star className="w-3.5 h-3.5 mr-1" />
+                          Anual
+                        </Button>
+                      </a>
+                    )}
+                    {!checkoutLinks.mensal && !checkoutLinks.anual && (
+                      <a
+                        href="https://wa.me/5516992600631?text=Olá%20Erik,%20quero%20ativar/renovar%20minha%20licença%20AC%20Service%20Pro"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white text-xs">
+                          📱 Ativar Licença
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 )}
               </div>
               
-              {/* Visual Trial Counter */}
-              {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null && (
-                <div className="space-y-2">
+              {/* Progress bar for ALL plan types */}
+              {subscriptionData.isTrial && subscriptionData.hoursRemaining !== null ? (
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Tempo restante do trial</span>
-                    <span className={`font-bold text-lg ${
+                    <span className={`font-bold ${
                       subscriptionData.hoursRemaining <= 6 ? 'text-red-500 animate-pulse' :
                       subscriptionData.hoursRemaining <= 12 ? 'text-amber-500' :
                       'text-cyan-500'
@@ -669,7 +729,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                       {subscriptionData.hoursRemaining}h
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className={`h-full rounded-full transition-all duration-500 ${
                         subscriptionData.hoursRemaining <= 6 ? 'bg-gradient-to-r from-red-500 to-red-600' :
@@ -679,12 +739,36 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                       style={{ width: `${trialProgressPercent}%` }}
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span>0h</span>
-                    <span>24h</span>
+                </div>
+              ) : planDaysRemaining !== null && subscriptionData.subscription?.plan !== 'vitalicio' ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${
+                        planDaysRemaining <= 7 ? 'bg-red-500 animate-pulse' :
+                        planDaysRemaining <= 30 ? 'bg-amber-500' :
+                        'bg-green-500'
+                      }`} />
+                      <span className="text-muted-foreground">{planDaysRemaining} dia{planDaysRemaining !== 1 ? 's' : ''} restante{planDaysRemaining !== 1 ? 's' : ''}</span>
+                    </span>
+                  </div>
+                  <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        planDaysRemaining <= 7 ? 'bg-gradient-to-r from-red-500 to-red-600' :
+                        planDaysRemaining <= 30 ? 'bg-gradient-to-r from-amber-400 to-orange-500' :
+                        'bg-gradient-to-r from-green-400 to-emerald-500'
+                      }`}
+                      style={{ width: `${planProgressPercent}%` }}
+                    />
                   </div>
                 </div>
-              )}
+              ) : subscriptionData.subscription?.plan === 'vitalicio' ? (
+                <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                  <CheckCircle className="w-3.5 h-3.5" />
+                  <span className="font-medium">Acesso vitalício — sem data de expiração</span>
+                </div>
+              ) : null}
             </div>
           </CardContent>
         </Card>
