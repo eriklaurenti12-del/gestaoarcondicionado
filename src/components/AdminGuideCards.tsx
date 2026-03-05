@@ -82,8 +82,11 @@ const guideData: Record<string, { icon: any; title: string; badge: string; color
     { icon: DollarSign, title: 'Links de Pagamento', badge: 'CHECKOUT', color: 'green', description: 'Cole os links de checkout dos planos mensal e anual. Os botões da landing page redirecionarão automaticamente.' },
   ],
   checkout: [
-    { icon: Link2, title: 'Checkout Externo', badge: 'PAGAMENTO', color: 'green', description: 'Ative o checkout e cole links da Kiwify/Hotmart. Ao clicar nos botões da landing, o visitante é redirecionado para pagar.' },
+    { icon: Link2, title: 'Checkout Externo', badge: 'PAGAMENTO', color: 'green', description: 'Cole links da Kiwify/Hotmart aqui OU nas Configurações de Checkout. O sistema usa automaticamente o link disponível.' },
     { icon: Sparkles, title: 'Ativação Automática', badge: 'WEBHOOK', color: 'cyan', description: 'Configure o webhook da sua plataforma para ativar a assinatura automaticamente após o pagamento ser confirmado.' },
+  ],
+  'system-guide': [
+    { icon: HelpCircle, title: 'Manual do Sistema', badge: 'PDF', color: 'blue', description: 'Gere um PDF completo com passo a passo de todas as funcionalidades do sistema para impressão ou compartilhamento.' },
   ],
 };
 
