@@ -301,14 +301,28 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
           title: 'Agendamento Online',
           badge: 'Automático',
           badgeColor: 'blue',
-          description: <>Seus clientes agendam <strong>direto pelo link</strong>. Você recebe notificação em tempo real e aprova ou recusa.</>,
+          description: <>Seus clientes agendam <strong>direto pelo link</strong>. Você recebe notificação em tempo real com som e alerta push.</>,
         },
         {
           icon: Link,
           title: 'Link Compartilhável',
           badge: 'Marketing',
           badgeColor: 'emerald',
-          description: <>Compartilhe o link nas <strong>redes sociais e WhatsApp</strong>. Aumente seus atendimentos sem esforço.</>,
+          description: <>Copie e compartilhe o link abaixo nas <strong>redes sociais, WhatsApp e anúncios</strong>. O cliente preenche e você confirma.</>,
+        },
+        {
+          icon: CalendarPlus,
+          title: 'Sincronização',
+          badge: 'Auto',
+          badgeColor: 'cyan',
+          description: <>Ao confirmar, o agendamento é <strong>adicionado automaticamente à agenda</strong>, cadastra o cliente e registra a venda.</>,
+        },
+        {
+          icon: Bell,
+          title: 'Notificações',
+          badge: 'Tempo Real',
+          badgeColor: 'amber',
+          description: <>Ative as notificações para receber <strong>som e alerta no navegador</strong> a cada novo agendamento recebido.</>,
         },
       ]} />
       {/* Booking Link */}
