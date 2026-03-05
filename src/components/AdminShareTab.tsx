@@ -10,7 +10,7 @@ export const AdminShareTab: React.FC = () => {
   const { toast } = useToast();
 
   const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
-  const landingUrl = publishedUrl + '/';
+  const landingUrl = publishedUrl + '/vendas';
   const loginUrl = publishedUrl + '/?login=true';
   const cadastroUrl = publishedUrl + '/?cadastro=true';
 

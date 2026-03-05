@@ -1241,7 +1241,7 @@ gtag('config', '${settings.landing_pixel_google}');
         {/* CHECKOUT */}
         <TabsContent value="checkout">
           <div className="space-y-4">
-            <AdminGuideCards tab="settings" />
+            <AdminGuideCards tab="checkout" />
 
             {/* Toggle ativar checkout */}
             <Card className="border-primary/30">

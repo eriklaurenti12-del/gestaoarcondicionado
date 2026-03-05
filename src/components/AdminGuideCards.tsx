@@ -81,6 +81,10 @@ const guideData: Record<string, { icon: any; title: string; badge: string; color
     { icon: Settings2, title: 'Configurações Gerais', badge: 'SISTEMA', color: 'cyan', description: 'Configure links de checkout (Kiwify/Hotmart), WhatsApp de suporte e data da promoção para o countdown.' },
     { icon: DollarSign, title: 'Links de Pagamento', badge: 'CHECKOUT', color: 'green', description: 'Cole os links de checkout dos planos mensal e anual. Os botões da landing page redirecionarão automaticamente.' },
   ],
+  checkout: [
+    { icon: Link2, title: 'Checkout Externo', badge: 'PAGAMENTO', color: 'green', description: 'Ative o checkout e cole links da Kiwify/Hotmart. Ao clicar nos botões da landing, o visitante é redirecionado para pagar.' },
+    { icon: Sparkles, title: 'Ativação Automática', badge: 'WEBHOOK', color: 'cyan', description: 'Configure o webhook da sua plataforma para ativar a assinatura automaticamente após o pagamento ser confirmado.' },
+  ],
 };
 
 const colorMap: Record<string, { bg: string; text: string; badgeBorder: string; badgeText: string }> = {
