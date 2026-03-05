@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
@@ -44,6 +45,10 @@ const LANDING_KEYS = [
   ...Array.from({length: 6}, (_, i) => [`landing_faq${i+1}_pergunta`, `landing_faq${i+1}_resposta`, `landing_faq${i+1}_ativa`]).flat(),
   'landing_pixel_facebook', 'landing_pixel_google', 'landing_pixel_tiktok',
   'landing_bg_image_url', 'landing_bg_overlay_opacity', 'landing_bg_particles',
+  'landing_secao_dor', 'landing_secao_features', 'landing_secao_comparativo',
+  'landing_secao_depoimentos', 'landing_secao_faq', 'landing_secao_garantia',
+  'landing_hero_bg_image', 'landing_precos_bg_image', 'landing_depoimentos_bg_image',
+  'landing_hero_font_size', 'landing_anim_speed',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -963,6 +968,17 @@ export const AdminLandingTab: React.FC = () => {
                   <Switch checked={settings.landing_bg_particles !== 'false'}
                     onCheckedChange={v => update('landing_bg_particles', v ? 'true' : 'false')} />
                 </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Velocidade das animações</Label>
+                  <Select value={settings.landing_anim_speed || 'normal'} onValueChange={v => update('landing_anim_speed', v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="slow">Lenta</SelectItem>
+                      <SelectItem value="normal">Normal</SelectItem>
+                      <SelectItem value="fast">Rápida</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <ColorInput label="Cor Primária" value={settings.landing_cor_primaria || '#06b6d4'} onChange={v => update('landing_cor_primaria', v)} />
                   <ColorInput label="Cor Secundária" value={settings.landing_cor_secundaria || '#3b82f6'} onChange={v => update('landing_cor_secundaria', v)} />
@@ -972,6 +988,89 @@ export const AdminLandingTab: React.FC = () => {
                   <ColorInput label="Cor do Fundo" value={settings.landing_cor_fundo || '#0f172a'} onChange={v => update('landing_cor_fundo', v)} />
                   <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Eye className="w-5 h-5 text-emerald-500" /> Visibilidade das Seções
+                </CardTitle>
+                <CardDescription>Escolha quais seções aparecem na landing page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[
+                  { key: 'landing_secao_dor', label: '😰 Seção de Dor (Problemas)' },
+                  { key: 'landing_secao_features', label: '⚡ Funcionalidades' },
+                  { key: 'landing_secao_comparativo', label: '📊 Comparativo (Antes x Depois)' },
+                  { key: 'landing_secao_depoimentos', label: '💬 Depoimentos' },
+                  { key: 'landing_secao_faq', label: '❓ FAQ' },
+                  { key: 'landing_secao_garantia', label: '🛡️ Garantia' },
+                ].map(s => (
+                  <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <span className="text-sm font-medium">{s.label}</span>
+                    <Switch checked={settings[s.key] !== 'false'}
+                      onCheckedChange={v => update(s.key, v ? 'true' : 'false')} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Image className="w-5 h-5 text-violet-500" /> Fundos por Seção
+                </CardTitle>
+                <CardDescription>Imagens de fundo específicas para cada parte da página</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: 'landing_hero_bg_image', label: 'Fundo do Hero (Topo)' },
+                  { key: 'landing_precos_bg_image', label: 'Fundo dos Preços' },
+                  { key: 'landing_depoimentos_bg_image', label: 'Fundo dos Depoimentos' },
+                ].map(s => (
+                  <div key={s.key} className="space-y-2">
+                    <Label className="text-muted-foreground text-sm">{s.label}</Label>
+                    <div className="flex gap-2">
+                      <Input value={settings[s.key] || ''} onChange={e => update(s.key, e.target.value)}
+                        placeholder="URL da imagem" className="flex-1" />
+                      <Button variant="outline" size="icon" onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = async (ev: any) => {
+                          const file = ev.target.files?.[0];
+                          if (!file) return;
+                          setUploading(true);
+                          try {
+                            const ext = file.name.split('.').pop();
+                            const fileName = `section-bg-${Date.now()}.${ext}`;
+                            const { error: uploadError } = await supabase.storage.from('landing-media').upload(fileName, file, { upsert: true });
+                            if (uploadError) throw uploadError;
+                            const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
+                            update(s.key, publicUrl);
+                            toast({ title: "Upload concluído! ✅" });
+                          } catch (err: any) {
+                            toast({ title: "Erro", description: err.message, variant: "destructive" });
+                          } finally {
+                            setUploading(false);
+                          }
+                        };
+                        input.click();
+                      }} disabled={uploading}>
+                        <Upload className="w-4 h-4" />
+                      </Button>
+                      {settings[s.key] && (
+                        <Button variant="outline" size="icon" onClick={() => update(s.key, '')} className="text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </div>
+                    {settings[s.key] && (
+                      <img src={settings[s.key]} alt={s.label} className="w-full h-24 object-cover rounded-lg border border-border" />
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
           </div>

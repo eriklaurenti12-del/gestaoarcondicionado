@@ -88,6 +88,10 @@ const Landing: React.FC = () => {
     landing_notif_ativa: 'true', landing_notif_som: 'true', landing_notif_intervalo: '10', landing_notif_som_url: '',
     landing_pixel_facebook: '', landing_pixel_google: '', landing_pixel_tiktok: '',
     landing_bg_image_url: '', landing_bg_overlay_opacity: '70', landing_bg_particles: 'true',
+    landing_secao_dor: 'true', landing_secao_features: 'true', landing_secao_comparativo: 'true',
+    landing_secao_depoimentos: 'true', landing_secao_faq: 'true', landing_secao_garantia: 'true',
+    landing_hero_bg_image: '', landing_precos_bg_image: '', landing_depoimentos_bg_image: '',
+    landing_hero_font_size: 'normal', landing_anim_speed: 'normal',
     landing_oferta1_titulo: 'Plano Mensal', landing_oferta1_descricao: 'Para testar e ver resultado rápido',
     landing_oferta1_badge: '', landing_oferta1_ativa: 'true',
     landing_oferta2_titulo: 'Plano Anual', landing_oferta2_descricao: 'Para quem quer economizar de verdade',
@@ -508,8 +512,9 @@ const Landing: React.FC = () => {
       )}
       
       {/* Hero */}
-      <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center">
-        <div className="container mx-auto text-center">
+      <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center" style={settings.landing_hero_bg_image ? { backgroundImage: `url(${settings.landing_hero_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
+        {settings.landing_hero_bg_image && <div className="absolute inset-0 bg-black/60" />}
+        <div className="container mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Zap className="w-4 h-4 text-red-400" />
             <span className="text-red-300 text-sm font-medium">{settings.landing_badge_urgencia}</span>
@@ -535,62 +540,68 @@ const Landing: React.FC = () => {
       </section>
 
       {/* Dor */}
-      <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
-        <div className="container mx-auto max-w-4xl">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">Você se <span className="text-red-400">identifica</span> com isso?</h2>
-          <div className="grid md:grid-cols-2 gap-4 mb-10">
-            {["Anota serviços no papel e depois perde","Esquece de cobrar cliente","Não sabe quanto lucrou no mês","Perde tempo procurando no WhatsApp","Cliente liga e você não lembra o histórico","Já perdeu serviço por falta de organização","Trabalha muito mas o dinheiro não sobra","Usa planilha Excel mas nunca atualiza"].map((pain, i) => (
-              <div key={i} className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
-                <X className="w-5 h-5 text-red-400 flex-shrink-0" /><span className="text-gray-300 text-sm">{pain}</span>
-              </div>
-            ))}
+      {settings.landing_secao_dor !== 'false' && (
+        <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">Você se <span className="text-red-400">identifica</span> com isso?</h2>
+            <div className="grid md:grid-cols-2 gap-4 mb-10">
+              {["Anota serviços no papel e depois perde","Esquece de cobrar cliente","Não sabe quanto lucrou no mês","Perde tempo procurando no WhatsApp","Cliente liga e você não lembra o histórico","Já perdeu serviço por falta de organização","Trabalha muito mas o dinheiro não sobra","Usa planilha Excel mas nunca atualiza"].map((pain, i) => (
+                <div key={i} className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                  <X className="w-5 h-5 text-red-400 flex-shrink-0" /><span className="text-gray-300 text-sm">{pain}</span>
+                </div>
+              ))}
+            </div>
+            <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></h3>
+            </div>
           </div>
-          <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
-            <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></h3>
-          </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Features */}
-      <section className="py-16 px-4">
-        <div className="container mx-auto">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {features.map((f, i) => (
-              <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
-                <CardContent className="p-4 md:p-6 text-center">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
-                    <f.icon className="w-6 h-6 text-cyan-400" />
-                  </div>
-                  <h3 className="font-semibold text-white text-sm md:text-base mb-1">{f.title}</h3>
-                  <p className="text-xs md:text-sm text-gray-400">{f.desc}</p>
-                </CardContent>
-              </Card>
-            ))}
+      {settings.landing_secao_features !== 'false' && (
+        <section className="py-16 px-4">
+          <div className="container mx-auto">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+              {features.map((f, i) => (
+                <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
+                  <CardContent className="p-4 md:p-6 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
+                      <f.icon className="w-6 h-6 text-cyan-400" />
+                    </div>
+                    <h3 className="font-semibold text-white text-sm md:text-base mb-1">{f.title}</h3>
+                    <p className="text-xs md:text-sm text-gray-400">{f.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Comparação */}
-      <section className="py-16 px-4 bg-slate-900/50">
-        <div className="container mx-auto max-w-4xl">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="!bg-red-500/5 !border-red-500/20">
-              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-red-400"><X className="w-5 h-5" /> Outros Sistemas</CardTitle></CardHeader>
-              <CardContent><ul className="space-y-2">{["Custam R$ 150 a R$ 500/mês","Complicados demais","Precisam de treinamento","Feitos para empresas grandes","Suporte demora dias","Interface confusa"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
-            </Card>
-            <Card className="!bg-green-500/5 !border-green-500/30">
-              <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-green-400"><CheckCircle className="w-5 h-5" /> AC Service Pro</CardTitle></CardHeader>
-              <CardContent><ul className="space-y-2">{[`Apenas R$ ${settings.landing_preco_mensal}/mês`,"Simples igual WhatsApp","Começa em 2 minutos","Feito POR técnico PARA técnico","Suporte em minutos no WhatsApp","Interface moderna e bonita"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
-            </Card>
+      {settings.landing_secao_comparativo !== 'false' && (
+        <section className="py-16 px-4 bg-slate-900/50">
+          <div className="container mx-auto max-w-4xl">
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="!bg-red-500/5 !border-red-500/20">
+                <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-red-400"><X className="w-5 h-5" /> Outros Sistemas</CardTitle></CardHeader>
+                <CardContent><ul className="space-y-2">{["Custam R$ 150 a R$ 500/mês","Complicados demais","Precisam de treinamento","Feitos para empresas grandes","Suporte demora dias","Interface confusa"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
+              </Card>
+              <Card className="!bg-green-500/5 !border-green-500/30">
+                <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-green-400"><CheckCircle className="w-5 h-5" /> AC Service Pro</CardTitle></CardHeader>
+                <CardContent><ul className="space-y-2">{[`Apenas R$ ${settings.landing_preco_mensal}/mês`,"Simples igual WhatsApp","Começa em 2 minutos","Feito POR técnico PARA técnico","Suporte em minutos no WhatsApp","Interface moderna e bonita"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <PricingSection />
-      <TestimonialsSection />
-      {faqs.length > 0 && <FaqSection />}
+      {settings.landing_secao_depoimentos !== 'false' && <TestimonialsSection />}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <FaqSection />}
 
       {/* Urgência Final */}
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
