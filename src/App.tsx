@@ -12,6 +12,7 @@ import Members from "./pages/Members";
 import PublicBooking from "./pages/PublicBooking";
 import NotFound from "./pages/NotFound";
 import AwaitingActivation from "./pages/AwaitingActivation";
+import TeamPortalLogin from "./pages/TeamPortalLogin";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
             <Route path="/members" element={<Members />} />
             <Route path="/agendar" element={<PublicBooking />} />
             <Route path="/awaiting-activation" element={<AwaitingActivation />} />
+            <Route path="/portal" element={<TeamPortalLogin />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

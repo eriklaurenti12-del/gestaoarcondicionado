@@ -331,26 +331,161 @@ export default function Members() {
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-primary" /> Gestão de Equipe
+                  <UserPlus className="w-5 h-5 text-primary" /> Equipe
                 </h2>
-                <p className="text-muted-foreground text-sm">Crie links fixos para convidar membros com funções específicas</p>
+                <p className="text-muted-foreground text-sm">Gerencie seus membros de equipe</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="outline" size="sm" onClick={() => {
+                  const portalUrl = `${publishedUrl}/portal`;
+                  navigator.clipboard.writeText(portalUrl);
+                  toast({ title: "Link copiado! 📋", description: portalUrl });
+                }}>
+                  <ExternalLink className="w-4 h-4 mr-1" /> Link do Portal
+                </Button>
               </div>
             </div>
 
-            {/* Generate invites by role */}
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <Card className="border-border">
+                <CardContent className="pt-5 pb-4 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Users className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{acceptedInvites.length}</div>
+                    <div className="text-xs text-muted-foreground">Ativos</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="pt-5 pb-4 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-500/10">
+                    <UserPlus className="w-5 h-5 text-amber-500" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{acceptedInvites.length + pendingInvites.length}</div>
+                    <div className="text-xs text-muted-foreground">Total Cadastrados</div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="border-border">
+                <CardContent className="pt-5 pb-4 flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-cyan-500/10">
+                    <Link2 className="w-5 h-5 text-cyan-500" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{pendingInvites.length}</div>
+                    <div className="text-xs text-muted-foreground">Pendentes</div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Member Cards */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              {acceptedInvites.map(invite => {
+                const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
+                const RoleIcon = roleInfo.icon;
+                const memberName = invite.accepted_email || 'Membro';
+                const initial = memberName.charAt(0).toUpperCase();
+                const colors = ['bg-cyan-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-rose-500'];
+                const avatarColor = colors[memberName.length % colors.length];
+                // Find phone from support numbers
+                const supportNum = supportNumbers.find(n => n.name?.toLowerCase() === memberName.toLowerCase());
+
+                return (
+                  <Card key={invite.id} className="border-border hover:shadow-md transition-shadow">
+                    <CardContent className="p-5 space-y-4">
+                      {/* Header: Avatar + Name + Badge */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-lg`}>
+                            {initial}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-foreground">{memberName}</div>
+                            {supportNum?.phone && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Phone className="w-3 h-3" />
+                                {supportNum.phone}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <Badge variant="default" className="text-xs">Ativo</Badge>
+                      </div>
+
+                      {/* Role Info */}
+                      <div className="flex items-center gap-4 text-sm bg-muted/40 rounded-lg p-3">
+                        <div className="text-center flex-1">
+                          <div className="text-xs text-muted-foreground">Função</div>
+                          <div className={`font-semibold text-sm flex items-center justify-center gap-1 ${roleInfo.color}`}>
+                            <RoleIcon className="w-3.5 h-3.5" />
+                            {roleInfo.label}
+                          </div>
+                        </div>
+                        <div className="text-center flex-1">
+                          <div className="text-xs text-muted-foreground">Desde</div>
+                          <div className="font-semibold text-sm">
+                            {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yy') : '-'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex gap-2">
+                        {supportNum?.phone && (
+                          <Button size="sm" variant="outline" className="flex-1 text-xs"
+                            onClick={() => window.open(`https://wa.me/55${supportNum.phone.replace(/\D/g, '')}`, '_blank')}>
+                            <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0"
+                          onClick={() => {
+                            const portalUrl = `${publishedUrl}/portal`;
+                            navigator.clipboard.writeText(portalUrl);
+                            toast({ title: "Link do portal copiado!" });
+                          }}>
+                          <Link2 className="w-3.5 h-3.5" />
+                        </Button>
+                        <Button size="sm" variant="destructive" className="h-8 w-8 p-0"
+                          onClick={() => removeTeamMember(invite)}>
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+
+            {acceptedInvites.length === 0 && (
+              <Card className="border-dashed border-2">
+                <CardContent className="py-12 text-center">
+                  <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                  <p className="font-medium text-foreground">Nenhum membro na equipe</p>
+                  <p className="text-sm text-muted-foreground">Gere um link de convite abaixo para adicionar membros</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Generate Invite Links */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-primary" /> Gerar Link de Convite
+                  <Link2 className="w-5 h-5 text-primary" /> Adicionar Membro
                 </CardTitle>
                 <p className="text-muted-foreground text-xs">
-                  Escolha a função e gere um link fixo.
+                  Gere um link e envie para o novo membro
                 </p>
               </CardHeader>
               <CardContent>
                 <div className="grid sm:grid-cols-3 gap-3">
                   {Object.entries(TEAM_ROLES).map(([key, info]) => {
                     const Icon = info.icon;
+                    const existing = pendingInvites.find(i => (i as any).team_role === key);
                     return (
                       <button key={key} onClick={() => generateTeamInvite(key)} disabled={loadingInvite}
                         className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-muted/30 hover:bg-muted hover:border-primary/30 transition-all group">
@@ -359,8 +494,8 @@ export default function Members() {
                         </div>
                         <span className="font-medium text-sm">{info.label}</span>
                         <span className="text-muted-foreground text-xs text-center">{info.desc}</span>
-                        <Badge variant="outline" className="text-xs mt-1">
-                          + Gerar Link
+                        <Badge variant={existing ? "secondary" : "outline"} className="text-xs mt-1">
+                          {existing ? '✓ Link ativo' : '+ Gerar Link'}
                         </Badge>
                       </button>
                     );
@@ -369,13 +504,51 @@ export default function Members() {
               </CardContent>
             </Card>
 
-            {/* Phone Numbers - Direct Team */}
+            {/* Pending Invites - compact */}
+            {pendingInvites.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">⏳ Links Pendentes ({pendingInvites.length})</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {pendingInvites.map(invite => {
+                    const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
+                    const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
+                    const RoleIcon = roleInfo.icon;
+                    const whatsAppMsg = `🔗 *Convite para a equipe - ${roleInfo.label}*\n\nVocê foi convidado!\nClique: ${teamUrl}\n\nCódigo: ${invite.invite_code}`;
+                    return (
+                      <div key={invite.id} className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <Badge variant="secondary" className="gap-1 text-xs">
+                            <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
+                            {roleInfo.label}
+                          </Badge>
+                          <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
+                            className="h-7 w-7 p-0"><Trash2 className="w-3 h-3" /></Button>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" className="flex-1 text-xs"
+                            onClick={() => copyToClipboard(teamUrl)}>
+                            <Copy className="w-3 h-3 mr-1" /> Copiar
+                          </Button>
+                          <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700 text-white"
+                            onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(whatsAppMsg)}`, '_blank')}>
+                            <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Phone Numbers */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
-                  <Phone className="w-5 h-5 text-green-500" /> Números da Equipe
+                  <Phone className="w-5 h-5 text-green-500" /> Telefones da Equipe
                 </CardTitle>
-                <p className="text-muted-foreground text-xs">Cadastre os telefones da equipe para suporte.</p>
               </CardHeader>
               <CardContent className="space-y-3">
                 {supportNumbers.map((num, idx) => (
@@ -392,142 +565,17 @@ export default function Members() {
                         setSupportNumbers(updated);
                       }} placeholder="(11) 99999-9999" className="flex-1" />
                     </div>
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="ghost" className="h-8 w-8 p-0"
-                        onClick={() => { if (num.phone) window.open(`https://wa.me/55${num.phone.replace(/\D/g, '')}`, '_blank'); }}>
-                        <Phone className="w-4 h-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => {
-                        setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
-                      }}><Trash2 className="w-3 h-3" /></Button>
-                    </div>
+                    <Button size="sm" variant="ghost" className="text-destructive h-8 w-8 p-0" onClick={() => {
+                      setSupportNumbers(supportNumbers.filter((_, i) => i !== idx));
+                    }}><Trash2 className="w-3 h-3" /></Button>
                   </div>
                 ))}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => setSupportNumbers([...supportNumbers, { name: '', phone: '' }])}>
                     <UserPlus className="w-3 h-3 mr-1" /> Adicionar
                   </Button>
                   <Button size="sm" onClick={saveSupportNumbers}>Salvar</Button>
-                  {supportNumbers.length > 0 && (
-                    <Button size="sm" variant="outline"
-                      onClick={() => {
-                        const available = supportNumbers.filter(n => n.phone);
-                        if (available.length === 0) { toast({ title: "Nenhum número cadastrado" }); return; }
-                        const random = available[Math.floor(Math.random() * available.length)];
-                        window.open(`https://wa.me/55${random.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${random.name}! Preciso de atendimento.`)}`, '_blank');
-                        toast({ title: `Conectando com ${random.name}...` });
-                      }}>
-                      🎲 Aleatório
-                    </Button>
-                  )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Active Team Members */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  👥 Membros Ativos ({acceptedInvites.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {acceptedInvites.length === 0 ? (
-                  <p className="text-muted-foreground text-sm text-center py-8">Nenhum membro na equipe ainda.</p>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                         <TableRow className="border-border">
-                        <TableHead>Email</TableHead>
-                        <TableHead>Função</TableHead>
-                        <TableHead>Aceito em</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {acceptedInvites.map(invite => {
-                        const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
-                        const RoleIcon = roleInfo.icon;
-                        return (
-                          <TableRow key={invite.id}>
-                            <TableCell className="font-medium">{invite.accepted_email}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary" className="gap-1">
-                                <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
-                                {roleInfo.label}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">
-                              {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yyyy') : '-'}
-                            </TableCell>
-                            <TableCell>
-                              <Button size="sm" variant="destructive" onClick={() => removeTeamMember(invite)}
-                                className="text-xs">
-                                <Trash2 className="w-3 h-3 mr-1" /> Remover
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Pending Invites */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  ⏳ Links Pendentes ({pendingInvites.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {pendingInvites.length === 0 ? (
-                  <p className="text-muted-foreground text-sm text-center py-4">Nenhum link pendente.</p>
-                ) : (
-                  pendingInvites.map(invite => {
-                    const teamUrl = `${publishedUrl}/auth?team=${invite.invite_code}`;
-                    const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
-                    const RoleIcon = roleInfo.icon;
-                    const whatsAppMsg = `🔗 *Convite para a equipe - ${roleInfo.label}*\n\nVocê foi convidado para fazer parte da equipe!\n\nClique no link abaixo para criar sua conta:\n${teamUrl}\n\nCódigo: ${invite.invite_code}`;
-                    const whatsAppUrl = `https://wa.me/?text=${encodeURIComponent(whatsAppMsg)}`;
-                    return (
-                      <div key={invite.id} className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="gap-1 text-xs">
-                              <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
-                              {roleInfo.label}
-                            </Badge>
-                            <code className="text-primary text-xs font-mono">{invite.invite_code}</code>
-                          </div>
-                          <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
-                            className="text-xs h-8 w-8 p-0">
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                        <div className="bg-background/50 rounded-md p-2">
-                          <p className="text-muted-foreground text-xs break-all font-mono">{teamUrl}</p>
-                        </div>
-                        <div className="flex gap-2 flex-wrap">
-                          <Button size="sm" variant="outline" onClick={() => copyToClipboard(teamUrl)}
-                            className="text-xs flex-1">
-                            <Copy className="w-3 h-3 mr-1" /> Copiar Link
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => window.open(teamUrl, '_blank')}
-                            className="text-xs flex-1">
-                            <ExternalLink className="w-3 h-3 mr-1" /> Abrir Link
-                          </Button>
-                          <Button size="sm" className="text-xs flex-1 bg-green-600 hover:bg-green-700 text-white"
-                            onClick={() => window.open(whatsAppUrl, '_blank')}>
-                            <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
               </CardContent>
             </Card>
           </TabsContent>
