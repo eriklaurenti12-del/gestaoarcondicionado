@@ -13,7 +13,7 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Image, Volume2
+  Image, Volume2, Target, ImagePlus
 } from "lucide-react";
 
 const LANDING_KEYS = [
@@ -42,6 +42,8 @@ const LANDING_KEYS = [
   'landing_template',
   'landing_vsl_url', 'landing_vsl_trava',
   ...Array.from({length: 6}, (_, i) => [`landing_faq${i+1}_pergunta`, `landing_faq${i+1}_resposta`, `landing_faq${i+1}_ativa`]).flat(),
+  'landing_pixel_facebook', 'landing_pixel_google', 'landing_pixel_tiktok',
+  'landing_bg_image_url', 'landing_bg_overlay_opacity', 'landing_bg_particles',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -281,6 +283,8 @@ export const AdminLandingTab: React.FC = () => {
           <TabsTrigger value="whatsapp" className="text-xs"><MessageCircle className="w-3 h-3 mr-1" />WhatsApp</TabsTrigger>
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
           <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
+          <TabsTrigger value="pixel" className="text-xs"><Target className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
+          <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
         </TabsList>
 
@@ -827,6 +831,146 @@ export const AdminLandingTab: React.FC = () => {
                     className="min-h-[80px] text-sm font-mono"
                     placeholder="São Paulo&#10;Rio de Janeiro&#10;Belo Horizonte..." />
                   <p className="text-xs text-muted-foreground mt-1">Cidades para exibir. Vazio = lista padrão de 50 cidades</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* PIXEL ADS */}
+        <TabsContent value="pixel">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Target className="w-5 h-5 text-blue-500" /> Facebook / Meta Pixel
+                </CardTitle>
+                <CardDescription>Cole apenas o ID do Pixel (ex: 123456789012345). Será injetado automaticamente na landing page.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input value={settings.landing_pixel_facebook || ''} onChange={e => update('landing_pixel_facebook', e.target.value)}
+                  placeholder="Ex: 123456789012345" className="font-mono" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Target className="w-5 h-5 text-amber-500" /> Google Ads (gtag)
+                </CardTitle>
+                <CardDescription>Cole o ID de conversão do Google Ads (ex: AW-123456789).</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input value={settings.landing_pixel_google || ''} onChange={e => update('landing_pixel_google', e.target.value)}
+                  placeholder="Ex: AW-123456789" className="font-mono" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Target className="w-5 h-5 text-foreground" /> TikTok Pixel
+                </CardTitle>
+                <CardDescription>Cole o ID do Pixel do TikTok (ex: ABCDEF123456).</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Input value={settings.landing_pixel_tiktok || ''} onChange={e => update('landing_pixel_tiktok', e.target.value)}
+                  placeholder="Ex: ABCDEF123456" className="font-mono" />
+              </CardContent>
+            </Card>
+            <div className="p-4 rounded-xl bg-muted/50 border border-border">
+              <p className="text-sm text-muted-foreground">
+                💡 Os pixels serão injetados automaticamente na landing page (<code>/vendas</code>) após salvar. 
+                Eventos de <strong>PageView</strong> são disparados ao carregar a página, e eventos de <strong>Lead/Conversion</strong> ao clicar nos botões de checkout.
+              </p>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* BACKGROUND / FUNDO */}
+        <TabsContent value="background">
+          <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImagePlus className="w-5 h-5 text-primary" /> Imagem de Fundo
+                </CardTitle>
+                <CardDescription>Faça upload de uma imagem para usar como fundo da landing page.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {settings.landing_bg_image_url && (
+                  <div className="relative rounded-xl overflow-hidden border border-border">
+                    <img src={settings.landing_bg_image_url} alt="Background" className="w-full h-48 object-cover" />
+                    <Button variant="destructive" size="sm" className="absolute top-2 right-2" 
+                      onClick={() => update('landing_bg_image_url', '')}>
+                      <Trash2 className="w-3 h-3 mr-1" /> Remover
+                    </Button>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-muted-foreground text-sm">URL da imagem ou faça upload</Label>
+                  <div className="flex gap-2 mt-1">
+                    <Input value={settings.landing_bg_image_url || ''} onChange={e => update('landing_bg_image_url', e.target.value)}
+                      placeholder="https://... ou faça upload" className="flex-1" />
+                    <Button variant="outline" onClick={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = 'image/*';
+                      input.onchange = async (ev: any) => {
+                        const file = ev.target.files?.[0];
+                        if (!file) return;
+                        if (file.size > 10 * 1024 * 1024) {
+                          toast({ title: "Máximo 10MB", variant: "destructive" });
+                          return;
+                        }
+                        setUploading(true);
+                        try {
+                          const ext = file.name.split('.').pop();
+                          const fileName = `bg-${Date.now()}.${ext}`;
+                          const { error: uploadError } = await supabase.storage.from('landing-media').upload(fileName, file, { upsert: true });
+                          if (uploadError) throw uploadError;
+                          const { data: { publicUrl } } = supabase.storage.from('landing-media').getPublicUrl(fileName);
+                          update('landing_bg_image_url', publicUrl);
+                          toast({ title: "Imagem enviada! ✅" });
+                        } catch (err: any) {
+                          toast({ title: "Erro", description: err.message, variant: "destructive" });
+                        } finally {
+                          setUploading(false);
+                        }
+                      };
+                      input.click();
+                    }} disabled={uploading}>
+                      {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    </Button>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Opacidade do overlay escuro ({settings.landing_bg_overlay_opacity || '70'}%)</Label>
+                  <input type="range" min="0" max="100" value={settings.landing_bg_overlay_opacity || '70'}
+                    onChange={e => update('landing_bg_overlay_opacity', e.target.value)}
+                    className="w-full mt-1" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Palette className="w-5 h-5 text-primary" /> Efeitos & Partículas
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label>Partículas interativas</Label>
+                  <Switch checked={settings.landing_bg_particles !== 'false'}
+                    onCheckedChange={v => update('landing_bg_particles', v ? 'true' : 'false')} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <ColorInput label="Cor Primária" value={settings.landing_cor_primaria || '#06b6d4'} onChange={v => update('landing_cor_primaria', v)} />
+                  <ColorInput label="Cor Secundária" value={settings.landing_cor_secundaria || '#3b82f6'} onChange={v => update('landing_cor_secundaria', v)} />
+                  <ColorInput label="Cor Destaque" value={settings.landing_cor_destaque || '#f59e0b'} onChange={v => update('landing_cor_destaque', v)} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <ColorInput label="Cor do Fundo" value={settings.landing_cor_fundo || '#0f172a'} onChange={v => update('landing_cor_fundo', v)} />
+                  <ColorInput label="Cor Botão CTA" value={settings.landing_cor_botao_cta || '#22c55e'} onChange={v => update('landing_cor_botao_cta', v)} />
                 </div>
               </CardContent>
             </Card>

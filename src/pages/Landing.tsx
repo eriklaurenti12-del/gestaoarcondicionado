@@ -86,6 +86,8 @@ const Landing: React.FC = () => {
     landing_countdown_texto: '🔥 PROMOÇÃO POR TEMPO LIMITADO!',
     landing_countdown_desconto: '22% OFF Plano Anual',
     landing_notif_ativa: 'true', landing_notif_som: 'true', landing_notif_intervalo: '10', landing_notif_som_url: '',
+    landing_pixel_facebook: '', landing_pixel_google: '', landing_pixel_tiktok: '',
+    landing_bg_image_url: '', landing_bg_overlay_opacity: '70', landing_bg_particles: 'true',
     landing_oferta1_titulo: 'Plano Mensal', landing_oferta1_descricao: 'Para testar e ver resultado rápido',
     landing_oferta1_badge: '', landing_oferta1_ativa: 'true',
     landing_oferta2_titulo: 'Plano Anual', landing_oferta2_descricao: 'Para quem quer economizar de verdade',
@@ -154,6 +156,7 @@ const Landing: React.FC = () => {
   }, [navigate]);
 
   const handleCheckout = (type: 'mensal' | 'anual') => {
+    trackConversion(type);
     const checkoutUrl = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
     if (checkoutUrl && checkoutUrl.startsWith('http')) { window.open(checkoutUrl, '_blank'); }
     else { setShowLogin(true); setIsLogin(false); toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." }); }
@@ -193,6 +196,49 @@ const Landing: React.FC = () => {
     const savedEmail = localStorage.getItem('ac_remember_email');
     if (savedEmail) { setEmail(savedEmail); setRememberMe(true); }
   }, []);
+
+  // Inject Pixel scripts
+  useEffect(() => {
+    // Facebook Pixel
+    if (settings.landing_pixel_facebook) {
+      const fbScript = document.createElement('script');
+      fbScript.innerHTML = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init','${settings.landing_pixel_facebook}');fbq('track','PageView');`;
+      fbScript.id = 'fb-pixel';
+      if (!document.getElementById('fb-pixel')) document.head.appendChild(fbScript);
+    }
+    // Google Ads gtag
+    if (settings.landing_pixel_google) {
+      const gScript = document.createElement('script');
+      gScript.src = `https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}`;
+      gScript.async = true;
+      gScript.id = 'gtag-script';
+      if (!document.getElementById('gtag-script')) {
+        document.head.appendChild(gScript);
+        const gInline = document.createElement('script');
+        gInline.innerHTML = `window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${settings.landing_pixel_google}');`;
+        document.head.appendChild(gInline);
+      }
+    }
+    // TikTok Pixel
+    if (settings.landing_pixel_tiktok) {
+      const ttScript = document.createElement('script');
+      ttScript.innerHTML = `!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');`;
+      ttScript.id = 'tt-pixel';
+      if (!document.getElementById('tt-pixel')) document.head.appendChild(ttScript);
+    }
+    return () => {
+      ['fb-pixel', 'gtag-script', 'tt-pixel'].forEach(id => document.getElementById(id)?.remove());
+    };
+  }, [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok]);
+
+  // Pixel tracking helper for conversions
+  const trackConversion = (type: 'mensal' | 'anual') => {
+    try {
+      if ((window as any).fbq) (window as any).fbq('track', 'Lead', { content_name: `Plano ${type}` });
+      if ((window as any).gtag && settings.landing_pixel_google) (window as any).gtag('event', 'conversion', { send_to: settings.landing_pixel_google });
+      if ((window as any).ttq) (window as any).ttq.track('CompleteRegistration', { content_name: `Plano ${type}` });
+    } catch (e) {}
+  };
 
   const features = [
     { icon: Calendar, title: "Agenda Inteligente", desc: "Nunca mais perca um serviço" },
@@ -451,7 +497,15 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: PERSUASÃO ────────────────────────────────────────
   const renderPersuasao = () => (
     <>
-      <InteractiveBackground color1={`${settings.landing_cor_primaria}26`} color2={`${settings.landing_cor_secundaria}20`} color3={`${settings.landing_cor_destaque}15`} />
+      {settings.landing_bg_particles !== 'false' && (
+        <InteractiveBackground color1={`${settings.landing_cor_primaria}26`} color2={`${settings.landing_cor_secundaria}20`} color3={`${settings.landing_cor_destaque}15`} />
+      )}
+      {settings.landing_bg_image_url && (
+        <>
+          <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
+          <div className="fixed inset-0 z-0" style={{ backgroundColor: `rgba(0,0,0,${Number(settings.landing_bg_overlay_opacity || 70) / 100})` }} />
+        </>
+      )}
       
       {/* Hero */}
       <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center">
@@ -566,7 +620,13 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: VSL (VIDEO SALES LETTER) ─────────────────────────
   const renderVSL = () => (
     <>
-      <InteractiveBackground color1="#f59e0b26" color2="#ef444420" color3="#8b5cf615" />
+      {settings.landing_bg_particles !== 'false' && <InteractiveBackground color1="#f59e0b26" color2="#ef444420" color3="#8b5cf615" />}
+      {settings.landing_bg_image_url && (
+        <>
+          <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
+          <div className="fixed inset-0 z-0" style={{ backgroundColor: `rgba(0,0,0,${Number(settings.landing_bg_overlay_opacity || 70) / 100})` }} />
+        </>
+      )}
 
       {/* Hero com Vídeo central */}
       <section className="pt-32 pb-8 px-4 min-h-[95vh] flex items-center">
@@ -706,7 +766,13 @@ const Landing: React.FC = () => {
   // ─── TEMPLATE: CUSTOM / CRIAR DO ZERO ───────────────────────────
   const renderCustom = () => (
     <>
-      <InteractiveBackground color1="#8b5cf626" color2="#ec489920" color3="#06b6d415" />
+      {settings.landing_bg_particles !== 'false' && <InteractiveBackground color1="#8b5cf626" color2="#ec489920" color3="#06b6d415" />}
+      {settings.landing_bg_image_url && (
+        <>
+          <div className="fixed inset-0 z-0" style={{ backgroundImage: `url(${settings.landing_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed' }} />
+          <div className="fixed inset-0 z-0" style={{ backgroundColor: `rgba(0,0,0,${Number(settings.landing_bg_overlay_opacity || 70) / 100})` }} />
+        </>
+      )}
       
       {/* Hero gradiente diferente */}
       <section className="pt-32 pb-16 px-4 min-h-[85vh] flex items-center relative">
