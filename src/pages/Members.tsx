@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen } from "lucide-react";
+import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Share2, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
@@ -25,6 +25,7 @@ import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import AdminSettingsTab from "@/components/AdminSettingsTab";
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
+import AdminSupportTab from "@/components/AdminSupportTab";
 import { Switch } from "@/components/ui/switch";
 
 type Member = {
@@ -53,7 +54,7 @@ type TeamMember = {
 
 const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; description: string }> = {
   painel: { label: 'Painel Admin', icon: Shield, color: 'text-cyan-400', description: 'Apenas visualiza o Dashboard' },
-  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400', description: 'Dashboard, Agenda, Agendamento Online, Cadastros' },
+  suporte: { label: 'Suporte', icon: Headphones, color: 'text-amber-400', description: 'Dashboard, Agenda, Agendamento Online, Cadastros, Financeiro, PDV, Orçamentos' },
   sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Acesso total ao sistema (sem painel admin)' },
 };
 
@@ -389,6 +390,12 @@ export default function Members() {
             <TabsTrigger value="sidebar-config" className="text-xs rounded-lg">
               <Menu className="w-4 h-4 mr-1" /> Menu
             </TabsTrigger>
+            <TabsTrigger value="support" className="text-xs rounded-lg">
+              <LifeBuoy className="w-4 h-4 mr-1" /> Suporte
+            </TabsTrigger>
+            <TabsTrigger value="links" className="text-xs rounded-lg">
+              <Link className="w-4 h-4 mr-1" /> Links Rápidos
+            </TabsTrigger>
             <TabsTrigger value="settings" className="text-xs rounded-lg">
               <Settings2 className="w-4 h-4 mr-1" /> Config
             </TabsTrigger>
@@ -672,6 +679,35 @@ export default function Members() {
           <TabsContent value="share" className="mt-6"><AdminShareTab /></TabsContent>
           <TabsContent value="raffle" className="mt-6"><AdminRaffleTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
+          <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
+          <TabsContent value="links" className="mt-6">
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold flex items-center gap-2"><Link className="w-5 h-5 text-primary" /> Links Rápidos</h2>
+              <p className="text-sm text-muted-foreground">Acesse rapidamente áreas do sistema e links externos.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {[
+                  { label: 'Dashboard', url: '/dashboard', icon: '📊' },
+                  { label: 'Landing Page', url: '/vendas', icon: '🌐' },
+                  { label: 'Portal da Equipe', url: '/portal', icon: '👥' },
+                  { label: 'Agendamento Online', url: '/agendar', icon: '📅' },
+                  { label: 'Sistema Beta', url: '/beta', icon: '⚡' },
+                  { label: 'Página Publicada', url: 'https://gestaoarcondicionado.lovable.app/vendas', icon: '🚀', external: true },
+                ].map(link => (
+                  <Card key={link.label} className="cursor-pointer hover:border-primary/50 transition-all"
+                    onClick={() => link.external ? window.open(link.url, '_blank') : navigate(link.url)}>
+                    <CardContent className="p-4 flex items-center gap-3">
+                      <span className="text-2xl">{link.icon}</span>
+                      <div>
+                        <p className="font-medium text-sm">{link.label}</p>
+                        <p className="text-xs text-muted-foreground">{link.url}</p>
+                      </div>
+                      <ExternalLink className="w-4 h-4 ml-auto text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
           <TabsContent value="settings" className="mt-6">
             <AdminGuideCards tab="settings" />
             <AdminSettingsTab />
