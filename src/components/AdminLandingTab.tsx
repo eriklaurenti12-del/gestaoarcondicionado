@@ -14,7 +14,8 @@ import {
   Save, Loader2, DollarSign, Type, Star, Shield, Megaphone, RefreshCw, 
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
-  Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy, Code, ExternalLink, Globe
+  Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy, Code, ExternalLink, Globe,
+  CreditCard, Link2, CheckCircle2
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 
@@ -51,6 +52,8 @@ const LANDING_KEYS = [
   'landing_secao_depoimentos', 'landing_secao_faq', 'landing_secao_garantia',
   'landing_hero_bg_image', 'landing_precos_bg_image', 'landing_depoimentos_bg_image',
   'landing_hero_font_size', 'landing_anim_speed',
+  'landing_checkout_ativo', 'landing_checkout_mensal_link', 'landing_checkout_anual_link',
+  'landing_checkout_redirect_sistema',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -363,6 +366,7 @@ gtag('config', '${settings.landing_pixel_google}');
           <TabsTrigger value="pixel" className="text-xs"><Code className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
           <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
+          <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Checkout</TabsTrigger>
         </TabsList>
 
         {/* TEMPLATE */}
@@ -1229,6 +1233,120 @@ gtag('config', '${settings.landing_pixel_google}');
                     <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
                   </div>
                 ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* CHECKOUT */}
+        <TabsContent value="checkout">
+          <div className="space-y-4">
+            <AdminGuideCards tab="settings" />
+
+            {/* Toggle ativar checkout */}
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  Ativar Checkout na Landing Page
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Quando ativado, os botões da landing redirecionam para o link de pagamento. Quando desativado, redirecionam para o cadastro no sistema.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Checkout Ativo</p>
+                    <p className="text-xs text-muted-foreground">Botões CTA redirecionam para pagamento externo</p>
+                  </div>
+                  <Switch 
+                    checked={settings.landing_checkout_ativo === 'true'} 
+                    onCheckedChange={v => update('landing_checkout_ativo', v ? 'true' : 'false')} 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Links de checkout */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Link2 className="w-5 h-5 text-accent" />
+                  Links de Pagamento
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Cole os links de checkout da sua plataforma (Kiwify, Hotmart, etc). Os botões da landing page redirecionarão automaticamente.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">Mensal</Badge>
+                    Link do Plano Mensal
+                  </Label>
+                  <Input 
+                    value={settings.landing_checkout_mensal_link || ''} 
+                    onChange={e => update('landing_checkout_mensal_link', e.target.value)} 
+                    placeholder="https://pay.kiwify.com.br/... ou https://pay.hotmart.com/..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">Anual</Badge>
+                    Link do Plano Anual
+                  </Label>
+                  <Input 
+                    value={settings.landing_checkout_anual_link || ''} 
+                    onChange={e => update('landing_checkout_anual_link', e.target.value)} 
+                    placeholder="https://pay.kiwify.com.br/... ou https://pay.hotmart.com/..." 
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Redirect após pagamento */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-green-500" />
+                  Após o Pagamento
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Redirecionar para o sistema</p>
+                    <p className="text-xs text-muted-foreground">O webhook reconhece o pagamento, ativa a assinatura e libera o acesso automaticamente</p>
+                  </div>
+                  <Switch 
+                    checked={settings.landing_checkout_redirect_sistema !== 'false'} 
+                    onCheckedChange={v => update('landing_checkout_redirect_sistema', v ? 'true' : 'false')} 
+                  />
+                </div>
+
+                <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
+                  <h4 className="text-sm font-semibold flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-primary" /> Como funciona o fluxo
+                  </h4>
+                  <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside">
+                    <li>Cliente clica no botão de compra na landing page</li>
+                    <li>É redirecionado para a plataforma de pagamento (Kiwify/Hotmart)</li>
+                    <li>Após pagar, o webhook recebe a confirmação automaticamente</li>
+                    <li>A assinatura é ativada e o acesso ao sistema é liberado</li>
+                    <li>Você recebe uma notificação no painel admin</li>
+                    <li>O usuário pode acessar o sistema fazendo login</li>
+                  </ol>
+                </div>
+
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    <strong>⚠️ Importante:</strong> Configure o webhook da sua plataforma de pagamento apontando para:<br/>
+                    <code className="bg-background px-2 py-0.5 rounded text-[11px] mt-1 inline-block select-all">
+                      {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'gnrinwqmqhfasfojysep'}.supabase.co/functions/v1/payment-webhook`}
+                    </code>
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>

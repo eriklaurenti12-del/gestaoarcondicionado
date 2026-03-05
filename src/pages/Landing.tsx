@@ -163,9 +163,21 @@ const Landing: React.FC = () => {
 
   const handleCheckout = (type: 'mensal' | 'anual') => {
     trackConversion(type);
-    const checkoutUrl = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
-    if (checkoutUrl && checkoutUrl.startsWith('http')) { window.open(checkoutUrl, '_blank'); }
-    else { setShowLogin(true); setIsLogin(false); toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." }); }
+    
+    // Check if checkout is active (landing-specific links first, then global)
+    const isCheckoutActive = settings.landing_checkout_ativo === 'true';
+    const landingLink = type === 'mensal' ? settings.landing_checkout_mensal_link : settings.landing_checkout_anual_link;
+    const globalLink = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
+    const checkoutUrl = landingLink || globalLink;
+    
+    if (isCheckoutActive && checkoutUrl && checkoutUrl.startsWith('http')) {
+      window.open(checkoutUrl, '_blank');
+    } else {
+      // No checkout link or not active - redirect to signup
+      setShowLogin(true); 
+      setIsLogin(false); 
+      toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." });
+    }
   };
 
   const handleContactSupport = () => {
