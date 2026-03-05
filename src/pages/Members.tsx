@@ -328,14 +328,15 @@ export default function Members() {
 
           {/* TEAM TAB */}
           <TabsContent value="team" className="mt-6 space-y-6">
+            {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-primary" /> Equipe
                 </h2>
-                <p className="text-muted-foreground text-sm">Gerencie seus membros de equipe</p>
+                <p className="text-muted-foreground text-sm">Gerencie os membros que acessam o portal</p>
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => {
                   const portalUrl = `${publishedUrl}/portal`;
                   navigator.clipboard.writeText(portalUrl);
@@ -343,12 +344,15 @@ export default function Members() {
                 }}>
                   <ExternalLink className="w-4 h-4 mr-1" /> Link do Portal
                 </Button>
+                <Button size="sm" onClick={() => window.open(`${publishedUrl}/portal`, '_blank')}>
+                  <Monitor className="w-4 h-4 mr-1" /> Abrir Portal
+                </Button>
               </div>
             </div>
 
-            {/* Stats Cards */}
+            {/* Stats */}
             <div className="grid grid-cols-3 gap-3">
-              <Card className="border-border">
+              <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10">
                     <Users className="w-5 h-5 text-primary" />
@@ -359,21 +363,21 @@ export default function Members() {
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border">
+              <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-500/10">
-                    <UserPlus className="w-5 h-5 text-amber-500" />
+                  <div className="p-2 rounded-xl bg-emerald-500/10">
+                    <UserPlus className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
                     <div className="text-2xl font-bold">{acceptedInvites.length + pendingInvites.length}</div>
-                    <div className="text-xs text-muted-foreground">Total Cadastrados</div>
+                    <div className="text-xs text-muted-foreground">Total</div>
                   </div>
                 </CardContent>
               </Card>
-              <Card className="border-border">
+              <Card>
                 <CardContent className="pt-5 pb-4 flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-cyan-500/10">
-                    <Link2 className="w-5 h-5 text-cyan-500" />
+                  <div className="p-2 rounded-xl bg-amber-500/10">
+                    <Link2 className="w-5 h-5 text-amber-500" />
                   </div>
                   <div>
                     <div className="text-2xl font-bold">{pendingInvites.length}</div>
@@ -383,103 +387,96 @@ export default function Members() {
               </Card>
             </div>
 
-            {/* Member Cards */}
-            <div className="grid sm:grid-cols-2 gap-4">
-              {acceptedInvites.map(invite => {
-                const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
-                const RoleIcon = roleInfo.icon;
-                const memberName = invite.accepted_email || 'Membro';
-                const initial = memberName.charAt(0).toUpperCase();
-                const colors = ['bg-cyan-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-rose-500'];
-                const avatarColor = colors[memberName.length % colors.length];
-                // Find phone from support numbers
-                const supportNum = supportNumbers.find(n => n.name?.toLowerCase() === memberName.toLowerCase());
+            {/* Active Members as Cards */}
+            {acceptedInvites.length > 0 && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {acceptedInvites.map(invite => {
+                  const roleInfo = TEAM_ROLES[(invite as any).team_role] || TEAM_ROLES.sistema;
+                  const RoleIcon = roleInfo.icon;
+                  const name = invite.accepted_email || 'Membro';
+                  const initial = name.charAt(0).toUpperCase();
+                  const avatarColors = ['bg-cyan-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-rose-500'];
+                  const avatarColor = avatarColors[name.charCodeAt(0) % avatarColors.length];
+                  const supportNum = supportNumbers.find(n => n.name?.toLowerCase() === name.toLowerCase());
 
-                return (
-                  <Card key={invite.id} className="border-border hover:shadow-md transition-shadow">
-                    <CardContent className="p-5 space-y-4">
-                      {/* Header: Avatar + Name + Badge */}
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-lg`}>
-                            {initial}
+                  return (
+                    <Card key={invite.id} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-5 space-y-4">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-11 h-11 rounded-full ${avatarColor} flex items-center justify-center text-white font-bold text-lg shadow-sm`}>
+                              {initial}
+                            </div>
+                            <div>
+                              <div className="font-semibold">{name}</div>
+                              {supportNum?.phone && (
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Phone className="w-3 h-3" /> {supportNum.phone}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                          <div>
-                            <div className="font-semibold text-foreground">{memberName}</div>
-                            {supportNum?.phone && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <Phone className="w-3 h-3" />
-                                {supportNum.phone}
-                              </div>
-                            )}
+                          <Badge variant="default" className="text-[10px]">Ativo</Badge>
+                        </div>
+
+                        <div className="flex items-center gap-4 bg-muted/40 rounded-lg p-3">
+                          <div className="text-center flex-1">
+                            <div className="text-[10px] text-muted-foreground uppercase">Função</div>
+                            <div className={`font-semibold text-sm flex items-center justify-center gap-1 ${roleInfo.color}`}>
+                              <RoleIcon className="w-3.5 h-3.5" /> {roleInfo.label}
+                            </div>
+                          </div>
+                          <div className="text-center flex-1">
+                            <div className="text-[10px] text-muted-foreground uppercase">Desde</div>
+                            <div className="font-semibold text-sm">
+                              {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yy') : '-'}
+                            </div>
                           </div>
                         </div>
-                        <Badge variant="default" className="text-xs">Ativo</Badge>
-                      </div>
 
-                      {/* Role Info */}
-                      <div className="flex items-center gap-4 text-sm bg-muted/40 rounded-lg p-3">
-                        <div className="text-center flex-1">
-                          <div className="text-xs text-muted-foreground">Função</div>
-                          <div className={`font-semibold text-sm flex items-center justify-center gap-1 ${roleInfo.color}`}>
-                            <RoleIcon className="w-3.5 h-3.5" />
-                            {roleInfo.label}
-                          </div>
-                        </div>
-                        <div className="text-center flex-1">
-                          <div className="text-xs text-muted-foreground">Desde</div>
-                          <div className="font-semibold text-sm">
-                            {invite.accepted_at ? format(new Date(invite.accepted_at), 'dd/MM/yy') : '-'}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex gap-2">
-                        {supportNum?.phone && (
-                          <Button size="sm" variant="outline" className="flex-1 text-xs"
-                            onClick={() => window.open(`https://wa.me/55${supportNum.phone.replace(/\D/g, '')}`, '_blank')}>
-                            <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp
+                        <div className="flex gap-2">
+                          {supportNum?.phone && (
+                            <Button size="sm" variant="outline" className="flex-1 text-xs"
+                              onClick={() => window.open(`https://wa.me/55${supportNum.phone.replace(/\D/g, '')}`, '_blank')}>
+                              <MessageCircle className="w-3.5 h-3.5 mr-1" /> WhatsApp
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(`${publishedUrl}/portal`);
+                              toast({ title: "Link do portal copiado!" });
+                            }}>
+                            <Link2 className="w-3.5 h-3.5" />
                           </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0"
-                          onClick={() => {
-                            const portalUrl = `${publishedUrl}/portal`;
-                            navigator.clipboard.writeText(portalUrl);
-                            toast({ title: "Link do portal copiado!" });
-                          }}>
-                          <Link2 className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button size="sm" variant="destructive" className="h-8 w-8 p-0"
-                          onClick={() => removeTeamMember(invite)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+                          <Button size="sm" variant="destructive" className="h-8 w-8 p-0"
+                            onClick={() => removeTeamMember(invite)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
 
             {acceptedInvites.length === 0 && (
               <Card className="border-dashed border-2">
                 <CardContent className="py-12 text-center">
                   <Users className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-medium text-foreground">Nenhum membro na equipe</p>
+                  <p className="font-medium">Nenhum membro na equipe</p>
                   <p className="text-sm text-muted-foreground">Gere um link de convite abaixo para adicionar membros</p>
                 </CardContent>
               </Card>
             )}
 
-            {/* Generate Invite Links */}
+            {/* Add Member */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Link2 className="w-5 h-5 text-primary" /> Adicionar Membro
                 </CardTitle>
-                <p className="text-muted-foreground text-xs">
-                  Gere um link e envie para o novo membro
-                </p>
+                <p className="text-muted-foreground text-xs">Gere um link e envie para o novo membro cadastrar</p>
               </CardHeader>
               <CardContent>
                 <div className="grid sm:grid-cols-3 gap-3">
@@ -504,7 +501,7 @@ export default function Members() {
               </CardContent>
             </Card>
 
-            {/* Pending Invites - compact */}
+            {/* Pending Invites */}
             {pendingInvites.length > 0 && (
               <Card>
                 <CardHeader>
@@ -520,15 +517,14 @@ export default function Members() {
                       <div key={invite.id} className="bg-muted/30 border border-border rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <Badge variant="secondary" className="gap-1 text-xs">
-                            <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} />
-                            {roleInfo.label}
+                            <RoleIcon className={`w-3 h-3 ${roleInfo.color}`} /> {roleInfo.label}
                           </Badge>
-                          <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)}
-                            className="h-7 w-7 p-0"><Trash2 className="w-3 h-3" /></Button>
+                          <Button size="sm" variant="destructive" onClick={() => deleteInvite(invite.id)} className="h-7 w-7 p-0">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="flex-1 text-xs"
-                            onClick={() => copyToClipboard(teamUrl)}>
+                          <Button size="sm" variant="outline" className="flex-1 text-xs" onClick={() => copyToClipboard(teamUrl)}>
                             <Copy className="w-3 h-3 mr-1" /> Copiar
                           </Button>
                           <Button size="sm" className="flex-1 text-xs bg-green-600 hover:bg-green-700 text-white"
