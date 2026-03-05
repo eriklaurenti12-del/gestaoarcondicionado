@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from '@tanstack/react-query';
 import { Save, GripVertical, Menu, RotateCcw } from "lucide-react";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 const defaultSections = [
   { label: "Principal", icon: "Snowflake", items: [
@@ -172,6 +173,7 @@ const AdminSidebarConfig: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <AdminGuideCards tab="sidebar-config" />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">

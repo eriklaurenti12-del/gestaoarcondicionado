@@ -16,6 +16,7 @@ import {
   RefreshCw, AlertTriangle, Eye
 } from "lucide-react";
 import { toast } from 'sonner';
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 interface WebhookConfig {
   id: string;
@@ -184,6 +185,7 @@ const AdminN8nTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <AdminGuideCards tab="n8n" />
       {/* Header info */}
       <Card className="bg-gradient-to-r from-orange-900/20 to-red-900/20 border-orange-800/30">
         <CardContent className="p-4">

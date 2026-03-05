@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Copy, ExternalLink, Link2, LogIn, Globe, Share2 } from "lucide-react";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 export const AdminShareTab: React.FC = () => {
   const { toast } = useToast();
@@ -34,6 +35,7 @@ export const AdminShareTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <AdminGuideCards tab="share" />
       {/* Share Links */}
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">

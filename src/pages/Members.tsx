@@ -21,6 +21,7 @@ import AdminLandingTab from "@/components/AdminLandingTab";
 import AdminShareTab from "@/components/AdminShareTab";
 import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 type Member = {
   id: string;
@@ -342,6 +343,7 @@ export default function Members() {
 
           {/* ============ TEAM TAB ============ */}
           <TabsContent value="team" className="mt-6 space-y-6">
+            <AdminGuideCards tab="team" />
             {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div>
@@ -505,6 +507,7 @@ export default function Members() {
 
           {/* ============ USERS TAB ============ */}
           <TabsContent value="users" className="mt-6 space-y-6">
+            <AdminGuideCards tab="users" />
             <div className="flex flex-wrap gap-2 justify-end">
               <Button onClick={loadMembers} variant="outline">Atualizar Lista</Button>
             </div>

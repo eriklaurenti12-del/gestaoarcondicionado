@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Gift, Loader2, Trophy, Users, Sparkles, RotateCw, Copy, Phone, History, Crown, UserPlus, Zap } from "lucide-react";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 type Member = {
   id: string;
@@ -162,6 +163,7 @@ export const AdminRaffleTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <AdminGuideCards tab="raffle" />
       <div className="flex items-center gap-3">
         <div className="p-3 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
           <Gift className="w-6 h-6 text-amber-400" />

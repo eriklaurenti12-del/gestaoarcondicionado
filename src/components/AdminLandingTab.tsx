@@ -16,6 +16,7 @@ import {
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
   Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy
 } from "lucide-react";
+import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 const LANDING_KEYS = [
   'landing_preco_mensal', 'landing_preco_anual', 'landing_preco_anual_original',
@@ -235,6 +236,7 @@ export const AdminLandingTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
+      <AdminGuideCards tab="landing" />
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
@@ -364,6 +366,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* TEXTOS */}
         <TabsContent value="textos">
+          <AdminGuideCards tab="landing-textos" />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -405,6 +408,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* PREÇOS */}
         <TabsContent value="precos">
+          <AdminGuideCards tab="landing-precos" />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -547,6 +551,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* DEPOIMENTOS */}
         <TabsContent value="depoimentos">
+          <AdminGuideCards tab="landing-depoimentos" />
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map(i => (
@@ -587,6 +592,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* FAQ */}
         <TabsContent value="faq">
+          <AdminGuideCards tab="landing-faq" />
           <div className="space-y-3">
             {[1,2,3,4,5,6].map(i => (
               <Card key={i}>
@@ -672,6 +678,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* VIDEO */}
         <TabsContent value="video">
+          <AdminGuideCards tab="landing-video" />
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
@@ -731,6 +738,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* NOTIFICAÇÕES - Dedicated tab */}
         <TabsContent value="notificacoes">
+          <AdminGuideCards tab="landing-notificacoes" />
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">
@@ -845,6 +853,7 @@ export const AdminLandingTab: React.FC = () => {
 
         {/* PIXEL ADS */}
         <TabsContent value="pixel">
+          <AdminGuideCards tab="landing-pixel" />
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">
@@ -1000,6 +1009,7 @@ gtag('config', '${settings.landing_pixel_google}');
 
         {/* BACKGROUND / FUNDO */}
         <TabsContent value="background">
+          <AdminGuideCards tab="landing-background" />
           <div className="space-y-4">
             <Card>
               <CardHeader className="pb-3">
@@ -1221,6 +1231,7 @@ gtag('config', '${settings.landing_pixel_google}');
 
         {/* EXTRAS - Countdown + Prova Social */}
         <TabsContent value="extras">
+          <AdminGuideCards tab="landing-extras" />
           <div className="space-y-4">
             {/* Countdown */}
             <Card>
