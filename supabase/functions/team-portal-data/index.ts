@@ -76,6 +76,32 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (type === 'clients') {
+      const { data: clients } = await supabase
+        .from('clients')
+        .select('id, name, telefone, address, email')
+        .eq('user_id', owner_id)
+        .order('name')
+        .limit(200);
+
+      return new Response(JSON.stringify({ clients: clients || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    if (type === 'financial') {
+      const { data: financial } = await supabase
+        .from('financial_records')
+        .select('id, description, category, type, amount, record_date')
+        .eq('user_id', owner_id)
+        .order('record_date', { ascending: false })
+        .limit(20);
+
+      return new Response(JSON.stringify({ financial: financial || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
     return new Response(JSON.stringify({ error: 'Tipo inválido' }), {
       status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
