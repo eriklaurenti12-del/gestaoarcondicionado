@@ -500,26 +500,7 @@ gtag('config', '${settings.landing_pixel_google}');
                 ))}
               </div>
               
-              {/* Instant Preview */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-primary" /> Pré-visualização Instantânea
-                  </h4>
-                  <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="h-7">
-                    <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
-                  </Button>
-                </div>
-                <div className="rounded-xl overflow-hidden border border-border bg-black relative" style={{ height: '500px' }}>
-                  <iframe 
-                    key={previewKey}
-                    src={`/vendas?preview=true&t=${previewKey}`}
-                    className="w-full h-full border-0"
-                    style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '222%', height: '222%' }}
-                    sandbox="allow-scripts allow-same-origin allow-popups"
-                  />
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </TabsContent>
