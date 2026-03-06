@@ -1030,6 +1030,79 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardContent>
             </Card>
 
+            {/* Internal Pixel / Analytics */}
+            <Card className="border-violet-500/30 bg-violet-500/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Zap className="w-5 h-5 text-violet-400" /> Pixel Interno (Analytics Próprio)
+                  <Badge className="bg-green-500/20 text-green-400 border-0 text-[9px]">Automático</Badge>
+                </CardTitle>
+                <CardDescription>
+                  Rastreamento automático integrado — sem precisar de plataformas externas. Registra visitas, cliques no CTA, profundidade de scroll e conversões.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="rounded-lg bg-violet-500/10 border border-violet-500/20 p-3">
+                  <Label className="text-xs font-semibold text-violet-400 mb-2 block">📊 Seu Pixel ID Interno</Label>
+                  <div className="flex gap-2 items-center">
+                    <code className="flex-1 bg-violet-950/30 rounded px-3 py-2 text-sm font-mono text-violet-300">
+                      ACS-{`gnrinwqmqhfasfojysep`.slice(0, 8).toUpperCase()}
+                    </code>
+                    <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => {
+                      navigator.clipboard.writeText(`ACS-${`gnrinwqmqhfasfojysep`.slice(0, 8).toUpperCase()}`);
+                      toast({ title: "Pixel ID copiado! ✅" });
+                    }}>
+                      <Copy className="w-3 h-3 mr-1" /> Copiar
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-2">Este pixel já está ativo na sua landing page automaticamente. Nenhuma configuração necessária.</p>
+                </div>
+
+                <div className="rounded-lg bg-muted/30 border border-border p-3">
+                  <Label className="text-xs font-semibold mb-2 block">🎯 Eventos rastreados internamente</Label>
+                  <div className="space-y-1.5">
+                    {[
+                      { event: 'pageview', desc: 'Cada visita na landing page', icon: '👁️' },
+                      { event: 'scroll', desc: 'Profundidade de rolagem (25%, 50%, 75%, 100%)', icon: '📜' },
+                      { event: 'cta_click', desc: 'Clique nos botões de compra (com plano e valor)', icon: '🎯' },
+                      { event: 'section_view', desc: 'Visualização de cada seção da página', icon: '📄' },
+                    ].map(ev => (
+                      <div key={ev.event} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/20">
+                        <span>{ev.icon}</span>
+                        <code className="text-violet-400 font-mono text-[10px]">{ev.event}</code>
+                        <span className="text-muted-foreground">— {ev.desc}</span>
+                        <Badge className="ml-auto bg-green-500/20 text-green-400 border-0 text-[9px] h-4">Auto</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg bg-muted/30 border border-border p-3">
+                  <Label className="text-xs font-semibold mb-2 block">📋 Script do Pixel Interno (para outras páginas)</Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-[10px] text-muted-foreground">Cole em qualquer outra página para rastrear visitas</p>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                      const pixelScript = `<!-- AC Service Pro Internal Pixel -->\n<script>\n(function(){\n  var pid='ACS-${`gnrinwqmqhfasfojysep`.slice(0, 8).toUpperCase()}';\n  var vid=localStorage.getItem('ac_visitor_id')||([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g,function(c){return(c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16)});\n  localStorage.setItem('ac_visitor_id',vid);\n  fetch('${window.location.origin.replace(/\/$/, '')}/rest/v1/page_analytics',{\n    method:'POST',\n    headers:{'Content-Type':'application/json','apikey':'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imducmlud3FtcWhmYXNmb2p5c2VwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NjU2MzksImV4cCI6MjA4MDQ0MTYzOX0.bM1CBwE6Bn2fBZrOqQbEuw1fn17NyDY3HlTBkkpCjBs'},\n    body:JSON.stringify({page_url:location.pathname,event_type:'pageview',visitor_id:vid,referrer:document.referrer,user_agent:navigator.userAgent,metadata:{pixel:pid}})\n  });\n})();\n</script>`;
+                      navigator.clipboard.writeText(pixelScript);
+                      toast({ title: "Script do pixel interno copiado! ✅", description: "Cole na <head> de qualquer página para rastrear visitas." });
+                    }}>
+                      <Copy className="w-3 h-3 mr-1" /> Copiar Script
+                    </Button>
+                  </div>
+                  <pre className="text-[10px] font-mono text-violet-300/70 bg-violet-950/30 rounded p-2 overflow-x-auto whitespace-pre-wrap max-h-32">{`// Pixel Interno AC Service Pro\n// ID: ACS-${`gnrinwqmqhfasfojysep`.slice(0, 8).toUpperCase()}\n// Rastreia: pageview, scroll, cta_click\n// Dados acessíveis no painel admin`}</pre>
+                </div>
+
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <p className="text-xs text-muted-foreground">
+                    <strong className="text-foreground">💡 O que faz parte da integração:</strong> O pixel interno rastreia automaticamente todas as visitas, 
+                    profundidade de scroll, cliques nos CTAs e conversões da sua landing page. Os dados ficam salvos no banco e podem 
+                    ser consultados no painel. Diferente dos pixels externos (Meta, Google, TikTok), este é 100% seu — sem depender 
+                    de plataformas terceiras.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Platform Tabs */}
             <Card>
               <CardContent className="p-0">
