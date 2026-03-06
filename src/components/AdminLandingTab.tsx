@@ -60,6 +60,17 @@ const LANDING_KEYS = [
   'landing_banner_ativo', 'landing_banner_texto', 'landing_banner_cor', 'landing_banner_link',
   'landing_preco_mensal_riscado', 'landing_preco_anual_riscado',
   'landing_nome_riscado_ativo', 'landing_nome_riscado_texto',
+  // Marquee & Effects settings
+  'landing_animacoes_ativas', 'landing_scroll_reveal',
+  'landing_marquee1_ativo', 'landing_marquee1_textos', 'landing_marquee1_direcao', 'landing_marquee1_velocidade',
+  'landing_marquee1_cor_fundo', 'landing_marquee1_cor_texto', 'landing_marquee1_estilo', 'landing_marquee1_posicao',
+  'landing_marquee1_tamanho', 'landing_marquee1_separador', 'landing_marquee1_tipo',
+  'landing_marquee2_ativo', 'landing_marquee2_textos', 'landing_marquee2_direcao', 'landing_marquee2_velocidade',
+  'landing_marquee2_cor_fundo', 'landing_marquee2_cor_texto', 'landing_marquee2_estilo', 'landing_marquee2_posicao',
+  'landing_marquee2_tamanho', 'landing_marquee2_separador', 'landing_marquee2_tipo',
+  'landing_marquee3_ativo', 'landing_marquee3_textos', 'landing_marquee3_direcao', 'landing_marquee3_velocidade',
+  'landing_marquee3_cor_fundo', 'landing_marquee3_cor_texto', 'landing_marquee3_estilo', 'landing_marquee3_posicao',
+  'landing_marquee3_tamanho', 'landing_marquee3_separador', 'landing_marquee3_tipo',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -444,6 +455,7 @@ gtag('config', '${settings.landing_pixel_google}');
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
           <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
           <TabsTrigger value="pixel" className="text-xs"><Code className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
+          <TabsTrigger value="efeitos" className="text-xs"><Sparkles className="w-3 h-3 mr-1" />Efeitos</TabsTrigger>
           <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
           <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Checkout</TabsTrigger>
