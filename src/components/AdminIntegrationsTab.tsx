@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -597,7 +597,10 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="platforms" className="mt-4 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-400">Clique em uma plataforma para ver o guia de configuração</p>
-            <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30">{PLATFORMS.length} plataformas</Badge>
+            <div className="flex items-center gap-2">
+              <AiHelpButton section="platforms" questions={['Como configurar o webhook na Cakto?', 'Como integrar o Hotmart com meu sistema?', 'Como configurar Kiwify para liberar acesso?', 'Posso usar Stripe com esse webhook?']} />
+              <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30">{PLATFORMS.length} plataformas</Badge>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PLATFORMS.map(platform => {
