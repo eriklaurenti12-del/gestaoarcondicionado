@@ -389,19 +389,6 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
           <div>
             <h2 className="text-xl font-bold">Editor da Landing Page</h2>
-            <p className="text-muted-foreground text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
-          </div>
-        </div>
-    <div className="space-y-4">
-      <AdminGuideCards tab="landing" />
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl bg-primary/10">
-            <Megaphone className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold">Editor da Landing Page</h2>
             <p className="text-muted-foreground text-sm">Edite e visualize em tempo real</p>
           </div>
         </div>
