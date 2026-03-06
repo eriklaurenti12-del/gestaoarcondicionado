@@ -22,6 +22,47 @@ import { GridBackground } from "@/components/GridBackground";
 
 type AdminSettings = Record<string, string>;
 
+// Scroll Reveal animation component
+const ScrollReveal: React.FC<{ 
+  children: React.ReactNode; 
+  delay?: number; 
+  direction?: 'up' | 'down' | 'left' | 'right' | 'fade' | 'scale';
+  className?: string;
+}> = ({ children, delay = 0, direction = 'up', className = '' }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const transforms: Record<string, string> = {
+    up: 'translateY(40px)', down: 'translateY(-40px)',
+    left: 'translateX(40px)', right: 'translateX(-40px)',
+    fade: 'translateY(0)', scale: 'scale(0.9)',
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0) translateX(0) scale(1)' : transforms[direction],
+        transition: `opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+        willChange: 'opacity, transform',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = React.useState(false);
   return (
@@ -149,7 +190,10 @@ const Landing: React.FC = () => {
     } else { navigate('/awaiting-activation'); }
   };
 
+  const isPreviewMode = searchParams.get('preview') === 'true';
+
   useEffect(() => {
+    if (isPreviewMode) return; // Skip redirect in preview mode
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) await checkSubscriptionAndRedirect(session.user.id);
@@ -159,7 +203,7 @@ const Landing: React.FC = () => {
       if (session) setTimeout(() => checkSubscriptionAndRedirect(session.user.id), 0);
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isPreviewMode]);
 
   const handleCheckout = (type: 'mensal' | 'anual') => {
     trackConversion(type);
@@ -544,20 +588,29 @@ const Landing: React.FC = () => {
       <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center" style={settings.landing_hero_bg_image ? { backgroundImage: `url(${settings.landing_hero_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
         {settings.landing_hero_bg_image && <div className="absolute inset-0 bg-black/60" />}
         <div className="container mx-auto text-center relative z-10">
+          <ScrollReveal direction="fade" delay={200}>
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Zap className="w-4 h-4 text-red-400" />
             <span className="text-red-300 text-sm font-medium">{settings.landing_badge_urgencia}</span>
             <Zap className="w-4 h-4 text-red-400 animate-pulse" />
           </div>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={400}>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             Chega de <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">{settings.landing_hero_titulo}</span>
             <br /><span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">{settings.landing_hero_subtitulo}</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={600}>
           <p className="text-lg md:text-xl text-gray-300 mb-4 max-w-2xl mx-auto">{settings.landing_hero_descricao}</p>
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium">{settings.landing_frase_destaque}</p>
+          </ScrollReveal>
+          <ScrollReveal direction="scale" delay={800}>
           <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={1000}>
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 max-w-2xl mx-auto border border-cyan-500/20 mt-8">
             <p className="text-gray-300 text-sm mb-2"><span className="text-cyan-400 font-bold">+ de {settings.landing_social_proof_count} técnicos</span> já pararam de perder dinheiro</p>
             <div className="flex items-center justify-center gap-1">
@@ -565,36 +618,45 @@ const Landing: React.FC = () => {
               <span className="text-amber-400 ml-2 font-bold">{settings.landing_social_proof_rating}/5</span>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Dor */}
       {settings.landing_secao_dor !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">Você se <span className="text-red-400">identifica</span> com isso?</h2>
             <div className="grid md:grid-cols-2 gap-4 mb-10">
               {["Anota serviços no papel e depois perde","Esquece de cobrar cliente","Não sabe quanto lucrou no mês","Perde tempo procurando no WhatsApp","Cliente liga e você não lembra o histórico","Já perdeu serviço por falta de organização","Trabalha muito mas o dinheiro não sobra","Usa planilha Excel mas nunca atualiza"].map((pain, i) => (
-                <div key={i} className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <ScrollReveal key={i} delay={i * 80} direction="left">
+                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   <X className="w-5 h-5 text-red-400 flex-shrink-0" /><span className="text-gray-300 text-sm">{pain}</span>
                 </div>
+                </ScrollReveal>
               ))}
             </div>
+            <ScrollReveal direction="scale">
             <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
               <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></h3>
             </div>
+            </ScrollReveal>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
       {/* Features */}
       {settings.landing_secao_features !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4">
           <div className="container mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {features.map((f, i) => (
-                <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
+                <ScrollReveal key={i} delay={i * 100} direction="scale">
+                <Card className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
                   <CardContent className="p-4 md:p-6 text-center">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
                       <f.icon className="w-6 h-6 text-cyan-400" />
@@ -603,44 +665,55 @@ const Landing: React.FC = () => {
                     <p className="text-xs md:text-sm text-gray-400">{f.desc}</p>
                   </CardContent>
                 </Card>
+                </ScrollReveal>
               ))}
             </div>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
       {/* Comparação */}
       {settings.landing_secao_comparativo !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-slate-900/50">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</h2>
             <div className="grid md:grid-cols-2 gap-6">
+              <ScrollReveal direction="left" delay={100}>
               <Card className="!bg-red-500/5 !border-red-500/20">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-red-400"><X className="w-5 h-5" /> Outros Sistemas</CardTitle></CardHeader>
                 <CardContent><ul className="space-y-2">{["Custam R$ 150 a R$ 500/mês","Complicados demais","Precisam de treinamento","Feitos para empresas grandes","Suporte demora dias","Interface confusa"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
+              </ScrollReveal>
+              <ScrollReveal direction="right" delay={200}>
               <Card className="!bg-green-500/5 !border-green-500/30">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-green-400"><CheckCircle className="w-5 h-5" /> AC Service Pro</CardTitle></CardHeader>
                 <CardContent><ul className="space-y-2">{[`Apenas R$ ${settings.landing_preco_mensal}/mês`,"Simples igual WhatsApp","Começa em 2 minutos","Feito POR técnico PARA técnico","Suporte em minutos no WhatsApp","Interface moderna e bonita"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
+              </ScrollReveal>
             </div>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
-      <PricingSection />
-      {settings.landing_secao_depoimentos !== 'false' && <TestimonialsSection />}
-      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <FaqSection />}
+      <ScrollReveal direction="up"><PricingSection /></ScrollReveal>
+      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up"><TestimonialsSection /></ScrollReveal>}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up"><FaqSection /></ScrollReveal>}
 
       {/* Urgência Final */}
+      <ScrollReveal direction="scale">
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</h2>
           <p className="text-gray-300 mb-6">Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</p>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* CTA Final */}
+      <ScrollReveal direction="up" delay={100}>
       <section className="py-16 px-4 relative">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">A decisão é <span className="text-cyan-400">sua</span></h2>
@@ -654,6 +727,7 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+      </ScrollReveal>
     </>
   );
 
