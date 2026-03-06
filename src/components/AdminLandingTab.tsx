@@ -174,6 +174,11 @@ export const AdminLandingTab: React.FC = () => {
 
   const update = (key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    // Auto-refresh preview with debounce
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      setPreviewKey(prev => prev + 1);
+    }, 1500);
   };
 
   const saveAll = async () => {
