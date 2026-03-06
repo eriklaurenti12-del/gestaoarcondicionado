@@ -15,7 +15,7 @@ import {
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
   Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy, Code, ExternalLink, Globe,
-  CreditCard, Link2, CheckCircle2
+  CreditCard, Link2, CheckCircle2, Zap
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import { AIFieldHelper } from "@/components/AIFieldHelper";
