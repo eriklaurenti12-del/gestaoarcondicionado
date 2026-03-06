@@ -19,7 +19,7 @@ import AdminNotificationsPanel from "@/components/AdminNotificationsPanel";
 import AdminIntegrationsTab from "@/components/AdminIntegrationsTab";
 import AdminN8nTab from "@/components/AdminN8nTab";
 import AdminLandingTab from "@/components/AdminLandingTab";
-import AdminShareTab from "@/components/AdminShareTab";
+
 import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
