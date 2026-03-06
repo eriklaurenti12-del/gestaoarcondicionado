@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import {
   AlertTriangle, Clock, Settings, CreditCard, Smartphone,
   Activity, Eye, EyeOff, Code, Plug, ArrowUpRight,
   FileJson, ToggleLeft, Layers, Wallet, ChevronDown, ChevronUp,
-  Bot, MessageSquare, Sparkles, HelpCircle
+  Bot, HelpCircle
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 
@@ -82,21 +82,12 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const [detectedPlatforms, setDetectedPlatforms] = useState<string[]>([]);
 
-  // AI Assistant state
-  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
-  const [aiInput, setAiInput] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const aiScrollRef = useRef<HTMLDivElement>(null);
-  const aiQuickQuestions = [
-    'Como configurar o webhook na Cakto?',
-    'Como integrar o Hotmart com meu sistema?',
-    'O pagamento não ativou o acesso, o que fazer?',
-    'Como testar se meu webhook está funcionando?',
-    'Quais plataformas são suportadas?',
-    'Como configurar Kiwify para liberar acesso?',
-    'Posso usar Stripe com esse webhook?',
-    'Como mudar o checkout para outra plataforma?',
-  ];
+  const [simulationType, setSimulationType] = useState<'mensal' | 'anual' | 'custom'>('mensal');
+  
+  // Contextual AI help state
+  const [aiHelpOpen, setAiHelpOpen] = useState<string | null>(null);
+  const [aiHelpLoading, setAiHelpLoading] = useState(false);
+  const [aiHelpResponse, setAiHelpResponse] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -226,32 +217,80 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
-  const sendAiMessage = async (message?: string) => {
-    const msg = message || aiInput.trim();
-    if (!msg || aiLoading) return;
-    
-    setAiInput('');
-    const newMessages = [...aiMessages, { role: 'user' as const, content: msg }];
-    setAiMessages(newMessages);
-    setAiLoading(true);
-    
-    setTimeout(() => aiScrollRef.current?.scrollTo({ top: aiScrollRef.current.scrollHeight, behavior: 'smooth' }), 100);
-
+  const askAiHelp = async (question: string, section: string) => {
+    setAiHelpOpen(section);
+    setAiHelpLoading(true);
+    setAiHelpResponse(null);
     try {
       const { data, error } = await supabase.functions.invoke('integration-ai-assistant', {
-        body: { message: msg, history: aiMessages.slice(-10) },
+        body: { message: question, history: [] },
       });
-      
       if (error) throw error;
-      
-      setAiMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Erro ao processar resposta.' }]);
+      setAiHelpResponse(data.reply || 'Sem resposta.');
     } catch (error: any) {
-      setAiMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${error.message}. Tente novamente.` }]);
+      setAiHelpResponse(`❌ Erro: ${error.message}`);
     } finally {
-      setAiLoading(false);
-      setTimeout(() => aiScrollRef.current?.scrollTo({ top: aiScrollRef.current.scrollHeight, behavior: 'smooth' }), 100);
+      setAiHelpLoading(false);
     }
   };
+
+  const AiHelpButton: React.FC<{ section: string; questions: string[] }> = ({ section, questions }) => (
+    <div className="relative">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setAiHelpOpen(aiHelpOpen === section ? null : section)}
+        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2"
+      >
+        <HelpCircle className="w-3.5 h-3.5 mr-1" />
+        <span className="text-[10px]">Ajuda IA</span>
+      </Button>
+      {aiHelpOpen === section && (
+        <div className="absolute right-0 top-8 z-50 w-80 bg-[#1a1a24] border border-purple-500/30 rounded-lg shadow-xl p-3 space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-purple-400 font-medium flex items-center gap-1">
+              <Bot className="w-3 h-3" /> Ajuda Rápida
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => { setAiHelpOpen(null); setAiHelpResponse(null); }} className="h-5 w-5 p-0 text-gray-500 hover:text-white">✕</Button>
+          </div>
+          {!aiHelpResponse && !aiHelpLoading && (
+            <div className="space-y-1">
+              {questions.map((q, i) => (
+                <Button
+                  key={i}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => askAiHelp(q, section)}
+                  className="w-full justify-start text-left text-gray-300 hover:text-white hover:bg-[#2a2a3a] text-[11px] h-auto py-1.5 px-2"
+                >
+                  {q}
+                </Button>
+              ))}
+            </div>
+          )}
+          {aiHelpLoading && (
+            <div className="flex items-center gap-2 py-4 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+              <span className="text-xs text-gray-400">Consultando IA...</span>
+            </div>
+          )}
+          {aiHelpResponse && (
+            <div className="bg-[#0f0f17] rounded-lg p-3 border border-[#2a2a3a] max-h-[250px] overflow-y-auto">
+              <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{aiHelpResponse}</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAiHelpResponse(null)}
+                className="mt-2 text-purple-400 hover:text-purple-300 text-[10px] h-6 px-2"
+              >
+                ← Voltar às perguntas
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -353,25 +392,24 @@ export const AdminIntegrationsTab: React.FC = () => {
             <FileJson className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             Logs ({testResults.length})
           </TabsTrigger>
-          <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white text-xs sm:text-sm">
-            <Bot className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            IA Assistente
-          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Webhook Overview */}
         <TabsContent value="overview" className="mt-4 space-y-4">
           <Card className="bg-gradient-to-br from-[#1a1a24] via-[#1a1a2e] to-[#1a1a24] border-[#2a2a3a] overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl" />
-            <CardHeader>
+             <CardHeader>
               <CardTitle className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-cyan-400" />
                   Endpoint do Webhook
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setShowWebhookUrl(!showWebhookUrl)} className="text-gray-400 hover:text-white">
-                  {showWebhookUrl ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <AiHelpButton section="webhook" questions={['Como configurar o webhook?', 'O pagamento não ativou o acesso, o que fazer?', 'Quais plataformas são suportadas?']} />
+                  <Button size="sm" variant="ghost" onClick={() => setShowWebhookUrl(!showWebhookUrl)} className="text-gray-400 hover:text-white">
+                    {showWebhookUrl ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription className="text-gray-400">Cole esta URL na sua plataforma de pagamento para receber notificações</CardDescription>
             </CardHeader>
@@ -435,9 +473,12 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="checkout" className="mt-4 space-y-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <CreditCard className="w-5 h-5 text-cyan-400" />
-                Links de Pagamento
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-cyan-400" />
+                  Links de Pagamento
+                </div>
+                <AiHelpButton section="checkout" questions={['Como mudar o checkout para outra plataforma?', 'Como configurar preços no checkout?', 'Como funciona a detecção automática de plano?']} />
               </CardTitle>
               <CardDescription className="text-gray-400">Atualize os links que aparecem na landing page, tela de ativação e para os usuários</CardDescription>
             </CardHeader>
@@ -556,7 +597,10 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="platforms" className="mt-4 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-400">Clique em uma plataforma para ver o guia de configuração</p>
-            <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30">{PLATFORMS.length} plataformas</Badge>
+            <div className="flex items-center gap-2">
+              <AiHelpButton section="platforms" questions={['Como configurar o webhook na Cakto?', 'Como integrar o Hotmart com meu sistema?', 'Como configurar Kiwify para liberar acesso?', 'Posso usar Stripe com esse webhook?']} />
+              <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30">{PLATFORMS.length} plataformas</Badge>
+            </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {PLATFORMS.map(platform => {
@@ -629,62 +673,121 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="testing" className="mt-4 space-y-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Send className="w-5 h-5 text-amber-400" />
-                Simulador de Venda & Webhook
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <Send className="w-5 h-5 text-amber-400" />
+                  Simulador de Venda & Webhook
+                </div>
+                <AiHelpButton section="testing" questions={['Como testar se meu webhook está funcionando?', 'O pagamento não ativou o acesso, o que fazer?', 'O que significa cada resultado do teste?']} />
               </CardTitle>
               <CardDescription className="text-gray-400">Simule vendas completas - gera email fake, valores realistas e testa todo o fluxo de ativação</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Quick Fake Sale Buttons */}
-              <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-600/20 space-y-3">
+              {/* Tipo de Simulação */}
+              <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-600/20 space-y-4">
                 <h4 className="text-sm font-medium text-white flex items-center gap-2">
                   <Zap className="w-4 h-4 text-green-400" />
-                  Simulação Rápida (Email Fake)
+                  Tipo de Simulação
                 </h4>
-                <p className="text-xs text-gray-400">
-                  Gera um email fake automaticamente e simula uma venda completa. Útil para testar se o webhook está processando corretamente sem afetar usuários reais.
-                </p>
+
+                {/* Plan type selector */}
                 <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('mensal');
+                      setTestAmount(settings.preco_mensal || '50');
+                    }}
+                    variant={simulationType === 'mensal' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'mensal' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10'}
+                  >
+                    💳 Somente Mensal
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('anual');
+                      setTestAmount(settings.preco_anual || '200');
+                    }}
+                    variant={simulationType === 'anual' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'anual' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10'}
+                  >
+                    ⭐ Somente Anual
+                  </Button>
+                  <Button 
+                    onClick={() => setSimulationType('custom')}
+                    variant={simulationType === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'custom' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-[#0f0f17] border-purple-600/30 text-purple-400 hover:bg-purple-600/10'}
+                  >
+                    ✏️ Valor Personalizado
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('custom');
+                      setTestAmount(String((Math.random() * 500 + 10).toFixed(2)));
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#0f0f17] border-cyan-600/30 text-cyan-400 hover:bg-cyan-600/10"
+                  >
+                    🎲 Aleatório
+                  </Button>
+                </div>
+
+                {/* Editable price fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Valor Mensal para simulação (R$)
+                    </label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={simulationType === 'mensal' ? testAmount : (settings.preco_mensal || '')}
+                      onChange={(e) => {
+                        if (simulationType === 'mensal') setTestAmount(e.target.value);
+                        setSettings(prev => ({ ...prev, preco_mensal: e.target.value }));
+                      }}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                      placeholder="Ex: 79.90"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Valor Anual para simulação (R$)
+                    </label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={simulationType === 'anual' ? testAmount : (settings.preco_anual || '')}
+                      onChange={(e) => {
+                        if (simulationType === 'anual') setTestAmount(e.target.value);
+                        setSettings(prev => ({ ...prev, preco_anual: e.target.value }));
+                      }}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                      placeholder="Ex: 79.90"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick generate fake email */}
+                <div className="flex flex-wrap gap-2 pt-1">
                   <Button 
                     onClick={() => {
                       const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
                       setTestEmail(fakeEmail);
-                      setTestAmount(settings.preco_mensal || '50');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_mensal || '50').toFixed(2)} (Mensal)` });
+                      const amt = simulationType === 'anual' ? (settings.preco_anual || '200') : (settings.preco_mensal || '50');
+                      if (simulationType !== 'custom') setTestAmount(amt);
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(simulationType === 'custom' ? testAmount : amt).toFixed(2)}` });
                     }} 
                     variant="outline" 
                     size="sm"
                     className="bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10"
                   >
-                    🧪 Gerar Venda Mensal (R$ {parseFloat(settings.preco_mensal || '50').toFixed(2)})
+                    🧪 Gerar Email Fake + Preencher
                   </Button>
-                  <Button 
-                    onClick={() => {
-                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
-                      setTestEmail(fakeEmail);
-                      setTestAmount(settings.preco_anual || '200');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_anual || '200').toFixed(2)} (Anual)` });
-                    }} 
-                    variant="outline" 
-                    size="sm"
-                    className="bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10"
-                  >
-                    🧪 Gerar Venda Anual (R$ {parseFloat(settings.preco_anual || '200').toFixed(2)})
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
-                      setTestEmail(fakeEmail);
-                      setTestAmount(String((Math.random() * 500 + 10).toFixed(2)));
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — Valor aleatório` });
-                    }} 
-                    variant="outline" 
-                    size="sm"
-                    className="bg-[#0f0f17] border-purple-600/30 text-purple-400 hover:bg-purple-600/10"
-                  >
-                    🎲 Valor Aleatório
-                  </Button>
+                  <p className="text-[10px] text-gray-500 flex items-center">
+                    💡 Gera email automático e preenche valor do plano selecionado
+                  </p>
                 </div>
               </div>
 
@@ -820,160 +923,6 @@ export const AdminIntegrationsTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB: IA Assistente */}
-        <TabsContent value="ai-assistant" className="mt-4 space-y-4">
-          <Card className="bg-gradient-to-br from-[#1a1a24] via-[#12121e] to-[#1a1a24] border-[#2a2a3a] overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20">
-                  <Bot className="w-5 h-5 text-cyan-400" />
-                </div>
-                Assistente IA de Integrações
-                <Badge className="bg-gradient-to-r from-purple-600/30 to-cyan-600/30 text-cyan-300 border-cyan-600/30 text-[10px] ml-auto">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Powered by AI
-                </Badge>
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Pergunte sobre configuração de webhooks, integração com plataformas, resolução de problemas e testes
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Quick Questions */}
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" />
-                  Perguntas rápidas
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {aiQuickQuestions.map((q, i) => (
-                    <Button
-                      key={i}
-                      size="sm"
-                      variant="outline"
-                      disabled={aiLoading}
-                      onClick={() => { setActiveSection('ai-assistant'); sendAiMessage(q); }}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white text-[11px] h-7 px-2"
-                    >
-                      {q}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chat Area */}
-              <div className="bg-[#0a0a12] rounded-xl border border-[#2a2a3a] overflow-hidden">
-                <div 
-                  ref={aiScrollRef}
-                  className="h-[400px] overflow-y-auto p-4 space-y-4"
-                >
-                  {aiMessages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center">
-                        <Bot className="w-8 h-8 text-cyan-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-1">Assistente de Integrações</h3>
-                        <p className="text-sm text-gray-500 max-w-md">
-                          Pergunte qualquer coisa sobre configuração de webhooks, checkout, plataformas de pagamento ou resolução de problemas.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-                        {['Como integrar a Cakto?', 'Como testar o webhook?', 'Pagamento não liberou acesso', 'Trocar plataforma de checkout'].map((suggestion, i) => (
-                          <Button
-                            key={i}
-                            variant="outline"
-                            disabled={aiLoading}
-                            onClick={() => sendAiMessage(suggestion)}
-                            className="bg-[#1a1a24] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white text-xs justify-start"
-                          >
-                            <MessageSquare className="w-3 h-3 mr-2 text-purple-400 flex-shrink-0" />
-                            {suggestion}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {aiMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                        msg.role === 'user' 
-                          ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white' 
-                          : 'bg-[#1a1a24] border border-[#2a2a3a] text-gray-200'
-                      }`}>
-                        {msg.role === 'assistant' && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                            <span className="text-[10px] text-cyan-400 font-medium">IA Assistente</span>
-                          </div>
-                        )}
-                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {aiLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-[#1a1a24] border border-[#2a2a3a] rounded-2xl px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                          <div className="flex gap-1">
-                            <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input Area */}
-                <div className="border-t border-[#2a2a3a] p-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={aiInput}
-                      onChange={(e) => setAiInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } }}
-                      placeholder="Pergunte sobre integrações, webhooks, plataformas..."
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600"
-                      disabled={aiLoading}
-                    />
-                    <Button 
-                      onClick={() => sendAiMessage()} 
-                      disabled={aiLoading || !aiInput.trim()} 
-                      className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white px-4"
-                    >
-                      {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  {aiMessages.length > 0 && (
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-[10px] text-gray-600">Pressione Enter para enviar</p>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => setAiMessages([])} 
-                        className="text-gray-600 hover:text-gray-300 text-[10px] h-5 px-2"
-                      >
-                        Limpar conversa
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="bg-gradient-to-r from-purple-600/10 to-cyan-600/10 rounded-lg p-3 border border-purple-600/20">
-                <p className="text-xs text-gray-400 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                  A IA conhece todas as plataformas suportadas, eventos de webhook, lógica de ativação e pode guiar você passo a passo na configuração de qualquer integração.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
