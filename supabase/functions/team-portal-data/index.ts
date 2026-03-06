@@ -74,7 +74,40 @@ Deno.serve(async (req) => {
         .order('created_at', { ascending: false })
         .limit(20);
 
-      return new Response(JSON.stringify({ online: online || [], requests: requests || [] }), {
+      // Get new pending subscriptions (last 48h)
+      const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const { data: newSubs } = await supabase
+        .from('subscriptions')
+        .select('id, user_id, plan, status, is_active, created_at')
+        .eq('status', 'pendente')
+        .gte('created_at', twoDaysAgo)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // Enrich with profile data
+      let newSubscriptions: any[] = [];
+      if (newSubs && newSubs.length > 0) {
+        const userIds = newSubs.map(s => s.user_id);
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('user_id, username')
+          .in('user_id', userIds);
+
+        // Get emails from auth
+        const { data: { users: authUsers } } = await supabase.auth.admin.listUsers({ perPage: 100 });
+        
+        newSubscriptions = newSubs.map(sub => {
+          const profile = profiles?.find(p => p.user_id === sub.user_id);
+          const authUser = authUsers?.find((u: any) => u.id === sub.user_id);
+          return {
+            ...sub,
+            username: profile?.username || '',
+            email: authUser?.email || '',
+          };
+        });
+      }
+
+      return new Response(JSON.stringify({ online: online || [], requests: requests || [], new_subscriptions: newSubscriptions }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
