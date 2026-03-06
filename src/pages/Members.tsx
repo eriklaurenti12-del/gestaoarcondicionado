@@ -382,8 +382,8 @@ export default function Members() {
             <TabsTrigger value="landing" className="text-xs rounded-lg">
               <Megaphone className="w-4 h-4 mr-1" /> Landing
             </TabsTrigger>
-            <TabsTrigger value="share" className="text-xs rounded-lg">
-              <Share2 className="w-4 h-4 mr-1" /> Links
+            <TabsTrigger value="links" className="text-xs rounded-lg">
+              <Link className="w-4 h-4 mr-1" /> Links
             </TabsTrigger>
             <TabsTrigger value="raffle" className="text-xs rounded-lg">
               <Gift className="w-4 h-4 mr-1" /> Sorteio
@@ -393,12 +393,6 @@ export default function Members() {
             </TabsTrigger>
             <TabsTrigger value="support" className="text-xs rounded-lg">
               <LifeBuoy className="w-4 h-4 mr-1" /> Suporte
-            </TabsTrigger>
-            <TabsTrigger value="links" className="text-xs rounded-lg">
-              <Link className="w-4 h-4 mr-1" /> Links Rápidos
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="text-xs rounded-lg">
-              <Settings2 className="w-4 h-4 mr-1" /> Config
             </TabsTrigger>
             <TabsTrigger value="system-guide" className="text-xs rounded-lg">
               <BookOpen className="w-4 h-4 mr-1" /> Guia PDF
