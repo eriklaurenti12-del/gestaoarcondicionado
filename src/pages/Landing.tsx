@@ -22,6 +22,47 @@ import { GridBackground } from "@/components/GridBackground";
 
 type AdminSettings = Record<string, string>;
 
+// Scroll Reveal animation component
+const ScrollReveal: React.FC<{ 
+  children: React.ReactNode; 
+  delay?: number; 
+  direction?: 'up' | 'down' | 'left' | 'right' | 'fade' | 'scale';
+  className?: string;
+}> = ({ children, delay = 0, direction = 'up', className = '' }) => {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const transforms: Record<string, string> = {
+    up: 'translateY(40px)', down: 'translateY(-40px)',
+    left: 'translateX(40px)', right: 'translateX(-40px)',
+    fade: 'translateY(0)', scale: 'scale(0.9)',
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: isVisible ? 1 : 0,
+        transform: isVisible ? 'translateY(0) translateX(0) scale(1)' : transforms[direction],
+        transition: `opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms, transform 0.7s cubic-bezier(0.16, 1, 0.3, 1) ${delay}ms`,
+        willChange: 'opacity, transform',
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const FaqItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
   const [open, setOpen] = React.useState(false);
   return (
