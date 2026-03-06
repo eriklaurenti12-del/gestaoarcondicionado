@@ -710,6 +710,9 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Marquee banners - hero-below position */}
+      {renderMarquees('hero-below')}
+
       {/* Dor */}
       {settings.landing_secao_dor !== 'false' && (
         <ScrollReveal direction="up">
