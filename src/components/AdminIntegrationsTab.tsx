@@ -615,11 +615,63 @@ export const AdminIntegrationsTab: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-white">
                 <Send className="w-5 h-5 text-amber-400" />
-                Simulador de Webhook
+                Simulador de Venda & Webhook
               </CardTitle>
-              <CardDescription className="text-gray-400">Simule pagamentos de qualquer plataforma para validar a integração completa</CardDescription>
+              <CardDescription className="text-gray-400">Simule vendas completas - gera email fake, valores realistas e testa todo o fluxo de ativação</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Quick Fake Sale Buttons */}
+              <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-600/20 space-y-3">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-green-400" />
+                  Simulação Rápida (Email Fake)
+                </h4>
+                <p className="text-xs text-gray-400">
+                  Gera um email fake automaticamente e simula uma venda completa. Útil para testar se o webhook está processando corretamente sem afetar usuários reais.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={() => {
+                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
+                      setTestEmail(fakeEmail);
+                      setTestAmount('39.90');
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ 39,90 (Mensal)` });
+                    }} 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10"
+                  >
+                    🧪 Gerar Venda Mensal (R$ 39,90)
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
+                      setTestEmail(fakeEmail);
+                      setTestAmount('370');
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ 370,00 (Anual)` });
+                    }} 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10"
+                  >
+                    🧪 Gerar Venda Anual (R$ 370,00)
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
+                      setTestEmail(fakeEmail);
+                      setTestAmount(String((Math.random() * 500 + 10).toFixed(2)));
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — Valor aleatório` });
+                    }} 
+                    variant="outline" 
+                    size="sm"
+                    className="bg-[#0f0f17] border-purple-600/30 text-purple-400 hover:bg-purple-600/10"
+                  >
+                    🎲 Valor Aleatório
+                  </Button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Plataforma</label>
@@ -637,8 +689,8 @@ export const AdminIntegrationsTab: React.FC = () => {
                   </Select>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-400 mb-1 block">Email do usuário (cadastrado)</label>
-                  <Input placeholder="usuario@email.com" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                  <label className="text-xs text-gray-400 mb-1 block">Email (real ou fake)</label>
+                  <Input placeholder="usuario@email.com ou use botão acima" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 mb-1 block">Valor (R$)</label>
@@ -646,10 +698,28 @@ export const AdminIntegrationsTab: React.FC = () => {
                 </div>
               </div>
 
-              <div className="bg-[#0f0f17] rounded-lg p-3 border border-[#2a2a3a]">
-                <p className="text-xs text-amber-400 flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
-                  Testes com valores ≤ R$50 ativam plano mensal (1 mês), acima ativa plano anual (12 meses). O email precisa existir no sistema.
+              {/* Info about detection */}
+              <div className="bg-[#0f0f17] rounded-lg p-3 border border-[#2a2a3a] space-y-2">
+                <p className="text-xs text-cyan-400 flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Como o sistema processa:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px] text-gray-400">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded bg-green-600/20 text-green-400 flex items-center justify-center text-[9px] font-bold">1</span>
+                    Recebe webhook → detecta plataforma
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded bg-blue-600/20 text-blue-400 flex items-center justify-center text-[9px] font-bold">2</span>
+                    Busca email → identifica plano pelo valor
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-5 h-5 rounded bg-purple-600/20 text-purple-400 flex items-center justify-center text-[9px] font-bold">3</span>
+                    Ativa assinatura → notifica admin
+                  </div>
+                </div>
+                <p className="text-[10px] text-amber-400 mt-1">
+                  💡 Emails fake (@simulacao.fake) retornarão "usuário não encontrado" — isso é esperado! O webhook ainda valida todo o fluxo e salva a notificação.
                 </p>
               </div>
 
