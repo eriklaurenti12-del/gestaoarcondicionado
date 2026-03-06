@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import MarqueeBanner from '@/components/MarqueeBanner';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -22,24 +23,28 @@ import { GridBackground } from "@/components/GridBackground";
 
 type AdminSettings = Record<string, string>;
 
-// Scroll Reveal animation component
+// Scroll Reveal animation component - respects settings
 const ScrollReveal: React.FC<{ 
   children: React.ReactNode; 
   delay?: number; 
   direction?: 'up' | 'down' | 'left' | 'right' | 'fade' | 'scale';
   className?: string;
-}> = ({ children, delay = 0, direction = 'up', className = '' }) => {
+  enabled?: boolean;
+}> = ({ children, delay = 0, direction = 'up', className = '', enabled = true }) => {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(!enabled);
 
   React.useEffect(() => {
+    if (!enabled) { setIsVisible(true); return; }
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } },
       { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return <div className={className}>{children}</div>;
 
   const transforms: Record<string, string> = {
     up: 'translateY(40px)', down: 'translateY(-40px)',
@@ -135,6 +140,19 @@ const Landing: React.FC = () => {
     landing_secao_depoimentos: 'true', landing_secao_faq: 'true', landing_secao_garantia: 'true',
     landing_hero_bg_image: '', landing_precos_bg_image: '', landing_depoimentos_bg_image: '',
     landing_hero_font_size: 'normal', landing_anim_speed: 'normal',
+    landing_animacoes_ativas: 'true', landing_scroll_reveal: 'true',
+    landing_marquee1_ativo: 'false', landing_marquee1_textos: '', landing_marquee1_direcao: 'left',
+    landing_marquee1_velocidade: 'normal', landing_marquee1_cor_fundo: '#06b6d4', landing_marquee1_cor_texto: '#ffffff',
+    landing_marquee1_estilo: 'solid', landing_marquee1_posicao: 'hero-below', landing_marquee1_tamanho: 'md',
+    landing_marquee1_separador: '✦', landing_marquee1_tipo: 'texto',
+    landing_marquee2_ativo: 'false', landing_marquee2_textos: '', landing_marquee2_direcao: 'right',
+    landing_marquee2_velocidade: 'normal', landing_marquee2_cor_fundo: '#f59e0b', landing_marquee2_cor_texto: '#ffffff',
+    landing_marquee2_estilo: 'gradient', landing_marquee2_posicao: 'above-prices', landing_marquee2_tamanho: 'md',
+    landing_marquee2_separador: '⚡', landing_marquee2_tipo: 'texto',
+    landing_marquee3_ativo: 'false', landing_marquee3_textos: '', landing_marquee3_direcao: 'left',
+    landing_marquee3_velocidade: 'slow', landing_marquee3_cor_fundo: '#22c55e', landing_marquee3_cor_texto: '#ffffff',
+    landing_marquee3_estilo: 'neon', landing_marquee3_posicao: 'bottom', landing_marquee3_tamanho: 'sm',
+    landing_marquee3_separador: '•', landing_marquee3_tipo: 'clientes',
     landing_oferta1_titulo: 'Plano Mensal', landing_oferta1_descricao: 'Para testar e ver resultado rápido',
     landing_oferta1_badge: '', landing_oferta1_ativa: 'true',
     landing_oferta2_titulo: 'Plano Anual', landing_oferta2_descricao: 'Para quem quer economizar de verdade',
@@ -371,9 +389,38 @@ const Landing: React.FC = () => {
   })).filter(f => f.active && f.q && f.a);
 
   const template = settings.landing_template || 'persuasao';
+  const scrollRevealEnabled = settings.landing_scroll_reveal !== 'false' && settings.landing_animacoes_ativas !== 'false';
 
   const oferta1Features = (settings.landing_oferta1_features || 'Acesso COMPLETO a tudo\nClientes ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte no WhatsApp').split('\n').filter(Boolean);
   const oferta2Features = (settings.landing_oferta2_features || 'TUDO do mensal incluído\n2 meses DE GRAÇA\nSuporte VIP prioritário\nRelatórios avançados\nBackup automático diário').split('\n').filter(Boolean);
+
+  // ─── MARQUEE HELPER ────────────────────────────────────────
+  const renderMarquees = (position: string) => {
+    return [1, 2, 3].map(num => {
+      const prefix = `landing_marquee${num}`;
+      if (settings[`${prefix}_ativo`] !== 'true') return null;
+      if ((settings[`${prefix}_posicao`] || 'hero-below') !== position) return null;
+      
+      const textos = settings[`${prefix}_textos`] || '';
+      const items = textos.split('|').filter((t: string) => t.trim()).map((t: string) => ({ text: t.trim() }));
+      
+      if (!items.length) return null;
+      
+      return (
+        <MarqueeBanner
+          key={`marquee-${num}`}
+          items={items}
+          direction={(settings[`${prefix}_direcao`] as 'left' | 'right') || 'left'}
+          speed={(settings[`${prefix}_velocidade`] as 'slow' | 'normal' | 'fast') || 'normal'}
+          bgColor={settings[`${prefix}_cor_fundo`] || '#06b6d4'}
+          textColor={settings[`${prefix}_cor_texto`] || '#ffffff'}
+          style={(settings[`${prefix}_estilo`] as 'solid' | 'gradient' | 'glass' | 'neon') || 'solid'}
+          fontSize={(settings[`${prefix}_tamanho`] as 'sm' | 'md' | 'lg' | 'xl') || 'md'}
+          separator={settings[`${prefix}_separador`] || '✦'}
+        />
+      );
+    }).filter(Boolean);
+  };
 
   // ─── SHARED COMPONENTS ────────────────────────────────────────
 
@@ -663,6 +710,9 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
+      {/* Marquee banners - hero-below position */}
+      {renderMarquees('hero-below')}
+
       {/* Dor */}
       {settings.landing_secao_dor !== 'false' && (
         <ScrollReveal direction="up">
@@ -739,9 +789,12 @@ const Landing: React.FC = () => {
         </ScrollReveal>
       )}
 
-      <ScrollReveal direction="up"><PricingSection /></ScrollReveal>
-      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up"><TestimonialsSection /></ScrollReveal>}
-      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up"><FaqSection /></ScrollReveal>}
+      {/* Marquee banners - above-prices position */}
+      {renderMarquees('above-prices')}
+
+      <ScrollReveal direction="up" enabled={scrollRevealEnabled}><PricingSection /></ScrollReveal>
+      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up" enabled={scrollRevealEnabled}><TestimonialsSection /></ScrollReveal>}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up" enabled={scrollRevealEnabled}><FaqSection /></ScrollReveal>}
 
       {/* Urgência Final */}
       <ScrollReveal direction="scale">
@@ -1166,6 +1219,16 @@ const Landing: React.FC = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Marquee banners - bottom position */}
+      {renderMarquees('bottom')}
+
+      {/* Marquee banners - top position (fixed) */}
+      {renderMarquees('top').length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-[55]">
+          {renderMarquees('top')}
         </div>
       )}
 

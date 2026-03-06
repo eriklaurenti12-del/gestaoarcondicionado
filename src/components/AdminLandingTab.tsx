@@ -60,6 +60,17 @@ const LANDING_KEYS = [
   'landing_banner_ativo', 'landing_banner_texto', 'landing_banner_cor', 'landing_banner_link',
   'landing_preco_mensal_riscado', 'landing_preco_anual_riscado',
   'landing_nome_riscado_ativo', 'landing_nome_riscado_texto',
+  // Marquee & Effects settings
+  'landing_animacoes_ativas', 'landing_scroll_reveal',
+  'landing_marquee1_ativo', 'landing_marquee1_textos', 'landing_marquee1_direcao', 'landing_marquee1_velocidade',
+  'landing_marquee1_cor_fundo', 'landing_marquee1_cor_texto', 'landing_marquee1_estilo', 'landing_marquee1_posicao',
+  'landing_marquee1_tamanho', 'landing_marquee1_separador', 'landing_marquee1_tipo',
+  'landing_marquee2_ativo', 'landing_marquee2_textos', 'landing_marquee2_direcao', 'landing_marquee2_velocidade',
+  'landing_marquee2_cor_fundo', 'landing_marquee2_cor_texto', 'landing_marquee2_estilo', 'landing_marquee2_posicao',
+  'landing_marquee2_tamanho', 'landing_marquee2_separador', 'landing_marquee2_tipo',
+  'landing_marquee3_ativo', 'landing_marquee3_textos', 'landing_marquee3_direcao', 'landing_marquee3_velocidade',
+  'landing_marquee3_cor_fundo', 'landing_marquee3_cor_texto', 'landing_marquee3_estilo', 'landing_marquee3_posicao',
+  'landing_marquee3_tamanho', 'landing_marquee3_separador', 'landing_marquee3_tipo',
 ];
 
 type LandingSettings = Record<string, string>;
@@ -444,6 +455,7 @@ gtag('config', '${settings.landing_pixel_google}');
           <TabsTrigger value="video" className="text-xs"><Video className="w-3 h-3 mr-1" />Vídeo</TabsTrigger>
           <TabsTrigger value="notificacoes" className="text-xs"><Bell className="w-3 h-3 mr-1" />Notificações</TabsTrigger>
           <TabsTrigger value="pixel" className="text-xs"><Code className="w-3 h-3 mr-1" />Pixel Ads</TabsTrigger>
+          <TabsTrigger value="efeitos" className="text-xs"><Sparkles className="w-3 h-3 mr-1" />Efeitos</TabsTrigger>
           <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
           <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Checkout</TabsTrigger>
@@ -1288,6 +1300,207 @@ gtag('config', '${settings.landing_pixel_google}');
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* EFEITOS - NOVA ABA */}
+        <TabsContent value="efeitos">
+          <div className="space-y-4">
+            {/* Toggle geral animações */}
+            <Card className="border-primary/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Sparkles className="w-5 h-5 text-primary" /> Controle de Animações
+                </CardTitle>
+                <CardDescription>Ative ou desative animações e efeitos visuais da landing page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <div>
+                    <Label className="text-sm font-medium">Animações de Scroll (ScrollReveal)</Label>
+                    <p className="text-xs text-muted-foreground">Efeitos de entrada ao rolar a página</p>
+                  </div>
+                  <Switch checked={settings.landing_scroll_reveal !== 'false'}
+                    onCheckedChange={v => update('landing_scroll_reveal', v ? 'true' : 'false')} />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <div>
+                    <Label className="text-sm font-medium">Todas as animações</Label>
+                    <p className="text-xs text-muted-foreground">Desativa bounce, pulse, gradientes animados, etc.</p>
+                  </div>
+                  <Switch checked={settings.landing_animacoes_ativas !== 'false'}
+                    onCheckedChange={v => update('landing_animacoes_ativas', v ? 'true' : 'false')} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Marquee Banners */}
+            {[1, 2, 3].map(num => {
+              const prefix = `landing_marquee${num}`;
+              const isActive = settings[`${prefix}_ativo`] === 'true';
+              return (
+                <Card key={num} className={isActive ? 'border-primary/30' : ''}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Target className="w-5 h-5 text-primary" /> Banner Marquee #{num}
+                      </CardTitle>
+                      <Switch checked={isActive}
+                        onCheckedChange={v => update(`${prefix}_ativo`, v ? 'true' : 'false')} />
+                    </div>
+                    <CardDescription>Texto animado passando na tela estilo banner cruzado</CardDescription>
+                  </CardHeader>
+                  {isActive && (
+                    <CardContent className="space-y-4">
+                      {/* Tipo de conteúdo */}
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Tipo de conteúdo</Label>
+                        <Select value={settings[`${prefix}_tipo`] || 'texto'} onValueChange={v => update(`${prefix}_tipo`, v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="texto">✏️ Texto livre</SelectItem>
+                            <SelectItem value="clientes">👥 Nomes de clientes</SelectItem>
+                            <SelectItem value="fornecedores">🏭 Fornecedores</SelectItem>
+                            <SelectItem value="misto">🔀 Misto (texto + dados)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Textos (separados por |) */}
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Textos (separe com |)</Label>
+                        <Textarea value={settings[`${prefix}_textos`] || ''} onChange={e => update(`${prefix}_textos`, e.target.value)}
+                          placeholder="🔥 PROMOÇÃO 50% OFF | ❄️ Instalação Grátis | ⚡ Últimas vagas"
+                          className="min-h-[60px]" />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          {settings[`${prefix}_tipo`] === 'clientes' ? '💡 Deixe vazio para exibir automaticamente nomes de clientes do sistema' :
+                           settings[`${prefix}_tipo`] === 'fornecedores' ? '💡 Deixe vazio para exibir automaticamente fornecedores do sistema' :
+                           '💡 Use | para separar cada item do banner'}
+                        </p>
+                      </div>
+
+                      {/* Posição */}
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Posição na página</Label>
+                        <Select value={settings[`${prefix}_posicao`] || 'hero-below'} onValueChange={v => update(`${prefix}_posicao`, v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="top">⬆️ Topo da página (fixo)</SelectItem>
+                            <SelectItem value="hero-below">🏠 Abaixo do Hero</SelectItem>
+                            <SelectItem value="above-prices">💰 Acima dos Preços</SelectItem>
+                            <SelectItem value="bottom">⬇️ Rodapé</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Direção */}
+                        <div>
+                          <Label className="text-muted-foreground text-sm">Direção</Label>
+                          <Select value={settings[`${prefix}_direcao`] || 'left'} onValueChange={v => update(`${prefix}_direcao`, v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="left">← Esquerda</SelectItem>
+                              <SelectItem value="right">→ Direita</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Velocidade */}
+                        <div>
+                          <Label className="text-muted-foreground text-sm">Velocidade</Label>
+                          <Select value={settings[`${prefix}_velocidade`] || 'normal'} onValueChange={v => update(`${prefix}_velocidade`, v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="slow">🐢 Lenta</SelectItem>
+                              <SelectItem value="normal">🚶 Normal</SelectItem>
+                              <SelectItem value="fast">🏃 Rápida</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <ColorInput label="Cor de fundo" value={settings[`${prefix}_cor_fundo`] || '#06b6d4'} onChange={v => update(`${prefix}_cor_fundo`, v)} />
+                        <ColorInput label="Cor do texto" value={settings[`${prefix}_cor_texto`] || '#ffffff'} onChange={v => update(`${prefix}_cor_texto`, v)} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Estilo */}
+                        <div>
+                          <Label className="text-muted-foreground text-sm">Estilo visual</Label>
+                          <Select value={settings[`${prefix}_estilo`] || 'solid'} onValueChange={v => update(`${prefix}_estilo`, v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="solid">⬛ Sólido</SelectItem>
+                              <SelectItem value="gradient">🌈 Gradiente</SelectItem>
+                              <SelectItem value="glass">🔮 Glass (vidro)</SelectItem>
+                              <SelectItem value="neon">💡 Neon</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Tamanho */}
+                        <div>
+                          <Label className="text-muted-foreground text-sm">Tamanho do texto</Label>
+                          <Select value={settings[`${prefix}_tamanho`] || 'md'} onValueChange={v => update(`${prefix}_tamanho`, v)}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="sm">Pequeno</SelectItem>
+                              <SelectItem value="md">Médio</SelectItem>
+                              <SelectItem value="lg">Grande</SelectItem>
+                              <SelectItem value="xl">Extra Grande</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Separador */}
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Separador entre itens</Label>
+                        <Select value={settings[`${prefix}_separador`] || '✦'} onValueChange={v => update(`${prefix}_separador`, v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="✦">✦ Estrela</SelectItem>
+                            <SelectItem value="•">• Ponto</SelectItem>
+                            <SelectItem value="⚡">⚡ Raio</SelectItem>
+                            <SelectItem value="❄️">❄️ Floco</SelectItem>
+                            <SelectItem value="|">| Barra</SelectItem>
+                            <SelectItem value="—">— Travessão</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {/* Preview */}
+                      <div className="rounded-xl overflow-hidden border border-border">
+                        <div className="overflow-hidden py-2" style={{ backgroundColor: settings[`${prefix}_cor_fundo`] || '#06b6d4' }}>
+                          <div className="flex items-center gap-4 animate-marquee-preview whitespace-nowrap text-sm" style={{ color: settings[`${prefix}_cor_texto`] || '#fff' }}>
+                            {(settings[`${prefix}_textos`] || '🔥 Texto de exemplo | ❄️ Segundo texto').split('|').map((t: string, i: number) => (
+                              <span key={i} className="font-medium px-2">{t.trim()} {settings[`${prefix}_separador`] || '✦'}</span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+
+            {/* Info */}
+            <Card className="border-border">
+              <CardContent className="p-4">
+                <Label className="font-semibold text-sm flex items-center gap-2 mb-2">💡 Dicas de efeitos</Label>
+                <ul className="text-xs text-muted-foreground space-y-1.5">
+                  <li>• <strong>Marquee #1 + posição "hero-below"</strong>: Banner com promoções logo após o título principal</li>
+                  <li>• <strong>Marquee #2 + posição "above-prices"</strong>: Destaque antes dos preços para criar urgência</li>
+                  <li>• <strong>Marquee #3 + tipo "clientes"</strong>: Exiba nomes de clientes como prova social automática</li>
+                  <li>• <strong>Estilo Neon</strong>: Efeito luminoso ideal para fundos escuros</li>
+                  <li>• <strong>Estilo Glass</strong>: Efeito transparente sofisticado com blur</li>
+                  <li>• Combine direções opostas em marquees diferentes para efeito dinâmico</li>
+                </ul>
               </CardContent>
             </Card>
           </div>
