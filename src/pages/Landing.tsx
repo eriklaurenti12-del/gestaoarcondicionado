@@ -389,9 +389,38 @@ const Landing: React.FC = () => {
   })).filter(f => f.active && f.q && f.a);
 
   const template = settings.landing_template || 'persuasao';
+  const scrollRevealEnabled = settings.landing_scroll_reveal !== 'false' && settings.landing_animacoes_ativas !== 'false';
 
   const oferta1Features = (settings.landing_oferta1_features || 'Acesso COMPLETO a tudo\nClientes ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte no WhatsApp').split('\n').filter(Boolean);
   const oferta2Features = (settings.landing_oferta2_features || 'TUDO do mensal incluído\n2 meses DE GRAÇA\nSuporte VIP prioritário\nRelatórios avançados\nBackup automático diário').split('\n').filter(Boolean);
+
+  // ─── MARQUEE HELPER ────────────────────────────────────────
+  const renderMarquees = (position: string) => {
+    return [1, 2, 3].map(num => {
+      const prefix = `landing_marquee${num}`;
+      if (settings[`${prefix}_ativo`] !== 'true') return null;
+      if ((settings[`${prefix}_posicao`] || 'hero-below') !== position) return null;
+      
+      const textos = settings[`${prefix}_textos`] || '';
+      const items = textos.split('|').filter((t: string) => t.trim()).map((t: string) => ({ text: t.trim() }));
+      
+      if (!items.length) return null;
+      
+      return (
+        <MarqueeBanner
+          key={`marquee-${num}`}
+          items={items}
+          direction={(settings[`${prefix}_direcao`] as 'left' | 'right') || 'left'}
+          speed={(settings[`${prefix}_velocidade`] as 'slow' | 'normal' | 'fast') || 'normal'}
+          bgColor={settings[`${prefix}_cor_fundo`] || '#06b6d4'}
+          textColor={settings[`${prefix}_cor_texto`] || '#ffffff'}
+          style={(settings[`${prefix}_estilo`] as 'solid' | 'gradient' | 'glass' | 'neon') || 'solid'}
+          fontSize={(settings[`${prefix}_tamanho`] as 'sm' | 'md' | 'lg' | 'xl') || 'md'}
+          separator={settings[`${prefix}_separador`] || '✦'}
+        />
+      );
+    }).filter(Boolean);
+  };
 
   // ─── SHARED COMPONENTS ────────────────────────────────────────
 
