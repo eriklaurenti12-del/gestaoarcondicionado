@@ -68,8 +68,8 @@ export const AdminIntegrationsTab: React.FC = () => {
     checkout_mensal: '',
     checkout_anual: '',
     whatsapp_suporte: '',
-    preco_mensal: '39.90',
-    preco_anual: '370',
+    preco_mensal: '',
+    preco_anual: '',
     promo_end_date: '',
   });
   const [testEmail, setTestEmail] = useState('');
