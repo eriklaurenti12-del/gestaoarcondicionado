@@ -1521,6 +1521,47 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
       </Tabs>
+        </div>{/* end editor panel */}
+
+        {/* Sticky Preview Panel */}
+        {showPreview && (
+          <div className="hidden lg:block">
+            <div className="sticky top-4 space-y-2">
+              <Card className="overflow-hidden border-primary/20">
+                <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border">
+                  <span className="text-xs font-semibold flex items-center gap-1.5">
+                    <Eye className="w-3 h-3 text-primary" /> Preview em Tempo Real
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[10px] text-muted-foreground">ao vivo</span>
+                    <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="h-6 w-6 p-0 ml-1">
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="relative bg-muted/30" style={{ height: '520px' }}>
+                  <iframe 
+                    key={previewKey}
+                    src={`/vendas?preview=true&t=${previewKey}`}
+                    className="w-full h-full border-0"
+                    style={{ transform: 'scale(0.27)', transformOrigin: 'top left', width: '370%', height: '370%' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                  />
+                </div>
+                <div className="px-3 py-2 border-t border-border bg-muted/30 flex gap-1">
+                  <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs" onClick={() => window.open('/vendas', '_blank')}>
+                    <ExternalLink className="w-3 h-3 mr-1" /> Abrir
+                  </Button>
+                  <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs" onClick={() => setPreviewKey(prev => prev + 1)}>
+                    <RefreshCw className="w-3 h-3 mr-1" /> Recarregar
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>{/* end grid */}
     </div>
   );
 };
