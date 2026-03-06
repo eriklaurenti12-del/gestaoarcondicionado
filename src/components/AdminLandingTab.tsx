@@ -145,6 +145,8 @@ export const AdminLandingTab: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [settings, setSettings] = useState<LandingSettings>({});
   const [previewKey, setPreviewKey] = useState(0);
+  const [showPreview, setShowPreview] = useState(true);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pixelTab, setPixelTab] = useState<'facebook' | 'google' | 'tiktok'>('facebook');
   const [generatingAI, setGeneratingAI] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
