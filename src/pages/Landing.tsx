@@ -614,31 +614,39 @@ const Landing: React.FC = () => {
 
       {/* Dor */}
       {settings.landing_secao_dor !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">Você se <span className="text-red-400">identifica</span> com isso?</h2>
             <div className="grid md:grid-cols-2 gap-4 mb-10">
               {["Anota serviços no papel e depois perde","Esquece de cobrar cliente","Não sabe quanto lucrou no mês","Perde tempo procurando no WhatsApp","Cliente liga e você não lembra o histórico","Já perdeu serviço por falta de organização","Trabalha muito mas o dinheiro não sobra","Usa planilha Excel mas nunca atualiza"].map((pain, i) => (
-                <div key={i} className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <ScrollReveal key={i} delay={i * 80} direction="left">
+                <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   <X className="w-5 h-5 text-red-400 flex-shrink-0" /><span className="text-gray-300 text-sm">{pain}</span>
                 </div>
+                </ScrollReveal>
               ))}
             </div>
+            <ScrollReveal direction="scale">
             <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
               <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></h3>
             </div>
+            </ScrollReveal>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
       {/* Features */}
       {settings.landing_secao_features !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4">
           <div className="container mx-auto">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {features.map((f, i) => (
-                <Card key={i} className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
+                <ScrollReveal key={i} delay={i * 100} direction="scale">
+                <Card className="!bg-white/5 !border-white/10 backdrop-blur-sm hover:!bg-white/10 hover:scale-105 transition-all group">
                   <CardContent className="p-4 md:p-6 text-center">
                     <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mx-auto mb-3">
                       <f.icon className="w-6 h-6 text-cyan-400" />
