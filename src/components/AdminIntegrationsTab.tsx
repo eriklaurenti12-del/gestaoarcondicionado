@@ -82,21 +82,12 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [activeSection, setActiveSection] = useState('overview');
   const [detectedPlatforms, setDetectedPlatforms] = useState<string[]>([]);
 
-  // AI Assistant state
-  const [aiMessages, setAiMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
-  const [aiInput, setAiInput] = useState('');
-  const [aiLoading, setAiLoading] = useState(false);
-  const aiScrollRef = useRef<HTMLDivElement>(null);
-  const aiQuickQuestions = [
-    'Como configurar o webhook na Cakto?',
-    'Como integrar o Hotmart com meu sistema?',
-    'O pagamento não ativou o acesso, o que fazer?',
-    'Como testar se meu webhook está funcionando?',
-    'Quais plataformas são suportadas?',
-    'Como configurar Kiwify para liberar acesso?',
-    'Posso usar Stripe com esse webhook?',
-    'Como mudar o checkout para outra plataforma?',
-  ];
+  const [simulationType, setSimulationType] = useState<'mensal' | 'anual' | 'custom'>('mensal');
+  
+  // Contextual AI help state
+  const [aiHelpOpen, setAiHelpOpen] = useState<string | null>(null);
+  const [aiHelpLoading, setAiHelpLoading] = useState(false);
+  const [aiHelpResponse, setAiHelpResponse] = useState<string | null>(null);
 
   useEffect(() => {
     loadSettings();
@@ -226,32 +217,80 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
-  const sendAiMessage = async (message?: string) => {
-    const msg = message || aiInput.trim();
-    if (!msg || aiLoading) return;
-    
-    setAiInput('');
-    const newMessages = [...aiMessages, { role: 'user' as const, content: msg }];
-    setAiMessages(newMessages);
-    setAiLoading(true);
-    
-    setTimeout(() => aiScrollRef.current?.scrollTo({ top: aiScrollRef.current.scrollHeight, behavior: 'smooth' }), 100);
-
+  const askAiHelp = async (question: string, section: string) => {
+    setAiHelpOpen(section);
+    setAiHelpLoading(true);
+    setAiHelpResponse(null);
     try {
       const { data, error } = await supabase.functions.invoke('integration-ai-assistant', {
-        body: { message: msg, history: aiMessages.slice(-10) },
+        body: { message: question, history: [] },
       });
-      
       if (error) throw error;
-      
-      setAiMessages(prev => [...prev, { role: 'assistant', content: data.reply || 'Erro ao processar resposta.' }]);
+      setAiHelpResponse(data.reply || 'Sem resposta.');
     } catch (error: any) {
-      setAiMessages(prev => [...prev, { role: 'assistant', content: `❌ Erro: ${error.message}. Tente novamente.` }]);
+      setAiHelpResponse(`❌ Erro: ${error.message}`);
     } finally {
-      setAiLoading(false);
-      setTimeout(() => aiScrollRef.current?.scrollTo({ top: aiScrollRef.current.scrollHeight, behavior: 'smooth' }), 100);
+      setAiHelpLoading(false);
     }
   };
+
+  const AiHelpButton: React.FC<{ section: string; questions: string[] }> = ({ section, questions }) => (
+    <div className="relative">
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={() => setAiHelpOpen(aiHelpOpen === section ? null : section)}
+        className="text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 h-7 px-2"
+      >
+        <HelpCircle className="w-3.5 h-3.5 mr-1" />
+        <span className="text-[10px]">Ajuda IA</span>
+      </Button>
+      {aiHelpOpen === section && (
+        <div className="absolute right-0 top-8 z-50 w-80 bg-[#1a1a24] border border-purple-500/30 rounded-lg shadow-xl p-3 space-y-2">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-purple-400 font-medium flex items-center gap-1">
+              <Bot className="w-3 h-3" /> Ajuda Rápida
+            </span>
+            <Button size="sm" variant="ghost" onClick={() => { setAiHelpOpen(null); setAiHelpResponse(null); }} className="h-5 w-5 p-0 text-gray-500 hover:text-white">✕</Button>
+          </div>
+          {!aiHelpResponse && !aiHelpLoading && (
+            <div className="space-y-1">
+              {questions.map((q, i) => (
+                <Button
+                  key={i}
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => askAiHelp(q, section)}
+                  className="w-full justify-start text-left text-gray-300 hover:text-white hover:bg-[#2a2a3a] text-[11px] h-auto py-1.5 px-2"
+                >
+                  {q}
+                </Button>
+              ))}
+            </div>
+          )}
+          {aiHelpLoading && (
+            <div className="flex items-center gap-2 py-4 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+              <span className="text-xs text-gray-400">Consultando IA...</span>
+            </div>
+          )}
+          {aiHelpResponse && (
+            <div className="bg-[#0f0f17] rounded-lg p-3 border border-[#2a2a3a] max-h-[250px] overflow-y-auto">
+              <p className="text-xs text-gray-300 whitespace-pre-wrap leading-relaxed">{aiHelpResponse}</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setAiHelpResponse(null)}
+                className="mt-2 text-purple-400 hover:text-purple-300 text-[10px] h-6 px-2"
+              >
+                ← Voltar às perguntas
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 
   const getStatusColor = () => {
     switch (connectionStatus) {
@@ -353,25 +392,24 @@ export const AdminIntegrationsTab: React.FC = () => {
             <FileJson className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             Logs ({testResults.length})
           </TabsTrigger>
-          <TabsTrigger value="ai-assistant" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white text-xs sm:text-sm">
-            <Bot className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-            IA Assistente
-          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Webhook Overview */}
         <TabsContent value="overview" className="mt-4 space-y-4">
           <Card className="bg-gradient-to-br from-[#1a1a24] via-[#1a1a2e] to-[#1a1a24] border-[#2a2a3a] overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl" />
-            <CardHeader>
+             <CardHeader>
               <CardTitle className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-cyan-400" />
                   Endpoint do Webhook
                 </div>
-                <Button size="sm" variant="ghost" onClick={() => setShowWebhookUrl(!showWebhookUrl)} className="text-gray-400 hover:text-white">
-                  {showWebhookUrl ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </Button>
+                <div className="flex items-center gap-1">
+                  <AiHelpButton section="webhook" questions={['Como configurar o webhook?', 'O pagamento não ativou o acesso, o que fazer?', 'Quais plataformas são suportadas?']} />
+                  <Button size="sm" variant="ghost" onClick={() => setShowWebhookUrl(!showWebhookUrl)} className="text-gray-400 hover:text-white">
+                    {showWebhookUrl ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                  </Button>
+                </div>
               </CardTitle>
               <CardDescription className="text-gray-400">Cole esta URL na sua plataforma de pagamento para receber notificações</CardDescription>
             </CardHeader>
@@ -435,9 +473,12 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="checkout" className="mt-4 space-y-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <CreditCard className="w-5 h-5 text-cyan-400" />
-                Links de Pagamento
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-cyan-400" />
+                  Links de Pagamento
+                </div>
+                <AiHelpButton section="checkout" questions={['Como mudar o checkout para outra plataforma?', 'Como configurar preços no checkout?', 'Como funciona a detecção automática de plano?']} />
               </CardTitle>
               <CardDescription className="text-gray-400">Atualize os links que aparecem na landing page, tela de ativação e para os usuários</CardDescription>
             </CardHeader>
