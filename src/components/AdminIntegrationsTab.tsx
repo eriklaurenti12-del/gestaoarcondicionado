@@ -481,6 +481,13 @@ export const AdminIntegrationsTab: React.FC = () => {
                 <AiHelpButton section="checkout" questions={['Como mudar o checkout para outra plataforma?', 'Como configurar preços no checkout?', 'Como funciona a detecção automática de plano?']} />
               </CardTitle>
               <CardDescription className="text-gray-400">Atualize os links que aparecem na landing page, tela de ativação e para os usuários</CardDescription>
+              <div className="mt-2 p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                <p className="text-[11px] text-purple-400">
+                  <strong>🔗 Também usado na aba Landing → Checkout:</strong> Estes links funcionam como fallback na landing page. 
+                  Se a aba Landing tiver links próprios, eles terão prioridade. Se não, estes serão usados automaticamente. 
+                  O webhook usa os <strong>preços abaixo</strong> para detectar se o pagamento é mensal ou anual.
+                </p>
+              </div>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
