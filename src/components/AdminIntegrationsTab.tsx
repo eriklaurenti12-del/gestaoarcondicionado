@@ -527,6 +527,21 @@ export const AdminIntegrationsTab: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Data Promoção */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  Data Fim da Promoção (Timer Regressivo)
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={settings.promo_end_date}
+                  onChange={(e) => setSettings(prev => ({ ...prev, promo_end_date: e.target.value }))}
+                  className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                />
+                <p className="text-[10px] text-gray-500">Deixe vazio para esconder o timer de promoção na landing</p>
+              </div>
               <div className="flex justify-end pt-2">
                 <Button onClick={saveAllSettings} disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
