@@ -57,6 +57,7 @@ const getBrazilianHolidays = (year: number) => {
 };
 
 const fetchDashboardData = async () => {
+  try {
     const productsPromise = supabase.from('products').select('*');
     const clientsPromise = supabase.from('clients').select('*');
     const salesPromise = supabase.from('sales').select('*, clients(name), products(name)');
@@ -70,8 +71,9 @@ const fetchDashboardData = async () => {
     const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }, { data: scheduledMaintenance, error: smError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise, scheduledMaintenancePromise]);
 
     if (pError || cError || sError || aError || iError || feError || qError || soError || smError) {
-        console.error(pError || cError || sError || aError || iError || feError || qError || soError || smError);
-        throw new Error("Failed to fetch dashboard data");
+        const firstError = pError || cError || sError || aError || iError || feError || qError || soError || smError;
+        console.error('Dashboard fetch error:', firstError);
+        throw new Error(firstError?.message || "Failed to fetch dashboard data");
     }
 
     const scheduledMaintenanceList = scheduledMaintenance || [];
@@ -325,6 +327,10 @@ const fetchDashboardData = async () => {
         clientsList,
         overdueAppointments
     };
+  } catch (error) {
+    console.error('Dashboard fetch error:', error);
+    throw error;
+  }
 };
 
 const RaffleWinsBanner: React.FC = () => {
@@ -332,8 +338,12 @@ const RaffleWinsBanner: React.FC = () => {
 
   useEffect(() => {
     const loadWins = async () => {
-      const { data } = await supabase.from('raffle_history').select('*').order('created_at', { ascending: false }).limit(5);
-      if (data && data.length > 0) setWins(data);
+      try {
+        const { data } = await supabase.from('raffle_history').select('*').order('created_at', { ascending: false }).limit(5);
+        if (data && data.length > 0) setWins(data);
+      } catch (error) {
+        console.error('Error loading raffle wins:', error);
+      }
     };
     loadWins();
 
@@ -405,23 +415,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
 
     useEffect(() => {
       const loadUserData = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const [{ data: profile }, { data: company }, { data: settings }] = await Promise.all([
-            supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle(),
-            supabase.from('company_data').select('company_name').eq('user_id', user.id).maybeSingle(),
-            supabase.from('admin_settings').select('key, value').in('key', ['checkout_mensal', 'checkout_anual']),
-          ]);
-          if (profile?.username) setUserName(profile.username);
-          if (company?.company_name) setCompanyName(company.company_name);
-          if (settings) {
-            const links = { mensal: '', anual: '' };
-            settings.forEach((s: any) => {
-              if (s.key === 'checkout_mensal' && s.value) links.mensal = s.value;
-              if (s.key === 'checkout_anual' && s.value) links.anual = s.value;
-            });
-            setCheckoutLinks(links);
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const [{ data: profile }, { data: company }, { data: settings }] = await Promise.all([
+              supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle(),
+              supabase.from('company_data').select('company_name').eq('user_id', user.id).maybeSingle(),
+              supabase.from('admin_settings').select('key, value').in('key', ['checkout_mensal', 'checkout_anual']),
+            ]);
+            if (profile?.username) setUserName(profile.username);
+            if (company?.company_name) setCompanyName(company.company_name);
+            if (settings) {
+              const links = { mensal: '', anual: '' };
+              settings.forEach((s: any) => {
+                if (s.key === 'checkout_mensal' && s.value) links.mensal = s.value;
+                if (s.key === 'checkout_anual' && s.value) links.anual = s.value;
+              });
+              setCheckoutLinks(links);
+            }
           }
+        } catch (error) {
+          console.error('Error loading user data:', error);
         }
       };
       loadUserData();

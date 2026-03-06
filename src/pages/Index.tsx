@@ -33,33 +33,36 @@ import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
 const fetchNotificationCount = async () => {
-  const today = new Date();
+  try {
+    const today = new Date();
 
-  const [
-    { data: installments },
-    { data: appointments }
-  ] = await Promise.all([
-    supabase.from('installments').select('due_date, is_paid').eq('is_paid', false),
-    supabase.from('appointments').select('appointment_date, status').gte('appointment_date', today.toISOString().split('T')[0])
-  ]);
+    const [
+      { data: installments },
+      { data: appointments }
+    ] = await Promise.all([
+      supabase.from('installments').select('due_date, is_paid').eq('is_paid', false),
+      supabase.from('appointments').select('appointment_date, status').gte('appointment_date', today.toISOString().split('T')[0])
+    ]);
 
-  let count = 0;
+    let count = 0;
 
-  // Count urgent installments (overdue or due in 7 days)
-  installments?.forEach((inst: any) => {
-    const dueDate = new Date(inst.due_date);
-    const daysUntil = differenceInDays(dueDate, today);
-    if (daysUntil <= 7) count++;
-  });
+    installments?.forEach((inst: any) => {
+      const dueDate = new Date(inst.due_date);
+      const daysUntil = differenceInDays(dueDate, today);
+      if (daysUntil <= 7) count++;
+    });
 
-  // Count today's pending appointments
-  appointments?.forEach((apt: any) => {
-    if (isToday(new Date(apt.appointment_date)) && apt.status !== 'concluído' && apt.status !== 'cancelado') {
-      count++;
-    }
-  });
+    appointments?.forEach((apt: any) => {
+      if (isToday(new Date(apt.appointment_date)) && apt.status !== 'concluído' && apt.status !== 'cancelado') {
+        count++;
+      }
+    });
 
-  return count;
+    return count;
+  } catch (error) {
+    console.error('Error fetching notification count:', error);
+    return 0;
+  }
 };
 
 export default function Index() {
@@ -111,49 +114,50 @@ export default function Index() {
   }, [navigate]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/");
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id);
+
+      const isSA = roles?.some(r => r.role === 'super_admin') || false;
+      setIsSuperAdmin(isSA);
+      setCurrentUserId(session.user.id);
+
+      const { data: teamInvite } = await supabase
+        .from('team_invites')
+        .select('team_role')
+        .eq('accepted_by', session.user.id)
+        .eq('status', 'accepted')
+        .maybeSingle();
+      
+      const teamRole = teamInvite?.team_role || '';
+      if (teamRole) {
+        setUserRole(teamRole);
+        setIsSuperAdmin(false);
+      } else {
+        setUserRole(isSA ? 'super_admin' : '');
+      }
+      
+      const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
+      const onboardingCompleted = localStorage.getItem(onboardingKey);
+      
+      if (!onboardingCompleted) {
+        setShowOnboarding(true);
+      }
+      
+      setLoading(false);
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      setLoading(false);
       navigate("/");
-      return;
     }
-
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', session.user.id);
-
-    const isSA = roles?.some(r => r.role === 'super_admin') || false;
-    setIsSuperAdmin(isSA);
-    setCurrentUserId(session.user.id);
-
-    // Determine team role from invite
-    const { data: teamInvite } = await supabase
-      .from('team_invites')
-      .select('team_role')
-      .eq('accepted_by', session.user.id)
-      .eq('status', 'accepted')
-      .maybeSingle();
-    
-    // Team members get their specific team_role regardless of DB role
-    // Only the original super admin (no team invite) gets full access
-    const teamRole = teamInvite?.team_role || '';
-    if (teamRole) {
-      // This is a team member - use their team role for access control
-      setUserRole(teamRole);
-      // Only 'sistema' team members can see super admin menu
-      setIsSuperAdmin(false);
-    } else {
-      setUserRole(isSA ? 'super_admin' : '');
-    }
-    // Check if first time user (onboarding not completed)
-    const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
-    const onboardingCompleted = localStorage.getItem(onboardingKey);
-    
-    if (!onboardingCompleted) {
-      setShowOnboarding(true);
-    }
-    
-    setLoading(false);
   };
 
   const handleOnboardingComplete = async () => {
@@ -170,8 +174,13 @@ export default function Index() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      await supabase.auth.signOut();
+      navigate("/");
+    } catch (error) {
+      console.error('Error signing out:', error);
+      navigate("/");
+    }
   };
 
   if (loading) {
