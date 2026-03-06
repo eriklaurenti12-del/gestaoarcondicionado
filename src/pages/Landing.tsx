@@ -665,36 +665,45 @@ const Landing: React.FC = () => {
 
       {/* Comparação */}
       {settings.landing_secao_comparativo !== 'false' && (
+        <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-slate-900/50">
           <div className="container mx-auto max-w-4xl">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</h2>
             <div className="grid md:grid-cols-2 gap-6">
+              <ScrollReveal direction="left" delay={100}>
               <Card className="!bg-red-500/5 !border-red-500/20">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-red-400"><X className="w-5 h-5" /> Outros Sistemas</CardTitle></CardHeader>
                 <CardContent><ul className="space-y-2">{["Custam R$ 150 a R$ 500/mês","Complicados demais","Precisam de treinamento","Feitos para empresas grandes","Suporte demora dias","Interface confusa"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
+              </ScrollReveal>
+              <ScrollReveal direction="right" delay={200}>
               <Card className="!bg-green-500/5 !border-green-500/30">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-green-400"><CheckCircle className="w-5 h-5" /> AC Service Pro</CardTitle></CardHeader>
                 <CardContent><ul className="space-y-2">{[`Apenas R$ ${settings.landing_preco_mensal}/mês`,"Simples igual WhatsApp","Começa em 2 minutos","Feito POR técnico PARA técnico","Suporte em minutos no WhatsApp","Interface moderna e bonita"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
+              </ScrollReveal>
             </div>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
-      <PricingSection />
-      {settings.landing_secao_depoimentos !== 'false' && <TestimonialsSection />}
-      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <FaqSection />}
+      <ScrollReveal direction="up"><PricingSection /></ScrollReveal>
+      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up"><TestimonialsSection /></ScrollReveal>}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up"><FaqSection /></ScrollReveal>}
 
       {/* Urgência Final */}
+      <ScrollReveal direction="scale">
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</h2>
           <p className="text-gray-300 mb-6">Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</p>
         </div>
       </section>
+      </ScrollReveal>
 
       {/* CTA Final */}
+      <ScrollReveal direction="up" delay={100}>
       <section className="py-16 px-4 relative">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">A decisão é <span className="text-cyan-400">sua</span></h2>
@@ -708,6 +717,7 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+      </ScrollReveal>
     </>
   );
 
