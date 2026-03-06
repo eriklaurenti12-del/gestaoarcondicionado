@@ -1850,11 +1850,19 @@ gtag('config', '${settings.landing_pixel_google}');
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Cross-reference alert */}
+                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+                  <p className="text-xs text-purple-400">
+                    <strong>🔗 Integrado com a aba Integrações:</strong> Os links de checkout globais configurados na aba 
+                    <strong> Integrações → Checkout</strong> também funcionam aqui como fallback. Se você configurar links aqui, 
+                    eles terão <strong>prioridade</strong>. Se deixar vazio, o sistema usa os links da aba Integrações automaticamente.
+                  </p>
+                </div>
+
                 <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
                   <p className="text-xs text-green-600 dark:text-green-400">
                     <strong>✅ Como funciona:</strong> O sistema usa automaticamente qualquer link disponível. 
-                    Se você já configurou links na aba <strong>Config → Checkout</strong>, eles serão usados como fallback. 
-                    Links aqui têm prioridade.
+                    Prioridade: Links da Landing → Links da Integração → Cadastro manual.
                   </p>
                 </div>
               </CardContent>
