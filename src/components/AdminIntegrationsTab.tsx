@@ -68,8 +68,8 @@ export const AdminIntegrationsTab: React.FC = () => {
     checkout_mensal: '',
     checkout_anual: '',
     whatsapp_suporte: '',
-    preco_mensal: '39.90',
-    preco_anual: '370',
+    preco_mensal: '',
+    preco_anual: '',
     promo_end_date: '',
   });
   const [testEmail, setTestEmail] = useState('');
@@ -650,27 +650,27 @@ export const AdminIntegrationsTab: React.FC = () => {
                     onClick={() => {
                       const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
                       setTestEmail(fakeEmail);
-                      setTestAmount('39.90');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ 39,90 (Mensal)` });
+                      setTestAmount(settings.preco_mensal || '50');
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_mensal || '50').toFixed(2)} (Mensal)` });
                     }} 
                     variant="outline" 
                     size="sm"
                     className="bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10"
                   >
-                    🧪 Gerar Venda Mensal (R$ 39,90)
+                    🧪 Gerar Venda Mensal (R$ {parseFloat(settings.preco_mensal || '50').toFixed(2)})
                   </Button>
                   <Button 
                     onClick={() => {
                       const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
                       setTestEmail(fakeEmail);
-                      setTestAmount('370');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ 370,00 (Anual)` });
+                      setTestAmount(settings.preco_anual || '200');
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_anual || '200').toFixed(2)} (Anual)` });
                     }} 
                     variant="outline" 
                     size="sm"
                     className="bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10"
                   >
-                    🧪 Gerar Venda Anual (R$ 370,00)
+                    🧪 Gerar Venda Anual (R$ {parseFloat(settings.preco_anual || '200').toFixed(2)})
                   </Button>
                   <Button 
                     onClick={() => {
