@@ -1222,6 +1222,16 @@ const Landing: React.FC = () => {
         </div>
       )}
 
+      {/* Marquee banners - bottom position */}
+      {renderMarquees('bottom')}
+
+      {/* Marquee banners - top position (fixed) */}
+      {renderMarquees('top').length > 0 && (
+        <div className="fixed top-0 left-0 right-0 z-[55]">
+          {renderMarquees('top')}
+        </div>
+      )}
+
       {/* WhatsApp Floating */}
       {settings.landing_whatsapp_flutuante !== 'false' && settings.landing_whatsapp_link && (
         <a href={`${settings.landing_whatsapp_link}?text=${encodeURIComponent(settings.landing_whatsapp_mensagem || 'Olá!')}`}
