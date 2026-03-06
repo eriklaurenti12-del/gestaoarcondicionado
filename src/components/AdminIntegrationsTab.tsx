@@ -680,55 +680,111 @@ export const AdminIntegrationsTab: React.FC = () => {
               <CardDescription className="text-gray-400">Simule vendas completas - gera email fake, valores realistas e testa todo o fluxo de ativação</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Quick Fake Sale Buttons */}
-              <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-600/20 space-y-3">
+              {/* Tipo de Simulação */}
+              <div className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-lg p-4 border border-green-600/20 space-y-4">
                 <h4 className="text-sm font-medium text-white flex items-center gap-2">
                   <Zap className="w-4 h-4 text-green-400" />
-                  Simulação Rápida (Email Fake)
+                  Tipo de Simulação
                 </h4>
-                <p className="text-xs text-gray-400">
-                  Gera um email fake automaticamente e simula uma venda completa. Útil para testar se o webhook está processando corretamente sem afetar usuários reais.
-                </p>
+
+                {/* Plan type selector */}
                 <div className="flex flex-wrap gap-2">
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('mensal');
+                      setTestAmount(settings.preco_mensal || '50');
+                    }}
+                    variant={simulationType === 'mensal' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'mensal' ? 'bg-green-600 hover:bg-green-700 text-white' : 'bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10'}
+                  >
+                    💳 Somente Mensal
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('anual');
+                      setTestAmount(settings.preco_anual || '200');
+                    }}
+                    variant={simulationType === 'anual' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'anual' ? 'bg-amber-600 hover:bg-amber-700 text-white' : 'bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10'}
+                  >
+                    ⭐ Somente Anual
+                  </Button>
+                  <Button 
+                    onClick={() => setSimulationType('custom')}
+                    variant={simulationType === 'custom' ? 'default' : 'outline'}
+                    size="sm"
+                    className={simulationType === 'custom' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-[#0f0f17] border-purple-600/30 text-purple-400 hover:bg-purple-600/10'}
+                  >
+                    ✏️ Valor Personalizado
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      setSimulationType('custom');
+                      setTestAmount(String((Math.random() * 500 + 10).toFixed(2)));
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#0f0f17] border-cyan-600/30 text-cyan-400 hover:bg-cyan-600/10"
+                  >
+                    🎲 Aleatório
+                  </Button>
+                </div>
+
+                {/* Editable price fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Valor Mensal para simulação (R$)
+                    </label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={simulationType === 'mensal' ? testAmount : (settings.preco_mensal || '')}
+                      onChange={(e) => {
+                        if (simulationType === 'mensal') setTestAmount(e.target.value);
+                        setSettings(prev => ({ ...prev, preco_mensal: e.target.value }));
+                      }}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                      placeholder="Ex: 79.90"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">
+                      Valor Anual para simulação (R$)
+                    </label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={simulationType === 'anual' ? testAmount : (settings.preco_anual || '')}
+                      onChange={(e) => {
+                        if (simulationType === 'anual') setTestAmount(e.target.value);
+                        setSettings(prev => ({ ...prev, preco_anual: e.target.value }));
+                      }}
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                      placeholder="Ex: 79.90"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick generate fake email */}
+                <div className="flex flex-wrap gap-2 pt-1">
                   <Button 
                     onClick={() => {
                       const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
                       setTestEmail(fakeEmail);
-                      setTestAmount(settings.preco_mensal || '50');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_mensal || '50').toFixed(2)} (Mensal)` });
+                      const amt = simulationType === 'anual' ? (settings.preco_anual || '200') : (settings.preco_mensal || '50');
+                      if (simulationType !== 'custom') setTestAmount(amt);
+                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(simulationType === 'custom' ? testAmount : amt).toFixed(2)}` });
                     }} 
                     variant="outline" 
                     size="sm"
                     className="bg-[#0f0f17] border-green-600/30 text-green-400 hover:bg-green-600/10"
                   >
-                    🧪 Gerar Venda Mensal (R$ {parseFloat(settings.preco_mensal || '50').toFixed(2)})
+                    🧪 Gerar Email Fake + Preencher
                   </Button>
-                  <Button 
-                    onClick={() => {
-                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
-                      setTestEmail(fakeEmail);
-                      setTestAmount(settings.preco_anual || '200');
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — R$ ${parseFloat(settings.preco_anual || '200').toFixed(2)} (Anual)` });
-                    }} 
-                    variant="outline" 
-                    size="sm"
-                    className="bg-[#0f0f17] border-amber-600/30 text-amber-400 hover:bg-amber-600/10"
-                  >
-                    🧪 Gerar Venda Anual (R$ {parseFloat(settings.preco_anual || '200').toFixed(2)})
-                  </Button>
-                  <Button 
-                    onClick={() => {
-                      const fakeEmail = `teste_${Date.now()}@simulacao.fake`;
-                      setTestEmail(fakeEmail);
-                      setTestAmount(String((Math.random() * 500 + 10).toFixed(2)));
-                      toast({ title: "📧 Email fake gerado!", description: `${fakeEmail} — Valor aleatório` });
-                    }} 
-                    variant="outline" 
-                    size="sm"
-                    className="bg-[#0f0f17] border-purple-600/30 text-purple-400 hover:bg-purple-600/10"
-                  >
-                    🎲 Valor Aleatório
-                  </Button>
+                  <p className="text-[10px] text-gray-500 flex items-center">
+                    💡 Gera email automático e preenche valor do plano selecionado
+                  </p>
                 </div>
               </div>
 
