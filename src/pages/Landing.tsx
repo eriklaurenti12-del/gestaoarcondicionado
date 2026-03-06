@@ -655,10 +655,12 @@ const Landing: React.FC = () => {
                     <p className="text-xs md:text-sm text-gray-400">{f.desc}</p>
                   </CardContent>
                 </Card>
+                </ScrollReveal>
               ))}
             </div>
           </div>
         </section>
+        </ScrollReveal>
       )}
 
       {/* Comparação */}
