@@ -23,24 +23,28 @@ import { GridBackground } from "@/components/GridBackground";
 
 type AdminSettings = Record<string, string>;
 
-// Scroll Reveal animation component
+// Scroll Reveal animation component - respects settings
 const ScrollReveal: React.FC<{ 
   children: React.ReactNode; 
   delay?: number; 
   direction?: 'up' | 'down' | 'left' | 'right' | 'fade' | 'scale';
   className?: string;
-}> = ({ children, delay = 0, direction = 'up', className = '' }) => {
+  enabled?: boolean;
+}> = ({ children, delay = 0, direction = 'up', className = '', enabled = true }) => {
   const ref = React.useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(!enabled);
 
   React.useEffect(() => {
+    if (!enabled) { setIsVisible(true); return; }
     const observer = new IntersectionObserver(
       ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.unobserve(entry.target); } },
       { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
     );
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return <div className={className}>{children}</div>;
 
   const transforms: Record<string, string> = {
     up: 'translateY(40px)', down: 'translateY(-40px)',
