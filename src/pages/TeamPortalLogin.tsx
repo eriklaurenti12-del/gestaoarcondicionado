@@ -145,6 +145,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const [subscriberSearch, setSubscriberSearch] = useState("");
   const [activatingUser, setActivatingUser] = useState<string | null>(null);
   const [selectedPlan, setSelectedPlan] = useState("mensal");
+  const [newSubscriptionAlerts, setNewSubscriptionAlerts] = useState<any[]>([]);
   // Scheduling state
   const [scheduleClientId, setScheduleClientId] = useState("");
   const [scheduleDate, setScheduleDate] = useState("");
@@ -172,6 +173,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
         const data = await fetchPortalData('heartbeat');
         if (data?.online) setOnlineMembers(data.online);
         if (data?.requests) setSupportRequests(data.requests);
+        if (data?.new_subscriptions) setNewSubscriptionAlerts(data.new_subscriptions);
       } catch (e) {
         console.error('Heartbeat error:', e);
       }
@@ -480,6 +482,42 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </div>
         </div>
       </div>
+
+      {/* New Subscription Alerts */}
+      {newSubscriptionAlerts.length > 0 && canAccessFeature('assinantes') && (
+        <div className="max-w-2xl mx-auto px-4 pt-3">
+          <Card className="border-purple-500/50 bg-purple-500/5">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="w-4 h-4 text-purple-500" />
+                <span className="font-bold text-sm text-purple-700 dark:text-purple-400">
+                  🆕 {newSubscriptionAlerts.length} nova(s) assinatura(s) aguardando ativação
+                </span>
+              </div>
+              <div className="space-y-2">
+                {newSubscriptionAlerts.slice(0, 3).map((sub: any, idx: number) => (
+                  <div key={idx} className="flex items-center justify-between bg-background rounded-lg p-2 border">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{sub.email || sub.username}</p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {sub.created_at ? format(new Date(sub.created_at), 'dd/MM HH:mm') : ''} • Teste expirando
+                      </p>
+                    </div>
+                    <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                      disabled={activatingUser === sub.id}
+                      onClick={() => { handleActivateSubscriber(sub.id, true); setNewSubscriptionAlerts(prev => prev.filter(s => s.id !== sub.id)); }}>
+                      {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><UserCheck className="w-3 h-3 mr-1" /> Ativar</>}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button size="sm" variant="ghost" className="w-full mt-2 text-purple-500 text-xs" onClick={() => setActiveTab('assinantes')}>
+                Ver todos os assinantes →
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Support Requests Alert */}
       {supportRequests.length > 0 && (
@@ -942,6 +980,8 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                             <Select value={selectedPlan} onValueChange={setSelectedPlan}>
                               <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
                               <SelectContent>
+                                <SelectItem value="1dia">1 Dia</SelectItem>
+                                <SelectItem value="7dias">7 Dias</SelectItem>
                                 <SelectItem value="mensal">Mensal</SelectItem>
                                 <SelectItem value="trimestral">Trimestral</SelectItem>
                                 <SelectItem value="anual">Anual</SelectItem>
