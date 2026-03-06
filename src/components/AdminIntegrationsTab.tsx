@@ -670,9 +670,12 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="testing" className="mt-4 space-y-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-white">
-                <Send className="w-5 h-5 text-amber-400" />
-                Simulador de Venda & Webhook
+              <CardTitle className="flex items-center justify-between text-white">
+                <div className="flex items-center gap-2">
+                  <Send className="w-5 h-5 text-amber-400" />
+                  Simulador de Venda & Webhook
+                </div>
+                <AiHelpButton section="testing" questions={['Como testar se meu webhook está funcionando?', 'O pagamento não ativou o acesso, o que fazer?', 'O que significa cada resultado do teste?']} />
               </CardTitle>
               <CardDescription className="text-gray-400">Simule vendas completas - gera email fake, valores realistas e testa todo o fluxo de ativação</CardDescription>
             </CardHeader>
@@ -861,160 +864,6 @@ export const AdminIntegrationsTab: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* TAB: IA Assistente */}
-        <TabsContent value="ai-assistant" className="mt-4 space-y-4">
-          <Card className="bg-gradient-to-br from-[#1a1a24] via-[#12121e] to-[#1a1a24] border-[#2a2a3a] overflow-hidden">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-white">
-                <div className="p-2 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20">
-                  <Bot className="w-5 h-5 text-cyan-400" />
-                </div>
-                Assistente IA de Integrações
-                <Badge className="bg-gradient-to-r from-purple-600/30 to-cyan-600/30 text-cyan-300 border-cyan-600/30 text-[10px] ml-auto">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Powered by AI
-                </Badge>
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Pergunte sobre configuração de webhooks, integração com plataformas, resolução de problemas e testes
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Quick Questions */}
-              <div className="space-y-2">
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <HelpCircle className="w-3 h-3" />
-                  Perguntas rápidas
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {aiQuickQuestions.map((q, i) => (
-                    <Button
-                      key={i}
-                      size="sm"
-                      variant="outline"
-                      disabled={aiLoading}
-                      onClick={() => { setActiveSection('ai-assistant'); sendAiMessage(q); }}
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white text-[11px] h-7 px-2"
-                    >
-                      {q}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Chat Area */}
-              <div className="bg-[#0a0a12] rounded-xl border border-[#2a2a3a] overflow-hidden">
-                <div 
-                  ref={aiScrollRef}
-                  className="h-[400px] overflow-y-auto p-4 space-y-4"
-                >
-                  {aiMessages.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center">
-                        <Bot className="w-8 h-8 text-cyan-400" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-white mb-1">Assistente de Integrações</h3>
-                        <p className="text-sm text-gray-500 max-w-md">
-                          Pergunte qualquer coisa sobre configuração de webhooks, checkout, plataformas de pagamento ou resolução de problemas.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
-                        {['Como integrar a Cakto?', 'Como testar o webhook?', 'Pagamento não liberou acesso', 'Trocar plataforma de checkout'].map((suggestion, i) => (
-                          <Button
-                            key={i}
-                            variant="outline"
-                            disabled={aiLoading}
-                            onClick={() => sendAiMessage(suggestion)}
-                            className="bg-[#1a1a24] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white text-xs justify-start"
-                          >
-                            <MessageSquare className="w-3 h-3 mr-2 text-purple-400 flex-shrink-0" />
-                            {suggestion}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {aiMessages.map((msg, i) => (
-                    <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                        msg.role === 'user' 
-                          ? 'bg-gradient-to-r from-purple-600 to-cyan-600 text-white' 
-                          : 'bg-[#1a1a24] border border-[#2a2a3a] text-gray-200'
-                      }`}>
-                        {msg.role === 'assistant' && (
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                            <span className="text-[10px] text-cyan-400 font-medium">IA Assistente</span>
-                          </div>
-                        )}
-                        <div className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</div>
-                      </div>
-                    </div>
-                  ))}
-
-                  {aiLoading && (
-                    <div className="flex justify-start">
-                      <div className="bg-[#1a1a24] border border-[#2a2a3a] rounded-2xl px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <Bot className="w-3.5 h-3.5 text-cyan-400" />
-                          <div className="flex gap-1">
-                            <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-2 h-2 bg-cyan-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Input Area */}
-                <div className="border-t border-[#2a2a3a] p-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={aiInput}
-                      onChange={(e) => setAiInput(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendAiMessage(); } }}
-                      placeholder="Pergunte sobre integrações, webhooks, plataformas..."
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600"
-                      disabled={aiLoading}
-                    />
-                    <Button 
-                      onClick={() => sendAiMessage()} 
-                      disabled={aiLoading || !aiInput.trim()} 
-                      className="bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-700 hover:to-cyan-700 text-white px-4"
-                    >
-                      {aiLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                    </Button>
-                  </div>
-                  {aiMessages.length > 0 && (
-                    <div className="flex justify-between items-center mt-2">
-                      <p className="text-[10px] text-gray-600">Pressione Enter para enviar</p>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => setAiMessages([])} 
-                        className="text-gray-600 hover:text-gray-300 text-[10px] h-5 px-2"
-                      >
-                        Limpar conversa
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="bg-gradient-to-r from-purple-600/10 to-cyan-600/10 rounded-lg p-3 border border-purple-600/20">
-                <p className="text-xs text-gray-400 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3 text-purple-400 flex-shrink-0" />
-                  A IA conhece todas as plataformas suportadas, eventos de webhook, lógica de ativação e pode guiar você passo a passo na configuração de qualquer integração.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
