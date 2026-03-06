@@ -540,7 +540,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </div>
       </div>
     );
-    if (isError) return <div>Error loading dashboard: {(error as Error).message}</div>
+    if (isError) return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6 p-6">
+        <div className="text-center space-y-3 max-w-md">
+          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <AlertTriangle className="w-8 h-8 text-destructive" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Erro ao carregar o Dashboard</h2>
+          <p className="text-sm text-muted-foreground">
+            {(error as Error)?.message || 'Não foi possível carregar os dados. Verifique sua conexão com a internet e tente novamente.'}
+          </p>
+        </div>
+        <Button
+          onClick={() => queryClient.invalidateQueries({ queryKey: ['dashboard'] })}
+          className="gap-2"
+          size="lg"
+        >
+          <Wind className="w-4 h-4" />
+          Tentar Novamente
+        </Button>
+      </div>
+    );
 
   const { 
       servicesCount = 0, 
