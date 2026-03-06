@@ -789,9 +789,12 @@ const Landing: React.FC = () => {
         </ScrollReveal>
       )}
 
-      <ScrollReveal direction="up"><PricingSection /></ScrollReveal>
-      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up"><TestimonialsSection /></ScrollReveal>}
-      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up"><FaqSection /></ScrollReveal>}
+      {/* Marquee banners - above-prices position */}
+      {renderMarquees('above-prices')}
+
+      <ScrollReveal direction="up" enabled={scrollRevealEnabled}><PricingSection /></ScrollReveal>
+      {settings.landing_secao_depoimentos !== 'false' && <ScrollReveal direction="up" enabled={scrollRevealEnabled}><TestimonialsSection /></ScrollReveal>}
+      {settings.landing_secao_faq !== 'false' && faqs.length > 0 && <ScrollReveal direction="up" enabled={scrollRevealEnabled}><FaqSection /></ScrollReveal>}
 
       {/* Urgência Final */}
       <ScrollReveal direction="scale">
