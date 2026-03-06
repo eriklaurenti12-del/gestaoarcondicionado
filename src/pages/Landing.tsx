@@ -149,7 +149,10 @@ const Landing: React.FC = () => {
     } else { navigate('/awaiting-activation'); }
   };
 
+  const isPreviewMode = searchParams.get('preview') === 'true';
+
   useEffect(() => {
+    if (isPreviewMode) return; // Skip redirect in preview mode
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) await checkSubscriptionAndRedirect(session.user.id);
@@ -159,7 +162,7 @@ const Landing: React.FC = () => {
       if (session) setTimeout(() => checkSubscriptionAndRedirect(session.user.id), 0);
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, isPreviewMode]);
 
   const handleCheckout = (type: 'mensal' | 'anual') => {
     trackConversion(type);
