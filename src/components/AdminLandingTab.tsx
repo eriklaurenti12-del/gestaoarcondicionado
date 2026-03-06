@@ -393,7 +393,7 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setShowPreview(prev => !prev); }}
             className={showPreview ? 'bg-primary/10 border-primary/30 text-primary' : ''}>
             <Eye className="w-4 h-4 mr-1" /> {showPreview ? 'Ocultar Preview' : 'Mostrar Preview'}
           </Button>
