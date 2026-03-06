@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,14 +16,46 @@ import NotFound from "./pages/NotFound";
 import AwaitingActivation from "./pages/AwaitingActivation";
 import TeamPortalLogin from "./pages/TeamPortalLogin";
 import BetaDashboard from "./pages/BetaDashboard";
+import { toast } from "sonner";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      staleTime: 30000,
+    },
+  },
+});
+
+const GlobalErrorHandler = () => {
+  useEffect(() => {
+    const handler = (event: PromiseRejectionEvent) => {
+      console.error("Unhandled rejection:", event.reason);
+      event.preventDefault();
+    };
+
+    const errorHandler = (event: ErrorEvent) => {
+      console.error("Unhandled error:", event.error);
+    };
+
+    window.addEventListener("unhandledrejection", handler);
+    window.addEventListener("error", errorHandler);
+    return () => {
+      window.removeEventListener("unhandledrejection", handler);
+      window.removeEventListener("error", errorHandler);
+    };
+  }, []);
+
+  return null;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
       <BetaModeProvider>
         <TooltipProvider>
+          <GlobalErrorHandler />
           <Toaster />
           <Sonner />
           <BrowserRouter>
