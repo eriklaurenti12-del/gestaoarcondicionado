@@ -393,7 +393,7 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}
+          <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); setShowPreview(prev => !prev); }}
             className={showPreview ? 'bg-primary/10 border-primary/30 text-primary' : ''}>
             <Eye className="w-4 h-4 mr-1" /> {showPreview ? 'Ocultar Preview' : 'Mostrar Preview'}
           </Button>
@@ -1512,7 +1512,7 @@ gtag('config', '${settings.landing_pixel_google}');
 
         {/* Sticky Preview Panel */}
         {showPreview && (
-          <div className="hidden lg:block">
+          <div>
             <div className="sticky top-4 space-y-2">
               <Card className="overflow-hidden border-primary/20">
                 <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border">
