@@ -671,42 +671,58 @@ export default function Members() {
           <TabsContent value="integrations" className="mt-6"><AdminIntegrationsTab /></TabsContent>
           <TabsContent value="n8n" className="mt-6"><AdminN8nTab /></TabsContent>
           <TabsContent value="landing" className="mt-6"><AdminLandingTab /></TabsContent>
-          <TabsContent value="share" className="mt-6"><AdminShareTab /></TabsContent>
           <TabsContent value="raffle" className="mt-6"><AdminRaffleTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
           <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
           <TabsContent value="links" className="mt-6">
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold flex items-center gap-2"><Link className="w-5 h-5 text-primary" /> Links Rápidos</h2>
-              <p className="text-sm text-muted-foreground">Acesse rapidamente áreas do sistema e links externos.</p>
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+                  <Link className="w-6 h-6 text-cyan-400" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold">Links Rápidos & Compartilhamento</h2>
+                  <p className="text-sm text-muted-foreground">Acesse e compartilhe todos os links do sistema</p>
+                </div>
+              </div>
+
+              {/* System Links */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[
-                  { label: 'Dashboard', url: '/dashboard', icon: '📊' },
-                  { label: 'Landing Page', url: '/vendas', icon: '🌐' },
-                  { label: 'Portal da Equipe', url: '/portal', icon: '👥' },
-                  { label: 'Agendamento Online', url: '/agendar', icon: '📅' },
-                  { label: 'Sistema Beta', url: '/beta', icon: '⚡' },
-                  { label: 'Página Publicada', url: 'https://gestaoarcondicionado.lovable.app/vendas', icon: '🚀', external: true },
+                  { label: 'Landing Page (Vendas)', url: `${publishedUrl}/vendas`, icon: '🌐', desc: 'Página de vendas principal', external: true },
+                  { label: 'Portal da Equipe', url: `${publishedUrl}/portal`, icon: '👥', desc: 'Login do portal da equipe', external: true },
+                  { label: 'Agendamento Online', url: `${publishedUrl}/agendar`, icon: '📅', desc: 'Agendamento público', external: true },
+                  { label: 'Login do Sistema', url: `${publishedUrl}/?login=true`, icon: '🔐', desc: 'Link direto para login', external: true },
+                  { label: 'Cadastro', url: `${publishedUrl}/?cadastro=true`, icon: '📝', desc: 'Link para criar conta', external: true },
+                  { label: 'Dashboard', url: '/dashboard', icon: '📊', desc: 'Painel de controle' },
+                  { label: 'Sistema Beta', url: '/beta', icon: '⚡', desc: 'Interface simplificada' },
                 ].map(link => (
-                  <Card key={link.label} className="cursor-pointer hover:border-primary/50 transition-all"
+                  <Card key={link.label} className="group cursor-pointer hover:border-primary/50 transition-all"
                     onClick={() => link.external ? window.open(link.url, '_blank') : navigate(link.url)}>
                     <CardContent className="p-4 flex items-center gap-3">
                       <span className="text-2xl">{link.icon}</span>
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm">{link.label}</p>
-                        <p className="text-xs text-muted-foreground">{link.url}</p>
+                        <p className="text-xs text-muted-foreground truncate">{link.desc}</p>
                       </div>
-                      <ExternalLink className="w-4 h-4 ml-auto text-muted-foreground" />
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => {
+                          e.stopPropagation();
+                          navigator.clipboard.writeText(link.external ? link.url : `${publishedUrl}${link.url}`);
+                          toast({ title: "Link copiado! 📋" });
+                        }}>
+                          <Copy className="w-3.5 h-3.5" />
+                        </Button>
+                        <ExternalLink className="w-4 h-4 text-muted-foreground mt-2" />
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
+
+              {/* Beta System */}
+              <BetaSystemCard />
             </div>
-          </TabsContent>
-          <TabsContent value="settings" className="mt-6">
-            <AdminGuideCards tab="settings" />
-            <AdminSettingsTab />
-            <BetaSystemCard />
           </TabsContent>
           <TabsContent value="system-guide" className="mt-6">
             <AdminSystemGuideTab />
