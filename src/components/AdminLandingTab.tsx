@@ -145,6 +145,8 @@ export const AdminLandingTab: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [settings, setSettings] = useState<LandingSettings>({});
   const [previewKey, setPreviewKey] = useState(0);
+  const [showPreview, setShowPreview] = useState(true);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pixelTab, setPixelTab] = useState<'facebook' | 'google' | 'tiktok'>('facebook');
   const [generatingAI, setGeneratingAI] = useState<string | null>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -172,6 +174,11 @@ export const AdminLandingTab: React.FC = () => {
 
   const update = (key: string, value: string) => {
     setSettings(prev => ({ ...prev, [key]: value }));
+    // Auto-refresh preview with debounce
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(() => {
+      setPreviewKey(prev => prev + 1);
+    }, 1500);
   };
 
   const saveAll = async () => {
@@ -382,11 +389,15 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
           <div>
             <h2 className="text-xl font-bold">Editor da Landing Page</h2>
-            <p className="text-muted-foreground text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
+            <p className="text-muted-foreground text-sm">Edite e visualize em tempo real</p>
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => {
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}
+            className={showPreview ? 'bg-primary/10 border-primary/30 text-primary' : ''}>
+            <Eye className="w-4 h-4 mr-1" /> {showPreview ? 'Ocultar Preview' : 'Mostrar Preview'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
             if (!window.confirm('Restaurar TODOS os valores para o padrão original?')) return;
             const defaults: Record<string, string> = {
               landing_hero_titulo: 'Pare de Perder Clientes e Dinheiro!',
@@ -404,18 +415,22 @@ gtag('config', '${settings.landing_pixel_google}');
             setSettings(prev => ({ ...prev, ...defaults }));
             toast({ title: "Restaurado! 🔄", description: "Clique 'Salvar Tudo' para aplicar." });
           }} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-            <RefreshCw className="w-4 h-4 mr-2" /> Restaurar
+            <RefreshCw className="w-4 h-4 mr-1" /> Restaurar
           </Button>
-          <Button variant="outline" onClick={() => window.open('/vendas', '_blank')}>
-            <Eye className="w-4 h-4 mr-2" /> Abrir Landing
+          <Button variant="outline" size="sm" onClick={() => window.open('/vendas', '_blank')}>
+            <ExternalLink className="w-4 h-4 mr-1" /> Abrir Landing
           </Button>
-          <Button onClick={saveAll} disabled={saving}>
+          <Button size="sm" onClick={saveAll} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Salvar Tudo
           </Button>
         </div>
       </div>
 
+      {/* Split layout: Editor + Preview */}
+      <div className={`grid gap-4 ${showPreview ? 'lg:grid-cols-[1fr,340px]' : 'grid-cols-1'}`}>
+        {/* Editor Panel */}
+        <div className="min-w-0">
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="template" className="text-xs"><Layout className="w-3 h-3 mr-1" />Template</TabsTrigger>
@@ -472,26 +487,7 @@ gtag('config', '${settings.landing_pixel_google}');
                 ))}
               </div>
               
-              {/* Instant Preview */}
-              <div className="mt-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <Eye className="w-4 h-4 text-primary" /> Pré-visualização Instantânea
-                  </h4>
-                  <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="h-7">
-                    <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
-                  </Button>
-                </div>
-                <div className="rounded-xl overflow-hidden border border-border bg-black relative" style={{ height: '500px' }}>
-                  <iframe 
-                    key={previewKey}
-                    src={`/vendas?preview=true&t=${previewKey}`}
-                    className="w-full h-full border-0"
-                    style={{ transform: 'scale(0.45)', transformOrigin: 'top left', width: '222%', height: '222%' }}
-                    sandbox="allow-scripts allow-same-origin allow-popups"
-                  />
-                </div>
-              </div>
+
             </CardContent>
           </Card>
         </TabsContent>
@@ -1512,6 +1508,47 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
       </Tabs>
+        </div>{/* end editor panel */}
+
+        {/* Sticky Preview Panel */}
+        {showPreview && (
+          <div className="hidden lg:block">
+            <div className="sticky top-4 space-y-2">
+              <Card className="overflow-hidden border-primary/20">
+                <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b border-border">
+                  <span className="text-xs font-semibold flex items-center gap-1.5">
+                    <Eye className="w-3 h-3 text-primary" /> Preview em Tempo Real
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-[10px] text-muted-foreground">ao vivo</span>
+                    <Button size="sm" variant="ghost" onClick={() => setPreviewKey(prev => prev + 1)} className="h-6 w-6 p-0 ml-1">
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="relative bg-muted/30" style={{ height: '520px' }}>
+                  <iframe 
+                    key={previewKey}
+                    src={`/vendas?preview=true&t=${previewKey}`}
+                    className="w-full h-full border-0"
+                    style={{ transform: 'scale(0.27)', transformOrigin: 'top left', width: '370%', height: '370%' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                  />
+                </div>
+                <div className="px-3 py-2 border-t border-border bg-muted/30 flex gap-1">
+                  <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs" onClick={() => window.open('/vendas', '_blank')}>
+                    <ExternalLink className="w-3 h-3 mr-1" /> Abrir
+                  </Button>
+                  <Button size="sm" variant="ghost" className="flex-1 h-7 text-xs" onClick={() => setPreviewKey(prev => prev + 1)}>
+                    <RefreshCw className="w-3 h-3 mr-1" /> Recarregar
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
+      </div>{/* end grid */}
     </div>
   );
 };
