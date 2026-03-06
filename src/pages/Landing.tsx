@@ -588,20 +588,29 @@ const Landing: React.FC = () => {
       <section className="pt-32 pb-16 px-4 relative min-h-[90vh] flex items-center" style={settings.landing_hero_bg_image ? { backgroundImage: `url(${settings.landing_hero_bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
         {settings.landing_hero_bg_image && <div className="absolute inset-0 bg-black/60" />}
         <div className="container mx-auto text-center relative z-10">
+          <ScrollReveal direction="fade" delay={200}>
           <div className="inline-flex items-center gap-2 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6 animate-bounce">
             <Zap className="w-4 h-4 text-red-400" />
             <span className="text-red-300 text-sm font-medium">{settings.landing_badge_urgencia}</span>
             <Zap className="w-4 h-4 text-red-400 animate-pulse" />
           </div>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={400}>
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
             Chega de <span className="bg-gradient-to-r from-red-400 via-orange-400 to-amber-400 bg-clip-text text-transparent">{settings.landing_hero_titulo}</span>
             <br /><span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl">{settings.landing_hero_subtitulo}</span>
           </h1>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={600}>
           <p className="text-lg md:text-xl text-gray-300 mb-4 max-w-2xl mx-auto">{settings.landing_hero_descricao}</p>
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium">{settings.landing_frase_destaque}</p>
+          </ScrollReveal>
+          <ScrollReveal direction="scale" delay={800}>
           <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
+          </ScrollReveal>
+          <ScrollReveal direction="up" delay={1000}>
           <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 max-w-2xl mx-auto border border-cyan-500/20 mt-8">
             <p className="text-gray-300 text-sm mb-2"><span className="text-cyan-400 font-bold">+ de {settings.landing_social_proof_count} técnicos</span> já pararam de perder dinheiro</p>
             <div className="flex items-center justify-center gap-1">
@@ -609,6 +618,7 @@ const Landing: React.FC = () => {
               <span className="text-amber-400 ml-2 font-bold">{settings.landing_social_proof_rating}/5</span>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
