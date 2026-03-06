@@ -70,6 +70,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     whatsapp_suporte: '',
     preco_mensal: '39.90',
     preco_anual: '370',
+    promo_end_date: '',
   });
   const [testEmail, setTestEmail] = useState('');
   const [testAmount, setTestAmount] = useState('39.90');
