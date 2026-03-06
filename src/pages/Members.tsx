@@ -23,7 +23,7 @@ import AdminLandingTab from "@/components/AdminLandingTab";
 import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
-import AdminSettingsTab from "@/components/AdminSettingsTab";
+
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
 import { Switch } from "@/components/ui/switch";
