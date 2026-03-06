@@ -392,8 +392,25 @@ gtag('config', '${settings.landing_pixel_google}');
             <p className="text-muted-foreground text-sm">Edite textos, cores, FAQ, WhatsApp, vídeo e templates</p>
           </div>
         </div>
+    <div className="space-y-4">
+      <AdminGuideCards tab="landing" />
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-primary/10">
+            <Megaphone className="w-6 h-6 text-primary" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold">Editor da Landing Page</h2>
+            <p className="text-muted-foreground text-sm">Edite e visualize em tempo real</p>
+          </div>
+        </div>
         <div className="flex gap-2 flex-wrap">
-          <Button variant="outline" onClick={() => {
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}
+            className={showPreview ? 'bg-primary/10 border-primary/30 text-primary' : ''}>
+            <Eye className="w-4 h-4 mr-1" /> {showPreview ? 'Ocultar Preview' : 'Mostrar Preview'}
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => {
             if (!window.confirm('Restaurar TODOS os valores para o padrão original?')) return;
             const defaults: Record<string, string> = {
               landing_hero_titulo: 'Pare de Perder Clientes e Dinheiro!',
@@ -411,18 +428,22 @@ gtag('config', '${settings.landing_pixel_google}');
             setSettings(prev => ({ ...prev, ...defaults }));
             toast({ title: "Restaurado! 🔄", description: "Clique 'Salvar Tudo' para aplicar." });
           }} className="text-destructive border-destructive/30 hover:bg-destructive/10">
-            <RefreshCw className="w-4 h-4 mr-2" /> Restaurar
+            <RefreshCw className="w-4 h-4 mr-1" /> Restaurar
           </Button>
-          <Button variant="outline" onClick={() => window.open('/vendas', '_blank')}>
-            <Eye className="w-4 h-4 mr-2" /> Abrir Landing
+          <Button variant="outline" size="sm" onClick={() => window.open('/vendas', '_blank')}>
+            <ExternalLink className="w-4 h-4 mr-1" /> Abrir Landing
           </Button>
-          <Button onClick={saveAll} disabled={saving}>
+          <Button size="sm" onClick={saveAll} disabled={saving}>
             {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Salvar Tudo
           </Button>
         </div>
       </div>
 
+      {/* Split layout: Editor + Preview */}
+      <div className={`grid gap-4 ${showPreview ? 'lg:grid-cols-[1fr,340px]' : 'grid-cols-1'}`}>
+        {/* Editor Panel */}
+        <div className="min-w-0">
       <Tabs defaultValue="template" className="w-full">
         <TabsList className="w-full flex flex-wrap h-auto gap-1 p-1">
           <TabsTrigger value="template" className="text-xs"><Layout className="w-3 h-3 mr-1" />Template</TabsTrigger>
