@@ -354,6 +354,10 @@ const Landing: React.FC = () => {
   const trackConversion = (type: 'mensal' | 'anual') => {
     trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual, currency: 'BRL' });
     trackEvent('Lead', { content_name: `Plano ${type}` });
+    // Internal analytics
+    if (typeof trackInternalEvent === 'function') {
+      trackInternalEvent('cta_click', { plan: type, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual });
+    }
   };
 
   const trackScrollMilestone = (section: string) => {
@@ -394,6 +398,74 @@ const Landing: React.FC = () => {
   const oferta1Features = (settings.landing_oferta1_features || 'Acesso COMPLETO a tudo\nClientes ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte no WhatsApp').split('\n').filter(Boolean);
   const oferta2Features = (settings.landing_oferta2_features || 'TUDO do mensal incluído\n2 meses DE GRAÇA\nSuporte VIP prioritário\nRelatórios avançados\nBackup automático diário').split('\n').filter(Boolean);
 
+  // ─── FETCH CLIENTS/SUPPLIERS FOR MARQUEE ─────────────────
+  const [marqueeClients, setMarqueeClients] = React.useState<string[]>([]);
+  const [marqueeSuppliers, setMarqueeSuppliers] = React.useState<string[]>([]);
+
+  React.useEffect(() => {
+    const needsClients = [1, 2, 3].some(n => 
+      settings[`landing_marquee${n}_ativo`] === 'true' && 
+      ['clientes', 'misto'].includes(settings[`landing_marquee${n}_tipo`] || 'texto')
+    );
+    const needsSuppliers = [1, 2, 3].some(n => 
+      settings[`landing_marquee${n}_ativo`] === 'true' && 
+      ['fornecedores', 'misto'].includes(settings[`landing_marquee${n}_tipo`] || 'texto')
+    );
+
+    if (needsClients) {
+      supabase.from('clients').select('name').limit(20).then(({ data }) => {
+        if (data) setMarqueeClients(data.map(c => c.name));
+      });
+    }
+    if (needsSuppliers) {
+      supabase.from('suppliers').select('name').limit(20).then(({ data }) => {
+        if (data) setMarqueeSuppliers(data.map(s => s.name));
+      });
+    }
+  }, [settings]);
+
+  // ─── INTERNAL ANALYTICS TRACKING ───────────────────────────
+  React.useEffect(() => {
+    const visitorId = localStorage.getItem('ac_visitor_id') || crypto.randomUUID();
+    localStorage.setItem('ac_visitor_id', visitorId);
+
+    supabase.from('page_analytics').insert({
+      page_url: window.location.pathname + window.location.search,
+      event_type: 'pageview',
+      visitor_id: visitorId,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent,
+      metadata: { timestamp: new Date().toISOString() }
+    });
+
+    // Track scroll depth
+    let maxScroll = 0;
+    const handleScroll = () => {
+      const scrollPercent = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      if (scrollPercent > maxScroll + 24) {
+        maxScroll = scrollPercent;
+        supabase.from('page_analytics').insert({
+          page_url: window.location.pathname,
+          event_type: 'scroll',
+          visitor_id: visitorId,
+          metadata: { depth: scrollPercent }
+        });
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const trackInternalEvent = (eventType: string, meta?: Record<string, any>) => {
+    const visitorId = localStorage.getItem('ac_visitor_id') || 'unknown';
+    supabase.from('page_analytics').insert({
+      page_url: window.location.pathname,
+      event_type: eventType,
+      visitor_id: visitorId,
+      metadata: meta || {}
+    });
+  };
+
   // ─── MARQUEE HELPER ────────────────────────────────────────
   const renderMarquees = (position: string) => {
     return [1, 2, 3].map(num => {
@@ -401,8 +473,21 @@ const Landing: React.FC = () => {
       if (settings[`${prefix}_ativo`] !== 'true') return null;
       if ((settings[`${prefix}_posicao`] || 'hero-below') !== position) return null;
       
-      const textos = settings[`${prefix}_textos`] || '';
-      const items = textos.split('|').filter((t: string) => t.trim()).map((t: string) => ({ text: t.trim() }));
+      const tipo = settings[`${prefix}_tipo`] || 'texto';
+      let items: { text: string; highlight?: boolean }[] = [];
+
+      if (tipo === 'clientes') {
+        items = marqueeClients.map(name => ({ text: `⭐ ${name}` }));
+      } else if (tipo === 'fornecedores') {
+        items = marqueeSuppliers.map(name => ({ text: `🏭 ${name}` }));
+      } else if (tipo === 'misto') {
+        const textos = (settings[`${prefix}_textos`] || '').split('|').filter((t: string) => t.trim()).map((t: string) => ({ text: t.trim() }));
+        const clientItems = marqueeClients.slice(0, 5).map(name => ({ text: `⭐ ${name}`, highlight: true }));
+        const supplierItems = marqueeSuppliers.slice(0, 5).map(name => ({ text: `🏭 ${name}` }));
+        items = [...textos, ...clientItems, ...supplierItems];
+      } else {
+        items = (settings[`${prefix}_textos`] || '').split('|').filter((t: string) => t.trim()).map((t: string) => ({ text: t.trim() }));
+      }
       
       if (!items.length) return null;
       
