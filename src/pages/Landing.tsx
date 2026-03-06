@@ -292,13 +292,54 @@ const Landing: React.FC = () => {
     };
   }, [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok]);
 
-  // Pixel tracking helper for conversions
-  const trackConversion = (type: 'mensal' | 'anual') => {
+  // Enhanced pixel tracking helpers
+  const trackEvent = (eventName: string, params?: Record<string, any>) => {
     try {
-      if ((window as any).fbq) (window as any).fbq('track', 'Lead', { content_name: `Plano ${type}` });
-      if ((window as any).gtag && settings.landing_pixel_google) (window as any).gtag('event', 'conversion', { send_to: settings.landing_pixel_google });
-      if ((window as any).ttq) (window as any).ttq.track('CompleteRegistration', { content_name: `Plano ${type}` });
+      // Facebook Pixel events
+      if ((window as any).fbq) {
+        (window as any).fbq('track', eventName, params);
+      }
+      // Google Ads events
+      if ((window as any).gtag && settings.landing_pixel_google) {
+        const gtagEvent = eventName === 'Lead' ? 'generate_lead' 
+          : eventName === 'InitiateCheckout' ? 'begin_checkout'
+          : eventName === 'Purchase' ? 'purchase'
+          : eventName === 'ViewContent' ? 'view_item'
+          : eventName === 'AddToCart' ? 'add_to_cart'
+          : 'conversion';
+        (window as any).gtag('event', gtagEvent, { 
+          send_to: settings.landing_pixel_google,
+          ...params 
+        });
+      }
+      // TikTok Pixel events
+      if ((window as any).ttq) {
+        const ttEvent = eventName === 'Lead' ? 'SubmitForm'
+          : eventName === 'InitiateCheckout' ? 'InitiateCheckout'
+          : eventName === 'Purchase' ? 'CompletePayment'
+          : eventName === 'ViewContent' ? 'ViewContent'
+          : eventName === 'AddToCart' ? 'AddToCart'
+          : 'CompleteRegistration';
+        (window as any).ttq.track(ttEvent, params);
+      }
     } catch (e) {}
+  };
+
+  // Track ViewContent when page loads with pixels
+  useEffect(() => {
+    if (settings.landing_pixel_facebook || settings.landing_pixel_google || settings.landing_pixel_tiktok) {
+      const timer = setTimeout(() => trackEvent('ViewContent', { content_name: 'Landing Page AC Service Pro' }), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok]);
+
+  const trackConversion = (type: 'mensal' | 'anual') => {
+    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual, currency: 'BRL' });
+    trackEvent('Lead', { content_name: `Plano ${type}` });
+  };
+
+  const trackScrollMilestone = (section: string) => {
+    trackEvent('ViewContent', { content_name: section, content_category: 'landing_section' });
   };
 
   const features = [

@@ -15,7 +15,7 @@ import {
   Palette, Clock, Bell, Gift, MessageSquare, Eye, MessageCircle, 
   HelpCircle, Video, Layout, Upload, Trash2, Plus, ChevronDown, ChevronUp,
   Image, Volume2, Target, ImagePlus, Sparkles, Grid3X3, Copy, Code, ExternalLink, Globe,
-  CreditCard, Link2, CheckCircle2
+  CreditCard, Link2, CheckCircle2, Zap
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import { AIFieldHelper } from "@/components/AIFieldHelper";
@@ -971,19 +971,42 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
 
-        {/* PIXEL ADS - REDESIGNED */}
+        {/* PIXEL ADS - COMPLETAMENTE REDESENHADO */}
         <TabsContent value="pixel">
           <AdminGuideCards tab="landing-pixel" />
           <div className="space-y-4">
+            {/* Status Overview */}
+            <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-primary" />
+                  <Label className="font-bold text-sm">Status dos Pixels</Label>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { name: 'Meta/Facebook', active: !!settings.landing_pixel_facebook, color: 'blue' },
+                    { name: 'Google Ads', active: !!settings.landing_pixel_google, color: 'amber' },
+                    { name: 'TikTok', active: !!settings.landing_pixel_tiktok, color: 'pink' },
+                  ].map(p => (
+                    <div key={p.name} className={`flex items-center gap-2 p-2 rounded-lg border ${p.active ? 'border-green-500/30 bg-green-500/10' : 'border-border bg-muted/20'}`}>
+                      <div className={`w-2 h-2 rounded-full ${p.active ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
+                      <span className={`text-xs font-medium ${p.active ? 'text-green-400' : 'text-muted-foreground'}`}>{p.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* URL da Landing */}
             <Card className="border-primary/30 bg-primary/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 mb-3">
                   <Globe className="w-5 h-5 text-primary" />
                   <Label className="font-semibold text-sm">URL da Landing Page</Label>
+                  <Badge variant="outline" className="text-[10px]">Use nos anúncios</Badge>
                 </div>
                 <div className="flex gap-2">
-                  <Input value={landingUrl} readOnly className="font-mono bg-muted/50" />
+                  <Input value={landingUrl} readOnly className="font-mono bg-muted/50 text-xs" />
                   <Button variant="outline" onClick={() => {
                     navigator.clipboard.writeText(landingUrl);
                     toast({ title: "Link copiado! ✅" });
@@ -991,7 +1014,7 @@ gtag('config', '${settings.landing_pixel_google}');
                     <Copy className="w-4 h-4" />
                   </Button>
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">Esta é a URL que você vai usar nos seus anúncios. Cole no campo "URL de destino" do gerenciador de anúncios.</p>
+                <p className="text-xs text-muted-foreground mt-2">Cole no campo "URL de destino" do gerenciador de anúncios (Meta, Google ou TikTok).</p>
               </CardContent>
             </Card>
 
@@ -1000,9 +1023,9 @@ gtag('config', '${settings.landing_pixel_google}');
               <CardContent className="p-0">
                 <div className="flex border-b border-border">
                   {[
-                    { key: 'facebook' as const, label: 'Facebook', icon: '📘', color: 'text-blue-400 border-blue-400' },
+                    { key: 'facebook' as const, label: 'Meta Ads', icon: '📘', color: 'text-blue-400 border-blue-400' },
                     { key: 'google' as const, label: 'Google Ads', icon: '📊', color: 'text-amber-400 border-amber-400' },
-                    { key: 'tiktok' as const, label: 'TikTok', icon: '🎵', color: 'text-foreground border-foreground' },
+                    { key: 'tiktok' as const, label: 'TikTok Ads', icon: '🎵', color: 'text-pink-400 border-pink-400' },
                   ].map(p => (
                     <button key={p.key}
                       onClick={() => setPixelTab(p.key)}
@@ -1021,27 +1044,66 @@ gtag('config', '${settings.landing_pixel_google}');
                     <>
                       <div>
                         <Label className="text-sm font-medium flex items-center gap-2">
-                          <Code className="w-4 h-4 text-blue-400" /> ID do Pixel Facebook
+                          <Code className="w-4 h-4 text-blue-400" /> ID do Pixel Meta (Facebook)
                         </Label>
-                        <p className="text-xs text-muted-foreground mb-2">Facebook Business → Gerenciador de Eventos → Fontes de dados → Pixel ID</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          <a href="https://business.facebook.com/events_manager2" target="_blank" rel="noopener" className="underline text-blue-400 hover:text-blue-300">Gerenciador de Eventos</a> → Fontes de dados → Pixel → ID
+                        </p>
                         <Input value={settings.landing_pixel_facebook || ''} onChange={e => update('landing_pixel_facebook', e.target.value)}
                           placeholder="1234567890123456" className="font-mono" />
                       </div>
                       {settings.landing_pixel_facebook && (
-                        <div className="rounded-lg bg-muted/30 border border-border p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <Label className="text-xs font-semibold text-blue-400">Código gerado automaticamente</Label>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                              const code = `<!-- Facebook Pixel Code -->\n<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>\n<!-- End Facebook Pixel Code -->`;
-                              navigator.clipboard.writeText(code);
-                              toast({ title: "Código copiado! ✅" });
-                            }}>
-                              <Copy className="w-3 h-3 mr-1" /> Copiar código
-                            </Button>
+                        <>
+                          <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold text-blue-400">📘 Código do Pixel Base</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- Meta Pixel Code -->\n<script>\n!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');\nfbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');\n</script>\n<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${settings.landing_pixel_facebook}&ev=PageView&noscript=1"/></noscript>\n<!-- End Meta Pixel Code -->`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código do pixel copiado! ✅" });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-blue-300/70 bg-blue-950/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`fbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');`}</pre>
                           </div>
-                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`fbq('init', '${settings.landing_pixel_facebook}');\nfbq('track', 'PageView');`}</pre>
-                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
-                        </div>
+
+                          {/* Eventos rastreados */}
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <Label className="text-xs font-semibold mb-2 block">🎯 Eventos rastreados automaticamente</Label>
+                            <div className="space-y-1.5">
+                              {[
+                                { event: 'PageView', desc: 'Quando a página carrega', icon: '👁️' },
+                                { event: 'ViewContent', desc: 'Quando o visitante vê as seções', icon: '📄' },
+                                { event: 'Lead', desc: 'Quando clica no botão de compra', icon: '🎯' },
+                                { event: 'InitiateCheckout', desc: 'Quando é redirecionado ao checkout', icon: '🛒' },
+                              ].map(ev => (
+                                <div key={ev.event} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/20">
+                                  <span>{ev.icon}</span>
+                                  <code className="text-blue-400 font-mono text-[10px]">{ev.event}</code>
+                                  <span className="text-muted-foreground">— {ev.desc}</span>
+                                  <Badge className="ml-auto bg-green-500/20 text-green-400 border-0 text-[9px] h-4">Auto</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Código de conversão para copiar */}
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-xs font-semibold">🔥 Código de Conversão (para Thank You Page)</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- Evento de Conversão Meta -->\n<script>\nfbq('track', 'Purchase', {\n  value: 0.00,\n  currency: 'BRL',\n  content_name: 'AC Service Pro'\n});\n</script>`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código de conversão copiado! ✅", description: "Cole na página de obrigado da sua plataforma de checkout." });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`fbq('track', 'Purchase', {\n  value: 0.00,\n  currency: 'BRL'\n});`}</pre>
+                            <p className="text-[10px] text-muted-foreground mt-2">💡 Cole esse código na página de "Obrigado" do seu checkout para rastrear vendas finalizadas.</p>
+                          </div>
+                        </>
                       )}
                     </>
                   )}
@@ -1050,27 +1112,64 @@ gtag('config', '${settings.landing_pixel_google}');
                     <>
                       <div>
                         <Label className="text-sm font-medium flex items-center gap-2">
-                          <Code className="w-4 h-4 text-amber-400" /> ID de Conversão Google Ads
+                          <Code className="w-4 h-4 text-amber-400" /> ID do Google Ads / GA4
                         </Label>
-                        <p className="text-xs text-muted-foreground mb-2">Google Ads → Ferramentas → Conversões → Tag ID (ex: AW-123456789)</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          <a href="https://ads.google.com" target="_blank" rel="noopener" className="underline text-amber-400 hover:text-amber-300">Google Ads</a> → Ferramentas → Conversões → Tag ID (ex: AW-123456789 ou G-XXXXXXX)
+                        </p>
                         <Input value={settings.landing_pixel_google || ''} onChange={e => update('landing_pixel_google', e.target.value)}
-                          placeholder="AW-123456789" className="font-mono" />
+                          placeholder="AW-123456789 ou G-XXXXXXX" className="font-mono" />
                       </div>
                       {settings.landing_pixel_google && (
-                        <div className="rounded-lg bg-muted/30 border border-border p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <Label className="text-xs font-semibold text-amber-400">Código gerado automaticamente</Label>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                              const code = `<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>\n<script>\nwindow.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', '${settings.landing_pixel_google}');\n</script>`;
-                              navigator.clipboard.writeText(code);
-                              toast({ title: "Código copiado! ✅" });
-                            }}>
-                              <Copy className="w-3 h-3 mr-1" /> Copiar código
-                            </Button>
+                        <>
+                          <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold text-amber-400">📊 Código gtag.js Base</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- Google tag (gtag.js) -->\n<script async src="https://www.googletagmanager.com/gtag/js?id=${settings.landing_pixel_google}"></script>\n<script>\nwindow.dataLayer = window.dataLayer || [];\nfunction gtag(){dataLayer.push(arguments);}\ngtag('js', new Date());\ngtag('config', '${settings.landing_pixel_google}');\n</script>`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código Google copiado! ✅" });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-amber-300/70 bg-amber-950/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`gtag('config', '${settings.landing_pixel_google}');`}</pre>
                           </div>
-                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`gtag('config', '${settings.landing_pixel_google}');`}</pre>
-                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
-                        </div>
+
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <Label className="text-xs font-semibold mb-2 block">🎯 Eventos rastreados automaticamente</Label>
+                            <div className="space-y-1.5">
+                              {[
+                                { event: 'page_view', desc: 'Quando a página carrega', icon: '👁️' },
+                                { event: 'view_item', desc: 'Quando vê seções da landing', icon: '📄' },
+                                { event: 'generate_lead', desc: 'Quando clica no CTA', icon: '🎯' },
+                                { event: 'begin_checkout', desc: 'Redirecionamento ao checkout', icon: '🛒' },
+                              ].map(ev => (
+                                <div key={ev.event} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/20">
+                                  <span>{ev.icon}</span>
+                                  <code className="text-amber-400 font-mono text-[10px]">{ev.event}</code>
+                                  <span className="text-muted-foreground">— {ev.desc}</span>
+                                  <Badge className="ml-auto bg-green-500/20 text-green-400 border-0 text-[9px] h-4">Auto</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-xs font-semibold">🔥 Código de Conversão Google</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- Google Ads Conversion -->\n<script>\ngtag('event', 'purchase', {\n  send_to: '${settings.landing_pixel_google}/CONVERSION_LABEL',\n  value: 0.00,\n  currency: 'BRL',\n  transaction_id: ''\n});\n</script>`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código de conversão copiado! ✅" });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`gtag('event', 'purchase', {\n  send_to: '${settings.landing_pixel_google}/LABEL',\n  value: 0.00, currency: 'BRL'\n});`}</pre>
+                            <p className="text-[10px] text-muted-foreground mt-2">💡 Substitua CONVERSION_LABEL pelo rótulo da conversão criada no Google Ads.</p>
+                          </div>
+                        </>
                       )}
                     </>
                   )}
@@ -1079,27 +1178,64 @@ gtag('config', '${settings.landing_pixel_google}');
                     <>
                       <div>
                         <Label className="text-sm font-medium flex items-center gap-2">
-                          <Code className="w-4 h-4" /> ID do Pixel TikTok
+                          <Code className="w-4 h-4 text-pink-400" /> ID do Pixel TikTok
                         </Label>
-                        <p className="text-xs text-muted-foreground mb-2">TikTok Ads Manager → Ativos → Eventos → Gerenciar → Pixel ID</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          <a href="https://ads.tiktok.com" target="_blank" rel="noopener" className="underline text-pink-400 hover:text-pink-300">TikTok Ads Manager</a> → Ativos → Eventos → Gerenciar → Pixel ID
+                        </p>
                         <Input value={settings.landing_pixel_tiktok || ''} onChange={e => update('landing_pixel_tiktok', e.target.value)}
                           placeholder="ABCDEF123456" className="font-mono" />
                       </div>
                       {settings.landing_pixel_tiktok && (
-                        <div className="rounded-lg bg-muted/30 border border-border p-3">
-                          <div className="flex items-center justify-between mb-2">
-                            <Label className="text-xs font-semibold">Código gerado automaticamente</Label>
-                            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
-                              const code = `<!-- TikTok Pixel Code -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');\n</script>`;
-                              navigator.clipboard.writeText(code);
-                              toast({ title: "Código copiado! ✅" });
-                            }}>
-                              <Copy className="w-3 h-3 mr-1" /> Copiar código
-                            </Button>
+                        <>
+                          <div className="rounded-lg bg-pink-500/10 border border-pink-500/20 p-3 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Label className="text-xs font-semibold text-pink-400">🎵 Código do Pixel TikTok</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- TikTok Pixel Code -->\n<script>\n!function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e};ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=i;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript";o.async=!0;o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${settings.landing_pixel_tiktok}');ttq.page();}(window,document,'ttq');\n</script>`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código TikTok copiado! ✅" });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-pink-300/70 bg-pink-950/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`ttq.load('${settings.landing_pixel_tiktok}');\nttq.page();`}</pre>
                           </div>
-                          <pre className="text-[10px] font-mono text-muted-foreground overflow-x-auto max-h-24 whitespace-pre-wrap">{`ttq.load('${settings.landing_pixel_tiktok}');\nttq.page();`}</pre>
-                          <Badge className="mt-2 bg-green-500/20 text-green-400 border-green-500/30 text-[10px]">✓ Ativo na landing page</Badge>
-                        </div>
+
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <Label className="text-xs font-semibold mb-2 block">🎯 Eventos rastreados automaticamente</Label>
+                            <div className="space-y-1.5">
+                              {[
+                                { event: 'PageView', desc: 'Quando a página carrega', icon: '👁️' },
+                                { event: 'ViewContent', desc: 'Quando vê seções da landing', icon: '📄' },
+                                { event: 'SubmitForm', desc: 'Quando clica no CTA', icon: '🎯' },
+                                { event: 'InitiateCheckout', desc: 'Redirecionamento ao checkout', icon: '🛒' },
+                              ].map(ev => (
+                                <div key={ev.event} className="flex items-center gap-2 text-xs p-1.5 rounded bg-muted/20">
+                                  <span>{ev.icon}</span>
+                                  <code className="text-pink-400 font-mono text-[10px]">{ev.event}</code>
+                                  <span className="text-muted-foreground">— {ev.desc}</span>
+                                  <Badge className="ml-auto bg-green-500/20 text-green-400 border-0 text-[9px] h-4">Auto</Badge>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="rounded-lg bg-muted/30 border border-border p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <Label className="text-xs font-semibold">🔥 Código de Conversão TikTok</Label>
+                              <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => {
+                                const code = `<!-- TikTok Conversion -->\n<script>\nttq.track('CompletePayment', {\n  value: 0.00,\n  currency: 'BRL',\n  content_name: 'AC Service Pro'\n});\n</script>`;
+                                navigator.clipboard.writeText(code);
+                                toast({ title: "Código de conversão copiado! ✅" });
+                              }}>
+                                <Copy className="w-3 h-3 mr-1" /> Copiar
+                              </Button>
+                            </div>
+                            <pre className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded p-2 overflow-x-auto whitespace-pre-wrap">{`ttq.track('CompletePayment', {\n  value: 0.00, currency: 'BRL'\n});`}</pre>
+                            <p className="text-[10px] text-muted-foreground mt-2">💡 Cole na página de "Obrigado" do checkout para rastrear vendas.</p>
+                          </div>
+                        </>
                       )}
                     </>
                   )}
@@ -1109,20 +1245,20 @@ gtag('config', '${settings.landing_pixel_google}');
 
             {/* Full Head Code Generator */}
             {(settings.landing_pixel_facebook || settings.landing_pixel_google || settings.landing_pixel_tiktok) && (
-              <Card className="border-primary/30">
+              <Card className="border-green-500/30 bg-green-500/5">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2 text-base">
-                      <Sparkles className="w-5 h-5 text-primary" /> Código Completo para &lt;head&gt;
+                      <Sparkles className="w-5 h-5 text-green-400" /> Código Completo para &lt;head&gt;
                     </CardTitle>
-                    <Button size="sm" onClick={() => {
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white" onClick={() => {
                       navigator.clipboard.writeText(getPixelHeadCode());
                       toast({ title: "Código completo copiado! ✅", description: "Cole na tag <head> do seu site ou gerenciador de anúncios." });
                     }}>
                       <Copy className="w-4 h-4 mr-2" /> Copiar Tudo
                     </Button>
                   </div>
-                  <CardDescription>Todos os pixels combinados em um único bloco. Cole no &lt;head&gt; do site ou no gerenciador de tags.</CardDescription>
+                  <CardDescription>Todos os pixels combinados. Use no Google Tag Manager ou cole direto no &lt;head&gt;.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <pre className="bg-muted/50 border border-border rounded-lg p-3 text-[10px] font-mono overflow-x-auto whitespace-pre-wrap max-h-48">
@@ -1132,12 +1268,28 @@ gtag('config', '${settings.landing_pixel_google}');
               </Card>
             )}
 
-            <div className="p-4 rounded-xl bg-muted/50 border border-border">
-              <p className="text-sm text-muted-foreground">
-                💡 Os pixels são <strong>injetados automaticamente</strong> na landing page após salvar. 
-                Eventos de <strong>PageView</strong> disparam ao carregar e <strong>Lead/Conversion</strong> ao clicar nos botões de checkout.
-              </p>
-            </div>
+            {/* Resumo de como funciona */}
+            <Card className="border-border">
+              <CardContent className="p-4 space-y-3">
+                <Label className="font-semibold text-sm flex items-center gap-2">⚡ Como funciona o rastreamento</Label>
+                <div className="space-y-2">
+                  {[
+                    { step: '1', title: 'Cole o ID do pixel', desc: 'Pegue o ID na plataforma de ads e cole acima' },
+                    { step: '2', title: 'Salve as configurações', desc: 'Clique em "Salvar Tudo" — o pixel é injetado automaticamente' },
+                    { step: '3', title: 'Eventos são disparados', desc: 'PageView, ViewContent, Lead e InitiateCheckout são automáticos' },
+                    { step: '4', title: 'Conversão na Thank You Page', desc: 'Copie o código de conversão e cole na página pós-compra do checkout' },
+                  ].map(s => (
+                    <div key={s.step} className="flex items-start gap-3 p-2 rounded-lg hover:bg-muted/20 transition-colors">
+                      <div className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold shrink-0">{s.step}</div>
+                      <div>
+                        <span className="text-xs font-medium text-foreground">{s.title}</span>
+                        <p className="text-[10px] text-muted-foreground">{s.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
