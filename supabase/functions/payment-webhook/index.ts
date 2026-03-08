@@ -206,23 +206,37 @@ Deno.serve(async (req) => {
     }
 
     // Determine plan based on amount - configurable thresholds
-    // Check admin_settings for custom price thresholds
     const { data: precosSettings } = await supabase
       .from('admin_settings')
       .select('key, value')
-      .in('key', ['preco_mensal', 'preco_anual']);
+      .in('key', ['preco_mensal', 'preco_trimestral', 'preco_anual', 'preco_vitalicio']);
     
     const precoMensal = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_mensal')?.value || '50');
+    const precoTrimestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_trimestral')?.value || '120');
     const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '200');
+    const precoVitalicio = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_vitalicio')?.value || '997');
+    
+    // Match amount to closest plan (within 20% tolerance)
+    const matchPlan = (value: number, target: number) => Math.abs(value - target) / target <= 0.2;
     
     let plan = 'mensal';
     let planName = 'Mensal';
     let durationMonths = 1;
+    let isLifetime = false;
     
-    if (amount >= precoAnual * 0.8) {
+    if (matchPlan(amount, precoVitalicio) || amount >= precoVitalicio * 0.8) {
+      plan = 'vitalicio';
+      planName = 'Vitalício';
+      durationMonths = 0;
+      isLifetime = true;
+    } else if (matchPlan(amount, precoAnual) || amount >= precoAnual * 0.8) {
       plan = 'anual';
       planName = 'Anual';
       durationMonths = 12;
+    } else if (matchPlan(amount, precoTrimestral) || amount >= precoTrimestral * 0.8) {
+      plan = 'trimestral';
+      planName = 'Trimestral';
+      durationMonths = 3;
     } else {
       plan = 'mensal';
       planName = 'Mensal';
@@ -230,20 +244,23 @@ Deno.serve(async (req) => {
     }
     
     const startDate = new Date();
-    const endDate = new Date();
-    endDate.setMonth(endDate.getMonth() + durationMonths);
+    const endDate = isLifetime ? null : new Date();
+    if (endDate) endDate.setMonth(endDate.getMonth() + durationMonths);
 
     // Update subscription
+    const subscriptionData: any = {
+      user_id: user.id,
+      plan,
+      status: 'aprovado',
+      is_active: true,
+      start_date: startDate.toISOString(),
+      end_date: endDate ? endDate.toISOString() : null,
+      payment_date: startDate.toISOString(),
+    };
+
     const { error: updateError } = await supabase
       .from('subscriptions')
-      .upsert({
-        user_id: user.id,
-        plan,
-        status: 'aprovado',
-        is_active: true,
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString()
-      }, { onConflict: 'user_id' });
+      .upsert(subscriptionData, { onConflict: 'user_id' });
 
     if (updateError) {
       await sendNotification(supabase, 'payment_error', email, userPhone, plan, amount, platform);
@@ -262,9 +279,9 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Assinatura ativada via ${platform}!`,
+        message: `Assinatura ${planName} ativada via ${platform}!`,
         platform,
-        data: { email, plan, plan_name: planName, amount, duration_months: durationMonths, start_date: startDate.toISOString(), end_date: endDate.toISOString(), transaction_id: transactionId }
+        data: { email, plan, plan_name: planName, amount, duration_months: durationMonths, is_lifetime: isLifetime, start_date: startDate.toISOString(), end_date: endDate?.toISOString() || null, transaction_id: transactionId }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
