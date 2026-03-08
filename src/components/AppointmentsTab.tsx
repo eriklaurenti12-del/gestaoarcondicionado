@@ -363,6 +363,14 @@ const AppointmentsTab: React.FC = () => {
 
     const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
     
+    // ========== PAST DATE/TIME VALIDATION ==========
+    const now = new Date();
+    if (dateTime <= now) {
+      toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
+      return;
+    }
+    // ===============================================
+    
     // ========== CONFLICT DETECTION ==========
     const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
     const duration = (selectedService as any)?.service_duration || 60; // default 60 min
