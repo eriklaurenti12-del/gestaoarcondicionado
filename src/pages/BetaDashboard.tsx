@@ -386,7 +386,10 @@ export default function BetaDashboard() {
               <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                 {filteredProducts.map(p => (
                   <button key={p.id} onClick={() => addToCart(p)}
-                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
+                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors overflow-hidden">
+                    {p.image_url && (
+                      <img src={p.image_url} alt={p.name} className="w-full h-16 object-cover rounded mb-1.5" />
+                    )}
                     <p className="text-xs font-medium truncate">{p.name}</p>
                     <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
                     {p.type === 'piece' && <p className="text-[10px] text-muted-foreground">Rest.: {p.qty}</p>}
