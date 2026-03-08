@@ -663,13 +663,8 @@ export default function BetaDashboard() {
   );
 
   const renderLembretes = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Bell className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Lembretes & Notificações</p>
-        <p className="text-xs text-muted-foreground">Contratos vencendo, manutenções agendadas</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
+    <div className="px-4 pt-4">
+      <LembretesTab />
     </div>
   );
 
