@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useBetaMode } from '@/contexts/BetaModeContext';
@@ -7,22 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
   BarChart3, CalendarDays, Users, DollarSign, FileText, 
   Plus, Search, ArrowLeft, Moon, Sun, Zap, Clock, 
   Phone, Wallet, ShoppingCart, ClipboardList, Wind,
-  Download, Keyboard, Minus, Trash2, Receipt, Package,
-  Wrench, FileCheck, Eye, Thermometer
+  Download, Minus, Trash2, Receipt, Package,
+  Wrench, FileCheck, Thermometer, Home, MoreHorizontal,
+  TrendingUp, Bell, Globe, Settings, X, RefreshCw
 } from 'lucide-react';
-import { format, isToday, isTomorrow, startOfDay } from 'date-fns';
+import { format, isToday, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type BetaView = 'home' | 'agenda' | 'clientes' | 'financeiro' | 'novo-cliente' | 'pdv' | 'estoque' | 'orcamentos' | 'os';
+type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
 export default function BetaDashboard() {
   const navigate = useNavigate();
@@ -35,12 +34,14 @@ export default function BetaDashboard() {
 
   // Data states
   const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
+  const [allAppointments, setAllAppointments] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [recentFinancial, setRecentFinancial] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [serviceOrders, setServiceOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cadastroTab, setCadastroTab] = useState<'clientes' | 'servicos'>('clientes');
 
   // Form states  
   const [newClientName, setNewClientName] = useState('');
@@ -53,6 +54,34 @@ export default function BetaDashboard() {
   const [pdvPayment, setPdvPayment] = useState<'PIX' | 'Dinheiro' | 'Débito' | 'Crédito'>('PIX');
   const [pdvClientSearch, setPdvClientSearch] = useState('');
   const [pdvSelectedClient, setPdvSelectedClient] = useState<any>(null);
+  const [pdvClientMode, setPdvClientMode] = useState<'cadastrado' | 'nome' | 'consumidor'>('cadastrado');
+  const [pdvClientName, setPdvClientName] = useState('');
+  const [pdvDiscount, setPdvDiscount] = useState(0);
+  const [pdvDiscountValue, setPdvDiscountValue] = useState(0);
+  const [pdvTab, setPdvTab] = useState<'pdv' | 'historico'>('pdv');
+
+  // Agenda states
+  const [agendaTab, setAgendaTab] = useState<'lista' | 'calendario' | 'horarios'>('lista');
+  const [agendaMonth, setAgendaMonth] = useState(new Date().getMonth());
+  const [agendaStatusFilter, setAgendaStatusFilter] = useState('todos');
+
+  // Mais panel open state
+  const [maisOpen, setMaisOpen] = useState(false);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
+      switch (e.key) {
+        case 'F1': e.preventDefault(); setView('home'); break;
+        case 'F2': e.preventDefault(); setView('pdv'); break;
+        case 'F3': e.preventDefault(); setView('agenda'); break;
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [view]);
 
   useEffect(() => {
     checkAuth();
@@ -68,15 +97,18 @@ export default function BetaDashboard() {
 
   const loadData = async (uid: string) => {
     const today = startOfDay(new Date()).toISOString();
-    const [aptsRes, clientsRes, finRes, prodsRes, quotesRes, osRes] = await Promise.all([
-      supabase.from('appointments').select('*, clients(name, telefone), products(name)').eq('user_id', uid).gte('appointment_date', today).order('appointment_date', { ascending: true }).limit(20),
-      supabase.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
-      supabase.from('financial_records').select('*').eq('user_id', uid).order('record_date', { ascending: false }).limit(10),
-      supabase.from('products').select('*').eq('user_id', uid).order('name').limit(200),
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const [aptsRes, allAptsRes, clientsRes, finRes, prodsRes, quotesRes, osRes] = await Promise.all([
+      supabase.from('appointments').select('*, clients(name, telefone), products(name, price)').eq('user_id', uid).gte('appointment_date', today).order('appointment_date', { ascending: true }).limit(50),
+      supabase.from('appointments').select('*, clients(name, telefone), products(name, price)').eq('user_id', uid).order('appointment_date', { ascending: false }).limit(200),
+      supabase.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(200),
+      supabase.from('financial_records').select('*').eq('user_id', uid).order('record_date', { ascending: false }).limit(30),
+      supabase.from('products').select('*, suppliers(name)').eq('user_id', uid).order('name').limit(200),
       supabase.from('quotes').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(50),
       supabase.from('service_orders').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(50),
     ]);
     if (aptsRes.data) setTodayAppointments(aptsRes.data);
+    if (allAptsRes.data) setAllAppointments(allAptsRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
     if (finRes.data) setRecentFinancial(finRes.data);
     if (prodsRes.data) setProducts(prodsRes.data);
@@ -90,7 +122,7 @@ export default function BetaDashboard() {
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     toast({ title: '✅ Cliente cadastrado!' });
     setNewClientName(''); setNewClientPhone(''); setNewClientAddress('');
-    setView('clientes');
+    setView('cadastros');
     loadData(userId);
   };
 
@@ -101,450 +133,500 @@ export default function BetaDashboard() {
       if (existing) return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
       return [...prev, { product, qty: 1 }];
     });
-    toast({ title: `➕ ${product.name}` });
   };
 
-  const removeFromCart = (productId: number) => {
-    setPdvCart(prev => prev.filter(i => i.product.id !== productId));
-  };
-
-  const cartTotal = pdvCart.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const removeFromCart = (productId: number) => setPdvCart(prev => prev.filter(i => i.product.id !== productId));
+  const cartSubtotal = pdvCart.reduce((s, i) => s + i.product.price * i.qty, 0);
+  const cartTotal = Math.max(0, cartSubtotal - pdvDiscountValue - (cartSubtotal * pdvDiscount / 100));
 
   const finalizePdvSale = async () => {
     if (pdvCart.length === 0) { toast({ title: 'Carrinho vazio', variant: 'destructive' }); return; }
-    
     for (const item of pdvCart) {
       const { error } = await supabase.from('sales').insert({
-        user_id: userId,
-        product_id: item.product.id,
-        client_id: pdvSelectedClient?.id || 1,
-        qty: item.qty,
-        sale_price: item.product.price,
-        total_profit: (item.product.price - item.product.cost_price) * item.qty,
-        payment_method: pdvPayment,
+        user_id: userId, product_id: item.product.id, client_id: pdvSelectedClient?.id || 1,
+        qty: item.qty, sale_price: item.product.price,
+        total_profit: (item.product.price - item.product.cost_price) * item.qty, payment_method: pdvPayment,
       });
       if (error) { toast({ title: 'Erro na venda', description: error.message, variant: 'destructive' }); return; }
     }
-    
     toast({ title: `✅ Venda de R$ ${cartTotal.toFixed(2)} finalizada!` });
-    setPdvCart([]);
-    setPdvSelectedClient(null);
+    setPdvCart([]); setPdvSelectedClient(null); setPdvDiscount(0); setPdvDiscountValue(0);
   };
 
   // PDF Exports
   const exportAgendaPDF = () => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Agenda - Próximos Atendimentos', 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
-    autoTable(doc, {
-      startY: 35,
-      head: [['Data/Hora', 'Cliente', 'Serviço', 'Status']],
-      body: todayAppointments.map(a => [
-        format(new Date(a.appointment_date), 'dd/MM/yyyy HH:mm'),
-        (a.clients as any)?.name || '-',
-        (a.products as any)?.name || '-',
-        a.status
-      ]),
+    doc.setFontSize(18); doc.text('Agenda', 14, 20);
+    autoTable(doc, { startY: 30, head: [['Data/Hora', 'Cliente', 'Serviço', 'Status']],
+      body: todayAppointments.map(a => [format(new Date(a.appointment_date), 'dd/MM/yyyy HH:mm'), (a.clients as any)?.name || '-', (a.products as any)?.name || '-', a.status]),
     });
-    doc.save('agenda.pdf');
-    toast({ title: '📄 PDF da agenda baixado!' });
+    doc.save('agenda.pdf'); toast({ title: '📄 PDF exportado!' });
   };
 
   const exportClientesPDF = () => {
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Lista de Clientes', 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Total: ${clients.length} clientes`, 14, 28);
-    autoTable(doc, {
-      startY: 35,
-      head: [['Nome', 'Telefone', 'Endereço']],
+    doc.setFontSize(18); doc.text('Clientes', 14, 20);
+    autoTable(doc, { startY: 30, head: [['Nome', 'Telefone', 'Endereço']],
       body: clients.map(c => [c.name, c.telefone || '-', c.address || '-']),
     });
-    doc.save('clientes.pdf');
-    toast({ title: '📄 PDF de clientes baixado!' });
+    doc.save('clientes.pdf'); toast({ title: '📄 PDF exportado!' });
   };
 
-  const exportFinanceiroPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text('Relatório Financeiro', 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
-    autoTable(doc, {
-      startY: 35,
-      head: [['Data', 'Descrição', 'Tipo', 'Valor']],
-      body: recentFinancial.map(r => [
-        format(new Date(r.record_date), 'dd/MM/yyyy'),
-        r.description || r.category || '-',
-        r.type === 'receita' ? 'Receita' : 'Despesa',
-        `R$ ${Number(r.amount).toFixed(2)}`
-      ]),
-    });
-    doc.save('financeiro.pdf');
-    toast({ title: '📄 PDF financeiro baixado!' });
-  };
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') {
-        if (e.key === 'Escape') (e.target as HTMLElement).blur();
-        return;
-      }
-      switch (e.key) {
-        case 'F1': e.preventDefault(); setView('home'); break;
-        case 'F2': e.preventDefault(); setView('pdv'); break;
-        case 'F3': e.preventDefault(); setView('agenda'); break;
-        case 'F4': e.preventDefault(); if (view === 'pdv') finalizePdvSale(); break;
-        case 'F5': e.preventDefault(); {
-          const methods: typeof pdvPayment[] = ['PIX', 'Dinheiro', 'Débito', 'Crédito'];
-          const idx = methods.indexOf(pdvPayment);
-          setPdvPayment(methods[(idx + 1) % methods.length]);
-          toast({ title: `💳 ${methods[(idx + 1) % methods.length]}` });
-        } break;
-        case 'F8': e.preventDefault(); setPdvCart([]); toast({ title: '🗑️ Carrinho limpo' }); break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [view, pdvPayment, pdvCart]);
+  const agendaStats = useMemo(() => {
+    const total = allAppointments.length;
+    const agendados = allAppointments.filter(a => a.status === 'agendado').length;
+    const confirmados = allAppointments.filter(a => a.status === 'confirmado').length;
+    const concluidos = allAppointments.filter(a => a.status === 'concluído').length;
+    const cancelados = allAppointments.filter(a => a.status === 'cancelado').length;
+    const faturamento = allAppointments.filter(a => a.status === 'concluído').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
+    return { total, agendados, confirmados, concluidos, cancelados, faturamento };
+  }, [allAppointments]);
 
   const filteredClients = clients.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.telefone?.includes(searchQuery)
+    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.telefone?.includes(searchQuery)
   );
 
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(pdvSearch.toLowerCase())
-  );
-
-  const pdvFilteredClients = clients.filter(c =>
-    c.name.toLowerCase().includes(pdvClientSearch.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(pdvSearch.toLowerCase()));
+  const pdvFilteredClients = clients.filter(c => c.name.toLowerCase().includes(pdvClientSearch.toLowerCase()));
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Wind className="w-10 h-10 text-primary animate-spin" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Wind className="w-10 h-10 text-primary animate-spin" /></div>;
   }
 
-  const todayApts = todayAppointments.filter(a => isToday(new Date(a.appointment_date)));
-  const tomorrowApts = todayAppointments.filter(a => isTomorrow(new Date(a.appointment_date)));
-  const totalReceitas = recentFinancial.filter(r => r.type === 'receita').reduce((s, r) => s + Number(r.amount), 0);
-  const totalDespesas = recentFinancial.filter(r => r.type === 'despesa').reduce((s, r) => s + Number(r.amount), 0);
-  const pendingQuotes = quotes.filter(q => q.status === 'pendente');
-  const pendingOS = serviceOrders.filter(o => o.status === 'pendente' || o.status === 'em_andamento');
-  const lowStockProducts = products.filter(p => p.type === 'product' && p.min_stock && p.qty <= p.min_stock);
+  const todayApts = allAppointments.filter(a => isToday(new Date(a.appointment_date)));
+  const todayRevenue = todayApts.filter(a => a.status === 'concluído').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
+  const monthRevenue = recentFinancial.filter(r => r.type === 'receita').reduce((s, r) => s + Number(r.amount), 0);
+
+  // ========== VIEWS ==========
 
   const renderHome = () => (
-    <div className="space-y-4">
-      {/* Quick Stats - 3 cols */}
-      <div className="grid grid-cols-3 gap-2">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('agenda')}>
-          <CardContent className="p-3 text-center">
-            <CalendarDays className="w-5 h-5 text-primary mx-auto mb-1" />
+    <div className="space-y-3 px-4 pt-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="cursor-pointer" onClick={() => setView('agenda')}>
+          <CardContent className="p-4 text-center">
+            <CalendarDays className="w-5 h-5 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold">{todayApts.length}</p>
-            <p className="text-[10px] text-muted-foreground">Hoje</p>
+            <p className="text-xs text-muted-foreground">Hoje</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('clientes')}>
-          <CardContent className="p-3 text-center">
-            <Users className="w-5 h-5 text-accent mx-auto mb-1" />
+        <Card className="cursor-pointer" onClick={() => setView('financeiro')}>
+          <CardContent className="p-4 text-center">
+            <DollarSign className="w-5 h-5 text-green-500 mx-auto mb-2" />
+            <p className="text-2xl font-bold">R$ {todayRevenue.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">Faturado Hoje</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="cursor-pointer" onClick={() => setView('financeiro')}>
+          <CardContent className="p-4 text-center">
+            <TrendingUp className="w-5 h-5 text-primary mx-auto mb-2" />
+            <p className="text-2xl font-bold">R$ {monthRevenue.toFixed(0)}</p>
+            <p className="text-xs text-muted-foreground">Mês</p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer" onClick={() => setView('cadastros')}>
+          <CardContent className="p-4 text-center">
+            <Users className="w-5 h-5 text-primary mx-auto mb-2" />
             <p className="text-2xl font-bold">{clients.length}</p>
-            <p className="text-[10px] text-muted-foreground">Clientes</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('financeiro')}>
-          <CardContent className="p-3 text-center">
-            <DollarSign className="w-5 h-5 text-green-500 mx-auto mb-1" />
-            <p className="text-lg font-bold">R${totalReceitas.toFixed(0)}</p>
-            <p className="text-[10px] text-muted-foreground">Receitas</p>
+            <p className="text-xs text-muted-foreground">Clientes</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Second row */}
-      <div className="grid grid-cols-3 gap-2">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('pdv')}>
-          <CardContent className="p-3 text-center">
-            <ShoppingCart className="w-5 h-5 text-purple-500 mx-auto mb-1" />
-            <p className="text-lg font-bold">PDV</p>
-            <p className="text-[10px] text-muted-foreground">Venda</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('orcamentos')}>
-          <CardContent className="p-3 text-center">
-            <FileCheck className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-            <p className="text-2xl font-bold">{pendingQuotes.length}</p>
-            <p className="text-[10px] text-muted-foreground">Orçamentos</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('os')}>
-          <CardContent className="p-3 text-center">
-            <Wrench className="w-5 h-5 text-amber-500 mx-auto mb-1" />
-            <p className="text-2xl font-bold">{pendingOS.length}</p>
-            <p className="text-[10px] text-muted-foreground">O.S.</p>
-          </CardContent>
-        </Card>
+      {/* Quick actions */}
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('pdv')}>
+          <ShoppingCart className="w-4 h-4" /> Nova Venda
+        </Button>
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('agenda')}>
+          <CalendarDays className="w-4 h-4" /> Agendar
+        </Button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('cadastros')}>
+          <Users className="w-4 h-4" /> Cadastros
+        </Button>
+        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('financeiro')}>
+          <TrendingUp className="w-4 h-4" /> Financeiro
+        </Button>
       </div>
 
-      {/* Estoque alert */}
-      {lowStockProducts.length > 0 && (
-        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/10 cursor-pointer" onClick={() => setView('estoque')}>
-          <CardContent className="p-3 flex items-center gap-3">
-            <Package className="w-5 h-5 text-amber-500" />
-            <div>
-              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">⚠️ {lowStockProducts.length} produto(s) com estoque baixo</p>
-              <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Today's Appointments */}
-      {todayApts.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2 px-4 pt-4">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <CalendarDays className="w-4 h-4 text-primary" /> Agenda de Hoje
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 space-y-2">
-            {todayApts.slice(0, 5).map((apt) => (
-              <div key={apt.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${apt.status === 'concluído' ? 'bg-green-500' : apt.status === 'cancelado' ? 'bg-red-500' : 'bg-primary'}`} />
+      {/* Today's schedule */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Próximos de Hoje</span>
+          </div>
+          {todayApts.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Nenhum agendamento para hoje 🌿</p>
+          ) : (
+            <div className="space-y-2">
+              {todayApts.slice(0, 5).map(apt => (
+                <div key={apt.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
                   <div>
-                    <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Sem cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name || 'Serviço'}</p>
+                    <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
+                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name} • {format(new Date(apt.appointment_date), 'HH:mm')}</p>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+
+  const renderAgenda = () => (
+    <div className="space-y-3 px-4 pt-4">
+      {/* Tabs */}
+      <div className="flex bg-muted/50 rounded-lg p-1">
+        {[{ id: 'lista', icon: ClipboardList, label: 'Lista' }, { id: 'calendario', icon: CalendarDays, label: 'Calendário' }, { id: 'horarios', icon: Clock, label: 'Horários' }].map(t => (
+          <button key={t.id} onClick={() => setAgendaTab(t.id as any)}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${agendaTab === t.id ? 'bg-card shadow text-foreground' : 'text-muted-foreground'}`}>
+            <t.icon className="w-3.5 h-3.5" /> {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats */}
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {[
+          { label: 'Total', value: agendaStats.total, color: 'text-foreground border-primary/30' },
+          { label: 'Agendados', value: agendaStats.agendados, color: 'text-yellow-500 border-yellow-500/30' },
+          { label: 'Confirmados', value: agendaStats.confirmados, color: 'text-blue-500 border-blue-500/30' },
+          { label: 'Concluídos', value: agendaStats.concluidos, color: 'text-green-500 border-green-500/30' },
+          { label: 'Cancelados', value: agendaStats.cancelados, color: 'text-red-500 border-red-500/30' },
+          { label: 'Faturamento', value: `R$ ${agendaStats.faturamento.toFixed(0)}`, color: 'text-green-500 border-green-500/30' },
+        ].map(s => (
+          <Card key={s.label} className={`min-w-[100px] border ${s.color.split(' ')[1]}`}>
+            <CardContent className="p-3">
+              <p className={`text-lg font-bold ${s.color.split(' ')[0]}`}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Actions row */}
+      <div className="flex gap-2">
+        <Button size="sm" className="gap-1.5 bg-primary"><Plus className="w-3.5 h-3.5" /> Novo Agendamento</Button>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={exportAgendaPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
+        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => loadData(userId)}><RefreshCw className="w-3.5 h-3.5" /></Button>
+      </div>
+
+      {/* Appointments list */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <CalendarDays className="w-4 h-4" />
+            <span className="font-semibold text-sm">Agendamentos</span>
+          </div>
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar cliente ou serviço..." className="pl-9 h-9" />
+          </div>
+          {todayAppointments.length === 0 ? (
+            <p className="text-sm text-center text-muted-foreground py-6">Nenhum agendamento encontrado</p>
+          ) : (
+            <div className="space-y-2">
+              {todayAppointments.map(apt => (
+                <div key={apt.id} className="flex justify-between items-center p-3 rounded-lg bg-muted/30 border border-border/50">
+                  <div>
+                    <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(apt.appointment_date), 'dd/MM/yyyy')} • {format(new Date(apt.appointment_date), 'HH:mm')}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={apt.status === 'concluído' ? 'default' : apt.status === 'cancelado' ? 'destructive' : 'outline'} className="text-[10px]">
+                      {apt.status}
+                    </Badge>
+                    {(apt.clients as any)?.telefone && (
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(`https://wa.me/55${(apt.clients as any).telefone.replace(/\D/g, '')}`, '_blank')}>
+                        <Phone className="w-3.5 h-3.5 text-green-500" />
+                      </Button>
+                    )}
                   </div>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {format(new Date(apt.appointment_date), 'HH:mm')}
-                </Badge>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-2">
-        <Button onClick={() => setView('novo-cliente')} className="h-12 justify-start gap-3" variant="outline">
-          <Plus className="w-4 h-4" /> Cadastrar Novo Cliente
-        </Button>
-        <Button onClick={() => setView('estoque')} className="h-12 justify-start gap-3" variant="outline">
-          <Package className="w-4 h-4" /> Estoque & Produtos
-        </Button>
-        <Button onClick={() => navigate('/dashboard')} className="h-12 justify-start gap-3" variant="outline">
-          <ClipboardList className="w-4 h-4" /> Sistema Completo
-        </Button>
-      </div>
-
-      {/* Keyboard hints for desktop */}
-      <Card className="hidden md:block">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-2 mb-2">
-            <Keyboard className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs font-medium text-muted-foreground">Atalhos de Teclado</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1 text-[10px] text-muted-foreground">
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F1</kbd> Início</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F2</kbd> PDV</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F3</kbd> Agenda</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F4</kbd> Finalizar</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F5</kbd> Pagamento</span>
-            <span><kbd className="px-1.5 py-0.5 rounded bg-muted border border-border font-mono">F8</kbd> Limpar</span>
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 
   const renderPDV = () => (
-    <div className="space-y-3">
-      <div className="flex gap-1.5">
-        {(['PIX', 'Dinheiro', 'Débito', 'Crédito'] as const).map(m => (
-          <Button key={m} size="sm" variant={pdvPayment === m ? 'default' : 'outline'} 
-            className="flex-1 text-xs h-9" onClick={() => setPdvPayment(m)}>
-            {m}
-          </Button>
-        ))}
+    <div className="px-4 pt-4 space-y-3">
+      {/* Tabs */}
+      <div className="flex bg-muted/50 rounded-lg p-1">
+        <button onClick={() => setPdvTab('pdv')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${pdvTab === 'pdv' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
+          <ShoppingCart className="w-3.5 h-3.5" /> PDV
+        </button>
+        <button onClick={() => setPdvTab('historico')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${pdvTab === 'historico' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
+          <TrendingUp className="w-3.5 h-3.5" /> Histórico
+        </button>
       </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Cliente (opcional)" value={pdvClientSearch} 
-          onChange={e => { setPdvClientSearch(e.target.value); setPdvSelectedClient(null); }} className="pl-9 h-10" />
-        {pdvClientSearch && !pdvSelectedClient && pdvFilteredClients.length > 0 && (
-          <div className="absolute z-10 w-full mt-1 bg-card border border-border rounded-lg shadow-lg max-h-32 overflow-y-auto">
-            {pdvFilteredClients.slice(0, 5).map(c => (
-              <button key={c.id} className="w-full text-left px-3 py-2 text-sm hover:bg-muted/50 border-b border-border/30"
-                onClick={() => { setPdvSelectedClient(c); setPdvClientSearch(c.name); }}>
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input placeholder="Buscar produto/serviço..." value={pdvSearch} onChange={e => setPdvSearch(e.target.value)} className="pl-9 h-10" />
-      </div>
-      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-        {filteredProducts.slice(0, 12).map(p => (
-          <button key={p.id} onClick={() => addToCart(p)}
-            className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
-            <p className="text-xs font-medium truncate">{p.name}</p>
-            <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
-            {p.type === 'product' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
-          </button>
-        ))}
-      </div>
-      {pdvCart.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2 px-4 pt-3">
-            <CardTitle className="text-sm flex items-center justify-between">
-              <span className="flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Carrinho</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => setPdvCart([])}>
-                <Trash2 className="w-3 h-3 mr-1" /> Limpar
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-3 space-y-1.5">
-            {pdvCart.map(item => (
-              <div key={item.product.id} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => {
-                    setPdvCart(prev => prev.map(i => i.product.id === item.product.id && i.qty > 1 ? { ...i, qty: i.qty - 1 } : i));
-                  }}><Minus className="w-3 h-3" /></Button>
-                  <span className="font-medium">{item.qty}x</span>
-                  <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => {
-                    setPdvCart(prev => prev.map(i => i.product.id === item.product.id ? { ...i, qty: i.qty + 1 } : i));
-                  }}><Plus className="w-3 h-3" /></Button>
-                  <span className="truncate text-xs">{item.product.name}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs">R$ {(item.product.price * item.qty).toFixed(2)}</span>
-                  <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.product.id)}>
-                    <Trash2 className="w-3 h-3" />
+
+      {pdvTab === 'pdv' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {/* Products */}
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-sm mb-3">Produtos & Serviços</h3>
+              <div className="relative mb-3">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar produto..." value={pdvSearch} onChange={e => setPdvSearch(e.target.value)} className="pl-9 h-9" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+                {filteredProducts.map(p => (
+                  <button key={p.id} onClick={() => addToCart(p)}
+                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
+                    <p className="text-xs font-medium truncate">{p.name}</p>
+                    <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
+                    {p.type === 'piece' && <p className="text-[10px] text-muted-foreground">Rest.: {p.qty}</p>}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Cart */}
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Carrinho</h3>
+              
+              {/* Client mode */}
+              <div className="flex gap-1 mb-3">
+                {(['cadastrado', 'nome', 'consumidor'] as const).map(m => (
+                  <Button key={m} size="sm" variant={pdvClientMode === m ? 'default' : 'outline'} className="flex-1 text-[10px] h-7 capitalize" onClick={() => setPdvClientMode(m)}>
+                    {m === 'cadastrado' ? 'Cadastrado' : m === 'nome' ? 'Nome' : 'Consumidor'}
                   </Button>
+                ))}
+              </div>
+
+              {pdvClientMode === 'cadastrado' && (
+                <div className="relative mb-3">
+                  <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                    onChange={e => { const c = clients.find(cl => cl.id === Number(e.target.value)); setPdvSelectedClient(c); }}>
+                    <option value="">Selecione cliente</option>
+                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {/* Item avulso */}
+              <Button variant="outline" size="sm" className="w-full mb-3 gap-1.5 text-xs">
+                <Plus className="w-3.5 h-3.5" /> Item Avulso / Rápido
+              </Button>
+
+              {/* Cart items */}
+              {pdvCart.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-4">Carrinho vazio</p>
+              ) : (
+                <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
+                  {pdvCart.map(item => (
+                    <div key={item.product.id} className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPdvCart(prev => prev.map(i => i.product.id === item.product.id && i.qty > 1 ? { ...i, qty: i.qty - 1 } : i))}><Minus className="w-3 h-3" /></Button>
+                        <span className="font-medium text-xs">{item.qty}x</span>
+                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPdvCart(prev => prev.map(i => i.product.id === item.product.id ? { ...i, qty: i.qty + 1 } : i))}><Plus className="w-3 h-3" /></Button>
+                        <span className="truncate text-xs">{item.product.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className="font-bold text-xs">R$ {(item.product.price * item.qty).toFixed(2)}</span>
+                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.product.id)}><Trash2 className="w-3 h-3" /></Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Discount */}
+              <div className="flex gap-2 mb-3">
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground">Desc. %</label>
+                  <Input type="number" min="0" max="100" value={pdvDiscount} onChange={e => setPdvDiscount(Number(e.target.value))} className="h-8 text-xs" />
+                </div>
+                <div className="flex-1">
+                  <label className="text-[10px] text-muted-foreground">Desc. R$</label>
+                  <Input type="number" min="0" value={pdvDiscountValue} onChange={e => setPdvDiscountValue(Number(e.target.value))} className="h-8 text-xs" />
                 </div>
               </div>
-            ))}
-            <div className="border-t border-border pt-2 flex justify-between items-center">
-              <span className="font-bold">Total:</span>
-              <span className="text-lg font-bold text-primary">R$ {cartTotal.toFixed(2)}</span>
-            </div>
-            <Button className="w-full h-11 mt-2" onClick={finalizePdvSale}>
-              <Receipt className="w-4 h-4 mr-2" /> Finalizar Venda ({pdvPayment})
-            </Button>
+
+              {/* Payment */}
+              <div className="mb-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-xs font-medium">Pagamentos</span>
+                  <span className="text-[10px] text-muted-foreground">Restante: R$ {cartTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex gap-1.5">
+                  <select className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs"
+                    value={pdvPayment} onChange={e => setPdvPayment(e.target.value as any)}>
+                    <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option>
+                  </select>
+                  <Input placeholder="Valor" className="flex-1 h-8 text-xs" />
+                  <Button size="icon" className="h-8 w-8 bg-green-600 hover:bg-green-700"><Plus className="w-3.5 h-3.5" /></Button>
+                </div>
+              </div>
+
+              {/* Total */}
+              <div className="flex justify-between items-center border-t border-border pt-3 mb-3">
+                <span className="font-bold">Total:</span>
+                <span className="text-xl font-bold text-primary">R$ {cartTotal.toFixed(2)}</span>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-10" onClick={() => { setPdvCart([]); setPdvDiscount(0); setPdvDiscountValue(0); }}>Limpar</Button>
+                <Button className="flex-1 h-10 bg-primary" onClick={finalizePdvSale}>Finalizar</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            <TrendingUp className="w-8 h-8 mx-auto mb-2" />
+            <p>Histórico de vendas em breve</p>
           </CardContent>
         </Card>
       )}
     </div>
   );
 
-  const renderAgenda = () => (
-    <div className="space-y-3">
-      <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportAgendaPDF}>
-        <Download className="w-4 h-4" /> Exportar Agenda PDF
-      </Button>
-      {todayAppointments.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum agendamento próximo</CardContent></Card>
-      ) : (
-        todayAppointments.map((apt) => (
-          <Card key={apt.id} className="overflow-hidden">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${isToday(new Date(apt.appointment_date)) ? 'bg-primary/10' : 'bg-muted'}`}>
-                    <CalendarDays className={`w-4 h-4 ${isToday(new Date(apt.appointment_date)) ? 'text-primary' : 'text-muted-foreground'}`} />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{(apt.clients as any)?.name || 'Sem cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name || ''}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {format(new Date(apt.appointment_date), "dd/MM • HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant={apt.status === 'concluído' ? 'default' : 'outline'} className="text-[10px]">
-                    {apt.status}
-                  </Badge>
-                  {(apt.clients as any)?.telefone && (
-                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(`https://wa.me/55${(apt.clients as any).telefone.replace(/\D/g, '')}`, '_blank')}>
-                      <Phone className="w-3.5 h-3.5 text-green-500" />
-                    </Button>
-                  )}
-                </div>
+  const renderCadastros = () => (
+    <div className="px-4 pt-4 space-y-3">
+      {/* Info cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="border-primary/30">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10"><Users className="w-5 h-5 text-primary" /></div>
+            <div>
+              <p className="text-sm font-bold">Clientes</p>
+              <Badge className="text-[9px] bg-red-500/20 text-red-400">Essencial</Badge>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Cadastre clientes com nome, telefone e aniversário.</p>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-primary/30">
+          <CardContent className="p-3 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10"><Wrench className="w-5 h-5 text-primary" /></div>
+            <div>
+              <p className="text-sm font-bold">Serviços & Produtos</p>
+              <Badge className="text-[9px] bg-yellow-500/20 text-yellow-400">Catálogo</Badge>
+              <p className="text-[10px] text-muted-foreground mt-0.5">Defina preços, custo e tempo de execução.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex bg-muted/50 rounded-lg p-1">
+        <button onClick={() => setCadastroTab('clientes')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${cadastroTab === 'clientes' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
+          <Users className="w-3.5 h-3.5" /> Clientes
+        </button>
+        <button onClick={() => setCadastroTab('servicos')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${cadastroTab === 'servicos' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
+          <Wrench className="w-3.5 h-3.5" /> Serviços & Produtos
+        </button>
+      </div>
+
+      {cadastroTab === 'clientes' ? (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm">Gerenciar Clientes</h3>
+              <div className="flex gap-2">
+                <Button size="sm" variant="default" className="gap-1 text-xs h-8" onClick={() => setView('novo-cliente')}>
+                  <Plus className="w-3 h-3" /> Novo Cliente
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1 text-xs h-8" onClick={exportClientesPDF}>
+                  <Download className="w-3 h-3" /> PDF
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))
+            </div>
+            <div className="relative mb-3">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar cliente..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9" />
+            </div>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {filteredClients.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-4">Nenhum cliente</p>
+              ) : filteredClients.slice(0, 30).map(c => (
+                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-xs font-bold text-primary">{c.name.substring(0, 2).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{c.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{c.telefone || '-'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {c.telefone && (
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(`https://wa.me/55${c.telefone.replace(/\D/g, '')}`, '_blank')}>
+                        <Phone className="w-3.5 h-3.5 text-green-500" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold text-sm mb-3">Serviços & Produtos</h3>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {products.map(p => (
+                <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border/50">
+                  <div>
+                    <p className="text-sm font-medium">{p.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{p.type === 'service' ? 'Serviço' : p.type === 'piece' ? `Peça • Est: ${p.qty}` : 'Produto'}</p>
+                  </div>
+                  <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
 
-  const renderClientes = () => (
-    <div className="space-y-3">
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input placeholder="Buscar cliente..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" />
-        </div>
-        <Button size="icon" variant="outline" onClick={exportClientesPDF}><Download className="w-4 h-4" /></Button>
-        <Button size="icon" onClick={() => setView('novo-cliente')}><Plus className="w-4 h-4" /></Button>
-      </div>
-      {filteredClients.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum cliente encontrado</CardContent></Card>
-      ) : (
-        filteredClients.slice(0, 30).map((client) => (
-          <Card key={client.id}>
-            <CardContent className="p-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                  <span className="text-sm font-bold text-primary">{client.name.charAt(0)}</span>
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{client.name}</p>
-                  <p className="text-xs text-muted-foreground">{client.telefone || 'Sem telefone'}</p>
-                </div>
-              </div>
-              {client.telefone && (
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => window.open(`https://wa.me/55${client.telefone.replace(/\D/g, '')}`, '_blank')}>
-                  <Phone className="w-3.5 h-3.5 text-green-500" />
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))
-      )}
+  const renderNovoCliente = () => (
+    <div className="px-4 pt-4 space-y-4">
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Novo Cliente</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
+          <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
+          <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} />
+          <Button onClick={addClient} className="w-full h-11"><Plus className="w-4 h-4 mr-2" /> Cadastrar Cliente</Button>
+        </CardContent>
+      </Card>
     </div>
   );
 
   const renderFinanceiro = () => (
-    <div className="space-y-3">
-      <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportFinanceiroPDF}>
-        <Download className="w-4 h-4" /> Exportar Financeiro PDF
-      </Button>
+    <div className="px-4 pt-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <Card><CardContent className="p-4 text-center">
-          <p className="text-xs text-muted-foreground">Receitas Recentes</p>
-          <p className="text-xl font-bold text-green-500">R$ {totalReceitas.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">Receitas</p>
+          <p className="text-xl font-bold text-green-500">R$ {recentFinancial.filter(r => r.type === 'receita').reduce((s, r) => s + Number(r.amount), 0).toFixed(2)}</p>
         </CardContent></Card>
         <Card><CardContent className="p-4 text-center">
-          <p className="text-xs text-muted-foreground">Despesas Recentes</p>
-          <p className="text-xl font-bold text-destructive">R$ {totalDespesas.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground">Despesas</p>
+          <p className="text-xl font-bold text-destructive">R$ {recentFinancial.filter(r => r.type === 'despesa').reduce((s, r) => s + Number(r.amount), 0).toFixed(2)}</p>
         </CardContent></Card>
       </div>
-      {recentFinancial.map((rec) => (
+      {recentFinancial.map(rec => (
         <Card key={rec.id}>
           <CardContent className="p-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -565,109 +647,85 @@ export default function BetaDashboard() {
     </div>
   );
 
-  const renderNovoCliente = () => (
-    <div className="space-y-4">
+  const renderImpostos = () => (
+    <div className="px-4 pt-4 space-y-3">
+      <Card><CardContent className="p-6 text-center">
+        <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
+        <p className="font-semibold">Gestão de Impostos</p>
+        <p className="text-xs text-muted-foreground">Controle DAS, ISS, INSS e IRPF</p>
+        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
+      </CardContent></Card>
+    </div>
+  );
+
+  const renderLembretes = () => (
+    <div className="px-4 pt-4 space-y-3">
+      <Card><CardContent className="p-6 text-center">
+        <Bell className="w-8 h-8 text-primary mx-auto mb-2" />
+        <p className="font-semibold">Lembretes & Notificações</p>
+        <p className="text-xs text-muted-foreground">Contratos vencendo, manutenções agendadas</p>
+        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
+      </CardContent></Card>
+    </div>
+  );
+
+  const renderOnlineBookings = () => (
+    <div className="px-4 pt-4 space-y-3">
+      <Card><CardContent className="p-6 text-center">
+        <Globe className="w-8 h-8 text-primary mx-auto mb-2" />
+        <p className="font-semibold">Agendamento Online</p>
+        <p className="text-xs text-muted-foreground">Link para clientes agendarem</p>
+        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
+      </CardContent></Card>
+    </div>
+  );
+
+  const renderConfiguracoes = () => (
+    <div className="px-4 pt-4 space-y-3">
+      <Card><CardContent className="p-6 text-center">
+        <Settings className="w-8 h-8 text-primary mx-auto mb-2" />
+        <p className="font-semibold">Configurações</p>
+        <p className="text-xs text-muted-foreground">Empresa, notificações, backup</p>
+        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
+      </CardContent></Card>
+    </div>
+  );
+
+  const renderEstoque = () => (
+    <div className="px-4 pt-4 space-y-3">
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Novo Cliente</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-          <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
-          <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} />
-          <Button onClick={addClient} className="w-full h-11">
-            <Plus className="w-4 h-4 mr-2" /> Cadastrar Cliente
-          </Button>
+        <CardContent className="p-4">
+          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Package className="w-4 h-4" /> Estoque</h3>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {products.filter(p => p.type === 'piece').map(p => (
+              <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border/50">
+                <div>
+                  <p className="text-sm font-medium">{p.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{(p as any).suppliers?.name || '-'}</p>
+                </div>
+                <Badge variant={p.qty <= (p.min_stock || 0) ? 'destructive' : 'secondary'} className="text-xs">{p.qty} un.</Badge>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
   );
 
-  const renderEstoque = () => {
-    const estoqueProducts = products.filter(p => p.type === 'product');
-    const serviceItems = products.filter(p => p.type === 'service');
-    return (
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <Card><CardContent className="p-4 text-center">
-            <Package className="w-5 h-5 text-primary mx-auto mb-1" />
-            <p className="text-xl font-bold">{estoqueProducts.length}</p>
-            <p className="text-[10px] text-muted-foreground">Produtos</p>
-          </CardContent></Card>
-          <Card><CardContent className="p-4 text-center">
-            <Wrench className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-            <p className="text-xl font-bold">{serviceItems.length}</p>
-            <p className="text-[10px] text-muted-foreground">Serviços</p>
-          </CardContent></Card>
-        </div>
-
-        {lowStockProducts.length > 0 && (
-          <Card className="border-amber-300">
-            <CardHeader className="pb-2 px-4 pt-3">
-              <CardTitle className="text-sm text-amber-600">⚠️ Estoque Baixo</CardTitle>
-            </CardHeader>
-            <CardContent className="px-4 pb-3 space-y-2">
-              {lowStockProducts.map(p => (
-                <div key={p.id} className="flex justify-between items-center text-sm">
-                  <span>{p.name}</span>
-                  <Badge variant="destructive" className="text-xs">{p.qty} un.</Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
-          <CardHeader className="pb-2 px-4 pt-3">
-            <CardTitle className="text-sm">Todos os Itens</CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-3 space-y-2 max-h-96 overflow-y-auto">
-            {products.map(p => (
-              <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm">
-                <div>
-                  <p className="font-medium">{p.name}</p>
-                  <p className="text-xs text-muted-foreground">{p.type === 'service' ? 'Serviço' : `Estoque: ${p.qty}`}</p>
-                </div>
-                <p className="font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  };
-
   const renderOrcamentos = () => (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-amber-500">{quotes.filter(q => q.status === 'pendente').length}</p>
-          <p className="text-[10px] text-muted-foreground">Pendentes</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-green-500">{quotes.filter(q => q.status === 'aprovado').length}</p>
-          <p className="text-[10px] text-muted-foreground">Aprovados</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold">{quotes.length}</p>
-          <p className="text-[10px] text-muted-foreground">Total</p>
-        </CardContent></Card>
-      </div>
+    <div className="px-4 pt-4 space-y-3">
       {quotes.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum orçamento</CardContent></Card>
       ) : quotes.map(q => (
         <Card key={q.id}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium">{q.title}</p>
-                <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || 'Sem cliente'}</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), 'dd/MM/yyyy')}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-primary">R$ {Number(q.total).toFixed(2)}</p>
-                <Badge variant={q.status === 'aprovado' ? 'default' : 'outline'} className="text-[10px] mt-1">
-                  {q.status}
-                </Badge>
-              </div>
+          <CardContent className="p-3 flex justify-between items-start">
+            <div>
+              <p className="text-sm font-medium">{q.title}</p>
+              <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || '-'} • {format(new Date(q.created_at), 'dd/MM/yyyy')}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-primary text-sm">R$ {Number(q.total).toFixed(2)}</p>
+              <Badge variant={q.status === 'aprovado' ? 'default' : 'outline'} className="text-[10px]">{q.status}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -676,38 +734,20 @@ export default function BetaDashboard() {
   );
 
   const renderOS = () => (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-2">
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-amber-500">{serviceOrders.filter(o => o.status === 'pendente').length}</p>
-          <p className="text-[10px] text-muted-foreground">Pendentes</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-blue-500">{serviceOrders.filter(o => o.status === 'em_andamento').length}</p>
-          <p className="text-[10px] text-muted-foreground">Em Andamento</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-3 text-center">
-          <p className="text-lg font-bold text-green-500">{serviceOrders.filter(o => o.status === 'concluída').length}</p>
-          <p className="text-[10px] text-muted-foreground">Concluídas</p>
-        </CardContent></Card>
-      </div>
+    <div className="px-4 pt-4 space-y-3">
       {serviceOrders.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma O.S.</CardContent></Card>
       ) : serviceOrders.map(o => (
         <Card key={o.id}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-muted-foreground">#{String(o.order_number).padStart(4, '0')}</p>
-                <p className="text-sm font-medium">{o.title}</p>
-                <p className="text-xs text-muted-foreground">{(o.clients as any)?.name || 'Sem cliente'}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-primary">R$ {Number(o.total).toFixed(2)}</p>
-                <Badge variant={o.status === 'concluída' ? 'default' : 'outline'} className="text-[10px] mt-1">
-                  {o.status}
-                </Badge>
-              </div>
+          <CardContent className="p-3 flex justify-between items-start">
+            <div>
+              <p className="text-xs text-muted-foreground">#{String(o.order_number).padStart(4, '0')}</p>
+              <p className="text-sm font-medium">{o.title}</p>
+              <p className="text-xs text-muted-foreground">{(o.clients as any)?.name || '-'}</p>
+            </div>
+            <div className="text-right">
+              <p className="font-bold text-primary text-sm">R$ {Number(o.total).toFixed(2)}</p>
+              <Badge variant={o.status === 'concluída' ? 'default' : 'outline'} className="text-[10px]">{o.status}</Badge>
             </div>
           </CardContent>
         </Card>
@@ -715,35 +755,45 @@ export default function BetaDashboard() {
     </div>
   );
 
+  // "Mais" panel items
+  const maisItems = [
+    { id: 'financeiro' as BetaView, icon: TrendingUp, label: 'Financeiro' },
+    { id: 'impostos' as BetaView, icon: ClipboardList, label: 'Impostos' },
+    { id: 'lembretes' as BetaView, icon: Bell, label: 'Lembretes' },
+    { id: 'online-bookings' as BetaView, icon: Globe, label: 'Agend. Online' },
+    { id: 'configuracoes' as BetaView, icon: Settings, label: 'Configurações' },
+    { id: 'estoque' as BetaView, icon: Package, label: 'Estoque' },
+    { id: 'orcamentos' as BetaView, icon: FileCheck, label: 'Orçamentos' },
+    { id: 'os' as BetaView, icon: Wrench, label: 'Ordens Serv.' },
+  ];
+
+  const isMainView = ['home', 'agenda', 'pdv', 'cadastros'].includes(view);
+  const isMaisView = !isMainView && view !== 'mais' && view !== 'novo-cliente';
+
   const viewTitles: Record<BetaView, string> = {
-    home: 'Início',
-    agenda: 'Agenda',
-    clientes: 'Clientes',
-    financeiro: 'Financeiro',
-    'novo-cliente': 'Novo Cliente',
-    pdv: 'Ponto de Venda',
-    estoque: 'Estoque',
-    orcamentos: 'Orçamentos',
-    os: 'Ordens de Serviço',
+    home: 'Início', agenda: 'Agenda', pdv: 'PDV', cadastros: 'Cadastros', mais: 'Mais',
+    financeiro: 'Financeiro', impostos: 'Impostos', lembretes: 'Lembretes',
+    'online-bookings': 'Agendamento Online', configuracoes: 'Configurações',
+    'novo-cliente': 'Novo Cliente', estoque: 'Estoque', orcamentos: 'Orçamentos', os: 'Ordens de Serviço',
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-20 bg-card/90 backdrop-blur-md border-b border-border px-4 h-14 flex items-center justify-between">
+      <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border px-4 h-14 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {view !== 'home' ? (
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setView('home')}>
+          {!isMainView && view !== 'mais' ? (
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => isMaisView ? setView('home') : setView('home')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
           ) : (
             <div className="p-1.5 rounded-lg bg-primary/10">
-              <Zap className="w-5 h-5 text-primary" />
+              <Wind className="w-5 h-5 text-primary" />
             </div>
           )}
           <div>
             <h1 className="text-sm font-bold">{viewTitles[view]}</h1>
-            <p className="text-[10px] text-muted-foreground">Sistema Beta</p>
+            <p className="text-[10px] text-muted-foreground">Gestão de Ar Condicionado</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
@@ -754,51 +804,71 @@ export default function BetaDashboard() {
       </header>
 
       {/* Content */}
-      <main className="p-4 max-w-lg mx-auto pb-24">
+      <main className="max-w-3xl mx-auto pb-40">
         {view === 'home' && renderHome()}
         {view === 'agenda' && renderAgenda()}
-        {view === 'clientes' && renderClientes()}
-        {view === 'financeiro' && renderFinanceiro()}
-        {view === 'novo-cliente' && renderNovoCliente()}
         {view === 'pdv' && renderPDV()}
+        {view === 'cadastros' && renderCadastros()}
+        {view === 'financeiro' && renderFinanceiro()}
+        {view === 'impostos' && renderImpostos()}
+        {view === 'lembretes' && renderLembretes()}
+        {view === 'online-bookings' && renderOnlineBookings()}
+        {view === 'configuracoes' && renderConfiguracoes()}
+        {view === 'novo-cliente' && renderNovoCliente()}
         {view === 'estoque' && renderEstoque()}
         {view === 'orcamentos' && renderOrcamentos()}
         {view === 'os' && renderOS()}
       </main>
 
-      {/* Bottom Nav - scrollable */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-20">
-        <div className="max-w-lg mx-auto overflow-x-auto">
-          <div className="flex justify-around py-2 min-w-[400px]">
-            {[
-              { id: 'home' as BetaView, icon: BarChart3, label: 'Início' },
-              { id: 'agenda' as BetaView, icon: CalendarDays, label: 'Agenda' },
-              { id: 'pdv' as BetaView, icon: ShoppingCart, label: 'PDV' },
-              { id: 'clientes' as BetaView, icon: Users, label: 'Clientes' },
-              { id: 'financeiro' as BetaView, icon: Wallet, label: 'Financeiro' },
-              { id: 'orcamentos' as BetaView, icon: FileCheck, label: 'Orçam.' },
-              { id: 'os' as BetaView, icon: Wrench, label: 'O.S.' },
-              { id: 'estoque' as BetaView, icon: Package, label: 'Estoque' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setView(item.id)}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors ${
-                  view === item.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                <item.icon className={`w-5 h-5 ${view === item.id ? 'scale-110' : ''} transition-transform`} />
-                <span className="text-[9px] font-medium">{item.label}</span>
-              </button>
-            ))}
+      {/* "Mais" slide-up panel */}
+      {maisOpen && (
+        <div className="fixed inset-0 z-40" onClick={() => setMaisOpen(false)}>
+          <div className="absolute inset-0 bg-black/40" />
+          <div className="absolute bottom-[72px] left-0 right-0 bg-card border-t border-border rounded-t-2xl p-6 max-w-3xl mx-auto animate-in slide-in-from-bottom-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
+            <div className="grid grid-cols-3 gap-4">
+              {maisItems.map(item => (
+                <button key={item.id} onClick={() => { setView(item.id); setMaisOpen(false); }}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/50 transition-colors">
+                  <item.icon className="w-6 h-6 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">{item.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Return to full system */}
+            <Button variant="outline" size="sm" className="w-full mt-4 h-9 text-xs" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
+              <ArrowLeft className="w-3 h-3 mr-1.5" /> Voltar ao Sistema Completo
+            </Button>
           </div>
         </div>
+      )}
 
-        {/* Return to full system */}
-        <div className="border-t border-border px-4 py-2">
-          <Button variant="outline" size="sm" className="w-full h-9 text-xs" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
-            <ArrowLeft className="w-3 h-3 mr-1.5" /> Voltar ao Sistema Completo
-          </Button>
+      {/* Bottom Navigation - 5 tabs */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-30">
+        <div className="max-w-3xl mx-auto flex justify-around py-2 px-2">
+          {[
+            { id: 'home' as BetaView, icon: Home, label: 'Início' },
+            { id: 'agenda' as BetaView, icon: CalendarDays, label: 'Agenda' },
+            { id: 'pdv' as BetaView, icon: ShoppingCart, label: 'PDV' },
+            { id: 'cadastros' as BetaView, icon: Users, label: 'Cadastros' },
+          ].map(item => (
+            <button key={item.id} onClick={() => { setView(item.id); setMaisOpen(false); }}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] ${
+                view === item.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+              }`}>
+              <item.icon className={`w-5 h-5 ${view === item.id ? 'scale-110' : ''} transition-transform`} />
+              <span className={`text-[10px] font-medium ${view === item.id ? 'text-primary' : ''}`}>{item.label}</span>
+            </button>
+          ))}
+          <button onClick={() => setMaisOpen(!maisOpen)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] ${
+              maisOpen || isMaisView ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+            }`}>
+            <MoreHorizontal className={`w-5 h-5 ${maisOpen ? 'scale-110' : ''} transition-transform`} />
+            <span className={`text-[10px] font-medium ${maisOpen || isMaisView ? 'text-primary' : ''}`}>Mais</span>
+          </button>
         </div>
       </nav>
     </div>
