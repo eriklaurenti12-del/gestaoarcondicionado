@@ -110,8 +110,8 @@ const LembretesTab: React.FC = () => {
   return (
     <div className="space-y-4">
       <TabGuideCards cards={[
-        { icon: <MessageCircle className="w-5 h-5" />, title: "Mensagens em Massa", badge: "WhatsApp", badgeColor: "bg-green-500/20 text-green-400", description: "Envie mensagens personalizadas para clientes individuais ou em grupo via WhatsApp." },
-        { icon: <Bell className="w-5 h-5" />, title: "Parcelas Pendentes", badge: "Cobranças", badgeColor: "bg-red-500/20 text-red-400", description: "Acompanhe parcelas vencidas e envie lembretes de pagamento automaticamente." },
+        { icon: MessageCircle, title: "Mensagens em Massa", badge: "WhatsApp", badgeColor: "green", description: "Envie mensagens personalizadas para clientes individuais ou em grupo via WhatsApp." },
+        { icon: Bell, title: "Parcelas Pendentes", badge: "Cobranças", badgeColor: "rose", description: "Acompanhe parcelas vencidas e envie lembretes de pagamento automaticamente." },
       ]} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
