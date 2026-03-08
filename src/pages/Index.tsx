@@ -298,7 +298,7 @@ export default function Index() {
                     size="icon"
                     className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-accent"
                     onClick={() => navigate('/beta')}
-                    title="Sistema Beta"
+                    title="Sistema Simplificado"
                   >
                     <Zap className="h-5 w-5" />
                   </Button>
