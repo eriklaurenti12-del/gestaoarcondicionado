@@ -234,7 +234,7 @@ export default function Index() {
       case "notifications-settings":
         return <NotificationSettings />;
       case "lembretes":
-        return <LembretesTab />;
+        return <NotificationSettings />;
       case "backup":
         return <DataBackup />;
       case "company":

@@ -57,7 +57,6 @@ const defaultSections = [
   ]},
   { label: "Configurações", icon: "Settings", items: [
     { id: "company", title: "Minha Empresa" },
-    { id: "lembretes", title: "Lembretes & Mensagens" },
     { id: "notifications-settings", title: "Notificações" },
     { id: "backup", title: "Backup" },
   ]},
