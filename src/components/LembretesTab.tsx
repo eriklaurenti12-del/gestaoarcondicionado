@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { Bell, MessageCircle, Send, Users, CreditCard, Sparkles, Plus, X, CheckCircle, CalendarHeart, PartyPopper } from "lucide-react";
+import { MessageCircle, Send, Users, Sparkles, Plus, X, CalendarHeart, PartyPopper } from "lucide-react";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TabGuideCards from './TabGuideCards';
@@ -92,14 +92,6 @@ const LembretesTab: React.FC = () => {
     }
   });
 
-  const { data: installments = [] } = useQuery({
-    queryKey: ['installments-pending'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('installments').select('*, sales(clients(name, telefone))').eq('is_paid', false).order('due_date');
-      if (error) throw error;
-      return data;
-    }
-  });
 
   const clientsWithPhone = useMemo(() => clients.filter((c: any) => c.telefone), [clients]);
 
@@ -166,78 +158,19 @@ const LembretesTab: React.FC = () => {
     toast({ title: `✅ ${selected.length} mensagem(ns) enviada(s) via WhatsApp!` });
   };
 
-  const pendingInstallments = useMemo(() => {
-    return installments.map((inst: any) => {
-      const daysUntil = differenceInDays(new Date(inst.due_date), new Date());
-      return { ...inst, daysUntil };
-    }).sort((a: any, b: any) => a.daysUntil - b.daysUntil);
-  }, [installments]);
 
   return (
     <div className="space-y-4">
       <TabGuideCards cards={[
         { icon: MessageCircle, title: "Mensagens em Massa", badge: "WhatsApp", badgeColor: "green", description: "Envie mensagens personalizadas para clientes individuais ou em grupo via WhatsApp." },
-        { icon: Bell, title: "Parcelas Pendentes", badge: "Cobranças", badgeColor: "rose", description: "Acompanhe parcelas vencidas e envie lembretes de pagamento automaticamente." },
         { icon: CalendarHeart, title: "Feriados", badge: "Datas", badgeColor: "purple", description: "Gere mensagens personalizadas sobre feriados e datas comemorativas para seus clientes." },
       ]} />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="w-full grid grid-cols-3">
-          <TabsTrigger value="parcelas" className="gap-2"><CreditCard className="w-4 h-4" /> Parcelas</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-2">
           <TabsTrigger value="mensagens" className="gap-2"><MessageCircle className="w-4 h-4" /> Mensagens</TabsTrigger>
           <TabsTrigger value="feriados" className="gap-2"><PartyPopper className="w-4 h-4" /> Feriados</TabsTrigger>
         </TabsList>
-
-        {/* PARCELAS PENDENTES */}
-        <TabsContent value="parcelas" className="mt-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bell className="w-4 h-4 text-primary" /> Parcelas Pendentes ({pendingInstallments.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {pendingInstallments.length === 0 ? (
-                <div className="text-center py-8">
-                  <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                  <p className="text-muted-foreground">Nenhuma parcela pendente!</p>
-                </div>
-              ) : (
-                <div className="space-y-2 max-h-[500px] overflow-y-auto">
-                  {pendingInstallments.map((inst: any) => {
-                    const clientName = inst.sales?.clients?.name || 'Cliente';
-                    const clientPhone = inst.sales?.clients?.telefone;
-                    const isOverdue = inst.daysUntil < 0;
-                    return (
-                      <div key={inst.id} className={`flex items-center justify-between p-3 rounded-lg border ${isOverdue ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-muted/30'}`}>
-                        <div>
-                          <p className="text-sm font-medium">{clientName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Parcela {inst.installment_number}/{inst.total_installments} • Vence: {format(new Date(inst.due_date), 'dd/MM/yyyy')}
-                          </p>
-                          <Badge variant={isOverdue ? 'destructive' : 'outline'} className="text-[10px] mt-1">
-                            {isOverdue ? `Vencida há ${Math.abs(inst.daysUntil)} dias` : inst.daysUntil === 0 ? 'Vence hoje' : `Vence em ${inst.daysUntil} dias`}
-                          </Badge>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-1">
-                          <p className="font-bold text-sm text-primary">R$ {Number(inst.amount).toFixed(2)}</p>
-                          {clientPhone && (
-                            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => {
-                              const msg = `Olá ${clientName}! Lembramos que a parcela ${inst.installment_number}/${inst.total_installments} no valor de R$ ${Number(inst.amount).toFixed(2)} vence em ${format(new Date(inst.due_date), 'dd/MM/yyyy')}. Entre em contato para efetuar o pagamento.`;
-                              window.open(`https://wa.me/55${clientPhone.replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`, '_blank');
-                            }}>
-                              <Send className="w-3 h-3" /> Cobrar
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* MENSAGENS EM MASSA */}
         <TabsContent value="mensagens" className="mt-4 space-y-4">
