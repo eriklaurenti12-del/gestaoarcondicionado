@@ -20,6 +20,7 @@ import { format, isToday, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import LembretesTab from '@/components/LembretesTab';
 
 type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
@@ -386,7 +387,10 @@ export default function BetaDashboard() {
               <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
                 {filteredProducts.map(p => (
                   <button key={p.id} onClick={() => addToCart(p)}
-                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
+                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors overflow-hidden">
+                    {p.image_url && (
+                      <img src={p.image_url} alt={p.name} className="w-full h-16 object-cover rounded mb-1.5" />
+                    )}
                     <p className="text-xs font-medium truncate">{p.name}</p>
                     <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
                     {p.type === 'piece' && <p className="text-[10px] text-muted-foreground">Rest.: {p.qty}</p>}
@@ -659,13 +663,8 @@ export default function BetaDashboard() {
   );
 
   const renderLembretes = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Bell className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Lembretes & Notificações</p>
-        <p className="text-xs text-muted-foreground">Contratos vencendo, manutenções agendadas</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
+    <div className="px-4 pt-4">
+      <LembretesTab />
     </div>
   );
 

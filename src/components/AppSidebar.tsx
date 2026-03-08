@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
@@ -33,7 +33,7 @@ const iconMap: Record<string, any> = {
   "online-bookings": Globe, documents: FileText, services: Snowflake,
   "btu-calculator": Thermometer, pdv: ShoppingCart, financeiro: Wallet,
   impostos: TrendingUp, company: Briefcase, "notifications-settings": Bell,
-  backup: Database,
+  lembretes: MessageCircle, backup: Database,
 };
 
 const defaultSections = [
@@ -57,6 +57,7 @@ const defaultSections = [
   ]},
   { label: "Configurações", icon: "Settings", items: [
     { id: "company", title: "Minha Empresa" },
+    { id: "lembretes", title: "Lembretes & Mensagens" },
     { id: "notifications-settings", title: "Notificações" },
     { id: "backup", title: "Backup" },
   ]},

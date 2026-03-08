@@ -20,6 +20,7 @@ import DataBackup from "@/components/DataBackup";
 import NotificationsPanel from "@/components/NotificationsPanel";
 import OnlineBookingsTab from "@/components/OnlineBookingsTab";
 import NotificationSettings from "@/components/NotificationSettings";
+import LembretesTab from "@/components/LembretesTab";
 import OnboardingTour from "@/components/OnboardingTour";
 import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -196,10 +197,10 @@ export default function Index() {
 
   const allowedTabsByRole: Record<string, string[]> = {
     painel: ['dashboard'],
-    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents'],
-    sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
-    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
-    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'backup', 'company'],
+    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents', 'lembretes'],
+    sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
+    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
+    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
   };
 
   const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['']).includes(tab);
@@ -232,6 +233,8 @@ export default function Index() {
         return <ImpostosTab />;
       case "notifications-settings":
         return <NotificationSettings />;
+      case "lembretes":
+        return <LembretesTab />;
       case "backup":
         return <DataBackup />;
       case "company":
@@ -254,6 +257,7 @@ export default function Index() {
       pdv: "Ponto de Venda",
       impostos: "Gestão de Impostos",
       "notifications-settings": "Configurações de Notificações",
+      lembretes: "Lembretes & Mensagens",
       backup: "Backup dos Dados",
       company: "Dados da Empresa"
     };
