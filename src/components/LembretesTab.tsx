@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
-import { Bell, MessageCircle, Send, Users, CreditCard, Sparkles, Plus, X, CheckCircle, CalendarHeart, PartyPopper } from "lucide-react";
+import { MessageCircle, Send, Users, Sparkles, Plus, X, CalendarHeart, PartyPopper } from "lucide-react";
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import TabGuideCards from './TabGuideCards';
