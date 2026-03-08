@@ -68,6 +68,21 @@ export default function BetaDashboard() {
   // Mais panel open state
   const [maisOpen, setMaisOpen] = useState(false);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
+      switch (e.key) {
+        case 'F1': e.preventDefault(); setView('home'); break;
+        case 'F2': e.preventDefault(); setView('pdv'); break;
+        case 'F3': e.preventDefault(); setView('agenda'); break;
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [view]);
+
   useEffect(() => {
     checkAuth();
   }, []);
