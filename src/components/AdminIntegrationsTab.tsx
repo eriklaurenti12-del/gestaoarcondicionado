@@ -66,9 +66,13 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [settings, setSettings] = useState<Record<string, string>>({
     checkout_mensal: '',
+    checkout_trimestral: '',
+    checkout_semestral: '',
     checkout_anual: '',
     whatsapp_suporte: '',
     preco_mensal: '',
+    preco_trimestral: '',
+    preco_semestral: '',
     preco_anual: '',
     promo_end_date: '',
   });
@@ -122,7 +126,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        if (['checkout_mensal', 'checkout_anual', 'whatsapp_suporte', 'preco_mensal', 'preco_anual', 'promo_end_date'].includes(key)) {
+        if (['checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'whatsapp_suporte', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'promo_end_date'].includes(key)) {
           await supabase.from('admin_settings').upsert({ key, value, description: `Config: ${key}` }, { onConflict: 'key' });
         }
       }

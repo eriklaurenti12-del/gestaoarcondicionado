@@ -960,21 +960,36 @@ const ServicesUnifiedTab: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setAttachDialogOpen(false); setAttachFile(null); }}>Cancelar</Button>
-            <Button disabled={!attachFile} onClick={() => {
+            <Button disabled={!attachFile} onClick={async () => {
               if (!attachFile || !attachContract) return;
-              const reader = new FileReader();
-              reader.onload = () => {
-                try {
-                  localStorage.setItem(`contract_${attachContract.id}_${attachType}`, JSON.stringify({ name: attachFile.name, type: attachFile.type, data: reader.result, date: new Date().toISOString() }));
-                  toast.success('Documento anexado!');
-                  if (attachType === 'cancellation') {
-                    supabase.from('maintenance_contracts').update({ status: 'cancelado' }).eq('id', attachContract.id)
-                      .then(() => queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] }));
-                  }
-                } catch { toast.error('Arquivo muito grande.'); }
-                setAttachDialogOpen(false); setAttachFile(null);
-              };
-              reader.readAsDataURL(attachFile);
+              try {
+                const fileExt = attachFile.name.split('.').pop();
+                const filePath = `contracts/${attachContract.id}/${attachType}_${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                  .from('service-photos')
+                  .upload(filePath, attachFile, { upsert: true });
+                if (uploadError) throw uploadError;
+                
+                // Save reference in contract notes
+                const currentNotes = attachContract.notes || '{}';
+                let parsed: any = {};
+                try { parsed = JSON.parse(currentNotes); } catch { parsed = { userNotes: currentNotes }; }
+                parsed[`${attachType}_file`] = filePath;
+                parsed[`${attachType}_file_name`] = attachFile.name;
+                parsed[`${attachType}_date`] = new Date().toISOString();
+                
+                await supabase.from('maintenance_contracts')
+                  .update({ notes: JSON.stringify(parsed) })
+                  .eq('id', attachContract.id);
+
+                toast.success('Documento anexado com sucesso!');
+                if (attachType === 'cancellation') {
+                  await supabase.from('maintenance_contracts').update({ status: 'cancelado' }).eq('id', attachContract.id);
+                  queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+                }
+                queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+              } catch (err: any) { toast.error(`Erro ao anexar: ${err.message}`); }
+              setAttachDialogOpen(false); setAttachFile(null);
             }}>
               <Upload className="w-4 h-4 mr-2" />Anexar
             </Button>
