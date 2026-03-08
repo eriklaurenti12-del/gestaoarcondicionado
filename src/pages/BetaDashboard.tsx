@@ -1026,10 +1026,13 @@ export default function BetaDashboard() {
           )}
           <div>
             <h1 className="text-sm font-bold">{viewTitles[view]}</h1>
-            <p className="text-[10px] text-muted-foreground">Gestão de Ar Condicionado</p>
+            <p className="text-[10px] text-muted-foreground">Sistema Simplificado</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-9 text-xs gap-1.5" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
+            <ArrowLeft className="w-3.5 h-3.5" /> Completo
+          </Button>
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
             {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </Button>

@@ -212,11 +212,11 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => { toggleBeta(); betaNavigate('/beta'); }}
-              tooltip="Acessar Sistema Beta"
+              tooltip="Acessar Sistema Simplificado"
               className="hover:bg-accent/10 text-accent transition-all duration-200 hover:translate-x-1"
             >
               <Zap className="w-4 h-4 transition-transform duration-300 hover:scale-110" />
-              <span>Sistema Beta</span>
+              <span>Simplificado</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
