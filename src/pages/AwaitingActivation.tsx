@@ -15,7 +15,10 @@ const AwaitingActivation: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState('https://wa.me/5511999999999');
   const [checkoutMensal, setCheckoutMensal] = useState('');
+  const [checkoutTrimestral, setCheckoutTrimestral] = useState('');
   const [checkoutAnual, setCheckoutAnual] = useState('');
+  const [checkoutVitalicio, setCheckoutVitalicio] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<string>('mensal');
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
@@ -52,13 +55,15 @@ const AwaitingActivation: React.FC = () => {
       const { data: settings } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_anual']);
+        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_anual', 'checkout_vitalicio']);
       
       if (settings) {
         settings.forEach(s => {
           if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
           if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
+          if (s.key === 'checkout_trimestral' && s.value) setCheckoutTrimestral(s.value);
           if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
+          if (s.key === 'checkout_vitalicio' && s.value) setCheckoutVitalicio(s.value);
         });
       }
     };
@@ -197,30 +202,68 @@ const AwaitingActivation: React.FC = () => {
           </div>
 
           {/* Payment Buttons */}
-          <div className="space-y-2">
+          <div className="space-y-3">
             <p className="text-gray-400 text-xs text-center font-medium">Escolha seu plano:</p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <Button 
-                onClick={() => openCheckout(checkoutMensal)}
-                className="flex-col h-auto py-3 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border border-blue-500/30"
+                onClick={() => setSelectedPlan('mensal')}
+                variant="outline"
+                className={`flex-col h-auto py-3 border transition-all ${selectedPlan === 'mensal' ? 'border-blue-500 bg-blue-500/20 text-white ring-2 ring-blue-500/50' : 'border-white/10 text-gray-300 hover:bg-white/5'}`}
               >
-                <CreditCard className="w-5 h-5 mb-1" />
+                <CreditCard className="w-4 h-4 mb-1" />
                 <span className="text-sm font-semibold">Mensal</span>
-                <span className="text-xs opacity-80">Pagar mês a mês</span>
+                <span className="text-[10px] opacity-70">Mês a mês</span>
               </Button>
               
               <Button 
-                onClick={() => openCheckout(checkoutAnual)}
-                className="flex-col h-auto py-3 bg-gradient-to-br from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 border border-amber-400/30 relative overflow-hidden"
+                onClick={() => setSelectedPlan('trimestral')}
+                variant="outline"
+                className={`flex-col h-auto py-3 border transition-all ${selectedPlan === 'trimestral' ? 'border-purple-500 bg-purple-500/20 text-white ring-2 ring-purple-500/50' : 'border-white/10 text-gray-300 hover:bg-white/5'}`}
               >
-                <div className="absolute -top-1 -right-1 bg-green-500 text-[9px] px-2 py-0.5 rounded-bl-md font-bold">
-                  ECONOMIZE
+                <CreditCard className="w-4 h-4 mb-1" />
+                <span className="text-sm font-semibold">Trimestral</span>
+                <span className="text-[10px] opacity-70">3 meses</span>
+              </Button>
+              
+              <Button 
+                onClick={() => setSelectedPlan('anual')}
+                variant="outline"
+                className={`flex-col h-auto py-3 border transition-all relative overflow-hidden ${selectedPlan === 'anual' ? 'border-amber-500 bg-amber-500/20 text-white ring-2 ring-amber-500/50' : 'border-white/10 text-gray-300 hover:bg-white/5'}`}
+              >
+                <div className="absolute -top-0.5 -right-0.5 bg-green-500 text-[8px] px-1.5 py-0.5 rounded-bl-md font-bold text-white">
+                  POPULAR
                 </div>
-                <Crown className="w-5 h-5 mb-1" />
+                <Crown className="w-4 h-4 mb-1 text-amber-400" />
                 <span className="text-sm font-semibold">Anual</span>
-                <span className="text-xs opacity-80">Melhor preço</span>
+                <span className="text-[10px] opacity-70">Melhor preço</span>
+              </Button>
+
+              <Button 
+                onClick={() => setSelectedPlan('vitalicio')}
+                variant="outline"
+                className={`flex-col h-auto py-3 border transition-all ${selectedPlan === 'vitalicio' ? 'border-green-500 bg-green-500/20 text-white ring-2 ring-green-500/50' : 'border-white/10 text-gray-300 hover:bg-white/5'}`}
+              >
+                <Crown className="w-4 h-4 mb-1 text-green-400" />
+                <span className="text-sm font-semibold">Vitalício</span>
+                <span className="text-[10px] opacity-70">Para sempre</span>
               </Button>
             </div>
+
+            <Button 
+              onClick={() => {
+                const urls: Record<string, string> = {
+                  mensal: checkoutMensal,
+                  trimestral: checkoutTrimestral,
+                  anual: checkoutAnual,
+                  vitalicio: checkoutVitalicio,
+                };
+                openCheckout(urls[selectedPlan] || '');
+              }}
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold py-3"
+            >
+              <CreditCard className="w-4 h-4 mr-2" />
+              Pagar Plano {selectedPlan === 'vitalicio' ? 'Vitalício' : selectedPlan.charAt(0).toUpperCase() + selectedPlan.slice(1)}
+            </Button>
           </div>
 
           <div className="relative">
