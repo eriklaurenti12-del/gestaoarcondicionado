@@ -67,13 +67,13 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
     checkout_mensal: '',
     checkout_trimestral: '',
-    checkout_semestral: '',
     checkout_anual: '',
+    checkout_vitalicio: '',
     whatsapp_suporte: '',
     preco_mensal: '',
     preco_trimestral: '',
-    preco_semestral: '',
     preco_anual: '',
+    preco_vitalicio: '',
     promo_end_date: '',
   });
   const [testEmail, setTestEmail] = useState('');
@@ -126,7 +126,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        if (['checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'whatsapp_suporte', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'promo_end_date'].includes(key)) {
+        if (['checkout_mensal', 'checkout_trimestral', 'checkout_anual', 'checkout_vitalicio', 'whatsapp_suporte', 'preco_mensal', 'preco_trimestral', 'preco_anual', 'preco_vitalicio', 'promo_end_date'].includes(key)) {
           await supabase.from('admin_settings').upsert({ key, value, description: `Config: ${key}` }, { onConflict: 'key' });
         }
       }
@@ -516,6 +516,25 @@ export const AdminIntegrationsTab: React.FC = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-purple-400" />
+                    Checkout Trimestral
+                  </label>
+                  {settings.checkout_trimestral && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
+                </div>
+                <div className="flex gap-2">
+                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_trimestral} onChange={(e) => setSettings(prev => ({ ...prev, checkout_trimestral: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                  {settings.checkout_trimestral && (
+                    <>
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_trimestral, 'Link Trimestral')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
+                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_trimestral, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-amber-400" />
                     Checkout Anual
                     <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[10px]">Destaque</Badge>
@@ -528,6 +547,26 @@ export const AdminIntegrationsTab: React.FC = () => {
                     <>
                       <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_anual, 'Link Anual')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
                       <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_anual, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
+                    <Wallet className="w-4 h-4 text-green-400" />
+                    Checkout Vitalício
+                    <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Permanente</Badge>
+                  </label>
+                  {settings.checkout_vitalicio && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
+                </div>
+                <div className="flex gap-2">
+                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_vitalicio} onChange={(e) => setSettings(prev => ({ ...prev, checkout_vitalicio: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
+                  {settings.checkout_vitalicio && (
+                    <>
+                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_vitalicio, 'Link Vitalício')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
+                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_vitalicio, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
                     </>
                   )}
                 </div>
@@ -553,12 +592,12 @@ export const AdminIntegrationsTab: React.FC = () => {
                   Preços para Detecção Automática (Webhook)
                 </h4>
                 <p className="text-xs text-gray-400">
-                  O webhook usa estes valores para detectar automaticamente se o pagamento é mensal ou anual. 
-                  Valores ≥ 80% do preço anual = anual, senão = mensal.
+                  O webhook usa estes valores para detectar automaticamente o plano do pagamento.
+                  O sistema compara o valor recebido (±20%) com os preços abaixo e ativa o plano correspondente.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Preço Mensal (R$)</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Mensal (R$)</label>
                     <Input 
                       type="number" step="0.01"
                       value={settings.preco_mensal} 
@@ -568,13 +607,33 @@ export const AdminIntegrationsTab: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Preço Anual (R$)</label>
+                    <label className="text-xs text-gray-400 mb-1 block">Trimestral (R$)</label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={settings.preco_trimestral} 
+                      onChange={(e) => setSettings(prev => ({ ...prev, preco_trimestral: e.target.value }))} 
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                      placeholder="99.90"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Anual (R$)</label>
                     <Input 
                       type="number" step="0.01"
                       value={settings.preco_anual} 
                       onChange={(e) => setSettings(prev => ({ ...prev, preco_anual: e.target.value }))} 
                       className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
                       placeholder="370"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1 block">Vitalício (R$)</label>
+                    <Input 
+                      type="number" step="0.01"
+                      value={settings.preco_vitalicio} 
+                      onChange={(e) => setSettings(prev => ({ ...prev, preco_vitalicio: e.target.value }))} 
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
+                      placeholder="997"
                     />
                   </div>
                 </div>
