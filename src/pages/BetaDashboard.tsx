@@ -305,10 +305,6 @@ export default function BetaDashboard() {
   const monthDespesas = recentFinancial.filter(r => r.type === 'saida' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthExpenses = fixedExpenses.filter(e => e.expense_date?.substring(0, 7) === monthPrefix).reduce((s, e) => s + Number(e.amount), 0);
 
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><Wind className="w-10 h-10 text-primary animate-spin" /></div>;
-  }
-
   const todayApts = allAppointments.filter(a => isToday(new Date(a.appointment_date)));
   const todayRevenue = todayApts.filter(a => a.status === 'concluído' || a.status === 'concluido').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
 
@@ -335,6 +331,11 @@ export default function BetaDashboard() {
     });
     return map;
   }, [boardAppointments]);
+
+  // Early return AFTER all hooks
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><Wind className="w-10 h-10 text-primary animate-spin" /></div>;
+  }
 
   const isSlotPast = (time: string) => {
     if (!isToday(boardDate)) return isBefore(boardDate, startOfDay(new Date()));
