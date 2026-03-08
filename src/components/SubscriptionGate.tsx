@@ -130,13 +130,19 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
               </p>
             </div>
             <div className="flex flex-col gap-3 pt-2">
+              <Button 
+                onClick={() => navigate('/awaiting-activation')}
+                className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              >
+                💳 Efetuar Pagamento
+              </Button>
               <a
                 href="https://wa.me/5516992600631?text=Ol%C3%A1%20Erik,%20preciso%20ativar%20minha%20licen%C3%A7a%20AC%20Service%20Pro"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium px-6 py-3 rounded-lg transition-all text-sm w-full"
+                className="inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg transition-all text-sm w-full"
               >
-                📱 Ativar Licença via WhatsApp
+                📱 Chamar Suporte via WhatsApp
               </a>
               <Button 
                 onClick={handleLogout}

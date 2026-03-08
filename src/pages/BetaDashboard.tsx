@@ -8,19 +8,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { 
   BarChart3, CalendarDays, Users, DollarSign, FileText, 
   Plus, Search, ArrowLeft, Moon, Sun, Zap, Clock, 
   Phone, Wallet, ShoppingCart, ClipboardList, Wind,
-  Download, Keyboard, Minus, Trash2, Receipt
+  Download, Keyboard, Minus, Trash2, Receipt, Package,
+  Wrench, FileCheck, Eye, Thermometer
 } from 'lucide-react';
-import { format, isToday, isTomorrow, startOfDay, startOfMonth, endOfMonth } from 'date-fns';
+import { format, isToday, isTomorrow, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-type BetaView = 'home' | 'agenda' | 'clientes' | 'financeiro' | 'novo-cliente' | 'pdv';
+type BetaView = 'home' | 'agenda' | 'clientes' | 'financeiro' | 'novo-cliente' | 'pdv' | 'estoque' | 'orcamentos' | 'os';
 
 export default function BetaDashboard() {
   const navigate = useNavigate();
@@ -36,6 +38,8 @@ export default function BetaDashboard() {
   const [clients, setClients] = useState<any[]>([]);
   const [recentFinancial, setRecentFinancial] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
+  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Form states  
@@ -64,16 +68,20 @@ export default function BetaDashboard() {
 
   const loadData = async (uid: string) => {
     const today = startOfDay(new Date()).toISOString();
-    const [aptsRes, clientsRes, finRes, prodsRes] = await Promise.all([
+    const [aptsRes, clientsRes, finRes, prodsRes, quotesRes, osRes] = await Promise.all([
       supabase.from('appointments').select('*, clients(name, telefone), products(name)').eq('user_id', uid).gte('appointment_date', today).order('appointment_date', { ascending: true }).limit(20),
       supabase.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
       supabase.from('financial_records').select('*').eq('user_id', uid).order('record_date', { ascending: false }).limit(10),
       supabase.from('products').select('*').eq('user_id', uid).order('name').limit(200),
+      supabase.from('quotes').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(50),
+      supabase.from('service_orders').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(50),
     ]);
     if (aptsRes.data) setTodayAppointments(aptsRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
     if (finRes.data) setRecentFinancial(finRes.data);
     if (prodsRes.data) setProducts(prodsRes.data);
+    if (quotesRes.data) setQuotes(quotesRes.data);
+    if (osRes.data) setServiceOrders(osRes.data);
   };
 
   const addClient = async () => {
@@ -130,7 +138,6 @@ export default function BetaDashboard() {
     doc.text('Agenda - Próximos Atendimentos', 14, 20);
     doc.setFontSize(10);
     doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
-    
     autoTable(doc, {
       startY: 35,
       head: [['Data/Hora', 'Cliente', 'Serviço', 'Status']],
@@ -151,7 +158,6 @@ export default function BetaDashboard() {
     doc.text('Lista de Clientes', 14, 20);
     doc.setFontSize(10);
     doc.text(`Total: ${clients.length} clientes`, 14, 28);
-
     autoTable(doc, {
       startY: 35,
       head: [['Nome', 'Telefone', 'Endereço']],
@@ -167,7 +173,6 @@ export default function BetaDashboard() {
     doc.text('Relatório Financeiro', 14, 20);
     doc.setFontSize(10);
     doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
-
     autoTable(doc, {
       startY: 35,
       head: [['Data', 'Descrição', 'Tipo', 'Valor']],
@@ -190,7 +195,6 @@ export default function BetaDashboard() {
         if (e.key === 'Escape') (e.target as HTMLElement).blur();
         return;
       }
-
       switch (e.key) {
         case 'F1': e.preventDefault(); setView('home'); break;
         case 'F2': e.preventDefault(); setView('pdv'); break;
@@ -233,48 +237,75 @@ export default function BetaDashboard() {
   const todayApts = todayAppointments.filter(a => isToday(new Date(a.appointment_date)));
   const tomorrowApts = todayAppointments.filter(a => isTomorrow(new Date(a.appointment_date)));
   const totalReceitas = recentFinancial.filter(r => r.type === 'receita').reduce((s, r) => s + Number(r.amount), 0);
+  const totalDespesas = recentFinancial.filter(r => r.type === 'despesa').reduce((s, r) => s + Number(r.amount), 0);
+  const pendingQuotes = quotes.filter(q => q.status === 'pendente');
+  const pendingOS = serviceOrders.filter(o => o.status === 'pendente' || o.status === 'em_andamento');
+  const lowStockProducts = products.filter(p => p.type === 'product' && p.min_stock && p.qty <= p.min_stock);
 
   const renderHome = () => (
     <div className="space-y-4">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Quick Stats - 3 cols */}
+      <div className="grid grid-cols-3 gap-2">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('agenda')}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-primary/10"><CalendarDays className="w-5 h-5 text-primary" /></div>
-            <div>
-              <p className="text-2xl font-bold">{todayApts.length}</p>
-              <p className="text-xs text-muted-foreground">Hoje</p>
-            </div>
+          <CardContent className="p-3 text-center">
+            <CalendarDays className="w-5 h-5 text-primary mx-auto mb-1" />
+            <p className="text-2xl font-bold">{todayApts.length}</p>
+            <p className="text-[10px] text-muted-foreground">Hoje</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('clientes')}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-accent/10"><Users className="w-5 h-5 text-accent" /></div>
-            <div>
-              <p className="text-2xl font-bold">{clients.length}</p>
-              <p className="text-xs text-muted-foreground">Clientes</p>
-            </div>
+          <CardContent className="p-3 text-center">
+            <Users className="w-5 h-5 text-accent mx-auto mb-1" />
+            <p className="text-2xl font-bold">{clients.length}</p>
+            <p className="text-[10px] text-muted-foreground">Clientes</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('financeiro')}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-green-500/10"><DollarSign className="w-5 h-5 text-green-500" /></div>
-            <div>
-              <p className="text-lg font-bold">R$ {totalReceitas.toFixed(0)}</p>
-              <p className="text-xs text-muted-foreground">Receitas</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('pdv')}>
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-purple-500/10"><ShoppingCart className="w-5 h-5 text-purple-500" /></div>
-            <div>
-              <p className="text-lg font-bold">PDV</p>
-              <p className="text-xs text-muted-foreground">Venda Rápida</p>
-            </div>
+          <CardContent className="p-3 text-center">
+            <DollarSign className="w-5 h-5 text-green-500 mx-auto mb-1" />
+            <p className="text-lg font-bold">R${totalReceitas.toFixed(0)}</p>
+            <p className="text-[10px] text-muted-foreground">Receitas</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Second row */}
+      <div className="grid grid-cols-3 gap-2">
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('pdv')}>
+          <CardContent className="p-3 text-center">
+            <ShoppingCart className="w-5 h-5 text-purple-500 mx-auto mb-1" />
+            <p className="text-lg font-bold">PDV</p>
+            <p className="text-[10px] text-muted-foreground">Venda</p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('orcamentos')}>
+          <CardContent className="p-3 text-center">
+            <FileCheck className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+            <p className="text-2xl font-bold">{pendingQuotes.length}</p>
+            <p className="text-[10px] text-muted-foreground">Orçamentos</p>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setView('os')}>
+          <CardContent className="p-3 text-center">
+            <Wrench className="w-5 h-5 text-amber-500 mx-auto mb-1" />
+            <p className="text-2xl font-bold">{pendingOS.length}</p>
+            <p className="text-[10px] text-muted-foreground">O.S.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Estoque alert */}
+      {lowStockProducts.length > 0 && (
+        <Card className="border-amber-300 bg-amber-50/50 dark:bg-amber-950/10 cursor-pointer" onClick={() => setView('estoque')}>
+          <CardContent className="p-3 flex items-center gap-3">
+            <Package className="w-5 h-5 text-amber-500" />
+            <div>
+              <p className="text-sm font-medium text-amber-700 dark:text-amber-300">⚠️ {lowStockProducts.length} produto(s) com estoque baixo</p>
+              <p className="text-xs text-muted-foreground">Clique para ver detalhes</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Today's Appointments */}
       {todayApts.length > 0 && (
@@ -308,9 +339,8 @@ export default function BetaDashboard() {
         <Button onClick={() => setView('novo-cliente')} className="h-12 justify-start gap-3" variant="outline">
           <Plus className="w-4 h-4" /> Cadastrar Novo Cliente
         </Button>
-        <Button onClick={() => setView('pdv')} className="h-12 justify-start gap-3" variant="outline">
-          <ShoppingCart className="w-4 h-4" /> Ponto de Venda Rápido
-          <Badge variant="secondary" className="ml-auto text-[10px]">F2</Badge>
+        <Button onClick={() => setView('estoque')} className="h-12 justify-start gap-3" variant="outline">
+          <Package className="w-4 h-4" /> Estoque & Produtos
         </Button>
         <Button onClick={() => navigate('/dashboard')} className="h-12 justify-start gap-3" variant="outline">
           <ClipboardList className="w-4 h-4" /> Sistema Completo
@@ -339,7 +369,6 @@ export default function BetaDashboard() {
 
   const renderPDV = () => (
     <div className="space-y-3">
-      {/* Payment method quick switch */}
       <div className="flex gap-1.5">
         {(['PIX', 'Dinheiro', 'Débito', 'Crédito'] as const).map(m => (
           <Button key={m} size="sm" variant={pdvPayment === m ? 'default' : 'outline'} 
@@ -348,8 +377,6 @@ export default function BetaDashboard() {
           </Button>
         ))}
       </div>
-
-      {/* Client selector */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input placeholder="Cliente (opcional)" value={pdvClientSearch} 
@@ -365,25 +392,20 @@ export default function BetaDashboard() {
           </div>
         )}
       </div>
-
-      {/* Product search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input placeholder="Buscar produto/serviço..." value={pdvSearch} onChange={e => setPdvSearch(e.target.value)} className="pl-9 h-10" />
       </div>
-
-      {/* Product grid */}
       <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
         {filteredProducts.slice(0, 12).map(p => (
           <button key={p.id} onClick={() => addToCart(p)}
             className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
             <p className="text-xs font-medium truncate">{p.name}</p>
             <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
+            {p.type === 'product' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
           </button>
         ))}
       </div>
-
-      {/* Cart */}
       {pdvCart.length > 0 && (
         <Card>
           <CardHeader className="pb-2 px-4 pt-3">
@@ -421,18 +443,10 @@ export default function BetaDashboard() {
             </div>
             <Button className="w-full h-11 mt-2" onClick={finalizePdvSale}>
               <Receipt className="w-4 h-4 mr-2" /> Finalizar Venda ({pdvPayment})
-              <Badge variant="secondary" className="ml-2 text-[10px] hidden md:inline-flex">F4</Badge>
             </Button>
           </CardContent>
         </Card>
       )}
-
-      {/* Desktop shortcut bar */}
-      <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground bg-muted/50 rounded-lg p-2 justify-center flex-wrap">
-        <span><kbd className="px-1 py-0.5 rounded bg-card border border-border font-mono">F4</kbd> Finalizar</span>
-        <span><kbd className="px-1 py-0.5 rounded bg-card border border-border font-mono">F5</kbd> Pagamento</span>
-        <span><kbd className="px-1 py-0.5 rounded bg-card border border-border font-mono">F8</kbd> Limpar</span>
-      </div>
     </div>
   );
 
@@ -527,7 +541,7 @@ export default function BetaDashboard() {
         </CardContent></Card>
         <Card><CardContent className="p-4 text-center">
           <p className="text-xs text-muted-foreground">Despesas Recentes</p>
-          <p className="text-xl font-bold text-destructive">R$ {recentFinancial.filter(r => r.type === 'despesa').reduce((s, r) => s + Number(r.amount), 0).toFixed(2)}</p>
+          <p className="text-xl font-bold text-destructive">R$ {totalDespesas.toFixed(2)}</p>
         </CardContent></Card>
       </div>
       {recentFinancial.map((rec) => (
@@ -567,6 +581,140 @@ export default function BetaDashboard() {
     </div>
   );
 
+  const renderEstoque = () => {
+    const estoqueProducts = products.filter(p => p.type === 'product');
+    const serviceItems = products.filter(p => p.type === 'service');
+    return (
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Card><CardContent className="p-4 text-center">
+            <Package className="w-5 h-5 text-primary mx-auto mb-1" />
+            <p className="text-xl font-bold">{estoqueProducts.length}</p>
+            <p className="text-[10px] text-muted-foreground">Produtos</p>
+          </CardContent></Card>
+          <Card><CardContent className="p-4 text-center">
+            <Wrench className="w-5 h-5 text-blue-500 mx-auto mb-1" />
+            <p className="text-xl font-bold">{serviceItems.length}</p>
+            <p className="text-[10px] text-muted-foreground">Serviços</p>
+          </CardContent></Card>
+        </div>
+
+        {lowStockProducts.length > 0 && (
+          <Card className="border-amber-300">
+            <CardHeader className="pb-2 px-4 pt-3">
+              <CardTitle className="text-sm text-amber-600">⚠️ Estoque Baixo</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-3 space-y-2">
+              {lowStockProducts.map(p => (
+                <div key={p.id} className="flex justify-between items-center text-sm">
+                  <span>{p.name}</span>
+                  <Badge variant="destructive" className="text-xs">{p.qty} un.</Badge>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader className="pb-2 px-4 pt-3">
+            <CardTitle className="text-sm">Todos os Itens</CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-3 space-y-2 max-h-96 overflow-y-auto">
+            {products.map(p => (
+              <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50 text-sm">
+                <div>
+                  <p className="font-medium">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">{p.type === 'service' ? 'Serviço' : `Estoque: ${p.qty}`}</p>
+                </div>
+                <p className="font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  const renderOrcamentos = () => (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold text-amber-500">{quotes.filter(q => q.status === 'pendente').length}</p>
+          <p className="text-[10px] text-muted-foreground">Pendentes</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold text-green-500">{quotes.filter(q => q.status === 'aprovado').length}</p>
+          <p className="text-[10px] text-muted-foreground">Aprovados</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold">{quotes.length}</p>
+          <p className="text-[10px] text-muted-foreground">Total</p>
+        </CardContent></Card>
+      </div>
+      {quotes.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum orçamento</CardContent></Card>
+      ) : quotes.map(q => (
+        <Card key={q.id}>
+          <CardContent className="p-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-sm font-medium">{q.title}</p>
+                <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || 'Sem cliente'}</p>
+                <p className="text-xs text-muted-foreground">{format(new Date(q.created_at), 'dd/MM/yyyy')}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-primary">R$ {Number(q.total).toFixed(2)}</p>
+                <Badge variant={q.status === 'aprovado' ? 'default' : 'outline'} className="text-[10px] mt-1">
+                  {q.status}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderOS = () => (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-2">
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold text-amber-500">{serviceOrders.filter(o => o.status === 'pendente').length}</p>
+          <p className="text-[10px] text-muted-foreground">Pendentes</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold text-blue-500">{serviceOrders.filter(o => o.status === 'em_andamento').length}</p>
+          <p className="text-[10px] text-muted-foreground">Em Andamento</p>
+        </CardContent></Card>
+        <Card><CardContent className="p-3 text-center">
+          <p className="text-lg font-bold text-green-500">{serviceOrders.filter(o => o.status === 'concluída').length}</p>
+          <p className="text-[10px] text-muted-foreground">Concluídas</p>
+        </CardContent></Card>
+      </div>
+      {serviceOrders.length === 0 ? (
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma O.S.</CardContent></Card>
+      ) : serviceOrders.map(o => (
+        <Card key={o.id}>
+          <CardContent className="p-3">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-xs text-muted-foreground">#{String(o.order_number).padStart(4, '0')}</p>
+                <p className="text-sm font-medium">{o.title}</p>
+                <p className="text-xs text-muted-foreground">{(o.clients as any)?.name || 'Sem cliente'}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-primary">R$ {Number(o.total).toFixed(2)}</p>
+                <Badge variant={o.status === 'concluída' ? 'default' : 'outline'} className="text-[10px] mt-1">
+                  {o.status}
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
   const viewTitles: Record<BetaView, string> = {
     home: 'Início',
     agenda: 'Agenda',
@@ -574,6 +722,9 @@ export default function BetaDashboard() {
     financeiro: 'Financeiro',
     'novo-cliente': 'Novo Cliente',
     pdv: 'Ponto de Venda',
+    estoque: 'Estoque',
+    orcamentos: 'Orçamentos',
+    os: 'Ordens de Serviço',
   };
 
   return (
@@ -610,29 +761,37 @@ export default function BetaDashboard() {
         {view === 'financeiro' && renderFinanceiro()}
         {view === 'novo-cliente' && renderNovoCliente()}
         {view === 'pdv' && renderPDV()}
+        {view === 'estoque' && renderEstoque()}
+        {view === 'orcamentos' && renderOrcamentos()}
+        {view === 'os' && renderOS()}
       </main>
 
-      {/* Bottom Nav */}
+      {/* Bottom Nav - scrollable */}
       <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-20">
-        <div className="max-w-lg mx-auto flex justify-around py-2">
-          {[
-            { id: 'home' as BetaView, icon: BarChart3, label: 'Início' },
-            { id: 'agenda' as BetaView, icon: CalendarDays, label: 'Agenda' },
-            { id: 'pdv' as BetaView, icon: ShoppingCart, label: 'PDV' },
-            { id: 'clientes' as BetaView, icon: Users, label: 'Clientes' },
-            { id: 'financeiro' as BetaView, icon: Wallet, label: 'Financeiro' },
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setView(item.id)}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors ${
-                view === item.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <item.icon className={`w-5 h-5 ${view === item.id ? 'scale-110' : ''} transition-transform`} />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </button>
-          ))}
+        <div className="max-w-lg mx-auto overflow-x-auto">
+          <div className="flex justify-around py-2 min-w-[400px]">
+            {[
+              { id: 'home' as BetaView, icon: BarChart3, label: 'Início' },
+              { id: 'agenda' as BetaView, icon: CalendarDays, label: 'Agenda' },
+              { id: 'pdv' as BetaView, icon: ShoppingCart, label: 'PDV' },
+              { id: 'clientes' as BetaView, icon: Users, label: 'Clientes' },
+              { id: 'financeiro' as BetaView, icon: Wallet, label: 'Financeiro' },
+              { id: 'orcamentos' as BetaView, icon: FileCheck, label: 'Orçam.' },
+              { id: 'os' as BetaView, icon: Wrench, label: 'O.S.' },
+              { id: 'estoque' as BetaView, icon: Package, label: 'Estoque' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setView(item.id)}
+                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-colors ${
+                  view === item.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <item.icon className={`w-5 h-5 ${view === item.id ? 'scale-110' : ''} transition-transform`} />
+                <span className="text-[9px] font-medium">{item.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Return to full system */}

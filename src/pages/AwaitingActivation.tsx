@@ -206,7 +206,7 @@ const AwaitingActivation: React.FC = () => {
               >
                 <CreditCard className="w-5 h-5 mb-1" />
                 <span className="text-sm font-semibold">Mensal</span>
-                <span className="text-xs opacity-80">R$ 19,90/mês</span>
+                <span className="text-xs opacity-80">Pagar mês a mês</span>
               </Button>
               
               <Button 
@@ -218,7 +218,7 @@ const AwaitingActivation: React.FC = () => {
                 </div>
                 <Crown className="w-5 h-5 mb-1" />
                 <span className="text-sm font-semibold">Anual</span>
-                <span className="text-xs opacity-80">R$ 99,90/ano</span>
+                <span className="text-xs opacity-80">Melhor preço</span>
               </Button>
             </div>
           </div>
