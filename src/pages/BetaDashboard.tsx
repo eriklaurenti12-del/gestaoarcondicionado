@@ -172,21 +172,15 @@ export default function BetaDashboard() {
     doc.save('clientes.pdf'); toast({ title: '📄 PDF exportado!' });
   };
 
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
-      switch (e.key) {
-        case 'F1': e.preventDefault(); setView('home'); break;
-        case 'F2': e.preventDefault(); setView('pdv'); break;
-        case 'F3': e.preventDefault(); setView('agenda'); break;
-        case 'F4': e.preventDefault(); if (view === 'pdv') finalizePdvSale(); break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [view, pdvPayment, pdvCart]);
+  const agendaStats = useMemo(() => {
+    const total = allAppointments.length;
+    const agendados = allAppointments.filter(a => a.status === 'agendado').length;
+    const confirmados = allAppointments.filter(a => a.status === 'confirmado').length;
+    const concluidos = allAppointments.filter(a => a.status === 'concluído').length;
+    const cancelados = allAppointments.filter(a => a.status === 'cancelado').length;
+    const faturamento = allAppointments.filter(a => a.status === 'concluído').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
+    return { total, agendados, confirmados, concluidos, cancelados, faturamento };
+  }, [allAppointments]);
 
   const filteredClients = clients.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.telefone?.includes(searchQuery)
@@ -202,16 +196,6 @@ export default function BetaDashboard() {
   const todayApts = allAppointments.filter(a => isToday(new Date(a.appointment_date)));
   const todayRevenue = todayApts.filter(a => a.status === 'concluído').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
   const monthRevenue = recentFinancial.filter(r => r.type === 'receita').reduce((s, r) => s + Number(r.amount), 0);
-
-  const agendaStats = useMemo(() => {
-    const total = allAppointments.length;
-    const agendados = allAppointments.filter(a => a.status === 'agendado').length;
-    const confirmados = allAppointments.filter(a => a.status === 'confirmado').length;
-    const concluidos = allAppointments.filter(a => a.status === 'concluído').length;
-    const cancelados = allAppointments.filter(a => a.status === 'cancelado').length;
-    const faturamento = allAppointments.filter(a => a.status === 'concluído').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
-    return { total, agendados, confirmados, concluidos, cancelados, faturamento };
-  }, [allAppointments]);
 
   // ========== VIEWS ==========
 
