@@ -326,23 +326,23 @@ export default function Members() {
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="w-5 h-5 text-accent" />
-            Sistema Beta (Simplificado)
+            Sistema Simplificado
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            O Sistema Beta é uma interface simplificada com navegação por abas inferiores, ideal para uso rápido no celular. 
+            O Sistema Simplificado é uma interface com navegação por abas inferiores, ideal para uso rápido no celular. 
             Inclui Agenda, Clientes e Financeiro em uma interface mais intuitiva. Você pode alternar entre os dois a qualquer momento.
           </p>
           <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
             <div>
-              <p className="text-sm font-medium">Ativar Sistema Beta</p>
+              <p className="text-sm font-medium">Ativar Sistema Simplificado</p>
               <p className="text-xs text-muted-foreground">Ao ativar, será redirecionado para o modo simplificado</p>
             </div>
             <Switch checked={isBeta} onCheckedChange={() => { toggleBeta(); if (!isBeta) navigate('/beta'); }} />
           </div>
           <Button variant="outline" size="sm" onClick={() => { if (!isBeta) toggleBeta(); navigate('/beta'); }}>
-            <Zap className="w-4 h-4 mr-2" /> Acessar Sistema Beta Agora
+            <Zap className="w-4 h-4 mr-2" /> Acessar Sistema Simplificado
           </Button>
         </CardContent>
       </Card>
@@ -695,7 +695,7 @@ export default function Members() {
                   { label: 'Login do Sistema', url: `${publishedUrl}/?login=true`, icon: '🔐', desc: 'Link direto para login', external: true },
                   { label: 'Cadastro', url: `${publishedUrl}/?cadastro=true`, icon: '📝', desc: 'Link para criar conta', external: true },
                   { label: 'Dashboard', url: '/dashboard', icon: '📊', desc: 'Painel de controle' },
-                  { label: 'Sistema Beta', url: '/beta', icon: '⚡', desc: 'Interface simplificada' },
+                  { label: 'Simplificado', url: '/beta', icon: '⚡', desc: 'Interface simplificada' },
                 ].map(link => (
                   <Card key={link.label} className="group cursor-pointer hover:border-primary/50 transition-all"
                     onClick={() => link.external ? window.open(link.url, '_blank') : navigate(link.url)}>
