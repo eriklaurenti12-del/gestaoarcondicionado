@@ -259,12 +259,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     refetchInterval: 60000,
   });
 
-  const canAccessFeature = (feature: string) => {
-    const role = session.role;
-    if (role === 'admin' || role === 'gerente') return true;
-    if (role === 'suporte') return ['agenda', 'pendentes', 'clientes', 'financeiro', 'produtos', 'suporte', 'assinantes', 'agendar'].includes(feature);
-    if (role === 'sistema') return ['agenda', 'pendentes', 'clientes', 'suporte', 'agendar'].includes(feature);
-    return ['agenda', 'pendentes'].includes(feature);
+  const canAccessFeature = (_feature: string) => {
+    // All portal members have full access
+    return true;
   };
 
   const completed = todayAppointments.filter((a: any) => a.status === 'concluido').length;
