@@ -226,10 +226,8 @@ const Landing: React.FC = () => {
   const handleCheckout = (type: 'mensal' | 'anual') => {
     trackConversion(type);
     
-    // Priority: landing-specific links → global integration links → signup fallback
-    const landingLink = type === 'mensal' ? settings.landing_checkout_mensal_link : settings.landing_checkout_anual_link;
-    const globalLink = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
-    const checkoutUrl = landingLink || globalLink;
+    // Always use global integration checkout links
+    const checkoutUrl = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
       window.open(checkoutUrl, '_blank');
