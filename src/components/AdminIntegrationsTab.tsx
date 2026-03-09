@@ -1031,56 +1031,85 @@ export const AdminIntegrationsTab: React.FC = () => {
                 Chaves de Integração
               </CardTitle>
               <CardDescription className="text-gray-400">
-                Adicione e gerencie chaves de API, tokens e credenciais de integração com serviços externos.
+                Cole sua chave secreta, salve e o sistema reconhece automaticamente. Edite a qualquer momento.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add new key */}
-              <div className="p-4 rounded-lg border border-dashed border-[#3a3a4a] bg-[#0f0f17] space-y-3">
-                <p className="text-xs text-gray-400 font-medium flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5" /> Adicionar nova chave
+              {/* Add new key - paste & save */}
+              <div className="p-4 rounded-xl border border-dashed border-green-500/30 bg-gradient-to-br from-green-500/5 to-emerald-500/5 space-y-3">
+                <p className="text-xs text-green-400 font-bold flex items-center gap-1.5 uppercase tracking-wider">
+                  <Plus className="w-3.5 h-3.5" /> Cole e salve sua chave
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
                   <Input
-                    placeholder="Nome da chave (ex: API_KEY_HOTMART)"
+                    placeholder="Nome da chave (ex: API_KEY_HOTMART, TOKEN_KIWIFY)"
                     value={newKeyName}
-                    onChange={(e) => setNewKeyName(e.target.value.toUpperCase().replace(/\s+/g, '_'))}
+                    onChange={(e) => setNewKeyName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
                     className="bg-[#1a1a24] border-[#2a2a3a] text-white placeholder:text-gray-600 text-sm"
                   />
-                  <Input
-                    placeholder="Valor da chave"
-                    value={newKeyValue}
-                    onChange={(e) => setNewKeyValue(e.target.value)}
-                    className="bg-[#1a1a24] border-[#2a2a3a] text-white placeholder:text-gray-600 text-sm"
-                    type="password"
-                  />
+                  <div className="relative">
+                    <Input
+                      placeholder="Cole aqui sua chave secreta (Ctrl+V)"
+                      value={newKeyValue}
+                      onChange={(e) => setNewKeyValue(e.target.value)}
+                      className="bg-[#1a1a24] border-[#2a2a3a] text-white placeholder:text-gray-600 text-sm pr-20 font-mono"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          setNewKeyValue(text);
+                          toast({ title: "Colado!", description: "Chave colada da área de transferência." });
+                        } catch {
+                          toast({ title: "Erro", description: "Não foi possível colar. Cole manualmente.", variant: "destructive" });
+                        }
+                      }}
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-green-400 hover:text-green-300 hover:bg-green-500/10 text-[10px]"
+                    >
+                      <Copy className="w-3 h-3 mr-1" /> Colar
+                    </Button>
+                  </div>
                 </div>
-                <Button
-                  size="sm"
-                  disabled={!newKeyName || !newKeyValue || saving}
-                  onClick={async () => {
-                    setSaving(true);
-                    try {
-                      const dbKey = `integration_key_${newKeyName}`;
-                      await supabase.from('admin_settings').upsert(
-                        { key: dbKey, value: newKeyValue, description: `Chave de integração: ${newKeyName}` },
-                        { onConflict: 'key' }
-                      );
-                      setIntegrationKeys(prev => [...prev, { id: dbKey, name: newKeyName, value: newKeyValue, showValue: false }]);
-                      setNewKeyName('');
-                      setNewKeyValue('');
-                      toast({ title: "Chave salva!", description: `${newKeyName} adicionada com sucesso.` });
-                    } catch (error: any) {
-                      toast({ title: "Erro ao salvar chave", description: error.message, variant: "destructive" });
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
-                  className="bg-amber-600 hover:bg-amber-700 text-white"
-                >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Plus className="w-3.5 h-3.5 mr-1" />}
-                  Adicionar Chave
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={!newKeyName || !newKeyValue || saving}
+                    onClick={async () => {
+                      setSaving(true);
+                      try {
+                        const dbKey = `integration_key_${newKeyName}`;
+                        await supabase.from('admin_settings').upsert(
+                          { key: dbKey, value: newKeyValue, description: `Chave de integração: ${newKeyName}` },
+                          { onConflict: 'key' }
+                        );
+                        const existing = integrationKeys.findIndex(k => k.name === newKeyName);
+                        if (existing >= 0) {
+                          setIntegrationKeys(prev => prev.map((k, i) => i === existing ? { ...k, value: newKeyValue } : k));
+                        } else {
+                          setIntegrationKeys(prev => [...prev, { id: dbKey, name: newKeyName, value: newKeyValue, showValue: false }]);
+                        }
+                        setNewKeyName('');
+                        setNewKeyValue('');
+                        toast({ title: "✅ Chave salva!", description: `${newKeyName} salva e pronta para uso.` });
+                      } catch (error: any) {
+                        toast({ title: "Erro ao salvar chave", description: error.message, variant: "destructive" });
+                      } finally {
+                        setSaving(false);
+                      }
+                    }}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+                    Salvar Chave
+                  </Button>
+                  {newKeyValue && (
+                    <span className="text-[10px] text-green-400/70 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Chave detectada ({newKeyValue.length} caracteres)
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Existing keys */}
@@ -1088,67 +1117,60 @@ export const AdminIntegrationsTab: React.FC = () => {
                 <div className="text-center py-10 text-gray-500">
                   <Key className="w-10 h-10 mx-auto mb-3 opacity-20" />
                   <p className="text-sm">Nenhuma chave de integração cadastrada</p>
-                  <p className="text-xs mt-1">Adicione chaves de API para conectar com serviços externos</p>
+                  <p className="text-xs mt-1">Cole chaves de API para conectar com serviços externos</p>
                 </div>
               ) : (
                 <div className="space-y-2">
+                  <p className="text-xs text-gray-500 font-medium">Chaves salvas ({integrationKeys.length})</p>
                   {integrationKeys.map((keyItem, idx) => (
-                    <div key={keyItem.id} className="flex items-center gap-3 p-3 rounded-lg bg-[#0f0f17] border border-[#2a2a3a] hover:border-amber-500/30 transition-all group">
-                      <div className="p-2 rounded-lg bg-amber-500/10">
-                        <Key className="w-4 h-4 text-amber-400" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-white truncate">{keyItem.name}</p>
-                        <p className="text-xs text-gray-500 font-mono truncate">
-                          {keyItem.showValue ? keyItem.value : '••••••••••••••••'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setIntegrationKeys(prev => prev.map((k, i) => i === idx ? { ...k, showValue: !k.showValue } : k));
-                          }}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                        >
-                          {keyItem.showValue ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => copyToClipboard(keyItem.value, keyItem.name)}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-white"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={async () => {
-                            try {
-                              // We can't delete from admin_settings (no DELETE policy), so we update value to empty
-                              await supabase.from('admin_settings').update({ value: '' }).eq('key', keyItem.id);
-                              setIntegrationKeys(prev => prev.filter((_, i) => i !== idx));
-                              toast({ title: "Chave removida", description: `${keyItem.name} foi removida.` });
-                            } catch (error: any) {
-                              toast({ title: "Erro", description: error.message, variant: "destructive" });
-                            }
-                          }}
-                          className="h-8 w-8 p-0 text-gray-400 hover:text-red-400"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
+                    <div key={keyItem.id} className="p-3 rounded-lg bg-[#0f0f17] border border-[#2a2a3a] hover:border-amber-500/30 transition-all space-y-2">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-amber-500/10">
+                          <Key className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{keyItem.name}</p>
+                          <p className="text-xs text-gray-500 font-mono truncate">
+                            {keyItem.showValue ? keyItem.value : `${'•'.repeat(Math.min(keyItem.value.length, 24))} (${keyItem.value.length} chars)`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button size="sm" variant="ghost" onClick={() => setIntegrationKeys(prev => prev.map((k, i) => i === idx ? { ...k, showValue: !k.showValue } : k))} className="h-8 w-8 p-0 text-gray-400 hover:text-white">
+                            {keyItem.showValue ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => copyToClipboard(keyItem.value, keyItem.name)} className="h-8 w-8 p-0 text-gray-400 hover:text-white">
+                            <Copy className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setNewKeyName(keyItem.name); setNewKeyValue(keyItem.value); }} className="h-8 w-8 p-0 text-gray-400 hover:text-amber-400" title="Editar">
+                            <Settings className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={async () => {
+                              try {
+                                await supabase.from('admin_settings').update({ value: '' }).eq('key', keyItem.id);
+                                setIntegrationKeys(prev => prev.filter((_, i) => i !== idx));
+                                toast({ title: "Chave removida", description: `${keyItem.name} foi removida.` });
+                              } catch (error: any) {
+                                toast({ title: "Erro", description: error.message, variant: "destructive" });
+                              }
+                            }}
+                            className="h-8 w-8 p-0 text-gray-400 hover:text-red-400"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
 
-              <div className="p-3 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <p className="text-xs text-amber-400 flex items-center gap-1.5">
+              <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+                <p className="text-xs text-green-400 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" />
-                  As chaves são armazenadas de forma segura e podem ser usadas nas integrações do sistema.
+                  Chaves são salvas de forma segura. Use o simulador verde acima para testar se a integração está recebendo corretamente.
                 </p>
               </div>
             </CardContent>
