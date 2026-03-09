@@ -605,20 +605,18 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="today" className="flex-1 text-[11px] px-2">📋 Agenda</TabsTrigger>
             <TabsTrigger value="pending" className="flex-1 text-[11px] px-2">⏳ Pendentes</TabsTrigger>
-            {canAccess('agendar') && <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>}
-            {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>}
-            {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>}
-            {canAccess('produtos') && <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>}
-            {canAccess('assinantes') && (
-              <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
-                🛡️ Assinantes
-                {pendingSubscribers.length > 0 && (
-                  <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
-                    {pendingSubscribers.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>
+            <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>
+            <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>
+            <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
+              🛡️ Usuários
+              {pendingSubscribers.length > 0 && (
+                <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
+                  {pendingSubscribers.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">
               🎧 Suporte
               {supportRequests.length > 0 && (
@@ -627,6 +625,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="links" className="flex-1 text-[11px] px-2">🔗 Links</TabsTrigger>
           </TabsList>
 
           {/* === AGENDA === */}
