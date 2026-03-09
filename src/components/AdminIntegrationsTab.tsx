@@ -848,6 +848,12 @@ ${JSON.stringify(generatePlatformPayload(settings.plataforma_ativa || 'ggcheckou
               );
             })}
           </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={saveAllSettings} disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
+              {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+              Salvar Configurações
+            </Button>
+          </div>
         </TabsContent>
 
         {/* TAB: Testar */}
