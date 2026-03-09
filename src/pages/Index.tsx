@@ -307,7 +307,7 @@ export default function Index() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setShowTipsDialog(true)} className="gap-2 cursor-pointer">
+                      <DropdownMenuItem onSelect={() => setTimeout(() => setShowTipsDialog(true), 100)} className="gap-2 cursor-pointer">
                         <Lightbulb className="w-4 h-4 text-primary" />
                         Dicas AC
                       </DropdownMenuItem>
