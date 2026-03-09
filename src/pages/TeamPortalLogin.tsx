@@ -13,7 +13,8 @@ import {
   Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, 
   ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, 
   Download, Package, Headphones, MessageCircle, ArrowLeft, Truck,
-  UserCheck, UserX, Shield, CalendarPlus, CheckCircle2
+  UserCheck, UserX, Shield, CalendarPlus, CheckCircle2, Link2, 
+  ExternalLink, Copy, AlertTriangle, Timer
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -258,12 +259,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     refetchInterval: 60000,
   });
 
-  const canAccessFeature = (feature: string) => {
-    const role = session.role;
-    if (role === 'admin' || role === 'gerente') return true;
-    if (role === 'suporte') return ['agenda', 'pendentes', 'clientes', 'financeiro', 'produtos', 'suporte', 'assinantes', 'agendar'].includes(feature);
-    if (role === 'sistema') return ['agenda', 'pendentes', 'clientes', 'suporte', 'agendar'].includes(feature);
-    return ['agenda', 'pendentes'].includes(feature);
+  const canAccessFeature = (_feature: string) => {
+    // All portal members have full access
+    return true;
   };
 
   const completed = todayAppointments.filter((a: any) => a.status === 'concluido').length;
@@ -607,20 +605,18 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
             <TabsTrigger value="today" className="flex-1 text-[11px] px-2">📋 Agenda</TabsTrigger>
             <TabsTrigger value="pending" className="flex-1 text-[11px] px-2">⏳ Pendentes</TabsTrigger>
-            {canAccess('agendar') && <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>}
-            {canAccess('clientes') && <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>}
-            {canAccess('financeiro') && <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>}
-            {canAccess('produtos') && <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>}
-            {canAccess('assinantes') && (
-              <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
-                🛡️ Assinantes
-                {pendingSubscribers.length > 0 && (
-                  <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
-                    {pendingSubscribers.length}
-                  </span>
-                )}
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>
+            <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>
+            <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>
+            <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>
+            <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
+              🛡️ Usuários
+              {pendingSubscribers.length > 0 && (
+                <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
+                  {pendingSubscribers.length}
+                </span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">
               🎧 Suporte
               {supportRequests.length > 0 && (
@@ -629,6 +625,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 </span>
               )}
             </TabsTrigger>
+            <TabsTrigger value="links" className="flex-1 text-[11px] px-2">🔗 Links</TabsTrigger>
           </TabsList>
 
           {/* === AGENDA === */}
@@ -707,7 +704,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsContent>
 
           {/* === CLIENTES === */}
-          {canAccess('clientes') && (
             <TabsContent value="clientes" className="mt-3 space-y-3">
               <div className="flex gap-2">
                 <div className="relative flex-1">
@@ -771,7 +767,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))
               )}
             </TabsContent>
-          )}
 
           {/* === FINANCEIRO === */}
           {canAccess('financeiro') && (
@@ -930,7 +925,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             </TabsContent>
           )}
 
-          {/* === ASSINANTES === */}
+          {/* === USUÁRIOS / ASSINANTES === */}
           {canAccess('assinantes') && (
             <TabsContent value="assinantes" className="mt-3 space-y-3">
               <div className="relative">
@@ -939,7 +934,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </div>
 
               {/* Summary cards */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Card>
                   <CardContent className="p-3 text-center">
                     <p className="text-xs text-muted-foreground">Ativos</p>
@@ -954,11 +949,78 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 </Card>
                 <Card>
                   <CardContent className="p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Expirando</p>
+                    <p className="text-xl font-bold text-red-500">
+                      {(portalSubscribers as any[]).filter((s: any) => {
+                        if (!s.end_date || s.status !== 'aprovado') return false;
+                        const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                        return daysLeft <= 7 && daysLeft >= 0;
+                      }).length}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="text-xl font-bold">{(portalSubscribers as any[]).length}</p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Expiring soon */}
+              {(() => {
+                const expiring = (portalSubscribers as any[]).filter((s: any) => {
+                  if (!s.end_date || s.status !== 'aprovado') return false;
+                  const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return daysLeft <= 7 && daysLeft >= 0;
+                });
+                if (expiring.length === 0) return null;
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" /> Prazos Expirando ({expiring.length})
+                    </h3>
+                    {expiring.map((sub: any) => {
+                      const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <Card key={sub.id} className="border-l-4 border-l-red-500">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{sub.email}</p>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
+                                  <span className="text-[10px] text-red-500 font-bold flex items-center gap-1">
+                                    <Timer className="w-3 h-3" />
+                                    {daysLeft <= 0 ? 'Expirado hoje!' : `${daysLeft} dia${daysLeft > 1 ? 's' : ''} restante${daysLeft > 1 ? 's' : ''}`}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                                  <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1dia">1 Dia</SelectItem>
+                                    <SelectItem value="7dias">7 Dias</SelectItem>
+                                    <SelectItem value="mensal">Mensal</SelectItem>
+                                    <SelectItem value="anual">Anual</SelectItem>
+                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                                  disabled={activatingUser === sub.id}
+                                  onClick={() => handleActivateSubscriber(sub.id, true)}>
+                                  {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <>🔄</>}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Pending first */}
               {pendingSubscribers.length > 0 && (
@@ -966,38 +1028,45 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                   <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     ⏳ Aguardando Ativação ({pendingSubscribers.length})
                   </h3>
-                  {pendingSubscribers.map((sub: any) => (
-                    <Card key={sub.id} className="border-l-4 border-l-amber-500">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{sub.email}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy') : '-'}
-                            </p>
+                  {pendingSubscribers.map((sub: any) => {
+                    const hoursAgo = Math.floor((Date.now() - new Date(sub.created_at).getTime()) / (1000 * 60 * 60));
+                    const trialExpired = hoursAgo >= 24;
+                    return (
+                      <Card key={sub.id} className={`border-l-4 ${trialExpired ? 'border-l-red-500' : 'border-l-amber-500'}`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{sub.email}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy HH:mm') : '-'}
+                              </p>
+                              <span className={`text-[10px] font-semibold ${trialExpired ? 'text-red-500' : 'text-amber-500'}`}>
+                                {trialExpired ? `⛔ Trial expirado (${hoursAgo}h atrás)` : `⏱️ Trial: ${24 - hoursAgo}h restantes`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                                <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1dia">1 Dia</SelectItem>
+                                  <SelectItem value="7dias">7 Dias</SelectItem>
+                                  <SelectItem value="mensal">Mensal</SelectItem>
+                                  <SelectItem value="trimestral">Trimestral</SelectItem>
+                                  <SelectItem value="anual">Anual</SelectItem>
+                                  <SelectItem value="vitalicio">Vitalício</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                                disabled={activatingUser === sub.id}
+                                onClick={() => handleActivateSubscriber(sub.id, true)}>
+                                {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                              <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1dia">1 Dia</SelectItem>
-                                <SelectItem value="7dias">7 Dias</SelectItem>
-                                <SelectItem value="mensal">Mensal</SelectItem>
-                                <SelectItem value="trimestral">Trimestral</SelectItem>
-                                <SelectItem value="anual">Anual</SelectItem>
-                                <SelectItem value="vitalicio">Vitalício</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                              disabled={activatingUser === sub.id}
-                              onClick={() => handleActivateSubscriber(sub.id, true)}>
-                              {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
 
@@ -1020,11 +1089,15 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                               {sub.status === 'aprovado' ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
                             </Badge>
                             <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
-                            {sub.end_date && (
-                              <span className="text-[9px] text-muted-foreground">
-                                até {format(new Date(sub.end_date), 'dd/MM/yy')}
-                              </span>
-                            )}
+                            {sub.end_date && (() => {
+                              const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                              return (
+                                <span className={`text-[9px] font-medium ${daysLeft <= 3 ? 'text-red-500' : daysLeft <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                                  {daysLeft <= 0 ? '⛔ Expirado' : `${daysLeft}d restantes`}
+                                </span>
+                              );
+                            })()}
+                            {sub.plan === 'vitalicio' && <span className="text-[9px] text-green-500 font-medium">🏆 Permanente</span>}
                           </div>
                         </div>
                       </div>
@@ -1189,6 +1262,72 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))}
               </>
             )}
+          </TabsContent>
+
+          {/* === LINKS ÚTEIS === */}
+          <TabsContent value="links" className="mt-3 space-y-3">
+            <Card className="border-primary/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Link2 className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-sm">Links do Sistema</h3>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Landing Page', desc: 'Página de vendas', url: 'https://gestaoarcondicionado.lovable.app/', icon: '🌐' },
+                    { label: 'Login do Sistema', desc: 'Acesso para usuários', url: 'https://gestaoarcondicionado.lovable.app/auth', icon: '🔐' },
+                    { label: 'Portal da Equipe', desc: 'Este portal', url: 'https://gestaoarcondicionado.lovable.app/portal', icon: '👥' },
+                    { label: 'Agenda Online', desc: 'Link para clientes agendarem', url: `https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`, icon: '📅' },
+                    { label: 'Dashboard Admin', desc: 'Painel do super admin', url: 'https://gestaoarcondicionado.lovable.app/members', icon: '🛡️' },
+                  ].map((link) => (
+                    <div key={link.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{link.icon}</span>
+                        <div>
+                          <p className="text-sm font-medium">{link.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{link.desc}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
+                          onClick={() => {
+                            navigator.clipboard.writeText(link.url);
+                            toast({ title: '📋 Link copiado!' });
+                          }}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
+                          onClick={() => window.open(link.url, '_blank')}>
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-green-500" /> Compartilhar via WhatsApp
+                </h3>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
+                    const msg = encodeURIComponent(`🔧 Gestão AC - Agende seu serviço de ar condicionado online!\n\n📅 ${`https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`}`);
+                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                  }}>
+                    📅 Enviar link da Agenda Online
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
+                    const msg = encodeURIComponent(`🔧 Gestão AC - Sistema completo para prestadores de serviço!\n\n🌐 https://gestaoarcondicionado.lovable.app/`);
+                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                  }}>
+                    🌐 Enviar link da Landing Page
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>
