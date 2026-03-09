@@ -63,6 +63,24 @@ const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; desc
 
 const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
 
+const DEFAULT_TABS = [
+  { id: 'team', label: 'Equipe', icon: 'Users' },
+  { id: 'users', label: 'Usuários', icon: 'UserPlus' },
+  { id: 'notifications', label: 'Notificações', icon: 'Bell' },
+  { id: 'integrations', label: 'Integrações', icon: 'Zap' },
+  { id: 'n8n', label: 'n8n', icon: 'Webhook' },
+  { id: 'landing', label: 'Landing', icon: 'Megaphone' },
+  { id: 'links', label: 'Links', icon: 'Link' },
+  { id: 'raffle', label: 'Sorteio', icon: 'Gift' },
+  { id: 'sidebar-config', label: 'Menu', icon: 'Menu' },
+  { id: 'support', label: 'Suporte', icon: 'LifeBuoy' },
+  { id: 'system-guide', label: 'Guia PDF', icon: 'BookOpen' },
+];
+
+const TAB_ICONS: Record<string, any> = {
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen
+};
+
 export default function Members() {
   const navigate = useNavigate();
   const { toast } = useToast();
