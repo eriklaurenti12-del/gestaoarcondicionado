@@ -74,10 +74,11 @@ Deno.serve(async (req) => {
       page += 1;
     }
 
-    // Load subscriptions and profiles
-    const [{ data: subs, error: subsError }, { data: profiles, error: profilesError }] = await Promise.all([
+    // Load subscriptions, profiles, and company data
+    const [{ data: subs, error: subsError }, { data: profiles, error: profilesError }, { data: companyData }] = await Promise.all([
       supabaseService.from('subscriptions').select('*'),
-      supabaseService.from('profiles').select('user_id, created_at, phone')
+      supabaseService.from('profiles').select('user_id, created_at, phone'),
+      supabaseService.from('company_data').select('user_id, whatsapp, company_name')
     ]);
 
     if (subsError) {
@@ -92,10 +93,13 @@ Deno.serve(async (req) => {
     const members = allUsers.map((u: any) => {
       const profile = profiles?.find((p: any) => p.user_id === u.id);
       const subscription = subs?.find((s: any) => s.user_id === u.id) || null;
+      const company = companyData?.find((c: any) => c.user_id === u.id);
       return {
         id: u.id,
         email: u.email,
         phone: profile?.phone || null,
+        company_whatsapp: company?.whatsapp || null,
+        company_name: company?.company_name || null,
         created_at: (profile?.created_at ?? u.created_at),
         subscription,
       };

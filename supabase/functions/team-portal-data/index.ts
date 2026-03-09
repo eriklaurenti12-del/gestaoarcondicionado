@@ -374,6 +374,7 @@ Deno.serve(async (req) => {
       if (activate && selectedPlan !== 'vitalicio') {
         endDate = new Date();
         if (selectedPlan === 'anual') endDate.setFullYear(endDate.getFullYear() + 1);
+        else if (selectedPlan === 'semestral') endDate.setMonth(endDate.getMonth() + 6);
         else if (selectedPlan === 'trimestral') endDate.setMonth(endDate.getMonth() + 3);
         else if (selectedPlan === '7dias') endDate.setDate(endDate.getDate() + 7);
         else if (selectedPlan === '1dia') endDate.setDate(endDate.getDate() + 1);
