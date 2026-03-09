@@ -141,9 +141,19 @@ const fetchClients = async () => {
   return data || [];
 };
 
-export default function SupportButton() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+interface SupportButtonProps {
+  tipsOpen?: boolean;
+  onTipsOpenChange?: (open: boolean) => void;
+}
+
+export default function SupportButton({ tipsOpen, onTipsOpenChange }: SupportButtonProps) {
   const [showTips, setShowTips] = useState(false);
+
+  const isTipsOpen = tipsOpen !== undefined ? tipsOpen : showTips;
+  const handleTipsChange = (open: boolean) => {
+    if (onTipsOpenChange) onTipsOpenChange(open);
+    else setShowTips(open);
+  };
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [selectedTip, setSelectedTip] = useState<{ question: string; answer: string } | null>(null);
   const [selectedClientId, setSelectedClientId] = useState("");
