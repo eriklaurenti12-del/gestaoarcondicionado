@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Snowflake, Building2, Package } from "lucide-react";
+import { Users, Snowflake, Building2, Package, PlusCircle } from "lucide-react";
 import ClientsTab from './ClientsTab';
 import ProductsTab from './ProductsTab';
 import SuppliersTab from './SuppliersTab';
 import EstoqueTab from './EstoqueTab';
+import RegisterProductTab from './RegisterProductTab';
 import TabGuideCards from './TabGuideCards';
 
 const CadastrosUnifiedTab: React.FC = () => {
@@ -22,12 +23,21 @@ const CadastrosUnifiedTab: React.FC = () => {
     },
     {
       icon: Snowflake,
-      title: 'Serviços AC',
+      title: 'Catálogo',
       badge: 'Catálogo',
       badgeColor: 'cyan',
-      description: <>Cadastre <strong>serviços de ar condicionado</strong> (instalação, limpeza, gás). Defina preços e tempo de execução.</>,
+      description: <>Veja todos os <strong>serviços e produtos</strong> cadastrados. Edite preços, margens e informações.</>,
       onClick: () => setActiveSubTab('products'),
       isActive: activeSubTab === 'products',
+    },
+    {
+      icon: PlusCircle,
+      title: 'Cadastrar',
+      badge: 'Novo',
+      badgeColor: 'green',
+      description: <>Cadastre novos <strong>serviços ou produtos</strong>. Serviços não vão para estoque, produtos sim.</>,
+      onClick: () => setActiveSubTab('register'),
+      isActive: activeSubTab === 'register',
     },
     {
       icon: Package,
@@ -38,15 +48,6 @@ const CadastrosUnifiedTab: React.FC = () => {
       onClick: () => setActiveSubTab('estoque'),
       isActive: activeSubTab === 'estoque',
     },
-    {
-      icon: Building2,
-      title: 'Fornecedores',
-      badge: 'Compras',
-      badgeColor: 'emerald',
-      description: <>Cadastre <strong>fornecedores completos</strong> com contato, CNPJ e condições de pagamento.</>,
-      onClick: () => setActiveSubTab('suppliers'),
-      isActive: activeSubTab === 'suppliers',
-    },
   ];
 
   return (
@@ -54,14 +55,18 @@ const CadastrosUnifiedTab: React.FC = () => {
       <TabGuideCards cards={guideCards} columns={4} />
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-lg">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
             <Users className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Clientes</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-1 px-2">
             <Snowflake className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Serviços AC</span>
+            <span className="hidden sm:inline truncate">Catálogo</span>
+          </TabsTrigger>
+          <TabsTrigger value="register" className="flex items-center gap-1 px-2">
+            <PlusCircle className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Cadastrar</span>
           </TabsTrigger>
           <TabsTrigger value="estoque" className="flex items-center gap-1 px-2">
             <Package className="w-4 h-4 flex-shrink-0" />
@@ -79,6 +84,10 @@ const CadastrosUnifiedTab: React.FC = () => {
 
         <TabsContent value="products" className="mt-4">
           <ProductsTab />
+        </TabsContent>
+
+        <TabsContent value="register" className="mt-4">
+          <RegisterProductTab />
         </TabsContent>
 
         <TabsContent value="estoque" className="mt-4">
