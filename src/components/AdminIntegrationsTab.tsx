@@ -389,6 +389,74 @@ export const AdminIntegrationsTab: React.FC = () => {
         </Card>
       </div>
 
+      {/* Floating Simulator Bar - visible across all tabs */}
+      <div className="p-3 rounded-xl bg-gradient-to-r from-green-600/20 via-emerald-600/15 to-green-600/20 border border-green-500/30 flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-green-400 animate-pulse" />
+          <span className="text-xs font-bold text-green-400 uppercase tracking-wider">Simulador Rápido</span>
+        </div>
+        <div className="flex-1 flex flex-wrap items-center gap-2 min-w-0">
+          <Select value={testPlatform} onValueChange={setTestPlatform}>
+            <SelectTrigger className="bg-[#1a1a24] border-green-500/30 text-white h-8 text-xs w-[140px]">
+              <SelectValue placeholder="Plataforma" />
+            </SelectTrigger>
+            <SelectContent className="bg-[#1a1a24] border-[#2a2a3a]">
+              {PLATFORMS.map(p => (
+                <SelectItem key={p.slug} value={p.slug} className="text-white text-xs">
+                  <span className="mr-1">{p.icon}</span> {p.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            placeholder="email@teste.com"
+            value={testEmail}
+            onChange={(e) => setTestEmail(e.target.value)}
+            className="bg-[#1a1a24] border-green-500/30 text-white placeholder:text-gray-600 text-xs h-8 w-[160px]"
+          />
+          <Input
+            placeholder="Valor"
+            value={testAmount}
+            onChange={(e) => setTestAmount(e.target.value)}
+            className="bg-[#1a1a24] border-green-500/30 text-white placeholder:text-gray-600 text-xs h-8 w-[80px]"
+          />
+          <Button
+            size="sm"
+            disabled={!testEmail || !!testing}
+            onClick={() => testWebhookPayment('success')}
+            className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
+          >
+            {testing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <Send className="w-3.5 h-3.5 mr-1" />}
+            Testar Pagamento
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={!testEmail || !!testing}
+            onClick={() => testWebhookPayment('error')}
+            className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-8 text-xs"
+          >
+            <XCircle className="w-3.5 h-3.5 mr-1" />
+            Simular Erro
+          </Button>
+        </div>
+        {testResults.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            {testResults[0].success ? (
+              <Badge className="bg-green-600/20 text-green-400 border-green-500/30 text-[10px]">
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                Último: OK
+              </Badge>
+            ) : (
+              <Badge className="bg-red-600/20 text-red-400 border-red-500/30 text-[10px]">
+                <XCircle className="w-3 h-3 mr-1" />
+                Último: Erro
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Tabs internas */}
       <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
         <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
