@@ -402,6 +402,10 @@ export const AdminIntegrationsTab: React.FC = () => {
             <FileJson className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
             Logs ({testResults.length})
           </TabsTrigger>
+          <TabsTrigger value="keys" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs sm:text-sm">
+            <Key className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+            Chaves
+          </TabsTrigger>
         </TabsList>
 
         {/* TAB: Webhook Overview */}
