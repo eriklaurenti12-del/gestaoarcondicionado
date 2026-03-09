@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
         { data: services },
         { data: appointments }
       ] = await Promise.all([
-        supabase.from('company_data').select('company_name, whatsapp, address, logo_url').eq('user_id', userId).maybeSingle(),
+        supabase.from('company_data').select('company_name, whatsapp, address, logo_url, instagram').eq('user_id', userId).maybeSingle(),
         supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
