@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy } from "lucide-react";
+import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy, GripVertical } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
@@ -63,6 +63,24 @@ const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; desc
 
 const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
 
+const DEFAULT_TABS = [
+  { id: 'team', label: 'Equipe', icon: 'Users' },
+  { id: 'users', label: 'Usuários', icon: 'UserPlus' },
+  { id: 'notifications', label: 'Notificações', icon: 'Bell' },
+  { id: 'integrations', label: 'Integrações', icon: 'Zap' },
+  { id: 'n8n', label: 'n8n', icon: 'Webhook' },
+  { id: 'landing', label: 'Landing', icon: 'Megaphone' },
+  { id: 'links', label: 'Links', icon: 'Link' },
+  { id: 'raffle', label: 'Sorteio', icon: 'Gift' },
+  { id: 'sidebar-config', label: 'Menu', icon: 'Menu' },
+  { id: 'support', label: 'Suporte', icon: 'LifeBuoy' },
+  { id: 'system-guide', label: 'Guia PDF', icon: 'BookOpen' },
+];
+
+const TAB_ICONS: Record<string, any> = {
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen
+};
+
 export default function Members() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -80,10 +98,17 @@ export default function Members() {
   const [newPin, setNewPin] = useState("");
   const [newRole, setNewRole] = useState("sistema");
 
+  // Tab configuration
+  const [tabOrder, setTabOrder] = useState(DEFAULT_TABS);
+  const [showTabConfig, setShowTabConfig] = useState(false);
+  const [tabDragIdx, setTabDragIdx] = useState<number | null>(null);
+  const [tabDragOverIdx, setTabDragOverIdx] = useState<number | null>(null);
+
   useEffect(() => {
     checkSuperAdmin();
     loadMembers();
     loadTeamMembers();
+    loadTabOrder();
   }, []);
 
   const checkSuperAdmin = async () => {
@@ -119,6 +144,50 @@ export default function Members() {
     if (data) setTeamMembers(data as TeamMember[]);
     if (error) console.error('loadTeamMembers error:', error.message);
   };
+
+  const loadTabOrder = async () => {
+    const { data } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'members_tab_order')
+      .maybeSingle();
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) {
+          // Merge with defaults to handle new tabs
+          const merged = parsed.filter((t: any) => DEFAULT_TABS.some(d => d.id === t.id));
+          const missing = DEFAULT_TABS.filter(d => !parsed.some((t: any) => t.id === d.id));
+          setTabOrder([...merged, ...missing]);
+        }
+      } catch {}
+    }
+  };
+
+  const saveTabOrder = async (newOrder: typeof DEFAULT_TABS) => {
+    setTabOrder(newOrder);
+    await supabase.from('admin_settings').upsert({
+      key: 'members_tab_order',
+      value: JSON.stringify(newOrder),
+      description: 'Ordem das abas do painel admin',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'key' });
+    toast({ title: "Ordem das abas salva! ✓" });
+  };
+
+  const handleTabDragStart = (idx: number) => setTabDragIdx(idx);
+  const handleTabDragOver = (e: React.DragEvent, idx: number) => { e.preventDefault(); setTabDragOverIdx(idx); };
+  const handleTabDrop = (targetIdx: number) => {
+    if (tabDragIdx !== null && tabDragIdx !== targetIdx) {
+      const newOrder = [...tabOrder];
+      const [moved] = newOrder.splice(tabDragIdx, 1);
+      newOrder.splice(targetIdx, 0, moved);
+      saveTabOrder(newOrder);
+    }
+    setTabDragIdx(null);
+    setTabDragOverIdx(null);
+  };
+  const handleTabDragEnd = () => { setTabDragIdx(null); setTabDragOverIdx(null); };
 
   const addTeamMember = async () => {
     if (!newName.trim() || !newPin || newPin.length !== 4) {
@@ -386,41 +455,65 @@ export default function Members() {
         </div>
 
         <Tabs defaultValue="team" className="w-full">
-          <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 rounded-xl">
-            <TabsTrigger value="team" className="text-xs rounded-lg">
-              <Users className="w-4 h-4 mr-1" /> Equipe
-            </TabsTrigger>
-            <TabsTrigger value="users" className="text-xs rounded-lg">
-              <UserPlus className="w-4 h-4 mr-1" /> Usuários
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs rounded-lg">
-              <Bell className="w-4 h-4 mr-1" /> Notificações
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="text-xs rounded-lg">
-              <Zap className="w-4 h-4 mr-1" /> Integrações
-            </TabsTrigger>
-            <TabsTrigger value="n8n" className="text-xs rounded-lg">
-              <Webhook className="w-4 h-4 mr-1" /> n8n
-            </TabsTrigger>
-            <TabsTrigger value="landing" className="text-xs rounded-lg">
-              <Megaphone className="w-4 h-4 mr-1" /> Landing
-            </TabsTrigger>
-            <TabsTrigger value="links" className="text-xs rounded-lg">
-              <Link className="w-4 h-4 mr-1" /> Links
-            </TabsTrigger>
-            <TabsTrigger value="raffle" className="text-xs rounded-lg">
-              <Gift className="w-4 h-4 mr-1" /> Sorteio
-            </TabsTrigger>
-            <TabsTrigger value="sidebar-config" className="text-xs rounded-lg">
-              <Menu className="w-4 h-4 mr-1" /> Menu
-            </TabsTrigger>
-            <TabsTrigger value="support" className="text-xs rounded-lg">
-              <LifeBuoy className="w-4 h-4 mr-1" /> Suporte
-            </TabsTrigger>
-            <TabsTrigger value="system-guide" className="text-xs rounded-lg">
-              <BookOpen className="w-4 h-4 mr-1" /> Guia PDF
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-2">
+            <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 rounded-xl flex-1">
+              {tabOrder.map(tab => {
+                const IconComp = TAB_ICONS[tab.icon];
+                return (
+                  <TabsTrigger key={tab.id} value={tab.id} className="text-xs rounded-lg">
+                    {IconComp && <IconComp className="w-4 h-4 mr-1" />} {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => setShowTabConfig(true)} title="Reorganizar abas">
+              <Settings2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Tab order config dialog */}
+          <Dialog open={showTabConfig} onOpenChange={setShowTabConfig}>
+            <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings2 className="w-5 h-5 text-primary" />
+                  Reorganizar Abas
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">Arraste para reordenar as abas do painel</p>
+              <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                {tabOrder.map((tab, idx) => {
+                  const IconComp = TAB_ICONS[tab.icon];
+                  return (
+                    <div
+                      key={tab.id}
+                      draggable
+                      onDragStart={() => handleTabDragStart(idx)}
+                      onDragOver={(e) => handleTabDragOver(e, idx)}
+                      onDrop={() => handleTabDrop(idx)}
+                      onDragEnd={handleTabDragEnd}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all ${
+                        tabDragOverIdx === idx ? 'border-primary bg-primary/10' : 'bg-muted/30'
+                      } ${tabDragIdx === idx ? 'opacity-40' : ''}`}
+                    >
+                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      {IconComp && <IconComp className="w-4 h-4 text-primary flex-shrink-0" />}
+                      <span className="text-sm font-medium flex-1">{tab.label}</span>
+                      <Badge variant="outline" className="text-[10px] font-mono">{idx + 1}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => { saveTabOrder(DEFAULT_TABS); }}>
+                  Restaurar Padrão
+                </Button>
+                <Button size="sm" className="flex-1" onClick={() => setShowTabConfig(false)}>
+                  Fechar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* ============ TEAM TAB ============ */}
           <TabsContent value="team" className="mt-6 space-y-6">
