@@ -394,9 +394,9 @@ const ProductsTab: React.FC = () => {
               <Badge variant="secondary" className="text-xs">{products?.length || 0}</Badge>
             </span>
             <div className="flex gap-2 flex-wrap">
-              <Button onClick={() => setShowForm(!showForm)} size="sm">
-                 Novo
-              </Button>
+              
+
+              
               <Button onClick={() => exportToPDF(true)} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-1" /> Interno
               </Button>
