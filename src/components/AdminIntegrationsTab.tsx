@@ -194,26 +194,45 @@ export const AdminIntegrationsTab: React.FC = () => {
   const createFakeUser = async (withPlan = false) => {
     setCreatingFake(true);
     try {
-      const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
+      // Always ensure a unique email
+      let email = simEmail;
+      if (!email || email === 'usuario@email.com' || email.trim() === '') {
+        email = `teste_${Date.now()}@simulacao.fake`;
+        setSimEmail(email);
+      }
       const password = 'Teste@1234';
       
+      addLog(true, `⏳ Criando usuário ${email}...`);
       await callCreateFakeUser(email);
       
-      const msg = `Usuário ${email} criado (senha: ${password})`;
+      const msg = `✅ Usuário ${email} criado (senha: ${password})`;
       
       if (withPlan) {
-        const amount = parseFloat(simAmount) || 29.90;
-        const payload = generatePayload(email, amount, true);
-        await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        // Wait for DB triggers to create profile/subscription
+        await new Promise(r => setTimeout(r, 2000));
         
-        addLog(true, `${msg} + Plano ${simPlan} ativado via webhook`);
-        toast({ title: "✅ Usuário + Plano criados!", description: `${email} com plano ${simPlan}` });
+        const amount = parseFloat(simAmount) || 29.90;
+        addLog(true, `⏳ Ativando plano ${simPlan} via webhook (R$ ${amount.toFixed(2)})...`);
+        const payload = generatePayload(email, amount, true);
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        const data = await res.json();
+        
+        if (data.success) {
+          addLog(true, `✅ ${msg} + Plano ${simPlan} ATIVADO via ${activePlatform.name}!`);
+          toast({ title: "✅ Usuário criado e plano ativado!", description: `${email} — ${simPlan} aprovado. Verifique na aba Usuários.` });
+        } else {
+          addLog(false, `⚠️ Usuário criado mas webhook falhou: ${data.error || data.message}`);
+          toast({ title: "⚠️ Usuário criado, webhook falhou", description: data.error || data.message, variant: "destructive" });
+        }
       } else {
         addLog(true, msg);
-        toast({ title: "✅ Usuário fake criado!", description: email });
+        toast({ title: "✅ Usuário fake criado!", description: `${email} — status pendente. Use o webhook para ativar.` });
       }
+      
+      // Generate new email for next test
+      setSimEmail(`teste_${Math.floor(Math.random() * 9999)}@simulacao.fake`);
     } catch (error: any) {
-      addLog(false, `Erro ao criar usuário: ${error.message}`);
+      addLog(false, `❌ Erro ao criar usuário: ${error.message}`);
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
       setCreatingFake(false);
@@ -259,27 +278,42 @@ export const AdminIntegrationsTab: React.FC = () => {
   const runFullFlow = async () => {
     setCreatingFake(true);
     try {
-      const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
-      if (!simEmail) setSimEmail(email);
+      // Always generate a unique email for full flow
+      let email = simEmail;
+      if (!email || email === 'usuario@email.com' || email.trim() === '') {
+        email = `teste_${Date.now()}@simulacao.fake`;
+        setSimEmail(email);
+      }
 
-      // Step 1: Create user via edge function (preserves admin session)
-      addLog(true, `[Fluxo] Criando usuário ${email}...`);
+      // Step 1: Create user
+      addLog(true, `🔄 [1/3] Criando usuário ${email}...`);
       await callCreateFakeUser(email);
+      addLog(true, `✅ [1/3] Usuário ${email} criado!`);
 
-      // Step 2: Wait for triggers
-      await new Promise(r => setTimeout(r, 1500));
+      // Step 2: Wait for DB triggers (profile, subscription, roles)
+      addLog(true, `🔄 [2/3] Aguardando triggers do banco...`);
+      await new Promise(r => setTimeout(r, 2000));
+      addLog(true, `✅ [2/3] Triggers executados!`);
 
-      // Step 3: Simulate webhook
+      // Step 3: Simulate webhook payment
       const amount = parseFloat(simAmount) || 29.90;
-      addLog(true, `[Fluxo] Simulando webhook ${activePlatform.name} — R$ ${amount.toFixed(2)}...`);
+      addLog(true, `🔄 [3/3] Simulando pagamento ${activePlatform.name} — R$ ${amount.toFixed(2)}...`);
       const payload = generatePayload(email, amount, true);
       const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
 
-      addLog(data.success, `[Fluxo Completo] ${data.message || data.error || 'OK'}`, data);
-      toast({ title: "✅ Fluxo completo!", description: `Usuário ${email} criado e plano ativado via ${activePlatform.name}` });
+      if (data.success) {
+        addLog(true, `🎉 [COMPLETO] ${email} — Plano ${data.data?.plan_name || simPlan} ativado via ${activePlatform.name}!`);
+        toast({ title: "🎉 Fluxo completo!", description: `${email} criado com plano ${data.data?.plan_name || simPlan} aprovado! Verifique na aba Usuários.` });
+      } else {
+        addLog(false, `❌ [3/3] Webhook falhou: ${data.error || data.message}`);
+        toast({ title: "⚠️ Webhook falhou", description: data.error || data.message, variant: "destructive" });
+      }
+      
+      // Generate new email for next test
+      setSimEmail(`teste_${Math.floor(Math.random() * 9999)}@simulacao.fake`);
     } catch (error: any) {
-      addLog(false, `[Fluxo] Erro: ${error.message}`);
+      addLog(false, `❌ [Fluxo] Erro: ${error.message}`);
       toast({ title: "Erro no fluxo", description: error.message, variant: "destructive" });
     } finally {
       setCreatingFake(false);
