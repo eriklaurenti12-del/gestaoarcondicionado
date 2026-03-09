@@ -5,5 +5,11 @@ import { registerSW } from 'virtual:pwa-register'
 
 createRoot(document.getElementById("root")!).render(<App />);
 
-// Register service worker for PWA via Vite PWA helper
-registerSW({ immediate: true });
+// Register service worker for PWA with auto-update
+registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    // Auto-reload when new version is available
+    window.location.reload();
+  },
+});

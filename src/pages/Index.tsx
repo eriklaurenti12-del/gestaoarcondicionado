@@ -340,17 +340,20 @@ export default function Index() {
                     onClick={async () => {
                       toast.info("🔍 Verificando atualizações...");
                       try {
-                        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-                          const reg = await navigator.serviceWorker.ready;
-                          await reg.update();
-                          toast.success("✅ Verificação concluída! Se houver atualização, será aplicada.");
-                        } else {
-                          toast.info("🔄 Recarregando para buscar atualizações...");
-                          setTimeout(() => window.location.reload(), 1000);
+                        // Unregister all service workers and clear caches
+                        if ('serviceWorker' in navigator) {
+                          const registrations = await navigator.serviceWorker.getRegistrations();
+                          for (const reg of registrations) {
+                            await reg.unregister();
+                          }
                         }
+                        const cacheNames = await caches.keys();
+                        await Promise.all(cacheNames.map(name => caches.delete(name)));
+                        toast.success("✅ Cache limpo! Recarregando...");
+                        setTimeout(() => window.location.reload(), 800);
                       } catch {
                         toast.info("🔄 Recarregando...");
-                        setTimeout(() => window.location.reload(), 1000);
+                        setTimeout(() => window.location.reload(), 800);
                       }
                     }}
                     title="Procurar atualização"
