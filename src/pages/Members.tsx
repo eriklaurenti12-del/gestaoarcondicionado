@@ -104,6 +104,24 @@ export default function Members() {
   const [tabDragIdx, setTabDragIdx] = useState<number | null>(null);
   const [tabDragOverIdx, setTabDragOverIdx] = useState<number | null>(null);
 
+  const loadTabOrder = async () => {
+    const { data } = await supabase
+      .from('admin_settings')
+      .select('value')
+      .eq('key', 'members_tab_order')
+      .maybeSingle();
+    if (data?.value) {
+      try {
+        const parsed = JSON.parse(data.value);
+        if (Array.isArray(parsed)) {
+          const merged = parsed.filter((t: any) => DEFAULT_TABS.some(d => d.id === t.id));
+          const missing = DEFAULT_TABS.filter(d => !parsed.some((t: any) => t.id === d.id));
+          setTabOrder([...merged, ...missing]);
+        }
+      } catch {}
+    }
+  };
+
   useEffect(() => {
     checkSuperAdmin();
     loadMembers();
