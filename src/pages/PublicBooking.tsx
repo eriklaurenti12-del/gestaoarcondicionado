@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin } from "lucide-react";
+import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin, Instagram } from "lucide-react";
 import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
