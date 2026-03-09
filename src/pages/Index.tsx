@@ -75,7 +75,7 @@ export default function Index() {
   const [userRole, setUserRole] = useState<string>('');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showTipsDialog, setShowTipsDialog] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ['notification-count'],
