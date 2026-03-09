@@ -112,6 +112,16 @@ export const AdminIntegrationsTab: React.FC = () => {
       (data as any[])?.forEach(item => { settingsMap[item.key] = item.value || ''; });
       setSettings(prev => ({ ...prev, ...settingsMap }));
       
+      // Load integration keys
+      const loadedKeys: Array<{ id: string; name: string; value: string; showValue: boolean }> = [];
+      (data as any[])?.forEach(item => {
+        if (item.key.startsWith('integration_key_')) {
+          const keyName = item.key.replace('integration_key_', '');
+          loadedKeys.push({ id: item.key, name: keyName, value: item.value || '', showValue: false });
+        }
+      });
+      setIntegrationKeys(loadedKeys);
+      
       // Detect platforms from checkout URLs
       const detected: string[] = [];
       const allValues = Object.values(settingsMap).join(' ').toLowerCase();
