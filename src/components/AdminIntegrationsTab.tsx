@@ -480,101 +480,100 @@ export const AdminIntegrationsTab: React.FC = () => {
         <TabsContent value="checkout" className="mt-4 space-y-4">
           <Card className="bg-[#1a1a24] border-[#2a2a3a]">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between text-white">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-cyan-400" />
-                  Links de Pagamento
-                </div>
-                <AiHelpButton section="checkout" questions={['Como mudar o checkout para outra plataforma?', 'Como configurar preços no checkout?', 'Como funciona a detecção automática de plano?']} />
+              <CardTitle className="flex items-center gap-2 text-white">
+                <CreditCard className="w-5 h-5 text-cyan-400" />
+                Links de Pagamento por Plano
               </CardTitle>
-              <CardDescription className="text-gray-400">Atualize os links que aparecem na landing page, tela de ativação e para os usuários</CardDescription>
-              <div className="mt-2 p-2.5 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                <p className="text-[11px] text-purple-400">
-                  <strong>🔗 Também usado na aba Landing → Checkout:</strong> Estes links funcionam como fallback na landing page. 
-                  Se a aba Landing tiver links próprios, eles terão prioridade. Se não, estes serão usados automaticamente. 
-                  O webhook usa os <strong>preços abaixo</strong> para detectar se o pagamento é mensal ou anual.
-                </p>
-              </div>
+              <CardDescription className="text-gray-400">
+                Configure links de checkout e preços para cada plano. Esses links são usados na landing page, tela de ativação e reconhecimento automático via webhook.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-cyan-400" />
-                    Checkout Mensal
-                  </label>
-                  {settings.checkout_mensal && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
-                </div>
-                <div className="flex gap-2">
-                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_mensal} onChange={(e) => setSettings(prev => ({ ...prev, checkout_mensal: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                  {settings.checkout_mensal && (
-                    <>
-                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_mensal, 'Link Mensal')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
-                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_mensal, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Plano Ativo Selector */}
+              <Card className="bg-[#0f0f17] border-[#2a2a3a]">
+                <CardContent className="p-4 space-y-3">
+                  <div>
+                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                      🎯 Plano Ativo no Checkout (SubscriptionGate)
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-1">Escolha qual plano aparece como link principal de pagamento na tela de bloqueio.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { id: 'mensal', label: 'Mensal', icon: '💳' },
+                      { id: 'trimestral', label: 'Trimestral', icon: '📘' },
+                      { id: 'semestral', label: 'Semestral', icon: '📗' },
+                      { id: 'anual', label: 'Anual', icon: '⭐' },
+                      { id: 'vitalicio', label: 'Vitalício', icon: '👑' },
+                    ].map(plan => (
+                      <Button
+                        key={plan.id}
+                        size="sm"
+                        variant={settings.plano_ativo_checkout === plan.id ? 'default' : 'outline'}
+                        className={settings.plano_ativo_checkout === plan.id
+                          ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                          : 'bg-[#1a1a24] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white'}
+                        onClick={() => setSettings(prev => ({ ...prev, plano_ativo_checkout: plan.id }))}
+                      >
+                        {plan.icon} {plan.label}
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-purple-400" />
-                    Checkout Trimestral
-                  </label>
-                  {settings.checkout_trimestral && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
-                </div>
-                <div className="flex gap-2">
-                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_trimestral} onChange={(e) => setSettings(prev => ({ ...prev, checkout_trimestral: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                  {settings.checkout_trimestral && (
-                    <>
-                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_trimestral, 'Link Trimestral')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
-                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_trimestral, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
+              {/* Plan Cards */}
+              {[
+                { id: 'mensal', label: 'Mensal', icon: '💳', placeholder: '29.90' },
+                { id: 'trimestral', label: 'Trimestral', icon: '📘', placeholder: '69.90' },
+                { id: 'semestral', label: 'Semestral', icon: '📗', placeholder: '149.90' },
+                { id: 'anual', label: 'Anual', icon: '⭐', placeholder: '199.90' },
+                { id: 'vitalicio', label: 'Vitalício', icon: '👑', placeholder: '499.90' },
+              ].map(plan => {
+                const isActive = settings.plano_ativo_checkout === plan.id;
+                return (
+                  <Card key={plan.id} className={`bg-[#1a1a24] border-[#2a2a3a] transition-all ${isActive ? 'ring-2 ring-green-500/40 border-green-500/30' : ''}`}>
+                    <CardContent className="p-4 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{plan.icon}</span>
+                        <h4 className="text-sm font-semibold text-white">{plan.label}</h4>
+                        {isActive && <Badge className="bg-green-600 text-white text-[9px]">Ativo</Badge>}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Preço (R$)</label>
+                          <Input
+                            type="number" step="0.01"
+                            value={settings[`preco_${plan.id}`] || ''}
+                            onChange={(e) => setSettings(prev => ({ ...prev, [`preco_${plan.id}`]: e.target.value }))}
+                            className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                            placeholder={plan.placeholder}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 mb-1 block">Link do Checkout</label>
+                          <div className="flex gap-1">
+                            <Input
+                              value={settings[`checkout_${plan.id}`] || ''}
+                              onChange={(e) => setSettings(prev => ({ ...prev, [`checkout_${plan.id}`]: e.target.value }))}
+                              className="bg-[#0f0f17] border-[#2a2a3a] text-white"
+                              placeholder="https://checkout..."
+                            />
+                            {settings[`checkout_${plan.id}`] && (
+                              <>
+                                <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings[`checkout_${plan.id}`], `Link ${plan.label}`)} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a] shrink-0"><Copy className="w-4 h-4" /></Button>
+                                <Button variant="outline" size="icon" onClick={() => window.open(settings[`checkout_${plan.id}`], '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a] shrink-0"><ExternalLink className="w-4 h-4" /></Button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-amber-400" />
-                    Checkout Anual
-                    <Badge className="bg-amber-600/20 text-amber-400 border-amber-600/30 text-[10px]">Destaque</Badge>
-                  </label>
-                  {settings.checkout_anual && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
-                </div>
-                <div className="flex gap-2">
-                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_anual} onChange={(e) => setSettings(prev => ({ ...prev, checkout_anual: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                  {settings.checkout_anual && (
-                    <>
-                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_anual, 'Link Anual')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
-                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_anual, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-green-400" />
-                    Checkout Vitalício
-                    <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Permanente</Badge>
-                  </label>
-                  {settings.checkout_vitalicio && <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[10px]">Configurado</Badge>}
-                </div>
-                <div className="flex gap-2">
-                  <Input placeholder="https://pay.ggcheckout.com.br/..." value={settings.checkout_vitalicio} onChange={(e) => setSettings(prev => ({ ...prev, checkout_vitalicio: e.target.value }))} className="bg-[#0f0f17] border-[#2a2a3a] text-white" />
-                  {settings.checkout_vitalicio && (
-                    <>
-                      <Button variant="outline" size="icon" onClick={() => copyToClipboard(settings.checkout_vitalicio, 'Link Vitalício')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><Copy className="w-4 h-4" /></Button>
-                      <Button variant="outline" size="icon" onClick={() => window.open(settings.checkout_vitalicio, '_blank')} className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"><ExternalLink className="w-4 h-4" /></Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
+              {/* WhatsApp */}
               <div className="space-y-2">
                 <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
                   <Smartphone className="w-4 h-4 text-green-400" />
@@ -588,74 +587,18 @@ export const AdminIntegrationsTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Preços para detecção automática do webhook */}
-              <div className="bg-gradient-to-r from-purple-600/10 to-cyan-600/10 rounded-lg p-4 border border-purple-600/20 space-y-3">
-                <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                  <Settings className="w-4 h-4 text-purple-400" />
-                  Preços para Detecção Automática (Webhook)
+              {/* Sync info */}
+              <div className="bg-gradient-to-r from-blue-600/10 to-cyan-600/10 rounded-lg p-4 border border-blue-600/20">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2 mb-1">
+                  🔄 Sincronização Automática
                 </h4>
                 <p className="text-xs text-gray-400">
-                  O webhook usa estes valores para detectar automaticamente o plano do pagamento.
-                  O sistema compara o valor recebido (±20%) com os preços abaixo e ativa o plano correspondente.
+                  Esses links e preços são usados em: <strong className="text-white">Landing Page</strong> (seção de preços), 
+                  <strong className="text-white"> Tela de Ativação</strong> (SubscriptionGate) e <strong className="text-white"> Webhook</strong> (detecção automática de plano por valor). 
+                  O código de pagamento gerado automaticamente identifica o plano escolhido.
                 </p>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Mensal (R$)</label>
-                    <Input 
-                      type="number" step="0.01"
-                      value={settings.preco_mensal} 
-                      onChange={(e) => setSettings(prev => ({ ...prev, preco_mensal: e.target.value }))} 
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                      placeholder="39.90"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Trimestral (R$)</label>
-                    <Input 
-                      type="number" step="0.01"
-                      value={settings.preco_trimestral} 
-                      onChange={(e) => setSettings(prev => ({ ...prev, preco_trimestral: e.target.value }))} 
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                      placeholder="99.90"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Anual (R$)</label>
-                    <Input 
-                      type="number" step="0.01"
-                      value={settings.preco_anual} 
-                      onChange={(e) => setSettings(prev => ({ ...prev, preco_anual: e.target.value }))} 
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                      placeholder="370"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1 block">Vitalício (R$)</label>
-                    <Input 
-                      type="number" step="0.01"
-                      value={settings.preco_vitalicio} 
-                      onChange={(e) => setSettings(prev => ({ ...prev, preco_vitalicio: e.target.value }))} 
-                      className="bg-[#0f0f17] border-[#2a2a3a] text-white" 
-                      placeholder="997"
-                    />
-                  </div>
-                </div>
               </div>
 
-              {/* Data Promoção */}
-              <div className="space-y-2">
-                <label className="text-sm text-gray-300 font-medium flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-400" />
-                  Data Fim da Promoção (Timer Regressivo)
-                </label>
-                <Input
-                  type="datetime-local"
-                  value={settings.promo_end_date}
-                  onChange={(e) => setSettings(prev => ({ ...prev, promo_end_date: e.target.value }))}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white"
-                />
-                <p className="text-[10px] text-gray-500">Deixe vazio para esconder o timer de promoção na landing</p>
-              </div>
               <div className="flex justify-end pt-2">
                 <Button onClick={saveAllSettings} disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
                   {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
@@ -665,8 +608,6 @@ export const AdminIntegrationsTab: React.FC = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* TAB: Plataformas */}
         <TabsContent value="platforms" className="mt-4 space-y-4">
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-gray-400">Clique em uma plataforma para ver o guia de configuração</p>
