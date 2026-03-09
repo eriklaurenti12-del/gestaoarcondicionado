@@ -956,35 +956,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 {expiringSubscribers.map((sub: any) => {
                   const remaining = getTimeRemaining(sub.end_date);
                   return (
-                    <Card key={sub.id} className="border-l-4 border-l-red-500">
-                      <CardContent className="p-3 flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{sub.email}</p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-[9px] h-4">{sub.plan}</Badge>
-                            <span className={`text-[11px] font-bold ${remaining.color}`}>⏱ {remaining.label}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                            <SelectTrigger className="h-8 text-[10px] w-[80px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1dia">1 Dia</SelectItem>
-                              <SelectItem value="7dias">7 Dias</SelectItem>
-                              <SelectItem value="mensal">Mensal</SelectItem>
-                              <SelectItem value="trimestral">Trimestral</SelectItem>
-                              <SelectItem value="semestral">Semestral</SelectItem>
-                              <SelectItem value="anual">Anual</SelectItem>
-                              <SelectItem value="vitalicio">Vitalício</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white gap-1"
-                            disabled={activatingUser === sub.id} onClick={() => handleActivateSubscriber(sub.id, true)}>
-                            {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><RefreshCw className="w-3 h-3" /> Renovar</>}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <SubscriberQuickActions key={sub.id} sub={sub} statusBadge={<span className={`text-[11px] font-bold ${remaining.color}`}>⏱ {remaining.label}</span>} borderColor="border-l-red-500" activatingUser={activatingUser} onActivate={handleActivateSubscriber} />
                   );
                 })}
               </div>
@@ -999,34 +971,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 {pendingSubscribers.map((sub: any) => {
                   const trial = getTrialRemaining(sub.created_at);
                   return (
-                    <Card key={sub.id} className={`border-l-4 ${trial.expired ? 'border-l-red-500' : 'border-l-amber-500'}`}>
-                      <CardContent className="p-3 flex items-center gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm truncate">{sub.email}</p>
-                          <span className={`text-[11px] font-bold ${trial.expired ? 'text-red-500' : 'text-amber-500'}`}>
-                            {trial.expired ? '⛔ ' : '⏱ '}{trial.label}
-                          </span>
-                        </div>
-                        <div className="flex flex-col gap-1 shrink-0">
-                          <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                            <SelectTrigger className="h-7 text-[10px] w-[80px]"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1dia">1 Dia</SelectItem>
-                              <SelectItem value="7dias">7 Dias</SelectItem>
-                              <SelectItem value="mensal">Mensal</SelectItem>
-                              <SelectItem value="trimestral">Trimestral</SelectItem>
-                              <SelectItem value="semestral">Semestral</SelectItem>
-                              <SelectItem value="anual">Anual</SelectItem>
-                              <SelectItem value="vitalicio">Vitalício</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button size="sm" className="h-7 text-[10px] bg-green-600 hover:bg-green-700 text-white gap-1"
-                            disabled={activatingUser === sub.id} onClick={() => handleActivateSubscriber(sub.id, true)}>
-                            {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><UserCheck className="w-3 h-3" /> Liberar</>}
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <SubscriberQuickActions key={sub.id} sub={sub} statusBadge={<span className={`text-[11px] font-bold ${trial.expired ? 'text-red-500' : 'text-amber-500'}`}>{trial.expired ? '⛔ ' : '⏱ '}{trial.label}</span>} borderColor={trial.expired ? 'border-l-red-500' : 'border-l-amber-500'} activatingUser={activatingUser} onActivate={handleActivateSubscriber} />
                   );
                 })}
               </div>
@@ -1040,37 +985,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 const isVitalicio = sub.plan === 'vitalicio';
                 const remaining = sub.end_date ? getTimeRemaining(sub.end_date) : null;
                 return (
-                  <Card key={sub.id} className={`${!isActive ? 'opacity-70' : ''}`}>
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isActive ? 'bg-green-500/10' : 'bg-muted'}`}>
-                        <span className={`text-sm font-bold ${isActive ? 'text-green-500' : 'text-muted-foreground'}`}>{sub.email?.charAt(0).toUpperCase()}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{sub.email}</p>
-                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
-                          <Badge variant={isActive ? 'default' : sub.status === 'pendente' ? 'secondary' : 'destructive'} className="text-[9px] h-4">
-                            {isActive ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
-                          </Badge>
-                          <Badge variant="outline" className="text-[9px] h-4">{sub.plan}</Badge>
-                          {isVitalicio && <span className="text-[10px] text-green-500 font-medium">🏆</span>}
-                          {remaining && !isVitalicio && <span className={`text-[10px] font-medium ${remaining.color}`}>⏱ {remaining.label}</span>}
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        {!isActive ? (
-                          <Button size="icon" variant="outline" className="h-8 w-8" disabled={activatingUser === sub.id}
-                            onClick={() => handleActivateSubscriber(sub.id, true)}>
-                            <UserCheck className="w-3.5 h-3.5 text-green-500" />
-                          </Button>
-                        ) : (
-                          <Button size="icon" variant="outline" className="h-8 w-8" disabled={activatingUser === sub.id}
-                            onClick={() => handleActivateSubscriber(sub.id, false)}>
-                            <UserX className="w-3.5 h-3.5 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <SubscriberQuickActions key={sub.id} sub={sub} statusBadge={
+                    <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                      <Badge variant={isActive ? 'default' : sub.status === 'pendente' ? 'secondary' : 'destructive'} className="text-[9px] h-4">
+                        {isActive ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-[9px] h-4">{sub.plan}</Badge>
+                      {isVitalicio && <span className="text-[10px] text-green-500 font-medium">🏆</span>}
+                      {remaining && !isVitalicio && <span className={`text-[10px] font-medium ${remaining.color}`}>⏱ {remaining.label}</span>}
+                    </div>
+                  } borderColor={!isActive ? 'opacity-70' : ''} activatingUser={activatingUser} onActivate={handleActivateSubscriber} />
                 );
               })}
             </div>
