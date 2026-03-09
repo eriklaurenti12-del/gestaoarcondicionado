@@ -78,6 +78,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     preco_vitalicio: '',
     promo_end_date: '',
     plano_ativo_checkout: 'anual',
+    plataforma_ativa: 'ggcheckout',
   });
   const [testEmail, setTestEmail] = useState('');
   const [testAmount, setTestAmount] = useState('39.90');
