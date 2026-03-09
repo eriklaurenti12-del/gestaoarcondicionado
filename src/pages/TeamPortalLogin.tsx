@@ -1089,11 +1089,15 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                               {sub.status === 'aprovado' ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
                             </Badge>
                             <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
-                            {sub.end_date && (
-                              <span className="text-[9px] text-muted-foreground">
-                                até {format(new Date(sub.end_date), 'dd/MM/yy')}
-                              </span>
-                            )}
+                            {sub.end_date && (() => {
+                              const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                              return (
+                                <span className={`text-[9px] font-medium ${daysLeft <= 3 ? 'text-red-500' : daysLeft <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
+                                  {daysLeft <= 0 ? '⛔ Expirado' : `${daysLeft}d restantes`}
+                                </span>
+                              );
+                            })()}
+                            {sub.plan === 'vitalicio' && <span className="text-[9px] text-green-500 font-medium">🏆 Permanente</span>}
                           </div>
                         </div>
                       </div>
