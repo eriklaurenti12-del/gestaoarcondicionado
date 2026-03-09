@@ -12,7 +12,7 @@ import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type ServiceOption = { id: number; name: string; price: number; service_duration?: number; image_url?: string };
-type CompanyInfo = { company_name: string; whatsapp?: string; address?: string; logo_url?: string };
+type CompanyInfo = { company_name: string; whatsapp?: string; address?: string; logo_url?: string; instagram?: string };
 type BookingResult = {
   id: string;
   client_name: string;
