@@ -1185,6 +1185,72 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </>
             )}
           </TabsContent>
+
+          {/* === LINKS ÚTEIS === */}
+          <TabsContent value="links" className="mt-3 space-y-3">
+            <Card className="border-primary/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Link2 className="w-5 h-5 text-primary" />
+                  <h3 className="font-bold text-sm">Links do Sistema</h3>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Landing Page', desc: 'Página de vendas', url: 'https://gestaoarcondicionado.lovable.app/', icon: '🌐' },
+                    { label: 'Login do Sistema', desc: 'Acesso para usuários', url: 'https://gestaoarcondicionado.lovable.app/auth', icon: '🔐' },
+                    { label: 'Portal da Equipe', desc: 'Este portal', url: 'https://gestaoarcondicionado.lovable.app/portal', icon: '👥' },
+                    { label: 'Agenda Online', desc: 'Link para clientes agendarem', url: `https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`, icon: '📅' },
+                    { label: 'Dashboard Admin', desc: 'Painel do super admin', url: 'https://gestaoarcondicionado.lovable.app/members', icon: '🛡️' },
+                  ].map((link) => (
+                    <div key={link.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg">{link.icon}</span>
+                        <div>
+                          <p className="text-sm font-medium">{link.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{link.desc}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
+                          onClick={() => {
+                            navigator.clipboard.writeText(link.url);
+                            toast({ title: '📋 Link copiado!' });
+                          }}>
+                          <Copy className="w-3 h-3" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
+                          onClick={() => window.open(link.url, '_blank')}>
+                          <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+                  <MessageCircle className="w-4 h-4 text-green-500" /> Compartilhar via WhatsApp
+                </h3>
+                <div className="space-y-2">
+                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
+                    const msg = encodeURIComponent(`🔧 Gestão AC - Agende seu serviço de ar condicionado online!\n\n📅 ${`https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`}`);
+                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                  }}>
+                    📅 Enviar link da Agenda Online
+                  </Button>
+                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
+                    const msg = encodeURIComponent(`🔧 Gestão AC - Sistema completo para prestadores de serviço!\n\n🌐 https://gestaoarcondicionado.lovable.app/`);
+                    window.open(`https://wa.me/?text=${msg}`, '_blank');
+                  }}>
+                    🌐 Enviar link da Landing Page
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
