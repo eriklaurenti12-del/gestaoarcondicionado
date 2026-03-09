@@ -32,6 +32,8 @@ type Member = {
   id: string;
   email: string;
   phone: string | null;
+  company_whatsapp: string | null;
+  company_name: string | null;
   created_at: string;
   subscription: {
     plan: string;
