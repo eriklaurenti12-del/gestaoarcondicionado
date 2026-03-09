@@ -451,216 +451,184 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     tecnico: '🔧 Técnico',
   };
 
+  // Computed stats
+  const expiringSubscribers = (portalSubscribers as any[]).filter((s: any) => {
+    if (!s.end_date || s.status !== 'aprovado') return false;
+    const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+    return daysLeft <= 7 && daysLeft >= 0;
+  });
+
+  const getTimeRemaining = (endDate: string) => {
+    const ms = new Date(endDate).getTime() - Date.now();
+    if (ms <= 0) return { label: 'Expirado', color: 'text-destructive', urgent: true };
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const days = Math.floor(hours / 24);
+    if (days > 30) return { label: `${days} dias`, color: 'text-green-500', urgent: false };
+    if (days > 7) return { label: `${days} dias`, color: 'text-amber-500', urgent: false };
+    if (days > 0) return { label: `${days}d ${hours % 24}h`, color: 'text-red-500', urgent: true };
+    return { label: `${hours}h`, color: 'text-red-500 animate-pulse', urgent: true };
+  };
+
+  const getTrialRemaining = (createdAt: string) => {
+    const ms = new Date(createdAt).getTime() + 24 * 60 * 60 * 1000 - Date.now();
+    if (ms <= 0) return { label: 'Trial expirado', expired: true, hours: 0 };
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    return { label: `${hours}h ${minutes}m restantes`, expired: false, hours };
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
-      <div className="bg-primary text-primary-foreground p-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-full bg-primary-foreground/20 relative">
-              <Wind className="w-5 h-5" />
-              <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-green-400 rounded-full border-2 border-primary animate-pulse" />
-            </div>
-            <div>
-              <h1 className="font-bold text-lg">Olá, {session.memberName}!</h1>
-              <div className="flex items-center gap-2">
-                <Badge variant="secondary" className="text-[10px]">{roleLabel[session.role] || session.role}</Badge>
-                <span className="text-sm opacity-80">{pending} pendente{pending !== 1 ? 's' : ''}</span>
-                <span className="text-[10px] opacity-60">• {onlineMembers.length} online</span>
+      <div className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-lg">
+        <div className="max-w-3xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-11 h-11 rounded-xl bg-primary-foreground/20 backdrop-blur flex items-center justify-center">
+                  <Wind className="w-6 h-6" />
+                </div>
+                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-primary animate-pulse" />
+              </div>
+              <div>
+                <h1 className="font-bold text-base">{session.memberName}</h1>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-[10px] h-5">{roleLabel[session.role] || session.role}</Badge>
+                  <span className="text-[11px] opacity-80">
+                    {onlineMembers.length} online • {pending} pendente{pending !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="flex gap-2">
-            <Button size="icon" variant="ghost" onClick={handleRefresh} className="text-primary-foreground hover:bg-primary-foreground/20">
-              <RefreshCw className="w-5 h-5" />
-            </Button>
-            <Button size="icon" variant="ghost" onClick={onLogout} className="text-primary-foreground hover:bg-primary-foreground/20">
-              <LogOut className="w-5 h-5" />
-            </Button>
+            <div className="flex gap-1">
+              <Button size="icon" variant="ghost" onClick={handleRefresh} className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={onLogout} className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
+                <LogOut className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* New Subscription Alerts */}
-      {newSubscriptionAlerts.length > 0 && canAccessFeature('assinantes') && (
-        <div className="max-w-2xl mx-auto px-4 pt-3">
-          <Card className="border-purple-500/50 bg-purple-500/5">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Shield className="w-4 h-4 text-purple-500" />
-                <span className="font-bold text-sm text-purple-700 dark:text-purple-400">
-                  🆕 {newSubscriptionAlerts.length} nova(s) assinatura(s) aguardando ativação
-                </span>
-              </div>
-              <div className="space-y-2">
-                {newSubscriptionAlerts.slice(0, 3).map((sub: any, idx: number) => (
-                  <div key={idx} className="flex items-center justify-between bg-background rounded-lg p-2 border">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{sub.email || sub.username}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {sub.created_at ? format(new Date(sub.created_at), 'dd/MM HH:mm') : ''} • Teste expirando
-                      </p>
-                    </div>
-                    <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                      disabled={activatingUser === sub.id}
-                      onClick={() => { handleActivateSubscriber(sub.id, true); setNewSubscriptionAlerts(prev => prev.filter(s => s.id !== sub.id)); }}>
-                      {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><UserCheck className="w-3 h-3 mr-1" /> Ativar</>}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              <Button size="sm" variant="ghost" className="w-full mt-2 text-purple-500 text-xs" onClick={() => setActiveTab('assinantes')}>
-                Ver todos os assinantes →
-              </Button>
-            </CardContent>
-          </Card>
+      {/* Quick Alerts Banner */}
+      {(newSubscriptionAlerts.length > 0 || supportRequests.length > 0 || expiringSubscribers.length > 0) && (
+        <div className="max-w-3xl mx-auto px-4 pt-3 flex gap-2 overflow-x-auto">
+          {newSubscriptionAlerts.length > 0 && (
+            <button onClick={() => setActiveTab('assinantes')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-purple-500/10 border border-purple-500/30 text-purple-700 dark:text-purple-300 text-xs font-medium whitespace-nowrap hover:bg-purple-500/20 transition-colors">
+              <Shield className="w-3.5 h-3.5" />
+              {newSubscriptionAlerts.length} novo{newSubscriptionAlerts.length > 1 ? 's' : ''} aguardando
+            </button>
+          )}
+          {expiringSubscribers.length > 0 && (
+            <button onClick={() => setActiveTab('assinantes')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 text-xs font-medium whitespace-nowrap hover:bg-red-500/20 transition-colors">
+              <AlertTriangle className="w-3.5 h-3.5" />
+              {expiringSubscribers.length} expirando
+            </button>
+          )}
+          {supportRequests.length > 0 && (
+            <button onClick={() => setActiveTab('suporte')} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-medium whitespace-nowrap hover:bg-amber-500/20 transition-colors">
+              <MessageCircle className="w-3.5 h-3.5" />
+              {supportRequests.length} suporte
+            </button>
+          )}
         </div>
       )}
 
-      {/* Support Requests Alert */}
-      {supportRequests.length > 0 && (
-        <div className="max-w-2xl mx-auto px-4 pt-3">
-          <Card className="border-amber-500/50 bg-amber-500/5">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <MessageCircle className="w-4 h-4 text-amber-500" />
-                <span className="font-bold text-sm text-amber-700 dark:text-amber-400">
-                  {supportRequests.length} solicitação(ões) de suporte pendente(s)
-                </span>
-              </div>
-              <div className="space-y-2">
-                {supportRequests.slice(0, 5).map((req: any) => (
-                  <div key={req.id} className="flex items-center justify-between bg-background rounded-lg p-2 border">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{req.requester_name}</p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {req.requester_phone || req.requester_email || '-'} • {req.request_type}
-                      </p>
-                      {req.message && <p className="text-xs text-muted-foreground mt-0.5 truncate">💬 {req.message}</p>}
-                    </div>
-                    <div className="flex gap-1 ml-2">
-                      {req.requester_phone && (
-                        <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
-                          onClick={() => window.open(`https://wa.me/55${req.requester_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${req.requester_name}! Sou ${session.memberName} do suporte. Como posso ajudar?`)}`, '_blank')}>
-                          <Phone className="w-3 h-3" />
-                        </Button>
-                      )}
-                      <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleResolveRequest(req.id)}>
-                        ✓
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <div className="max-w-2xl mx-auto p-4 space-y-4">
-        {/* Stats */}
+      <div className="max-w-3xl mx-auto p-4 space-y-4">
+        {/* Stats Row */}
         <div className="grid grid-cols-5 gap-2">
-          <Card className="cursor-pointer" onClick={() => setActiveTab('today')}>
-            <CardContent className="pt-3 pb-2 text-center">
-              <CalendarDays className="w-4 h-4 mx-auto text-primary mb-1" />
-              <div className="text-xl font-bold">{todayAppointments.length}</div>
-              <div className="text-[10px] text-muted-foreground">Hoje</div>
-            </CardContent>
-          </Card>
-          <Card className="cursor-pointer" onClick={() => setActiveTab('clientes')}>
-            <CardContent className="pt-3 pb-2 text-center">
-              <Users className="w-4 h-4 mx-auto text-blue-500 mb-1" />
-              <div className="text-xl font-bold">{(portalClients as any[]).length}</div>
-              <div className="text-[10px] text-muted-foreground">Clientes</div>
-            </CardContent>
-          </Card>
-          <Card className="cursor-pointer" onClick={() => setActiveTab('pending')}>
-            <CardContent className="pt-3 pb-2 text-center">
-              <Clock className="w-4 h-4 mx-auto text-amber-500 mb-1" />
-              <div className="text-xl font-bold text-amber-500">{pendingBookings.length}</div>
-              <div className="text-[10px] text-muted-foreground">Pendentes</div>
-            </CardContent>
-          </Card>
-          {canAccess('assinantes') && (
-            <Card className="cursor-pointer" onClick={() => setActiveTab('assinantes')}>
-              <CardContent className="pt-3 pb-2 text-center">
-                <Shield className="w-4 h-4 mx-auto text-purple-500 mb-1" />
-                <div className="text-xl font-bold text-purple-500">{pendingSubscribers.length}</div>
-                <div className="text-[10px] text-muted-foreground">Novos</div>
+          {[
+            { tab: 'today', icon: CalendarDays, val: todayAppointments.length, label: 'Hoje', color: 'text-primary' },
+            { tab: 'clientes', icon: Users, val: (portalClients as any[]).length, label: 'Clientes', color: 'text-blue-500' },
+            { tab: 'pending', icon: Clock, val: pendingBookings.length, label: 'Pendentes', color: 'text-amber-500' },
+            { tab: 'assinantes', icon: Shield, val: (portalSubscribers as any[]).length, label: 'Usuários', color: 'text-purple-500' },
+            { tab: 'suporte', icon: Headphones, val: onlineMembers.length, label: 'Online', color: 'text-green-500' },
+          ].map(s => (
+            <Card key={s.tab} className="cursor-pointer hover:shadow-md transition-shadow border-border/50" onClick={() => setActiveTab(s.tab)}>
+              <CardContent className="pt-3 pb-2 text-center px-1">
+                <s.icon className={`w-4 h-4 mx-auto mb-1 ${s.color}`} />
+                <div className={`text-lg font-bold ${s.color}`}>{s.val}</div>
+                <div className="text-[9px] text-muted-foreground">{s.label}</div>
               </CardContent>
             </Card>
-          )}
-          <Card className="cursor-pointer" onClick={() => setActiveTab('suporte')}>
-            <CardContent className="pt-3 pb-2 text-center">
-              <Headphones className="w-4 h-4 mx-auto text-green-500 mb-1" />
-              <div className="text-xl font-bold text-green-500">{onlineMembers.length}</div>
-              <div className="text-[10px] text-muted-foreground">Online</div>
-            </CardContent>
-          </Card>
+          ))}
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - organized in 2 rows */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full flex-wrap h-auto gap-1 p-1">
-            <TabsTrigger value="today" className="flex-1 text-[11px] px-2">📋 Agenda</TabsTrigger>
-            <TabsTrigger value="pending" className="flex-1 text-[11px] px-2">⏳ Pendentes</TabsTrigger>
-            <TabsTrigger value="agendar" className="flex-1 text-[11px] px-2">📅 Agendar</TabsTrigger>
-            <TabsTrigger value="clientes" className="flex-1 text-[11px] px-2">👥 Clientes</TabsTrigger>
-            <TabsTrigger value="financeiro" className="flex-1 text-[11px] px-2">💰 Finanças</TabsTrigger>
-            <TabsTrigger value="produtos" className="flex-1 text-[11px] px-2">📦 Produtos</TabsTrigger>
-            <TabsTrigger value="assinantes" className="flex-1 text-[11px] px-2">
-              🛡️ Usuários
-              {pendingSubscribers.length > 0 && (
-                <span className="ml-1 bg-purple-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
-                  {pendingSubscribers.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="suporte" className="flex-1 text-[11px] px-2">
-              🎧 Suporte
-              {supportRequests.length > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-[9px] rounded-full w-4 h-4 inline-flex items-center justify-center">
-                  {supportRequests.length}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="links" className="flex-1 text-[11px] px-2">🔗 Links</TabsTrigger>
-          </TabsList>
+          <div className="space-y-1.5">
+            <TabsList className="w-full grid grid-cols-5 h-10">
+              <TabsTrigger value="today" className="text-xs gap-1"><CalendarDays className="w-3.5 h-3.5" /> Agenda</TabsTrigger>
+              <TabsTrigger value="pending" className="text-xs gap-1"><Clock className="w-3.5 h-3.5" /> Pendentes</TabsTrigger>
+              <TabsTrigger value="agendar" className="text-xs gap-1"><CalendarPlus className="w-3.5 h-3.5" /> Agendar</TabsTrigger>
+              <TabsTrigger value="clientes" className="text-xs gap-1"><Users className="w-3.5 h-3.5" /> Clientes</TabsTrigger>
+              <TabsTrigger value="financeiro" className="text-xs gap-1"><DollarSign className="w-3.5 h-3.5" /> Finanças</TabsTrigger>
+            </TabsList>
+            <TabsList className="w-full grid grid-cols-4 h-10">
+              <TabsTrigger value="produtos" className="text-xs gap-1"><Package className="w-3.5 h-3.5" /> Produtos</TabsTrigger>
+              <TabsTrigger value="assinantes" className="text-xs gap-1 relative">
+                <Shield className="w-3.5 h-3.5" /> Usuários
+                {pendingSubscribers.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-purple-500 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {pendingSubscribers.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="suporte" className="text-xs gap-1 relative">
+                <Headphones className="w-3.5 h-3.5" /> Suporte
+                {supportRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {supportRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="links" className="text-xs gap-1"><Link2 className="w-3.5 h-3.5" /> Links</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* === AGENDA === */}
-          <TabsContent value="today" className="mt-3 space-y-3">
-            <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportAgendaPDF}>
-              <Download className="w-4 h-4" /> Exportar Agenda PDF
-            </Button>
+          <TabsContent value="today" className="mt-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <CalendarDays className="w-4 h-4 text-primary" />
+                Agenda de Hoje — {format(new Date(), 'dd/MM/yyyy', { locale: ptBR })}
+              </h2>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={exportAgendaPDF}>
+                <Download className="w-3.5 h-3.5" /> PDF
+              </Button>
+            </div>
             {todayAppointments.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center">
-                  <CalendarDays className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-medium">Nenhum serviço hoje</p>
-                  <Button size="sm" variant="outline" className="mt-4" onClick={handleRefresh}>
-                    <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <CalendarDays className="w-12 h-12 text-muted-foreground/20 mx-auto mb-3" />
+                  <p className="font-medium text-muted-foreground">Nenhum serviço agendado hoje</p>
+                  <Button size="sm" variant="outline" className="mt-4 gap-1" onClick={() => setActiveTab('agendar')}>
+                    <CalendarPlus className="w-3.5 h-3.5" /> Agendar serviço
                   </Button>
                 </CardContent>
               </Card>
             ) : (
               todayAppointments.map((apt: any) => (
-                <Card key={apt.id} className={`border-l-4 ${apt.status === 'concluido' ? 'border-l-emerald-500 opacity-70' : 'border-l-primary'}`}>
+                <Card key={apt.id} className={`border-l-4 transition-all hover:shadow-md ${apt.status === 'concluido' ? 'border-l-green-500 opacity-60' : apt.status === 'cancelado' ? 'border-l-destructive opacity-50' : 'border-l-primary'}`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{apt.client_name || 'Cliente'}</span>
-                          <Badge variant={apt.status === 'concluido' ? 'secondary' : 'default'} className="text-[10px]">
-                            {apt.status === 'concluido' ? '✓ Feito' : apt.status === 'confirmado' ? 'Confirmado' : 'Agendado'}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm">{apt.client_name}</span>
+                          <Badge variant={apt.status === 'concluido' ? 'secondary' : 'default'} className="text-[10px] h-5">
+                            {apt.status === 'concluido' ? '✓ Concluído' : apt.status === 'confirmado' ? '✓ Confirmado' : '• Agendado'}
                           </Badge>
                         </div>
-                        <p className="text-xs text-muted-foreground">🕐 {apt.time || '-'}</p>
-                        {apt.address && <p className="text-xs text-muted-foreground">📍 {apt.address}</p>}
-                        {apt.notes && <p className="text-xs text-muted-foreground">📝 {apt.notes}</p>}
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{apt.time}</span>
+                          {apt.address && <span className="truncate max-w-[180px]">📍 {apt.address}</span>}
+                        </div>
+                        {apt.notes && <p className="text-[11px] text-muted-foreground bg-muted/50 rounded px-2 py-1 mt-1">📝 {apt.notes}</p>}
                       </div>
                       {apt.phone && (
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0"
+                        <Button size="icon" variant="outline" className="h-9 w-9 shrink-0"
                           onClick={() => window.open(`https://wa.me/55${apt.phone.replace(/\D/g, '')}`, '_blank')}>
                           <Phone className="w-4 h-4 text-green-500" />
                         </Button>
@@ -673,26 +641,32 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsContent>
 
           {/* === PENDENTES === */}
-          <TabsContent value="pending" className="mt-3 space-y-3">
+          <TabsContent value="pending" className="mt-4 space-y-3">
+            <h2 className="text-sm font-bold flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
+              Agendamentos Pendentes ({pendingBookings.length})
+            </h2>
             {pendingBookings.length === 0 ? (
-              <Card>
-                <CardContent className="py-10 text-center">
-                  <Clock className="w-10 h-10 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="font-medium">Nenhum agendamento pendente</p>
+              <Card className="border-dashed">
+                <CardContent className="py-12 text-center">
+                  <CheckCircle2 className="w-12 h-12 text-green-500/20 mx-auto mb-3" />
+                  <p className="font-medium text-muted-foreground">Nenhum agendamento pendente</p>
                 </CardContent>
               </Card>
             ) : (
               pendingBookings.map((b: any) => (
-                <Card key={b.id} className="border-l-4 border-l-amber-500">
+                <Card key={b.id} className="border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold">{b.client_name}</p>
-                        <p className="text-xs text-muted-foreground">📱 {b.client_phone}</p>
-                        <p className="text-xs text-muted-foreground">🔧 {b.service_name}</p>
-                        <p className="text-xs text-muted-foreground">📅 {b.preferred_date} às {b.preferred_time}</p>
+                      <div className="space-y-1">
+                        <p className="font-semibold text-sm">{b.client_name}</p>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground">
+                          <span>📱 {b.client_phone}</span>
+                          <span>🔧 {b.service_name}</span>
+                        </div>
+                        <p className="text-xs font-medium text-amber-600 dark:text-amber-400">📅 {b.preferred_date} às {b.preferred_time}</p>
                       </div>
-                      <Button size="sm" variant="outline" className="h-8 w-8 p-0"
+                      <Button size="icon" variant="outline" className="h-9 w-9 shrink-0"
                         onClick={() => window.open(`https://wa.me/55${b.client_phone?.replace(/\D/g, '')}`, '_blank')}>
                         <Phone className="w-4 h-4 text-green-500" />
                       </Button>
@@ -704,443 +678,459 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsContent>
 
           {/* === CLIENTES === */}
-            <TabsContent value="clientes" className="mt-3 space-y-3">
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9" />
-                </div>
-                <Button size="icon" variant="outline" onClick={exportClientesPDF}><Download className="w-4 h-4" /></Button>
-                <Button size="icon" onClick={() => setShowNewClient(!showNewClient)}><Plus className="w-4 h-4" /></Button>
+          <TabsContent value="clientes" className="mt-4 space-y-3">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input placeholder="Buscar cliente..." value={clientSearch} onChange={e => setClientSearch(e.target.value)} className="pl-9 h-10" />
               </div>
+              <Button size="icon" variant="outline" className="h-10 w-10" onClick={exportClientesPDF}><Download className="w-4 h-4" /></Button>
+              <Button size="icon" className="h-10 w-10" onClick={() => setShowNewClient(!showNewClient)}><Plus className="w-4 h-4" /></Button>
+            </div>
 
-              {showNewClient && (
-                <Card className="border-primary/30">
-                  <CardHeader className="pb-2 pt-3 px-4">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Plus className="w-4 h-4" /> Cadastrar Novo Cliente
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="px-4 pb-4 space-y-2">
-                    <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="h-10" />
-                    <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} className="h-10" />
-                    <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} className="h-10" />
-                    <div className="flex gap-2">
-                      <Button onClick={handleAddClient} className="flex-1">
-                        <Plus className="w-4 h-4 mr-1" /> Cadastrar
-                      </Button>
-                      <Button variant="outline" onClick={() => setShowNewClient(false)}>Cancelar</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {filteredClients.length === 0 ? (
-                <Card>
-                  <CardContent className="py-8 text-center text-muted-foreground">
-                    <Users className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                    <p>Nenhum cliente encontrado</p>
-                  </CardContent>
-                </Card>
-              ) : (
-                filteredClients.slice(0, 50).map((client: any) => (
-                  <Card key={client.id}>
-                    <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-bold text-primary">{client.name?.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{client.name}</p>
-                          <p className="text-xs text-muted-foreground">{client.telefone || 'Sem telefone'}</p>
-                          {client.email && <p className="text-[10px] text-muted-foreground">{client.email}</p>}
-                        </div>
-                      </div>
-                      {client.telefone && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8"
-                          onClick={() => window.open(`https://wa.me/55${client.telefone.replace(/\D/g, '')}`, '_blank')}>
-                          <Phone className="w-3.5 h-3.5 text-green-500" />
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </TabsContent>
-
-          {/* === FINANCEIRO === */}
-          {canAccess('financeiro') && (
-            <TabsContent value="financeiro" className="mt-3 space-y-3">
-              <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportFinanceiroPDF}>
-                <Download className="w-4 h-4" /> Exportar Financeiro PDF
-              </Button>
-              <div className="grid grid-cols-2 gap-3">
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Receitas</p>
-                    <p className="text-xl font-bold text-green-500">
-                      R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'receita').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Despesas</p>
-                    <p className="text-xl font-bold text-destructive">
-                      R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'despesa').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              {(portalFinancial as any[]).slice(0, 15).map((rec: any, idx: number) => (
-                <Card key={rec.id || idx}>
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${rec.type === 'receita' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                        <DollarSign className={`w-4 h-4 ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">{rec.record_date ? format(new Date(rec.record_date), 'dd/MM/yyyy') : '-'}</p>
-                          {rec.payment_method && <Badge variant="outline" className="text-[9px]">{rec.payment_method}</Badge>}
-                        </div>
-                      </div>
-                    </div>
-                    <p className={`font-bold text-sm ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`}>
-                      {rec.type === 'receita' ? '+' : '-'}R$ {Number(rec.amount || 0).toFixed(2)}
-                    </p>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          )}
-
-          {/* === PRODUTOS === */}
-          {canAccess('produtos') && (
-            <TabsContent value="produtos" className="mt-3 space-y-3">
-              <Button size="sm" variant="outline" className="w-full gap-2" onClick={exportProdutosPDF}>
-                <Download className="w-4 h-4" /> Exportar Produtos PDF
-              </Button>
-              <div className="grid grid-cols-2 gap-3">
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Serviços</p>
-                    <p className="text-xl font-bold text-primary">
-                      {(portalProducts as any[]).filter((p: any) => p.type === 'service').length}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4 text-center">
-                    <p className="text-xs text-muted-foreground">Produtos</p>
-                    <p className="text-xl font-bold">
-                      {(portalProducts as any[]).filter((p: any) => p.type !== 'service').length}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-              {(portalProducts as any[]).map((p: any) => (
-                <Card key={p.id}>
-                  <CardContent className="p-3 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg ${p.type === 'service' ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
-                        <Package className={`w-4 h-4 ${p.type === 'service' ? 'text-primary' : 'text-amber-500'}`} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{p.name}</p>
-                        <Badge variant="outline" className="text-[9px]">{p.type === 'service' ? 'Serviço' : 'Produto'}</Badge>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
-                      {p.type !== 'service' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          )}
-
-          {/* === AGENDAR SERVIÇO === */}
-          {canAccess('agendar') && (
-            <TabsContent value="agendar" className="mt-3 space-y-3">
-              <Card className="border-primary/30">
+            {showNewClient && (
+              <Card className="border-primary/40 shadow-md">
                 <CardHeader className="pb-2 pt-4 px-4">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CalendarPlus className="w-5 h-5 text-primary" /> Agendar Novo Serviço
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Plus className="w-4 h-4 text-primary" /> Cadastrar Novo Cliente
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="px-4 pb-4 space-y-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Cliente *</Label>
-                    <Select value={scheduleClientId} onValueChange={setScheduleClientId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
-                      <SelectContent>
-                        {(portalClients as any[]).map((c: any) => (
-                          <SelectItem key={c.id} value={String(c.id)}>
-                            {c.name} {c.telefone ? `• ${c.telefone}` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Serviço (opcional)</Label>
-                    <Select value={scheduleServiceId} onValueChange={setScheduleServiceId}>
-                      <SelectTrigger><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
-                      <SelectContent>
-                        {(portalProducts as any[]).filter((p: any) => p.type === 'service').map((p: any) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {p.name} • R$ {Number(p.price).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <CardContent className="px-4 pb-4 space-y-2">
+                  <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} className="h-10" />
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Data *</Label>
-                      <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Horário *</Label>
-                      <Input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} />
-                    </div>
+                    <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} className="h-10" />
+                    <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} className="h-10" />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Observações</Label>
-                    <Input placeholder="Notas sobre o serviço..." value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} />
+                  <div className="flex gap-2 pt-1">
+                    <Button onClick={handleAddClient} className="flex-1 h-10">
+                      <Plus className="w-4 h-4 mr-1" /> Cadastrar
+                    </Button>
+                    <Button variant="outline" className="h-10" onClick={() => setShowNewClient(false)}>Cancelar</Button>
                   </div>
-                  <Button className="w-full" onClick={handleCreateAppointment} disabled={scheduling}>
-                    {scheduling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarPlus className="w-4 h-4 mr-2" />}
-                    Agendar Serviço
-                  </Button>
                 </CardContent>
               </Card>
+            )}
 
-              <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setActiveTab('clientes')}>
-                Cliente não cadastrado? Vá para 👥 Clientes e cadastre primeiro
+            <p className="text-xs text-muted-foreground">{filteredClients.length} cliente{filteredClients.length !== 1 ? 's' : ''}</p>
+
+            {filteredClients.length === 0 ? (
+              <Card className="border-dashed">
+                <CardContent className="py-10 text-center text-muted-foreground">
+                  <Users className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                  <p>Nenhum cliente encontrado</p>
+                </CardContent>
+              </Card>
+            ) : (
+              filteredClients.slice(0, 50).map((client: any) => (
+                <Card key={client.id} className="hover:shadow-sm transition-shadow">
+                  <CardContent className="p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                        <span className="text-sm font-bold text-primary">{client.name?.charAt(0)}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{client.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">{client.telefone || 'Sem telefone'}</p>
+                          {client.email && <p className="text-[10px] text-muted-foreground">• {client.email}</p>}
+                        </div>
+                      </div>
+                    </div>
+                    {client.telefone && (
+                      <Button size="icon" variant="ghost" className="h-9 w-9"
+                        onClick={() => window.open(`https://wa.me/55${client.telefone.replace(/\D/g, '')}`, '_blank')}>
+                        <Phone className="w-4 h-4 text-green-500" />
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          {/* === FINANCEIRO === */}
+          <TabsContent value="financeiro" className="mt-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-500" /> Resumo Financeiro
+              </h2>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={exportFinanceiroPDF}>
+                <Download className="w-3.5 h-3.5" /> PDF
               </Button>
-            </TabsContent>
-          )}
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <Card className="bg-green-500/5 border-green-500/20">
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Receitas</p>
+                  <p className="text-lg font-bold text-green-500">
+                    R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'receita').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(0)}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-red-500/5 border-red-500/20">
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Despesas</p>
+                  <p className="text-lg font-bold text-destructive">
+                    R$ {(portalFinancial as any[]).filter((r: any) => r.type === 'despesa').reduce((s: number, r: any) => s + Number(r.amount), 0).toFixed(0)}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Saldo</p>
+                  <p className="text-lg font-bold text-primary">
+                    R$ {((portalFinancial as any[]).filter((r: any) => r.type === 'receita').reduce((s: number, r: any) => s + Number(r.amount), 0) - (portalFinancial as any[]).filter((r: any) => r.type === 'despesa').reduce((s: number, r: any) => s + Number(r.amount), 0)).toFixed(0)}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+            {(portalFinancial as any[]).slice(0, 15).map((rec: any, idx: number) => (
+              <Card key={rec.id || idx} className="hover:shadow-sm transition-shadow">
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${rec.type === 'receita' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                      <DollarSign className={`w-4 h-4 ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-[11px] text-muted-foreground">{rec.record_date ? format(new Date(rec.record_date), 'dd/MM/yyyy') : '-'}</p>
+                        {rec.payment_method && <Badge variant="outline" className="text-[9px] h-4">{rec.payment_method}</Badge>}
+                      </div>
+                    </div>
+                  </div>
+                  <p className={`font-bold text-sm ${rec.type === 'receita' ? 'text-green-500' : 'text-destructive'}`}>
+                    {rec.type === 'receita' ? '+' : '-'}R$ {Number(rec.amount || 0).toFixed(2)}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          {/* === PRODUTOS === */}
+          <TabsContent value="produtos" className="mt-4 space-y-3">
+            <div className="flex justify-between items-center">
+              <h2 className="text-sm font-bold flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-500" /> Produtos & Serviços
+              </h2>
+              <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={exportProdutosPDF}>
+                <Download className="w-3.5 h-3.5" /> PDF
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Card className="bg-primary/5 border-primary/20">
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Serviços</p>
+                  <p className="text-xl font-bold text-primary">{(portalProducts as any[]).filter((p: any) => p.type === 'service').length}</p>
+                </CardContent>
+              </Card>
+              <Card className="bg-amber-500/5 border-amber-500/20">
+                <CardContent className="p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground">Produtos</p>
+                  <p className="text-xl font-bold text-amber-500">{(portalProducts as any[]).filter((p: any) => p.type !== 'service').length}</p>
+                </CardContent>
+              </Card>
+            </div>
+            {(portalProducts as any[]).map((p: any) => (
+              <Card key={p.id} className="hover:shadow-sm transition-shadow">
+                <CardContent className="p-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${p.type === 'service' ? 'bg-primary/10' : 'bg-amber-500/10'}`}>
+                      <Package className={`w-4 h-4 ${p.type === 'service' ? 'text-primary' : 'text-amber-500'}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium">{p.name}</p>
+                      <Badge variant="outline" className="text-[9px] h-4">{p.type === 'service' ? 'Serviço' : 'Produto'}</Badge>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
+                    {p.type !== 'service' && <p className="text-[10px] text-muted-foreground">Estoque: {p.qty}</p>}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </TabsContent>
+
+          {/* === AGENDAR SERVIÇO === */}
+          <TabsContent value="agendar" className="mt-4 space-y-3">
+            <Card className="border-primary/30 shadow-md">
+              <CardHeader className="pb-2 pt-4 px-4">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarPlus className="w-5 h-5 text-primary" /> Agendar Novo Serviço
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-4 pb-4 space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Cliente *</Label>
+                  <Select value={scheduleClientId} onValueChange={setScheduleClientId}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o cliente" /></SelectTrigger>
+                    <SelectContent>
+                      {(portalClients as any[]).map((c: any) => (
+                        <SelectItem key={c.id} value={String(c.id)}>
+                          {c.name} {c.telefone ? `• ${c.telefone}` : ''}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Serviço (opcional)</Label>
+                  <Select value={scheduleServiceId} onValueChange={setScheduleServiceId}>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Selecione o serviço" /></SelectTrigger>
+                    <SelectContent>
+                      {(portalProducts as any[]).filter((p: any) => p.type === 'service').map((p: any) => (
+                        <SelectItem key={p.id} value={String(p.id)}>
+                          {p.name} • R$ {Number(p.price).toFixed(2)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Data *</Label>
+                    <Input type="date" value={scheduleDate} onChange={e => setScheduleDate(e.target.value)} className="h-10" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs font-medium">Horário *</Label>
+                    <Input type="time" value={scheduleTime} onChange={e => setScheduleTime(e.target.value)} className="h-10" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Observações</Label>
+                  <Input placeholder="Notas sobre o serviço..." value={scheduleNotes} onChange={e => setScheduleNotes(e.target.value)} className="h-10" />
+                </div>
+                <Button className="w-full h-11" onClick={handleCreateAppointment} disabled={scheduling}>
+                  {scheduling ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CalendarPlus className="w-4 h-4 mr-2" />}
+                  Agendar Serviço
+                </Button>
+              </CardContent>
+            </Card>
+            <Button size="sm" variant="ghost" className="w-full text-xs text-muted-foreground" onClick={() => setActiveTab('clientes')}>
+              Cliente não cadastrado? Vá para Clientes e cadastre primeiro →
+            </Button>
+          </TabsContent>
 
           {/* === USUÁRIOS / ASSINANTES === */}
-          {canAccess('assinantes') && (
-            <TabsContent value="assinantes" className="mt-3 space-y-3">
-              <div className="relative">
+          <TabsContent value="assinantes" className="mt-4 space-y-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar por email ou nome..." value={subscriberSearch} onChange={e => setSubscriberSearch(e.target.value)} className="pl-9" />
+                <Input placeholder="Buscar por email ou nome..." value={subscriberSearch} onChange={e => setSubscriberSearch(e.target.value)} className="pl-9 h-10" />
               </div>
+              <Button size="icon" variant="outline" className="h-10 w-10" onClick={() => refetchSubscribers()}>
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
 
-              {/* Summary cards */}
-              <div className="grid grid-cols-4 gap-2">
-                <Card>
+            {/* Summary */}
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Total', val: (portalSubscribers as any[]).length, color: 'text-foreground', bg: '' },
+                { label: 'Ativos', val: activeSubscribers.length, color: 'text-green-500', bg: 'bg-green-500/5 border-green-500/20' },
+                { label: 'Pendentes', val: pendingSubscribers.length, color: 'text-amber-500', bg: 'bg-amber-500/5 border-amber-500/20' },
+                { label: 'Expirando', val: expiringSubscribers.length, color: 'text-red-500', bg: 'bg-red-500/5 border-red-500/20' },
+              ].map(s => (
+                <Card key={s.label} className={s.bg}>
                   <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Ativos</p>
-                    <p className="text-xl font-bold text-green-500">{activeSubscribers.length}</p>
+                    <p className="text-[10px] text-muted-foreground">{s.label}</p>
+                    <p className={`text-xl font-bold ${s.color}`}>{s.val}</p>
                   </CardContent>
                 </Card>
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Pendentes</p>
-                    <p className="text-xl font-bold text-amber-500">{pendingSubscribers.length}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Expirando</p>
-                    <p className="text-xl font-bold text-red-500">
-                      {(portalSubscribers as any[]).filter((s: any) => {
-                        if (!s.end_date || s.status !== 'aprovado') return false;
-                        const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                        return daysLeft <= 7 && daysLeft >= 0;
-                      }).length}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-3 text-center">
-                    <p className="text-xs text-muted-foreground">Total</p>
-                    <p className="text-xl font-bold">{(portalSubscribers as any[]).length}</p>
-                  </CardContent>
-                </Card>
-              </div>
+              ))}
+            </div>
 
-              {/* Expiring soon */}
-              {(() => {
-                const expiring = (portalSubscribers as any[]).filter((s: any) => {
-                  if (!s.end_date || s.status !== 'aprovado') return false;
-                  const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                  return daysLeft <= 7 && daysLeft >= 0;
-                });
-                if (expiring.length === 0) return null;
-                return (
-                  <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
-                      <AlertTriangle className="w-4 h-4" /> Prazos Expirando ({expiring.length})
-                    </h3>
-                    {expiring.map((sub: any) => {
-                      const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                      return (
-                        <Card key={sub.id} className="border-l-4 border-l-red-500">
-                          <CardContent className="p-3">
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm truncate">{sub.email}</p>
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
-                                  <span className="text-[10px] text-red-500 font-bold flex items-center gap-1">
-                                    <Timer className="w-3 h-3" />
-                                    {daysLeft <= 0 ? 'Expirado hoje!' : `${daysLeft} dia${daysLeft > 1 ? 's' : ''} restante${daysLeft > 1 ? 's' : ''}`}
-                                  </span>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                                  <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="1dia">1 Dia</SelectItem>
-                                    <SelectItem value="7dias">7 Dias</SelectItem>
-                                    <SelectItem value="mensal">Mensal</SelectItem>
-                                    <SelectItem value="anual">Anual</SelectItem>
-                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                                  disabled={activatingUser === sub.id}
-                                  onClick={() => handleActivateSubscriber(sub.id, true)}>
-                                  {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <>🔄</>}
-                                </Button>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
-              {/* Pending first */}
-              {pendingSubscribers.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                    ⏳ Aguardando Ativação ({pendingSubscribers.length})
-                  </h3>
-                  {pendingSubscribers.map((sub: any) => {
-                    const hoursAgo = Math.floor((Date.now() - new Date(sub.created_at).getTime()) / (1000 * 60 * 60));
-                    const trialExpired = hoursAgo >= 24;
-                    return (
-                      <Card key={sub.id} className={`border-l-4 ${trialExpired ? 'border-l-red-500' : 'border-l-amber-500'}`}>
-                        <CardContent className="p-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm truncate">{sub.email}</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy HH:mm') : '-'}
-                              </p>
-                              <span className={`text-[10px] font-semibold ${trialExpired ? 'text-red-500' : 'text-amber-500'}`}>
-                                {trialExpired ? `⛔ Trial expirado (${hoursAgo}h atrás)` : `⏱️ Trial: ${24 - hoursAgo}h restantes`}
+            {/* Expiring Soon Section */}
+            {expiringSubscribers.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-red-600 dark:text-red-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <AlertTriangle className="w-3.5 h-3.5" /> Prazos Expirando
+                </h3>
+                {expiringSubscribers.map((sub: any) => {
+                  const remaining = getTimeRemaining(sub.end_date);
+                  return (
+                    <Card key={sub.id} className="border-l-4 border-l-red-500 hover:shadow-md transition-shadow">
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+                            <Timer className={`w-5 h-5 text-red-500 ${remaining.urgent ? 'animate-pulse' : ''}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{sub.email}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="outline" className="text-[9px] h-4">{sub.plan}</Badge>
+                              <span className={`text-[11px] font-bold ${remaining.color}`}>
+                                ⏱ {remaining.label}
                               </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                                <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="1dia">1 Dia</SelectItem>
-                                  <SelectItem value="7dias">7 Dias</SelectItem>
-                                  <SelectItem value="mensal">Mensal</SelectItem>
-                                  <SelectItem value="trimestral">Trimestral</SelectItem>
-                                  <SelectItem value="anual">Anual</SelectItem>
-                                  <SelectItem value="vitalicio">Vitalício</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                                disabled={activatingUser === sub.id}
-                                onClick={() => handleActivateSubscriber(sub.id, true)}>
-                                {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
-                              </Button>
+                              {sub.end_date && (
+                                <span className="text-[10px] text-muted-foreground">
+                                  até {format(new Date(sub.end_date), 'dd/MM/yyyy HH:mm')}
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                              <SelectTrigger className="h-8 text-[10px] w-[80px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1dia">1 Dia</SelectItem>
+                                <SelectItem value="7dias">7 Dias</SelectItem>
+                                <SelectItem value="mensal">Mensal</SelectItem>
+                                <SelectItem value="trimestral">Trimestral</SelectItem>
+                                <SelectItem value="anual">Anual</SelectItem>
+                                <SelectItem value="vitalicio">Vitalício</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white gap-1"
+                              disabled={activatingUser === sub.id}
+                              onClick={() => handleActivateSubscriber(sub.id, true)}>
+                              {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><RefreshCw className="w-3 h-3" /> Renovar</>}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
 
-              {/* All subscribers */}
-              <h3 className="text-sm font-medium text-muted-foreground">Todos os Assinantes</h3>
-              {filteredSubscribers.map((sub: any) => (
-                <Card key={sub.id}>
-                  <CardContent className="p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${sub.is_active && sub.status === 'aprovado' ? 'bg-green-500/10' : 'bg-muted'}`}>
-                          <span className={`text-xs font-bold ${sub.is_active && sub.status === 'aprovado' ? 'text-green-500' : 'text-muted-foreground'}`}>
+            {/* Pending / Trial Section */}
+            {pendingSubscribers.length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <Clock className="w-3.5 h-3.5" /> Aguardando Ativação ({pendingSubscribers.length})
+                </h3>
+                {pendingSubscribers.map((sub: any) => {
+                  const trial = getTrialRemaining(sub.created_at);
+                  return (
+                    <Card key={sub.id} className={`border-l-4 hover:shadow-md transition-shadow ${trial.expired ? 'border-l-red-500' : 'border-l-amber-500'}`}>
+                      <CardContent className="p-3">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${trial.expired ? 'bg-red-500/10' : 'bg-amber-500/10'}`}>
+                            <User className={`w-5 h-5 ${trial.expired ? 'text-red-500' : 'text-amber-500'}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm truncate">{sub.email}</p>
+                            <p className="text-[11px] text-muted-foreground">{sub.username}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className={`text-[11px] font-bold ${trial.expired ? 'text-red-500' : 'text-amber-500'}`}>
+                                {trial.expired ? '⛔ ' : '⏱ '}{trial.label}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                • Cadastro: {format(new Date(sub.created_at), 'dd/MM HH:mm')}
+                              </span>
+                              {sub.phone && <span className="text-[10px] text-muted-foreground">📱 {sub.phone}</span>}
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-1 shrink-0">
+                            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                              <SelectTrigger className="h-7 text-[10px] w-[80px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1dia">1 Dia</SelectItem>
+                                <SelectItem value="7dias">7 Dias</SelectItem>
+                                <SelectItem value="mensal">Mensal</SelectItem>
+                                <SelectItem value="trimestral">Trimestral</SelectItem>
+                                <SelectItem value="anual">Anual</SelectItem>
+                                <SelectItem value="vitalicio">Vitalício</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Button size="sm" className="h-7 text-[10px] bg-green-600 hover:bg-green-700 text-white gap-1"
+                              disabled={activatingUser === sub.id}
+                              onClick={() => handleActivateSubscriber(sub.id, true)}>
+                              {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <><UserCheck className="w-3 h-3" /> Liberar</>}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* All subscribers */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Todos os Usuários ({filteredSubscribers.length})
+              </h3>
+              {filteredSubscribers.map((sub: any) => {
+                const isActive = sub.is_active && sub.status === 'aprovado';
+                const isVitalicio = sub.plan === 'vitalicio';
+                const remaining = sub.end_date ? getTimeRemaining(sub.end_date) : null;
+
+                return (
+                  <Card key={sub.id} className={`hover:shadow-sm transition-shadow ${!isActive ? 'opacity-70' : ''}`}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isActive ? 'bg-green-500/10' : 'bg-muted'}`}>
+                          <span className={`text-sm font-bold ${isActive ? 'text-green-500' : 'text-muted-foreground'}`}>
                             {sub.email?.charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate">{sub.email}</p>
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Badge variant={sub.status === 'aprovado' ? 'default' : sub.status === 'pendente' ? 'secondary' : 'destructive'} className="text-[8px] h-4">
-                              {sub.status === 'aprovado' ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
+                          <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                            <Badge variant={isActive ? 'default' : sub.status === 'pendente' ? 'secondary' : 'destructive'} className="text-[9px] h-4">
+                              {isActive ? '✓ Ativo' : sub.status === 'pendente' ? '⏳ Pendente' : '🚫 ' + sub.status}
                             </Badge>
-                            <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
-                            {sub.end_date && (() => {
-                              const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                              return (
-                                <span className={`text-[9px] font-medium ${daysLeft <= 3 ? 'text-red-500' : daysLeft <= 7 ? 'text-amber-500' : 'text-muted-foreground'}`}>
-                                  {daysLeft <= 0 ? '⛔ Expirado' : `${daysLeft}d restantes`}
-                                </span>
-                              );
-                            })()}
-                            {sub.plan === 'vitalicio' && <span className="text-[9px] text-green-500 font-medium">🏆 Permanente</span>}
+                            <Badge variant="outline" className="text-[9px] h-4">{sub.plan}</Badge>
+                            {isVitalicio && <span className="text-[10px] text-green-500 font-medium">🏆 Permanente</span>}
+                            {remaining && !isVitalicio && (
+                              <span className={`text-[10px] font-medium ${remaining.color}`}>
+                                ⏱ {remaining.label}
+                              </span>
+                            )}
+                            {sub.start_date && (
+                              <span className="text-[10px] text-muted-foreground">
+                                desde {format(new Date(sub.start_date), 'dd/MM/yy')}
+                              </span>
+                            )}
                           </div>
                         </div>
+                        <div className="flex gap-1 shrink-0">
+                          {!isActive ? (
+                            <Button size="icon" variant="outline" className="h-8 w-8"
+                              disabled={activatingUser === sub.id}
+                              onClick={() => handleActivateSubscriber(sub.id, true)}>
+                              <UserCheck className="w-3.5 h-3.5 text-green-500" />
+                            </Button>
+                          ) : (
+                            <Button size="icon" variant="outline" className="h-8 w-8"
+                              disabled={activatingUser === sub.id}
+                              onClick={() => handleActivateSubscriber(sub.id, false)}>
+                              <UserX className="w-3.5 h-3.5 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        {sub.status !== 'aprovado' || !sub.is_active ? (
-                          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
-                            disabled={activatingUser === sub.id}
-                            onClick={() => handleActivateSubscriber(sub.id, true)}>
-                            <UserCheck className="w-3 h-3 text-green-500" />
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" className="h-7 px-2 text-[10px]"
-                            disabled={activatingUser === sub.id}
-                            onClick={() => handleActivateSubscriber(sub.id, false)}>
-                            <UserX className="w-3 h-3 text-destructive" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </TabsContent>
-          )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
 
           {/* === SUPORTE ONLINE === */}
-          <TabsContent value="suporte" className="mt-3 space-y-3">
-            {/* Online members indicator */}
+          <TabsContent value="suporte" className="mt-4 space-y-3">
             <Card className="border-green-500/30 bg-green-500/5">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3 mb-3">
-                  <Headphones className="w-6 h-6 text-green-500" />
+                  <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
+                    <Headphones className="w-5 h-5 text-green-500" />
+                  </div>
                   <div>
-                    <h3 className="font-bold text-sm">Equipe Online Agora</h3>
+                    <h3 className="font-bold text-sm">Equipe Online</h3>
                     <p className="text-xs text-muted-foreground">
-                      {onlineMembers.length} membro{onlineMembers.length !== 1 ? 's' : ''} conectado{onlineMembers.length !== 1 ? 's' : ''} no portal
+                      {onlineMembers.length} membro{onlineMembers.length !== 1 ? 's' : ''} conectado{onlineMembers.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                 </div>
                 {onlineMembers.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {onlineMembers.map((m: any) => (
-                      <div key={m.member_id || m.id} className="flex items-center gap-1.5 bg-background rounded-full px-3 py-1 border">
+                      <div key={m.member_id || m.id} className="flex items-center gap-1.5 bg-background rounded-full px-3 py-1.5 border shadow-sm">
                         <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                         <span className="text-xs font-medium">{m.member_name}</span>
                         <Badge variant="outline" className="text-[8px] h-4">{roleLabel[m.member_role] || m.member_role}</Badge>
@@ -1151,181 +1141,180 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </CardContent>
             </Card>
 
-            {/* Pending Support Requests */}
+            {/* Pending Support */}
             {supportRequests.length > 0 && (
-              <>
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4 text-amber-500" />
-                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400">
-                    Solicitações de Suporte ({supportRequests.length})
-                  </h3>
-                </div>
+              <div className="space-y-2">
+                <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wider">
+                  <MessageCircle className="w-3.5 h-3.5" /> Solicitações Pendentes ({supportRequests.length})
+                </h3>
                 {supportRequests.map((req: any) => (
-                  <Card key={req.id} className="border-l-4 border-l-amber-500">
+                  <Card key={req.id} className="border-l-4 border-l-amber-500 hover:shadow-md transition-shadow">
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0 space-y-1">
                           <p className="font-semibold text-sm">{req.requester_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            📱 {req.requester_phone || 'Sem telefone'} • {req.requester_email || ''}
-                          </p>
-                          <Badge variant="outline" className="text-[9px] mt-1">{req.request_type}</Badge>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            {req.requester_phone && <span>📱 {req.requester_phone}</span>}
+                            {req.requester_email && <span>✉️ {req.requester_email}</span>}
+                          </div>
+                          <Badge variant="outline" className="text-[9px]">{req.request_type}</Badge>
                           {req.message && (
-                            <p className="text-xs mt-1 p-2 bg-muted rounded">💬 {req.message}</p>
+                            <p className="text-xs p-2 bg-muted rounded-lg">💬 {req.message}</p>
                           )}
-                          <p className="text-[10px] text-muted-foreground mt-1">
-                            {req.created_at ? format(new Date(req.created_at), 'dd/MM HH:mm') : ''}
+                          <p className="text-[10px] text-muted-foreground">
+                            {req.created_at ? format(new Date(req.created_at), "dd/MM 'às' HH:mm") : ''}
                           </p>
                         </div>
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5 shrink-0">
                           {req.requester_phone && (
-                            <Button size="sm" variant="outline" className="h-8 gap-1 text-[10px]"
+                            <Button size="sm" variant="outline" className="h-8 gap-1 text-xs"
                               onClick={() => window.open(`https://wa.me/55${req.requester_phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${req.requester_name}! Sou ${session.memberName} do suporte. Vi sua solicitação e estou aqui para ajudar!`)}`, '_blank')}>
-                              <Phone className="w-3 h-3" /> Chamar
+                              <Phone className="w-3 h-3" /> WhatsApp
                             </Button>
                           )}
-                          <Button size="sm" className="h-8 gap-1 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                          <Button size="sm" className="h-8 gap-1 text-xs bg-green-600 hover:bg-green-700 text-white"
                             onClick={() => handleResolveRequest(req.id)}>
-                            ✓ Resolvido
+                            <CheckCircle2 className="w-3 h-3" /> Resolvido
                           </Button>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
-              </>
+              </div>
             )}
 
-            {/* Support Members Directory */}
-            <div className="flex items-center gap-2 mt-2">
-              <Users className="w-4 h-4 text-muted-foreground" />
-              <h3 className="text-sm font-medium text-muted-foreground">Diretório da Equipe</h3>
-            </div>
-
-            {(supportMembers as any[]).length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  <Headphones className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                  <p className="font-medium">Nenhum membro com telefone cadastrado</p>
-                </CardContent>
-              </Card>
-            ) : (
-              (supportMembers as any[]).map((m: any) => (
-                <Card key={m.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${m.is_online ? 'bg-green-500/10' : 'bg-muted'}`}>
-                        <span className={`text-sm font-bold ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>{m.name?.charAt(0)}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{m.name}</p>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-[9px]">{roleLabel[m.role] || m.role}</Badge>
-                          <span className={`flex items-center gap-1 text-[10px] ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${m.is_online ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/50'}`} />
-                            {m.is_online ? 'Online' : 'Offline'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <Button size="sm" className={`gap-1.5 ${m.is_online ? 'bg-green-500 hover:bg-green-600' : 'bg-muted-foreground/50'} text-white`}
-                      onClick={() => window.open(`https://wa.me/55${m.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${m.name}, preciso de ajuda! Sou ${session.memberName} do portal da equipe.`)}`, '_blank')}>
-                      <MessageCircle className="w-4 h-4" /> Chamar
-                    </Button>
+            {/* Team Directory */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" /> Diretório da Equipe
+              </h3>
+              {(supportMembers as any[]).length === 0 ? (
+                <Card className="border-dashed">
+                  <CardContent className="py-8 text-center text-muted-foreground">
+                    <Headphones className="w-10 h-10 mx-auto mb-2 opacity-20" />
+                    <p>Nenhum membro com telefone cadastrado</p>
                   </CardContent>
                 </Card>
-              ))
-            )}
+              ) : (
+                (supportMembers as any[]).map((m: any) => (
+                  <Card key={m.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${m.is_online ? 'bg-green-500/10' : 'bg-muted'}`}>
+                          <span className={`text-sm font-bold ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>{m.name?.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{m.name}</p>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="text-[9px] h-4">{roleLabel[m.role] || m.role}</Badge>
+                            <span className={`flex items-center gap-1 text-[10px] ${m.is_online ? 'text-green-500' : 'text-muted-foreground'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${m.is_online ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/40'}`} />
+                              {m.is_online ? 'Online' : 'Offline'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <Button size="sm" className={`gap-1.5 text-xs ${m.is_online ? 'bg-green-500 hover:bg-green-600' : 'bg-muted-foreground/40'} text-white`}
+                        onClick={() => window.open(`https://wa.me/55${m.phone?.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${m.name}, preciso de ajuda!`)}`, '_blank')}>
+                        <MessageCircle className="w-3.5 h-3.5" /> Chamar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
 
-            {/* Suppliers quick access */}
-            {canAccess('fornecedores') && (portalSuppliers as any[]).length > 0 && (
-              <>
-                <div className="flex items-center gap-2 mt-4">
-                  <Truck className="w-4 h-4 text-muted-foreground" />
-                  <h3 className="text-sm font-medium text-muted-foreground">Fornecedores</h3>
-                </div>
+            {/* Suppliers */}
+            {(portalSuppliers as any[]).length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5" /> Fornecedores
+                </h3>
                 {(portalSuppliers as any[]).slice(0, 10).map((s: any) => (
-                  <Card key={s.id}>
+                  <Card key={s.id} className="hover:shadow-sm transition-shadow">
                     <CardContent className="p-3 flex items-center justify-between">
                       <div>
                         <p className="font-medium text-sm">{s.name}</p>
                         <p className="text-xs text-muted-foreground">{s.contact_person || s.contact || '-'}</p>
                       </div>
                       {s.contact && (
-                        <Button size="icon" variant="ghost" className="h-8 w-8"
+                        <Button size="icon" variant="ghost" className="h-9 w-9"
                           onClick={() => window.open(`https://wa.me/55${s.contact.replace(/\D/g, '')}`, '_blank')}>
-                          <Phone className="w-3.5 h-3.5 text-green-500" />
+                          <Phone className="w-4 h-4 text-green-500" />
                         </Button>
                       )}
                     </CardContent>
                   </Card>
                 ))}
-              </>
+              </div>
             )}
           </TabsContent>
 
           {/* === LINKS ÚTEIS === */}
-          <TabsContent value="links" className="mt-3 space-y-3">
-            <Card className="border-primary/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-4">
-                  <Link2 className="w-5 h-5 text-primary" />
-                  <h3 className="font-bold text-sm">Links do Sistema</h3>
-                </div>
-                <div className="space-y-3">
-                  {[
-                    { label: 'Landing Page', desc: 'Página de vendas', url: 'https://gestaoarcondicionado.lovable.app/', icon: '🌐' },
-                    { label: 'Login do Sistema', desc: 'Acesso para usuários', url: 'https://gestaoarcondicionado.lovable.app/auth', icon: '🔐' },
-                    { label: 'Portal da Equipe', desc: 'Este portal', url: 'https://gestaoarcondicionado.lovable.app/portal', icon: '👥' },
-                    { label: 'Agenda Online', desc: 'Link para clientes agendarem', url: `https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`, icon: '📅' },
-                    { label: 'Dashboard Admin', desc: 'Painel do super admin', url: 'https://gestaoarcondicionado.lovable.app/members', icon: '🛡️' },
-                  ].map((link) => (
-                    <div key={link.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/50">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg">{link.icon}</span>
-                        <div>
-                          <p className="text-sm font-medium">{link.label}</p>
-                          <p className="text-[10px] text-muted-foreground">{link.desc}</p>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
-                          onClick={() => {
-                            navigator.clipboard.writeText(link.url);
-                            toast({ title: '📋 Link copiado!' });
-                          }}>
-                          <Copy className="w-3 h-3" />
-                        </Button>
-                        <Button size="sm" variant="outline" className="h-8 px-2 text-[10px]"
-                          onClick={() => window.open(link.url, '_blank')}>
-                          <ExternalLink className="w-3 h-3" />
-                        </Button>
+          <TabsContent value="links" className="mt-4 space-y-3">
+            <Card>
+              <CardHeader className="pb-3 pt-4">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Link2 className="w-4 h-4 text-primary" /> Links do Sistema
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                {[
+                  { label: 'Landing Page', desc: 'Página de vendas e marketing', url: 'https://gestaoarcondicionado.lovable.app/', icon: '🌐' },
+                  { label: 'Login do Sistema', desc: 'Acesso para usuários cadastrados', url: 'https://gestaoarcondicionado.lovable.app/auth', icon: '🔐' },
+                  { label: 'Portal da Equipe', desc: 'Este portal de administração', url: 'https://gestaoarcondicionado.lovable.app/portal', icon: '👥' },
+                  { label: 'Agenda Online', desc: 'Link público para agendamentos', url: `https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`, icon: '📅' },
+                  { label: 'Dashboard Admin', desc: 'Painel do super admin', url: 'https://gestaoarcondicionado.lovable.app/members', icon: '🛡️' },
+                ].map((link) => (
+                  <div key={link.label} className="flex items-center justify-between p-3 rounded-xl bg-muted/50 border border-border/50 hover:bg-muted/80 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xl">{link.icon}</span>
+                      <div>
+                        <p className="text-sm font-medium">{link.label}</p>
+                        <p className="text-[11px] text-muted-foreground">{link.desc}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs gap-1"
+                        onClick={() => { navigator.clipboard.writeText(link.url); toast({ title: '📋 Link copiado!' }); }}>
+                        <Copy className="w-3.5 h-3.5" /> Copiar
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 px-2.5 text-xs"
+                        onClick={() => window.open(link.url, '_blank')}>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
             <Card>
-              <CardContent className="p-4">
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2">
+              <CardHeader className="pb-3 pt-4">
+                <CardTitle className="text-sm flex items-center gap-2">
                   <MessageCircle className="w-4 h-4 text-green-500" /> Compartilhar via WhatsApp
-                </h3>
-                <div className="space-y-2">
-                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
-                    const msg = encodeURIComponent(`🔧 Gestão AC - Agende seu serviço de ar condicionado online!\n\n📅 ${`https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`}`);
-                    window.open(`https://wa.me/?text=${msg}`, '_blank');
-                  }}>
-                    📅 Enviar link da Agenda Online
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start text-xs h-10" onClick={() => {
-                    const msg = encodeURIComponent(`🔧 Gestão AC - Sistema completo para prestadores de serviço!\n\n🌐 https://gestaoarcondicionado.lovable.app/`);
-                    window.open(`https://wa.me/?text=${msg}`, '_blank');
-                  }}>
-                    🌐 Enviar link da Landing Page
-                  </Button>
-                </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 pt-0">
+                <Button variant="outline" className="w-full justify-start text-xs h-10 gap-2" onClick={() => {
+                  const msg = encodeURIComponent(`🔧 Gestão AC - Agende seu serviço de ar condicionado online!\n\n📅 ${`https://gestaoarcondicionado.lovable.app/agendar?u=${session.ownerId}`}`);
+                  window.open(`https://wa.me/?text=${msg}`, '_blank');
+                }}>
+                  📅 Enviar link da Agenda Online
+                </Button>
+                <Button variant="outline" className="w-full justify-start text-xs h-10 gap-2" onClick={() => {
+                  const msg = encodeURIComponent(`🔧 Gestão AC - Sistema completo para prestadores de serviço!\n\n🌐 https://gestaoarcondicionado.lovable.app/`);
+                  window.open(`https://wa.me/?text=${msg}`, '_blank');
+                }}>
+                  🌐 Enviar link da Landing Page
+                </Button>
+                <Button variant="outline" className="w-full justify-start text-xs h-10 gap-2" onClick={() => {
+                  const msg = encodeURIComponent(`🔧 Portal da Equipe - Acesse o painel de administração:\n\n👥 https://gestaoarcondicionado.lovable.app/portal`);
+                  window.open(`https://wa.me/?text=${msg}`, '_blank');
+                }}>
+                  👥 Enviar link do Portal
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
