@@ -67,14 +67,17 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
     checkout_mensal: '',
     checkout_trimestral: '',
+    checkout_semestral: '',
     checkout_anual: '',
     checkout_vitalicio: '',
     whatsapp_suporte: '',
     preco_mensal: '',
     preco_trimestral: '',
+    preco_semestral: '',
     preco_anual: '',
     preco_vitalicio: '',
     promo_end_date: '',
+    plano_ativo_checkout: 'anual',
   });
   const [testEmail, setTestEmail] = useState('');
   const [testAmount, setTestAmount] = useState('39.90');
