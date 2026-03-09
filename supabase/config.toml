@@ -22,4 +22,6 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.public-booking]
+
+[functions.create-fake-user]
 verify_jwt = false
