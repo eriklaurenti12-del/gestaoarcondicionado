@@ -767,7 +767,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))
               )}
             </TabsContent>
-          )}
 
           {/* === FINANCEIRO === */}
           {canAccess('financeiro') && (
