@@ -67,11 +67,17 @@ export default {
 				'gradient-primary': 'var(--gradient-primary)',
 				'gradient-secondary': 'var(--gradient-secondary)',
 				'gradient-glow': 'var(--gradient-glow)',
+				'gradient-glass': 'var(--gradient-glass)',
+				'gradient-mesh': 'var(--gradient-mesh)',
 			},
 			boxShadow: {
 				'glow-purple': 'var(--shadow-glow-purple)',
 				'glow-pink': 'var(--shadow-glow-pink)',
 				'elegant': 'var(--shadow-elegant)',
+				'card': 'var(--shadow-card)',
+				'card-hover': 'var(--shadow-card-hover)',
+				'glow-primary': 'var(--shadow-glow-primary)',
+				'glow-secondary': 'var(--shadow-glow-secondary)',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
