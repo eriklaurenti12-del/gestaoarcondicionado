@@ -162,6 +162,9 @@ export default function Members() {
     if (data) setTeamMembers(data as TeamMember[]);
     if (error) console.error('loadTeamMembers error:', error.message);
   };
+
+  const saveTabOrder = async (newOrder: typeof DEFAULT_TABS) => {
+    setTabOrder(newOrder);
     await supabase.from('admin_settings').upsert({
       key: 'members_tab_order',
       value: JSON.stringify(newOrder),
