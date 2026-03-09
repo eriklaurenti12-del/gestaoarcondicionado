@@ -410,7 +410,7 @@ export default function Index() {
             </div>
           </div>
 
-          <SupportButton />
+          <SupportButton tipsOpen={showTipsDialog} onTipsOpenChange={setShowTipsDialog} />
           
           {/* Update Notification */}
           <UpdateNotification />
