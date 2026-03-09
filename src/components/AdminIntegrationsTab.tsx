@@ -16,7 +16,7 @@ import {
   AlertTriangle, Clock, Settings, CreditCard, Smartphone,
   Activity, Eye, EyeOff, Code, Plug, ArrowUpRight,
   FileJson, ToggleLeft, Layers, Wallet, ChevronDown, ChevronUp,
-  Bot, HelpCircle
+  Bot, HelpCircle, Key, Plus, Trash2
 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 
