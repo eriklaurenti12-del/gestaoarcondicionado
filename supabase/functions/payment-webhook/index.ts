@@ -56,6 +56,11 @@ async function sendNotification(supabase: any, type: string, email: string, phon
 }
 
 function detectPlatform(payload: any): string {
+  // Cakto - check FIRST (uses purchase_approved, payment_approved, secret field)
+  if (payload.secret || payload.event?.includes?.('purchase_approved') || payload.event?.includes?.('purchase_refused') ||
+      payload.event?.startsWith?.('payment_') || payload.transaction_id?.startsWith?.('CK_') ||
+      payload.transaction_id?.startsWith?.('CAKTO_') ||
+      (payload.data?.product && payload.data?.customer && payload.data?.offer)) return 'Cakto';
   // Hotmart / Pepper
   if (payload.hottok || payload.event?.startsWith?.('PURCHASE_')) return 'Hotmart';
   // Kiwify
@@ -72,8 +77,6 @@ function detectPlatform(payload: any): string {
   if (payload.event?.startsWith?.('order.') && payload.resource) return 'Yampi';
   // Braip
   if (payload.transaction_id?.startsWith?.('BR_') || payload.producer) return 'Braip';
-  // Cakto
-  if (payload.event?.startsWith?.('payment_') || payload.transaction_id?.startsWith?.('CK_')) return 'Cakto';
   // GGCheckout (default for Brazilian checkout)
   if (payload.event?.includes?.('pix_') || payload.event?.includes?.('card_')) return 'GGCheckout';
   // PagSeguro
