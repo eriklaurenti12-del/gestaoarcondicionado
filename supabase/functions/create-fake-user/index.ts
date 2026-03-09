@@ -13,61 +13,58 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || serviceRoleKey;
 
-    // Admin client for creating users
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const authHeader = req.headers.get('Authorization') || '';
 
-    // Check authorization
-    const authHeader = req.headers.get('Authorization');
-    const apikeyHeader = req.headers.get('apikey');
+    // Check if caller is authorized (super_admin, admin, or service role)
+    let callerEmail = 'service_role';
 
-    // Allow service role key (internal calls from curl/admin tools)
-    const isServiceRole = apikeyHeader === serviceRoleKey || 
-      (authHeader && authHeader.replace('Bearer ', '') === serviceRoleKey);
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Não autorizado - token necessário' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
 
-    if (!isServiceRole) {
-      // Validate user token
-      if (!authHeader?.startsWith('Bearer ')) {
-        return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+    const token = authHeader.replace('Bearer ', '');
 
-      const token = authHeader.replace('Bearer ', '');
-      
-      // Use anon key client with user's auth header for getClaims
-      const userClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } }
+    // Check if token is the service role key itself
+    if (token === serviceRoleKey) {
+      console.log('[create-fake-user] Authorized via service role key');
+    } else {
+      // Validate user JWT
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
       });
 
-      const { data: claimsData, error: claimsError } = await userClient.auth.getUser(token);
-      if (claimsError || !claimsData?.user) {
-        console.error('[create-fake-user] Auth error:', claimsError?.message);
+      const { data: { user }, error: authError } = await authClient.auth.getUser(token);
+      if (authError || !user) {
+        console.error('[create-fake-user] Auth failed:', authError?.message);
         return new Response(JSON.stringify({ error: 'Token inválido' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      const userId = claimsData.user.id;
+      callerEmail = user.email || 'unknown';
 
-      // Check super_admin role using admin client (bypasses RLS)
-      const { data: roleData } = await adminClient
+      // Check role using service client (bypasses RLS)
+      const { data: roles } = await adminClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'super_admin')
-        .maybeSingle();
+        .eq('user_id', user.id);
 
-      if (!roleData) {
-        return new Response(JSON.stringify({ error: 'Apenas super admin pode criar usuários fake' }), {
+      const userRoles = roles?.map((r: any) => r.role) || [];
+      const hasPermission = userRoles.includes('super_admin') || userRoles.includes('admin');
+
+      if (!hasPermission) {
+        console.warn(`[create-fake-user] Denied for ${callerEmail}, roles: ${userRoles.join(',')}`);
+        return new Response(JSON.stringify({ error: 'Sem permissão. Necessário role admin ou super_admin.' }), {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      console.log(`[create-fake-user] Authorized: ${claimsData.user.email} (super_admin)`);
-    } else {
-      console.log('[create-fake-user] Authorized via service role key');
+      console.log(`[create-fake-user] Authorized: ${callerEmail} (roles: ${userRoles.join(',')})`);
     }
 
     const { email, password } = await req.json();
@@ -87,12 +84,24 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
+      // If user already exists, that's OK for testing
+      if (createError.message?.includes('already been registered')) {
+        console.log(`[create-fake-user] User ${email} already exists, continuing...`);
+        return new Response(JSON.stringify({
+          success: true,
+          email,
+          already_exists: true,
+          message: `Usuário ${email} já existe no sistema`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log(`[create-fake-user] Created: ${email} (${newUser.user.id})`);
+    console.log(`[create-fake-user] Created: ${email} (${newUser.user.id}) by ${callerEmail}`);
 
     return new Response(JSON.stringify({
       success: true,
