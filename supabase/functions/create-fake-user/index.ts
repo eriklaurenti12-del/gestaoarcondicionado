@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 Deno.serve(async (req) => {
@@ -11,40 +11,51 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
-    // Verify caller is super_admin or service_role
+    // Admin client for creating users
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Check authorization
     const authHeader = req.headers.get('Authorization');
     const apikeyHeader = req.headers.get('apikey');
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    // Allow service role key via apikey header or Authorization header
-    const isServiceRole = apikeyHeader === serviceRoleKey || (authHeader && authHeader.replace('Bearer ', '') === serviceRoleKey);
-    
-    if (!authHeader && !isServiceRole) {
-      return new Response(JSON.stringify({ error: 'Não autorizado' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
 
-    const token = authHeader ? authHeader.replace('Bearer ', '') : '';
-    
+    // Allow service role key (internal calls from curl/admin tools)
+    const isServiceRole = apikeyHeader === serviceRoleKey || 
+      (authHeader && authHeader.replace('Bearer ', '') === serviceRoleKey);
+
     if (!isServiceRole) {
-      const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token);
-      if (authError || !caller) {
+      // Validate user token
+      if (!authHeader?.startsWith('Bearer ')) {
+        return new Response(JSON.stringify({ error: 'Não autorizado' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      
+      // Use anon key client with user's auth header for getClaims
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: claimsData, error: claimsError } = await userClient.auth.getUser(token);
+      if (claimsError || !claimsData?.user) {
+        console.error('[create-fake-user] Auth error:', claimsError?.message);
         return new Response(JSON.stringify({ error: 'Token inválido' }), {
           status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Check super_admin role
-      const { data: roleData } = await supabase
+      const userId = claimsData.user.id;
+
+      // Check super_admin role using admin client (bypasses RLS)
+      const { data: roleData } = await adminClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', caller.id)
+        .eq('user_id', userId)
         .eq('role', 'super_admin')
         .maybeSingle();
 
@@ -53,6 +64,10 @@ Deno.serve(async (req) => {
           status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+
+      console.log(`[create-fake-user] Authorized: ${claimsData.user.email} (super_admin)`);
+    } else {
+      console.log('[create-fake-user] Authorized via service role key');
     }
 
     const { email, password } = await req.json();
@@ -64,7 +79,7 @@ Deno.serve(async (req) => {
     }
 
     // Create user via admin API (does NOT affect caller session)
-    const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
+    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: true,
