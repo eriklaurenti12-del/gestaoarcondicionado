@@ -270,55 +270,57 @@ export default function PublicBooking() {
   if (submitted) {
     const whatsappMsg = `Olá ${company.company_name}! Acabei de solicitar um agendamento:\n\n📋 Serviço: ${selectedService?.name}\n📅 Data: ${selectedDate && format(selectedDate, "dd/MM/yyyy")}\n⏰ Horário: ${selectedTime}\n👤 Nome: ${clientName}\n📱 Telefone: ${clientPhone}\n\nAguardo confirmação!`;
     
+    const handleNewBooking = () => {
+      setSubmitted(false);
+      setStep(1);
+      setSelectedService(null);
+      setSelectedDate(null);
+      setSelectedTime('');
+      setPaymentMethod('');
+      setNotes('');
+    };
+
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-        <Card className="bg-slate-800/80 border-green-500/30 max-w-md w-full animate-scale-in">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center p-4">
+        <Card className="bg-white border-green-200 shadow-lg max-w-md w-full animate-scale-in">
           <CardContent className="pt-8 text-center space-y-4">
-            <div className="w-20 h-20 mx-auto rounded-full bg-green-500/20 flex items-center justify-center">
-              <CheckCircle className="w-10 h-10 text-green-400" />
+            <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="w-10 h-10 text-green-500" />
             </div>
-            <h2 className="text-white text-2xl font-bold">Agendamento Solicitado! 🎉</h2>
-            <p className="text-slate-300">
-              Seu pedido de agendamento foi enviado para <strong className="text-cyan-400">{company.company_name}</strong>.
-            </p>
-            <div className="bg-slate-900/50 rounded-xl p-4 space-y-2 text-left">
-              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Serviço:</span> {selectedService?.name}</p>
-              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Data:</span> {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
-              <p className="text-slate-400 text-sm"><span className="text-white font-medium">Horário:</span> {selectedTime}</p>
-              {paymentMethod && <p className="text-slate-400 text-sm"><span className="text-white font-medium">Pagamento:</span> {paymentMethod}</p>}
+            <h2 className="text-green-700 text-2xl font-bold">Agendamento Confirmado!</h2>
+            <div className="space-y-1">
+              <p className="text-gray-700 text-sm"><strong>Serviço:</strong> {selectedService?.name}</p>
+              <p className="text-gray-700 text-sm"><strong>Data:</strong> {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}</p>
+              <p className="text-gray-700 text-sm"><strong>Horário:</strong> {selectedTime}</p>
             </div>
-            <p className="text-slate-500 text-xs">Você receberá a confirmação em breve.</p>
-            
-            {company.whatsapp && (
-              <Button onClick={() => window.open(formatWhatsAppUrl(company.whatsapp!, whatsappMsg), '_blank')}
-                className="bg-green-600 hover:bg-green-700 text-white w-full mt-2">
-                <Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp
-              </Button>
-            )}
+            <p className="text-gray-400 text-xs">Guarde seu telefone para consultar ou cancelar seu agendamento.</p>
 
             {company.instagram && (
-              <a
-                href={`https://instagram.com/${company.instagram.replace('@', '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block mt-3"
-              >
+              <a href={`https://instagram.com/${company.instagram.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="block">
                 <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 rounded-xl p-[1px]">
-                  <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
-                    <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
-                    <span className="text-white text-sm font-medium">Siga @{company.instagram.replace('@', '')}</span>
+                  <div className="bg-white rounded-xl p-3 flex items-center justify-center gap-2">
+                    <Instagram className="w-4 h-4 text-pink-500" />
+                    <span className="text-gray-700 text-sm font-medium">Siga @{company.instagram.replace('@', '')}</span>
                   </div>
                 </div>
               </a>
             )}
 
-            <div className="border-t border-slate-700 pt-4 mt-4">
-              <p className="text-cyan-300 text-sm font-medium mb-2">🙏 Obrigado por agendar conosco!</p>
-              <p className="text-slate-500 text-xs">Ficamos felizes em atendê-lo. Qualquer dúvida, entre em contato.</p>
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              {company.whatsapp && (
+                <Button onClick={() => window.open(formatWhatsAppUrl(company.whatsapp!, whatsappMsg), '_blank')}
+                  variant="outline" className="border-green-300 text-green-700 hover:bg-green-50 h-11">
+                  <Phone className="w-4 h-4 mr-2" /> Enviar WhatsApp
+                </Button>
+              )}
+              <Button onClick={handleNewBooking}
+                variant="outline" className="border-gray-300 text-gray-700 hover:bg-gray-50 h-11">
+                <Calendar className="w-4 h-4 mr-2" /> Novo Agendamento
+              </Button>
             </div>
 
             <Button variant="outline" onClick={() => { setMode('consultar'); setSubmitted(false); setLookupPhone(clientPhone); }}
-              className="w-full border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 mt-2">
+              className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 h-11">
               <Search className="w-4 h-4 mr-2" /> Consultar Meus Agendamentos
             </Button>
           </CardContent>
