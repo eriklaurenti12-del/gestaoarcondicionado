@@ -495,7 +495,7 @@ export const AdminIntegrationsTab: React.FC = () => {
               <CardTitle className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-2">
                   <Globe className="w-5 h-5 text-cyan-400" />
-                  Endpoint do Webhook
+                  Endpoint do Webhook Universal
                 </div>
                 <div className="flex items-center gap-1">
                   <AiHelpButton section="webhook" questions={['Como configurar o webhook?', 'O pagamento não ativou o acesso, o que fazer?', 'Quais plataformas são suportadas?']} />
@@ -504,9 +504,55 @@ export const AdminIntegrationsTab: React.FC = () => {
                   </Button>
                 </div>
               </CardTitle>
-              <CardDescription className="text-gray-400">Cole esta URL na sua plataforma de pagamento para receber notificações</CardDescription>
+              <CardDescription className="text-gray-400">Selecione sua plataforma e copie o código do webhook universal</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Plataforma Ativa Selector */}
+              <div className="bg-[#0f0f17] rounded-lg p-4 border border-[#2a2a3a] space-y-3">
+                <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                  <Plug className="w-4 h-4 text-purple-400" />
+                  Plataforma de Pagamento Ativa
+                </h4>
+                <p className="text-xs text-gray-500">Selecione sua plataforma principal. O webhook universal funciona com todas, mas exibirá o guia específico.</p>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.slice(0, 8).map(p => (
+                    <Button
+                      key={p.slug}
+                      size="sm"
+                      variant={settings.plataforma_ativa === p.slug ? 'default' : 'outline'}
+                      className={settings.plataforma_ativa === p.slug
+                        ? `bg-gradient-to-r ${p.color} text-white border-0`
+                        : 'bg-[#1a1a24] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white'}
+                      onClick={() => {
+                        setSettings(prev => ({ ...prev, plataforma_ativa: p.slug }));
+                        setTestPlatform(p.slug);
+                      }}
+                    >
+                      <span className="mr-1">{p.icon}</span> {p.name}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {PLATFORMS.slice(8).map(p => (
+                    <Button
+                      key={p.slug}
+                      size="sm"
+                      variant={settings.plataforma_ativa === p.slug ? 'default' : 'outline'}
+                      className={settings.plataforma_ativa === p.slug
+                        ? `bg-gradient-to-r ${p.color} text-white border-0`
+                        : 'bg-[#1a1a24] border-[#2a2a3a] text-gray-300 hover:bg-[#2a2a3a] hover:text-white'}
+                      onClick={() => {
+                        setSettings(prev => ({ ...prev, plataforma_ativa: p.slug }));
+                        setTestPlatform(p.slug);
+                      }}
+                    >
+                      <span className="mr-1">{p.icon}</span> {p.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Webhook URL */}
               <div className="flex gap-2">
                 <div className="flex-1 relative">
                   <Input 
@@ -521,31 +567,59 @@ export const AdminIntegrationsTab: React.FC = () => {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="bg-[#0f0f17] rounded-lg p-4 border border-[#2a2a3a]">
-                  <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-cyan-400" />
-                    Configuração Rápida
-                  </h4>
-                  <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
-                    <li>Copie a URL do webhook</li>
-                    <li>Cole na plataforma de pagamento</li>
-                    <li>Selecione eventos de pagamento</li>
-                    <li>Salve e teste abaixo</li>
-                  </ol>
+              {/* Webhook Code Block - universal */}
+              <div className="bg-[#0f0f17] rounded-lg border border-[#2a2a3a] overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-2 bg-[#13131d] border-b border-[#2a2a3a]">
+                  <span className="text-xs text-gray-400 flex items-center gap-1.5">
+                    <Code className="w-3.5 h-3.5 text-cyan-400" />
+                    Código Webhook Universal — {PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.name || 'GGCheckout'}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      const code = `// Webhook URL (cole na sua plataforma)\n// ${WEBHOOK_URL}\n\n// Plataforma: ${PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.name || 'Universal'}\n// Método: POST\n// Content-Type: application/json\n\n// O webhook aceita qualquer formato de payload.\n// Detecta automaticamente: ${PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.events.join(', ') || 'todos os eventos'}\n\n// Exemplo de payload:\n${JSON.stringify(generatePlatformPayload(settings.plataforma_ativa || 'ggcheckout', 'cliente@email.com', 99.90, 'success'), null, 2)}`;
+                      copyToClipboard(code, 'Código');
+                    }}
+                    className="text-cyan-400 hover:text-cyan-300 h-7 px-2 text-[10px]"
+                  >
+                    <Copy className="w-3 h-3 mr-1" /> Copiar Código
+                  </Button>
                 </div>
-                <div className="bg-[#0f0f17] rounded-lg p-4 border border-[#2a2a3a]">
-                  <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                    <Code className="w-4 h-4 text-amber-400" />
-                    Eventos Reconhecidos
-                  </h4>
-                  <div className="flex flex-wrap gap-1">
-                    {['pix_paid', 'card_paid', 'paid', 'approved', 'PURCHASE_APPROVED', 'order_paid', 'payment_approved'].map(evt => (
-                      <Badge key={evt} className="bg-green-600/10 text-green-400 border border-green-600/20 text-[10px] font-mono">{evt}</Badge>
-                    ))}
-                  </div>
-                </div>
+                <pre className="p-4 text-xs text-gray-300 font-mono overflow-x-auto max-h-[200px] leading-relaxed">
+{`// Webhook URL (cole na plataforma ${PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.name || ''})
+// ${WEBHOOK_URL}
+
+// Método: POST | Content-Type: application/json
+// Eventos aceitos: ${PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.events.join(', ') || 'universal'}
+
+// Payload de exemplo (${PLATFORMS.find(p => p.slug === settings.plataforma_ativa)?.name || 'universal'}):
+${JSON.stringify(generatePlatformPayload(settings.plataforma_ativa || 'ggcheckout', 'cliente@email.com', 99.90, 'success'), null, 2)}`}
+                </pre>
               </div>
+
+              {/* Platform-specific guide */}
+              {(() => {
+                const activePlatform = PLATFORMS.find(p => p.slug === settings.plataforma_ativa);
+                if (!activePlatform) return null;
+                return (
+                  <div className="bg-[#0f0f17] rounded-lg p-4 border border-[#2a2a3a] space-y-3">
+                    <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                      <span>{activePlatform.icon}</span>
+                      Guia: {activePlatform.name}
+                    </h4>
+                    <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
+                      {activePlatform.webhookGuide.map((step, i) => <li key={i}>{step}</li>)}
+                    </ol>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      <span className="text-[10px] text-gray-500 mr-1">Eventos:</span>
+                      {activePlatform.events.map(evt => (
+                        <Badge key={evt} className="bg-green-600/10 text-green-400 border border-green-600/20 text-[10px] font-mono">{evt}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div className="bg-gradient-to-r from-purple-600/10 to-cyan-600/10 rounded-lg p-4 border border-purple-600/20">
                 <h4 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
@@ -557,6 +631,13 @@ export const AdminIntegrationsTab: React.FC = () => {
                   busca o usuário pelo email, determina o plano pelo valor (usando os preços configurados na aba Checkout) e ativa a assinatura 
                   instantaneamente. Notificações são salvas para o painel admin.
                 </p>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <Button onClick={saveAllSettings} disabled={saving} className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white">
+                  {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                  Salvar Configurações
+                </Button>
               </div>
             </CardContent>
           </Card>
