@@ -19,13 +19,13 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 type Product = Tables<'products'>;
-type Expense = { name: string; value: number };
+type Expense = {name: string;value: number;};
 
 const serviceTypes = [
-  { value: 'prestacao', label: '🔧 Prestação de Serviço', type: 'service' },
-  { value: 'venda', label: '🛒 Venda / Comércio', type: 'piece' },
-  { value: 'combo', label: '🎁 Combo (Mesclar Serviços)', type: 'service' },
-];
+{ value: 'prestacao', label: '🔧 Prestação de Serviço', type: 'service' },
+{ value: 'venda', label: '🛒 Venda / Comércio', type: 'piece' },
+{ value: 'combo', label: '🎁 Combo (Mesclar Serviços)', type: 'service' }];
+
 
 const fetchProducts = async (): Promise<Product[]> => {
   const { data, error } = await supabase.from('products').select('*').order('name');
@@ -67,7 +67,7 @@ const ProductsTab: React.FC = () => {
 
   // Supplier
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>("");
-  
+
   // Storage location
   const [storageLocation, setStorageLocation] = useState("");
   const [storageShelf, setStorageShelf] = useState("");
@@ -105,7 +105,7 @@ const ProductsTab: React.FC = () => {
   const autoMargin = React.useMemo(() => {
     const price = parseFloat(productPrice) || 0;
     if (totalCost <= 0 || price <= 0) return 0;
-    return ((price - totalCost) / totalCost) * 100;
+    return (price - totalCost) / totalCost * 100;
   }, [totalCost, productPrice]);
 
   const profitInReais = React.useMemo(() => {
@@ -114,7 +114,7 @@ const ProductsTab: React.FC = () => {
   }, [totalCost, productPrice]);
 
   const { data: products, isLoading: isLoadingProducts } = useQuery({ queryKey: ['products'], queryFn: fetchProducts });
-  
+
   const { data: suppliers } = useQuery({
     queryKey: ['suppliers'],
     queryFn: async () => {
@@ -128,7 +128,7 @@ const ProductsTab: React.FC = () => {
   const comboOriginalTotal = React.useMemo(() => {
     if (!products) return 0;
     return comboSelectedServices.reduce((sum, id) => {
-      const p = products.find(pr => pr.id === id);
+      const p = products.find((pr) => pr.id === id);
       return sum + (p ? Number(p.price) : 0);
     }, 0);
   }, [comboSelectedServices, products]);
@@ -136,7 +136,7 @@ const ProductsTab: React.FC = () => {
   const comboCostTotal = React.useMemo(() => {
     if (!products) return 0;
     return comboSelectedServices.reduce((sum, id) => {
-      const p = products.find(pr => pr.id === id);
+      const p = products.find((pr) => pr.id === id);
       return sum + (p ? Number(p.cost_price) : 0);
     }, 0);
   }, [comboSelectedServices, products]);
@@ -144,7 +144,7 @@ const ProductsTab: React.FC = () => {
   const comboDurationTotal = React.useMemo(() => {
     if (!products) return 0;
     return comboSelectedServices.reduce((sum, id) => {
-      const p = products.find(pr => pr.id === id);
+      const p = products.find((pr) => pr.id === id);
       return sum + (p?.service_duration || 60);
     }, 0);
   }, [comboSelectedServices, products]);
@@ -165,17 +165,17 @@ const ProductsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({ title: "Sucesso!", description: "Serviço/Peça adicionado." });
-      setScannedBarcode(""); setProductName(""); setProductPrice(""); setBaseCostPrice("");
-      setQty(1); setExpenses([]); setNewExpenseName(""); setNewExpenseValue("");
-      setProductImage(null); setProductImagePreview(null); setShowExpenses(false);
-      setComboSelectedServices([]); setComboDiscount(""); setShowForm(false);
-      setSelectedSupplierId(""); setStorageLocation(""); setStorageShelf(""); setStorageSection("");
+      setScannedBarcode("");setProductName("");setProductPrice("");setBaseCostPrice("");
+      setQty(1);setExpenses([]);setNewExpenseName("");setNewExpenseValue("");
+      setProductImage(null);setProductImagePreview(null);setShowExpenses(false);
+      setComboSelectedServices([]);setComboDiscount("");setShowForm(false);
+      setSelectedSupplierId("");setStorageLocation("");setStorageShelf("");setStorageSection("");
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
     }
   });
-  
+
   const deleteMutation = useMutation({
     mutationFn: deleteProduct,
     onSuccess: () => {
@@ -189,7 +189,7 @@ const ProductsTab: React.FC = () => {
   });
 
   const updateQtyMutation = useMutation({
-    mutationFn: async ({ id, qty }: { id: number, qty: number }) => {
+    mutationFn: async ({ id, qty }: {id: number;qty: number;}) => {
       const { error } = await supabase.from('products').update({ qty }).eq('id', id);
       if (error) throw new Error(error.message);
     },
@@ -205,7 +205,7 @@ const ProductsTab: React.FC = () => {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+    mutationFn: async ({ id, data }: {id: number;data: any;}) => {
       const { error } = await supabase.from('products').update(data).eq('id', id);
       if (error) throw new Error(error.message);
     },
@@ -228,7 +228,7 @@ const ProductsTab: React.FC = () => {
       return;
     }
     setExpenses([...expenses, { name, value }]);
-    setNewExpenseName(""); setNewExpenseValue("");
+    setNewExpenseName("");setNewExpenseValue("");
   };
 
   const removeExpense = (index: number) => {
@@ -276,13 +276,13 @@ const ProductsTab: React.FC = () => {
     let imageUrl: string | null = null;
     if (productImage) imageUrl = await uploadProductImage();
 
-    const isService = serviceTypes.find(t => t.value === serviceType)?.type === 'service';
-    const comboNames = serviceType === 'combo' && products
-      ? comboSelectedServices.map(id => products.find(p => p.id === id)?.name).filter(Boolean).join(' + ')
-      : null;
-    
+    const isService = serviceTypes.find((t) => t.value === serviceType)?.type === 'service';
+    const comboNames = serviceType === 'combo' && products ?
+    comboSelectedServices.map((id) => products.find((p) => p.id === id)?.name).filter(Boolean).join(' + ') :
+    null;
+
     const productData = {
-      name: serviceType === 'combo' ? (productName || `Combo: ${comboNames}`) : productName.trim(),
+      name: serviceType === 'combo' ? productName || `Combo: ${comboNames}` : productName.trim(),
       qty: isService ? 999 : Math.max(1, qty),
       price: parseFloat(productPrice),
       cost_price: totalCost || 0,
@@ -297,7 +297,7 @@ const ProductsTab: React.FC = () => {
       image_url: imageUrl,
       storage_location: storageLocation.trim() || null,
       storage_shelf: storageShelf.trim() || null,
-      storage_section: storageSection.trim() || null,
+      storage_section: storageSection.trim() || null
     };
 
     addMutation.mutate(productData as any);
@@ -322,7 +322,7 @@ const ProductsTab: React.FC = () => {
 
   const calculateProfitMargin = (costPrice: number, salePrice: number) => {
     if (costPrice <= 0) return 0;
-    return ((salePrice - costPrice) / costPrice) * 100;
+    return (salePrice - costPrice) / costPrice * 100;
   };
 
   const exportToPDF = (includeInternalInfo: boolean = true) => {
@@ -337,19 +337,19 @@ const ProductsTab: React.FC = () => {
       doc.setFontSize(11);
       doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 35);
 
-      const tableData = products?.map(p => {
+      const tableData = products?.map((p) => {
         const margin = calculateProfitMargin(Number(p.cost_price), Number(p.price));
         const profit = Number(p.price) - Number(p.cost_price);
         return [p.name, p.barcode || '-', p.type === 'service' ? 'Serviço' : `${p.qty} un`,
-          `R$ ${Number(p.cost_price).toFixed(2)}`, `R$ ${Number(p.price).toFixed(2)}`,
-          `${margin.toFixed(1)}%`, `R$ ${profit.toFixed(2)}`];
+        `R$ ${Number(p.cost_price).toFixed(2)}`, `R$ ${Number(p.price).toFixed(2)}`,
+        `${margin.toFixed(1)}%`, `R$ ${profit.toFixed(2)}`];
       }) || [];
 
       autoTable(doc, {
         startY: 40,
         head: [['Serviço/Peça', 'Código', 'Estoque', 'Custo', 'Preço', 'Margem', 'Lucro']],
         body: tableData,
-        headStyles: { fillColor: [0, 128, 192] },
+        headStyles: { fillColor: [0, 128, 192] }
       });
       doc.save('catalogo-interno-servicos-pecas.pdf');
       toast({ title: "PDF Interno exportado!" });
@@ -358,13 +358,13 @@ const ProductsTab: React.FC = () => {
       doc.text('Catálogo de Serviços e Peças', 14, 22);
       doc.setFontSize(11);
       doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 14, 30);
-      const tableData = products?.map(p => [p.name, p.barcode || '-',
-        p.type === 'service' ? 'Serviço' : 'Disponível', `R$ ${Number(p.price).toFixed(2)}`]) || [];
+      const tableData = products?.map((p) => [p.name, p.barcode || '-',
+      p.type === 'service' ? 'Serviço' : 'Disponível', `R$ ${Number(p.price).toFixed(2)}`]) || [];
       autoTable(doc, {
         startY: 35,
         head: [['Serviço/Peça', 'Código', 'Disponibilidade', 'Preço']],
         body: tableData,
-        headStyles: { fillColor: [0, 128, 192] },
+        headStyles: { fillColor: [0, 128, 192] }
       });
       doc.save('catalogo-cliente-servicos-pecas.pdf');
       toast({ title: "PDF Cliente exportado!" });
@@ -380,7 +380,7 @@ const ProductsTab: React.FC = () => {
     return <Wrench className="w-4 h-4 text-muted-foreground" />;
   };
 
-  const existingServices = products?.filter(p => p.type === 'service') || [];
+  const existingServices = products?.filter((p) => p.type === 'service') || [];
 
   return (
     <div className="space-y-6 overflow-visible">
@@ -395,7 +395,7 @@ const ProductsTab: React.FC = () => {
             </span>
             <div className="flex gap-2 flex-wrap">
               <Button onClick={() => setShowForm(!showForm)} size="sm">
-                <Plus className="w-4 h-4 mr-1" /> Novo
+                 Novo
               </Button>
               <Button onClick={() => exportToPDF(true)} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-1" /> Interno
@@ -407,40 +407,40 @@ const ProductsTab: React.FC = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoadingProducts ? (
-            <div className="space-y-3">
+          {isLoadingProducts ?
+          <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
-            </div>
-          ) : (
-            <div className="space-y-2">
+            </div> :
+
+          <div className="space-y-2">
               {products?.map((product) => {
-                const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
-                const profit = Number(product.price) - Number(product.cost_price);
-                const isService = product.type === 'service';
-                const isLowStock = !isService && product.qty <= (product.min_stock || 0);
-                return (
-                  <div key={product.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${isLowStock ? 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border'}`}>
-                    {(product as any).image_url ? (
-                      <img src={(product as any).image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+              const margin = calculateProfitMargin(Number(product.cost_price), Number(product.price));
+              const profit = Number(product.price) - Number(product.cost_price);
+              const isService = product.type === 'service';
+              const isLowStock = !isService && product.qty <= (product.min_stock || 0);
+              return (
+                <div key={product.id} className={`flex items-center gap-3 p-3 rounded-lg border transition-all hover:shadow-sm ${isLowStock ? 'border-orange-300 dark:border-orange-700 bg-orange-50/50 dark:bg-orange-950/20' : 'border-border'}`}>
+                    {(product as any).image_url ?
+                  <img src={(product as any).image_url} alt={product.name} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" /> :
+
+                  <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                         {getServiceIcon(product.name)}
                       </div>
-                    )}
+                  }
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm truncate">{product.name}</p>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                        {isService ? (
-                          <Badge variant="outline" className="text-[10px] h-5 px-1.5">Serviço</Badge>
-                        ) : (
-                          <span className={isLowStock ? "text-orange-600 font-semibold" : ""}>Est: {product.qty}</span>
-                        )}
+                        {isService ?
+                      <Badge variant="outline" className="text-[10px] h-5 px-1.5">Serviço</Badge> :
+
+                      <span className={isLowStock ? "text-orange-600 font-semibold" : ""}>Est: {product.qty}</span>
+                      }
                         <span className={`font-medium ${margin >= 30 ? 'text-green-600' : margin >= 15 ? 'text-amber-600' : 'text-red-600'}`}>
                           {margin.toFixed(0)}% (R$ {profit.toFixed(2)})
                         </span>
-                        {(product as any).storage_location && (
-                          <span className="text-muted-foreground">📍 {(product as any).storage_location}{(product as any).storage_shelf ? ` / ${(product as any).storage_shelf}` : ''}</span>
-                        )}
+                        {(product as any).storage_location &&
+                      <span className="text-muted-foreground">📍 {(product as any).storage_location}{(product as any).storage_shelf ? ` / ${(product as any).storage_shelf}` : ''}</span>
+                      }
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
@@ -451,17 +451,17 @@ const ProductsTab: React.FC = () => {
                       <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setEditDialogProduct(product)}><Pencil className="w-3.5 h-3.5" /></Button>
                       <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={() => handleDeleteProduct(product.id)} disabled={deleteMutation.isPending}><Trash2 className="w-3.5 h-3.5" /></Button>
                     </div>
-                  </div>
-                );
-              })}
+                  </div>);
+
+            })}
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
       {/* Registration Form - Collapsible */}
-      {showForm && (
-        <Card className="overflow-visible border-primary/30">
+      {showForm &&
+      <Card className="overflow-visible border-primary/30">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Cadastrar Item</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">Escolha se é um serviço ou um produto para venda</p>
@@ -471,12 +471,12 @@ const ProductsTab: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo</Label>
-                <Select value={serviceType} onValueChange={(v) => { setServiceType(v); setComboSelectedServices([]); setComboDiscount(""); }}>
+                <Select value={serviceType} onValueChange={(v) => {setServiceType(v);setComboSelectedServices([]);setComboDiscount("");}}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {serviceTypes.map(type => (
-                      <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                    ))}
+                    {serviceTypes.map((type) =>
+                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  )}
                   </SelectContent>
                 </Select>
               </div>
@@ -490,29 +490,29 @@ const ProductsTab: React.FC = () => {
             </div>
 
             {/* Combo Selection */}
-            {serviceType === 'combo' && (
-              <Card className="border-purple-500/30 bg-purple-500/5">
+            {serviceType === 'combo' &&
+          <Card className="border-purple-500/30 bg-purple-500/5">
                 <CardContent className="pt-4 space-y-3">
                   <Label className="text-xs font-semibold text-purple-400">Selecione os serviços para o combo:</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                    {existingServices.map(svc => (
-                      <label key={svc.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm
+                    {existingServices.map((svc) =>
+                <label key={svc.id} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm
                         ${comboSelectedServices.includes(svc.id) ? 'border-purple-500/50 bg-purple-500/10' : 'border-border hover:border-muted-foreground/30'}`}>
                         <Checkbox
-                          checked={comboSelectedServices.includes(svc.id)}
-                          onCheckedChange={(checked) => {
-                            setComboSelectedServices(prev => 
-                              checked ? [...prev, svc.id] : prev.filter(id => id !== svc.id)
-                            );
-                          }}
-                        />
+                    checked={comboSelectedServices.includes(svc.id)}
+                    onCheckedChange={(checked) => {
+                      setComboSelectedServices((prev) =>
+                      checked ? [...prev, svc.id] : prev.filter((id) => id !== svc.id)
+                      );
+                    }} />
+                  
                         <span className="flex-1 truncate">{svc.name}</span>
                         <span className="text-xs text-muted-foreground">R$ {Number(svc.price).toFixed(2)}</span>
                       </label>
-                    ))}
+                )}
                   </div>
-                  {comboSelectedServices.length > 0 && (
-                    <div className="flex items-center gap-4 pt-2 border-t">
+                  {comboSelectedServices.length > 0 &&
+              <div className="flex items-center gap-4 pt-2 border-t">
                       <div className="flex-1">
                         <p className="text-xs text-muted-foreground">Soma original: <span className="font-semibold">R$ {comboOriginalTotal.toFixed(2)}</span></p>
                         <p className="text-xs text-muted-foreground">Duração total: {comboDurationTotal} min</p>
@@ -520,14 +520,14 @@ const ProductsTab: React.FC = () => {
                       <div className="space-y-1">
                         <Label className="text-xs">Desconto combo (%)</Label>
                         <Input type="number" min="0" max="50" step="1" value={comboDiscount}
-                          onChange={(e) => setComboDiscount(e.target.value)}
-                          className="h-8 w-24" placeholder="10" />
+                  onChange={(e) => setComboDiscount(e.target.value)}
+                  className="h-8 w-24" placeholder="10" />
                       </div>
                     </div>
-                  )}
+              }
                 </CardContent>
               </Card>
-            )}
+          }
             
             {/* Name + Image row */}
             <div className="space-y-1.5">
@@ -536,52 +536,52 @@ const ProductsTab: React.FC = () => {
               </Label>
               <div className="flex gap-3">
                 <Input value={productName} onChange={(e) => setProductName(e.target.value)}
-                  placeholder={serviceType === 'combo' 
-                    ? "Ex: Combo Instalação + Limpeza" 
-                    : "Ex: Instalação Split 12000 BTUs"}
-                  className="h-9 flex-1" />
+              placeholder={serviceType === 'combo' ?
+              "Ex: Combo Instalação + Limpeza" :
+              "Ex: Instalação Split 12000 BTUs"}
+              className="h-9 flex-1" />
                 <label className="flex items-center gap-1.5 px-3 border border-dashed border-muted-foreground/40 rounded-lg cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors shrink-0">
-                  {productImagePreview ? (
-                    <div className="relative">
+                  {productImagePreview ?
+                <div className="relative">
                       <img src={productImagePreview} alt="" className="w-7 h-7 rounded object-cover" />
                       <button type="button" className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px]"
-                        onClick={(e) => { e.preventDefault(); setProductImage(null); setProductImagePreview(null); }}>×</button>
-                    </div>
-                  ) : (
-                    <><ImagePlus className="w-4 h-4 text-muted-foreground" /><span className="text-xs text-muted-foreground hidden sm:inline">Foto</span></>
-                  )}
+                  onClick={(e) => {e.preventDefault();setProductImage(null);setProductImagePreview(null);}}>×</button>
+                    </div> :
+
+                <><ImagePlus className="w-4 h-4 text-muted-foreground" /><span className="text-xs text-muted-foreground hidden sm:inline">Foto</span></>
+                }
                   <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
                 </label>
               </div>
             </div>
 
             {/* Pricing: Cost → Price (simplified) */}
-            {serviceType !== 'combo' && (
-              <div className="grid grid-cols-2 gap-4">
+            {serviceType !== 'combo' &&
+          <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Custo (R$)</Label>
                   <Input type="number" step="0.01" value={baseCostPrice}
-                    onChange={(e) => setBaseCostPrice(e.target.value)} placeholder="0.00" className="h-9" />
+              onChange={(e) => setBaseCostPrice(e.target.value)} placeholder="0.00" className="h-9" />
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Preço Final (R$)</Label>
                   <Input type="number" step="0.01" value={productPrice}
-                    onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00" className="h-9 font-semibold" />
+              onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00" className="h-9 font-semibold" />
                 </div>
               </div>
-            )}
+          }
 
-            {serviceType === 'combo' && (
-              <div className="space-y-1.5">
+            {serviceType === 'combo' &&
+          <div className="space-y-1.5">
                 <Label className="text-xs">Preço Final do Combo (R$)</Label>
                 <Input type="number" step="0.01" value={productPrice}
-                  onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00" className="h-9 font-semibold text-lg" />
+            onChange={(e) => setProductPrice(e.target.value)} placeholder="0.00" className="h-9 font-semibold text-lg" />
               </div>
-            )}
+          }
 
             {/* Auto margin display */}
-            {totalCost > 0 && parseFloat(productPrice) > 0 && (
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/60 text-sm">
+            {totalCost > 0 && parseFloat(productPrice) > 0 &&
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/60 text-sm">
                 <span className="text-muted-foreground">Custo total:</span>
                 <span className="font-medium">R$ {totalCost.toFixed(2)}</span>
                 <span className="text-muted-foreground">→</span>
@@ -589,29 +589,29 @@ const ProductsTab: React.FC = () => {
                   Margem: {autoMargin.toFixed(1)}% (R$ {profitInReais})
                 </span>
               </div>
-            )}
+          }
 
             {/* Expenses - collapsible */}
-            {serviceType !== 'combo' && (
-              <div>
+            {serviceType !== 'combo' &&
+          <div>
                 <Button type="button" variant="ghost" size="sm" className="text-xs gap-1 h-7 px-2 text-muted-foreground"
-                  onClick={() => setShowExpenses(!showExpenses)}>
+            onClick={() => setShowExpenses(!showExpenses)}>
                   {showExpenses ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   Gastos Adicionais {expenses.length > 0 && `(${expenses.length})`}
                 </Button>
-                {showExpenses && (
-                  <div className="mt-2 space-y-2 p-3 rounded-lg bg-muted/40 border">
+                {showExpenses &&
+            <div className="mt-2 space-y-2 p-3 rounded-lg bg-muted/40 border">
                     <div className="flex gap-2">
                       <Input placeholder="Ex: Tubo de cobre" value={newExpenseName}
-                        onChange={(e) => setNewExpenseName(e.target.value)} className="h-8 text-sm flex-1" />
+                onChange={(e) => setNewExpenseName(e.target.value)} className="h-8 text-sm flex-1" />
                       <Input type="number" step="0.01" placeholder="R$" value={newExpenseValue}
-                        onChange={(e) => setNewExpenseValue(e.target.value)} className="h-8 text-sm w-24" />
+                onChange={(e) => setNewExpenseValue(e.target.value)} className="h-8 text-sm w-24" />
                       <Button type="button" onClick={addExpense} size="sm" variant="secondary" className="h-8 px-2">
                         <Plus className="w-3 h-3" />
                       </Button>
                     </div>
-                    {expenses.map((exp, i) => (
-                      <div key={i} className="flex items-center justify-between text-sm bg-background px-2 py-1.5 rounded">
+                    {expenses.map((exp, i) =>
+              <div key={i} className="flex items-center justify-between text-sm bg-background px-2 py-1.5 rounded">
                         <span>{exp.name}</span>
                         <div className="flex items-center gap-2">
                           <span className="font-medium">R$ {exp.value.toFixed(2)}</span>
@@ -620,31 +620,31 @@ const ProductsTab: React.FC = () => {
                           </button>
                         </div>
                       </div>
-                    ))}
-                    {expenses.length > 0 && (
-                      <div className="flex justify-between text-xs font-semibold pt-1 border-t">
+              )}
+                    {expenses.length > 0 &&
+              <div className="flex justify-between text-xs font-semibold pt-1 border-t">
                         <span>Total Gastos:</span>
                         <span className="text-orange-600">R$ {totalExpenses.toFixed(2)}</span>
                       </div>
-                    )}
+              }
                   </div>
-                )}
+            }
               </div>
-            )}
+          }
 
             {/* Service duration */}
-            {serviceTypes.find(t => t.value === serviceType)?.type === 'service' && (
-              <div className="space-y-1.5">
+            {serviceTypes.find((t) => t.value === serviceType)?.type === 'service' &&
+          <div className="space-y-1.5">
                 <Label className="text-xs">Tempo de Serviço (min)</Label>
                 <Input type="number" value={serviceDuration}
-                  onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))}
-                  min="15" step="15" className="h-9" />
+            onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))}
+            min="15" step="15" className="h-9" />
               </div>
-            )}
+          }
 
             {/* Piece qty & stock */}
-            {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
-              <div className="grid grid-cols-2 gap-4">
+            {serviceTypes.find((t) => t.value === serviceType)?.type === 'piece' &&
+          <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs">Quantidade em Estoque</Label>
                   <Input type="number" value={qty} onChange={(e) => setQty(Math.max(1, Number(e.target.value)))} min="1" className="h-9" />
@@ -654,7 +654,7 @@ const ProductsTab: React.FC = () => {
                   <Input type="number" value={minStockAlert} onChange={(e) => setMinStockAlert(Number(e.target.value))} min="0" className="h-9" />
                 </div>
               </div>
-            )}
+          }
 
             {/* Supplier & Storage section for sale items */}
             <div className="space-y-3 p-3 rounded-lg border border-border bg-muted/20">
@@ -665,19 +665,19 @@ const ProductsTab: React.FC = () => {
                   <SelectTrigger className="h-9"><SelectValue placeholder="Selecione um fornecedor..." /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sem fornecedor</SelectItem>
-                    {suppliers?.map(s => (
-                      <SelectItem key={s.id} value={String(s.id)}>
+                    {suppliers?.map((s) =>
+                  <SelectItem key={s.id} value={String(s.id)}>
                         {s.name} {s.contact ? `• ${s.contact}` : ''}
                       </SelectItem>
-                    ))}
+                  )}
                   </SelectContent>
                 </Select>
                 <p className="text-[10px] text-muted-foreground">Cadastre fornecedores na aba Cadastros → Fornecedores</p>
               </div>
 
               {/* Storage location - only for sale items */}
-              {serviceTypes.find(t => t.value === serviceType)?.type === 'piece' && (
-                <div className="space-y-2 pt-2 border-t border-border">
+              {serviceTypes.find((t) => t.value === serviceType)?.type === 'piece' &&
+            <div className="space-y-2 pt-2 border-t border-border">
                   <Label className="text-xs font-semibold">Local de Armazenamento</Label>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-1">
@@ -694,21 +694,21 @@ const ProductsTab: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              )}
+            }
             </div>
 
             <Button onClick={handleAddProduct} disabled={addMutation.isPending || uploadingImage}
-              className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
-              {(addMutation.isPending || uploadingImage) ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4 mr-2" />
-              )}
+          className="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700">
+              {addMutation.isPending || uploadingImage ?
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> :
+
+            <Plus className="w-4 h-4 mr-2" />
+            }
               {uploadingImage ? 'Enviando imagem...' : addMutation.isPending ? 'Adicionando...' : serviceType === 'combo' ? 'Criar Combo' : 'Adicionar'}
             </Button>
           </CardContent>
         </Card>
-      )}
+      }
 
       {/* Edit Qty Dialog */}
       <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
@@ -732,16 +732,16 @@ const ProductsTab: React.FC = () => {
       </Dialog>
 
       {/* Edit Product Dialog */}
-      {editDialogProduct && (
-        <EditProductDialog
-          product={editDialogProduct}
-          isOpen={!!editDialogProduct}
-          onOpenChange={(open) => { if (!open) setEditDialogProduct(null); }}
-          onSave={(data) => updateProductMutation.mutate({ id: editDialogProduct.id, data })}
-        />
-      )}
-    </div>
-  );
+      {editDialogProduct &&
+      <EditProductDialog
+        product={editDialogProduct}
+        isOpen={!!editDialogProduct}
+        onOpenChange={(open) => {if (!open) setEditDialogProduct(null);}}
+        onSave={(data) => updateProductMutation.mutate({ id: editDialogProduct.id, data })} />
+
+      }
+    </div>);
+
 };
 
 export default ProductsTab;
