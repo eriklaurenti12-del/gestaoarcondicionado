@@ -328,12 +328,7 @@ Deno.serve(async (req) => {
 
     // === SUBSCRIBERS: list all users with subscriptions ===
     if (type === 'subscribers') {
-      // Only gerente/admin/suporte can access
-      if (!['admin', 'gerente', 'suporte'].includes(member.role)) {
-        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      // All portal members have access
 
       const { data: users } = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 });
       const { data: subs } = await supabase.from('subscriptions').select('*');
@@ -363,11 +358,7 @@ Deno.serve(async (req) => {
 
     // === ACTIVATE / DEACTIVATE SUBSCRIBER ===
     if (type === 'activate_subscriber') {
-      if (!['admin', 'gerente', 'suporte'].includes(member.role)) {
-        return new Response(JSON.stringify({ error: 'Sem permissão' }), {
-          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
+      // All portal members have access
 
       const { target_user_id, plan, activate } = body;
       if (!target_user_id) {
