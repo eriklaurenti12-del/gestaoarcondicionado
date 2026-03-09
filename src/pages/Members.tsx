@@ -604,80 +604,89 @@ export default function Members() {
             <Card>
               <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <CardTitle>Gerenciar Usuários</CardTitle>
+                  <CardTitle className="text-lg">Lista de Membros</CardTitle>
                   <div className="relative w-full sm:w-64">
                     <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Buscar por email..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
+                    <Input placeholder="Buscar..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0">
                 <div className="overflow-x-auto touch-pan-x">
-                  <Table className="min-w-[900px]">
+                  <Table className="min-w-[1050px]">
                     <TableHeader>
                       <TableRow className="border-border">
                         <TableHead className="min-w-[180px]">Email</TableHead>
-                        <TableHead className="min-w-[120px]">WhatsApp</TableHead>
+                        <TableHead className="min-w-[130px]">WhatsApp Empresa</TableHead>
                         <TableHead className="min-w-[110px]">Plano</TableHead>
-                        <TableHead className="min-w-[100px]">Status</TableHead>
-                        <TableHead className="min-w-[100px]">Cadastro</TableHead>
-                        <TableHead className="min-w-[100px]">Vencimento</TableHead>
-                        <TableHead className="min-w-[180px]">Ações</TableHead>
+                        <TableHead className="min-w-[90px]">Status</TableHead>
+                        <TableHead className="min-w-[90px]">Cadastro</TableHead>
+                        <TableHead className="min-w-[90px]">Vencimento</TableHead>
+                        <TableHead className="min-w-[60px] text-center">Tempo</TableHead>
+                        <TableHead className="min-w-[90px]">Ações</TableHead>
+                        <TableHead className="min-w-[50px] text-center">Excluir</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredMembers.map((member) => {
                         const isSuperAdminUser = member.email === 'eriklaurenti09@gmail.com';
+                        const timeInfo = getTimeRemaining(member);
+                        const whatsapp = member.company_whatsapp || member.phone;
                         return (
                           <TableRow key={member.id} className={`${member.subscription?.status === 'cancelado' ? 'bg-destructive/5' : ''} ${isSuperAdminUser ? 'bg-primary/5 border-l-2 border-l-primary' : ''}`}>
                             <TableCell className="font-medium text-xs">
                               <div className="flex items-center gap-2">
                                 {isSuperAdminUser && <Shield className="w-4 h-4 text-primary flex-shrink-0" />}
-                                <span className="truncate max-w-[150px]" title={member.email}>{member.email}</span>
-                                {isSuperAdminUser && <Badge className="text-[10px]">SUPREMO</Badge>}
+                                <span className="truncate max-w-[160px]" title={member.email}>{member.email}</span>
                               </div>
                             </TableCell>
                             <TableCell>
-                              {member.phone ? (
-                                <Button size="sm" variant="ghost" onClick={() => window.open(`https://wa.me/55${member.phone?.replace(/\D/g, '')}`, '_blank')} className="h-8 px-2">
-                                  <Phone className="w-3 h-3 mr-1" /><span className="text-xs">{member.phone}</span>
+                              {whatsapp ? (
+                                <Button size="sm" variant="ghost" onClick={() => window.open(`https://wa.me/55${whatsapp.replace(/\D/g, '')}`, '_blank')} className="h-8 px-2 text-xs gap-1">
+                                  <Phone className="w-3 h-3" />{whatsapp}
                                 </Button>
                               ) : <span className="text-muted-foreground text-xs">-</span>}
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? <Badge>Vitalício</Badge> : (
                                 <Select value={member.subscription?.plan || 'mensal'} onValueChange={(plan) => updateSubscription(member.id, plan, member.subscription?.status || 'pendente')}>
-                                  <SelectTrigger className="w-[100px] h-9 text-xs"><SelectValue /></SelectTrigger>
+                                  <SelectTrigger className="w-[105px] h-9 text-xs"><SelectValue /></SelectTrigger>
                                   <SelectContent className="min-w-[120px] z-50" position="popper" sideOffset={4} align="start" avoidCollisions={false}>
-                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
-                                    <SelectItem value="anual">1 Ano</SelectItem>
-                                    <SelectItem value="trimestral">3 Meses</SelectItem>
-                                    <SelectItem value="mensal">1 Mês</SelectItem>
-                                    <SelectItem value="7dias">7 Dias</SelectItem>
                                     <SelectItem value="1dia">1 Dia</SelectItem>
+                                    <SelectItem value="trimestral">3 Meses</SelectItem>
+                                    <SelectItem value="semestral">6 Meses</SelectItem>
+                                    <SelectItem value="anual">1 Ano</SelectItem>
+                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
                                   </SelectContent>
                                 </Select>
                               )}
                             </TableCell>
-                            <TableCell>{isSuperAdminUser ? <Badge>✓ Supremo</Badge> : member.subscription && getStatusBadge(member.subscription.status)}</TableCell>
-                            <TableCell className="text-xs">{format(new Date(member.created_at), 'dd/MM/yyyy')}</TableCell>
+                            <TableCell>{isSuperAdminUser ? <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">supremo</Badge> : member.subscription && getStatusBadge(member.subscription.status)}</TableCell>
+                            <TableCell className="text-xs">{format(new Date(member.created_at), 'dd/MM/yy')}</TableCell>
                             <TableCell className="text-xs">
                               {isSuperAdminUser ? '∞' : member.subscription?.end_date
-                                ? format(new Date(member.subscription.end_date), 'dd/MM/yyyy')
+                                ? format(new Date(member.subscription.end_date), 'dd/MM/yy')
                                 : member.subscription?.plan === 'vitalicio' ? '∞' : '-'}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <span className={`font-bold text-sm ${timeInfo.color}`}>{timeInfo.label}</span>
                             </TableCell>
                             <TableCell>
                               {isSuperAdminUser ? (
-                                <Badge variant="outline"><Shield className="w-3 h-3 mr-1" /> Protegido</Badge>
+                                <Badge variant="outline" className="text-[10px]"><Shield className="w-3 h-3 mr-1" /> Protegido</Badge>
                               ) : (
-                                <div className="flex gap-1 flex-wrap">
-                                  <Button size="sm" variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
-                                    onClick={() => updateSubscription(member.id, member.subscription?.plan || 'mensal', member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado')}
-                                    className="text-xs">{member.subscription?.status === 'aprovado' ? 'Suspender' : 'Ativar'}</Button>
-                                  <Button size="sm" variant="destructive" onClick={() => banUser(member.id, member.email)} className="text-xs" title="Banir"><Ban className="w-3 h-3" /></Button>
-                                  <Button size="sm" variant="outline" onClick={() => deleteUserPermanently(member.id, member.email, false)} className="text-xs" title="Excluir conta"><UserX className="w-3 h-3" /></Button>
-                                  <Button size="sm" variant="destructive" onClick={() => deleteUserPermanently(member.id, member.email, true)} className="text-xs" title="Excluir tudo"><Trash2 className="w-3 h-3" /></Button>
-                                </div>
+                                <Button size="sm" variant={member.subscription?.status === 'aprovado' ? 'outline' : 'default'}
+                                  onClick={() => updateSubscription(member.id, member.subscription?.plan || 'mensal', member.subscription?.status === 'aprovado' ? 'pendente' : 'aprovado')}
+                                  className="text-xs h-8">
+                                  {member.subscription?.status === 'aprovado' ? 'Cancelar' : 'Ativar'}
+                                </Button>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              {!isSuperAdminUser && (
+                                <Button size="sm" variant="destructive" className="h-8 w-8 p-0" onClick={() => deleteUserPermanently(member.id, member.email, true)}>
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
                               )}
                             </TableCell>
                           </TableRow>
