@@ -141,9 +141,19 @@ const fetchClients = async () => {
   return data || [];
 };
 
-export default function SupportButton() {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+interface SupportButtonProps {
+  tipsOpen?: boolean;
+  onTipsOpenChange?: (open: boolean) => void;
+}
+
+export default function SupportButton({ tipsOpen, onTipsOpenChange }: SupportButtonProps) {
   const [showTips, setShowTips] = useState(false);
+
+  const isTipsOpen = tipsOpen !== undefined ? tipsOpen : showTips;
+  const handleTipsChange = (open: boolean) => {
+    if (onTipsOpenChange) onTipsOpenChange(open);
+    else setShowTips(open);
+  };
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [selectedTip, setSelectedTip] = useState<{ question: string; answer: string } | null>(null);
   const [selectedClientId, setSelectedClientId] = useState("");
@@ -280,139 +290,74 @@ export default function SupportButton() {
     }
   };
 
-  if (isCollapsed) {
-    return (
-      <Button
-        data-support-trigger
-        onClick={() => setIsCollapsed(false)}
-        size="icon"
-        className="fixed bottom-4 right-4 rounded-full shadow-lg z-50 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-purple-500 hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300 w-10 h-10"
-        title="Expandir suporte"
-      >
-        <ChevronUp className="w-4 h-4" />
-      </Button>
-    );
-  }
-
   return (
     <>
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
-        {/* Tips Popover */}
-        <Popover open={showTips} onOpenChange={setShowTips}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-full shadow-lg bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white border-cyan-400 hover:shadow-[0_0_20px_rgba(6,182,212,0.5)] transition-all duration-300 h-8 text-xs px-3"
-            >
-              <Lightbulb className="w-3 h-3 mr-1" />
-              Dicas AC
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent 
-            className="w-[95vw] max-w-[500px] p-0 bg-background border border-border shadow-xl max-h-[80vh] overflow-hidden" 
-            side="top" 
-            align="end"
-            onCloseAutoFocus={(e) => e.preventDefault()}
-          >
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-foreground flex items-center gap-2">
-                  <Snowflake className="w-4 h-4 text-cyan-500" />
-                  Dicas & FAQ - Ar Condicionado
-                </h4>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-6 w-6"
-                  onClick={() => setShowTips(false)}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+      {/* Tips Dialog */}
+      <Dialog open={isTipsOpen} onOpenChange={handleTipsChange}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden p-0">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Snowflake className="w-5 h-5 text-primary" />
+              Dicas & FAQ - Ar Condicionado
+            </DialogTitle>
+          </DialogHeader>
 
-              <Tabs defaultValue="problemas" className="w-full">
-                <TabsList className="grid w-full grid-cols-4 text-xs h-8">
-                  <TabsTrigger value="problemas" className="text-xs px-1">Problemas</TabsTrigger>
-                  <TabsTrigger value="manutencao" className="text-xs px-1">Manutenção</TabsTrigger>
-                  <TabsTrigger value="instalacao" className="text-xs px-1">Instalação</TabsTrigger>
-                  <TabsTrigger value="diagnostico" className="text-xs px-1">Diagnóstico</TabsTrigger>
-                </TabsList>
+          <div className="px-4 pb-4 overflow-y-auto max-h-[65vh]">
+            <Tabs defaultValue="problemas" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 text-xs h-8">
+                <TabsTrigger value="problemas" className="text-xs px-1">Problemas</TabsTrigger>
+                <TabsTrigger value="manutencao" className="text-xs px-1">Manutenção</TabsTrigger>
+                <TabsTrigger value="instalacao" className="text-xs px-1">Instalação</TabsTrigger>
+                <TabsTrigger value="diagnostico" className="text-xs px-1">Diagnóstico</TabsTrigger>
+              </TabsList>
 
-                {Object.entries(acTipsData).map(([key, category]) => (
-                  <TabsContent key={key} value={key} className="mt-3 max-h-[50vh] overflow-y-auto">
-                    <Accordion type="single" collapsible className="w-full">
-                      {category.items.map((item, index) => (
-                        <AccordionItem key={index} value={`item-${index}`}>
-                          <AccordionTrigger className="text-sm text-left hover:no-underline py-2">
-                            {item.question}
-                          </AccordionTrigger>
-                          <AccordionContent className="text-xs text-muted-foreground">
-                            <p className="whitespace-pre-line mb-2">{item.answer}</p>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openSendDialog(item)}
-                              className="h-7 text-xs bg-green-50 hover:bg-green-100 text-green-700 border-green-200"
-                            >
-                              <Send className="w-3 h-3 mr-1" />
-                              Enviar para Cliente
-                            </Button>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </TabsContent>
+              {Object.entries(acTipsData).map(([key, category]) => (
+                <TabsContent key={key} value={key} className="mt-3">
+                  <Accordion type="single" collapsible className="w-full">
+                    {category.items.map((item, index) => (
+                      <AccordionItem key={index} value={`item-${index}`}>
+                        <AccordionTrigger className="text-sm text-left hover:no-underline py-2">
+                          {item.question}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-xs text-muted-foreground">
+                          <p className="whitespace-pre-line mb-2">{item.answer}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openSendDialog(item)}
+                            className="h-7 text-xs"
+                          >
+                            <Send className="w-3 h-3 mr-1" />
+                            Enviar para Cliente
+                          </Button>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </TabsContent>
+              ))}
+            </Tabs>
+
+            {/* Improvement suggestions */}
+            <div className="mt-4 pt-3 border-t border-border">
+              <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                <Lightbulb className="w-3 h-3" />
+                Sugestões de Melhorias
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {improvementTips.slice(0, 5).map((tip, index) => (
+                  <span 
+                    key={index}
+                    className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
+                  >
+                    {tip}
+                  </span>
                 ))}
-              </Tabs>
-
-              {/* Improvement suggestions */}
-              <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
-                  <Lightbulb className="w-3 h-3" />
-                  Sugestões de Melhorias
-                </p>
-                <div className="flex flex-wrap gap-1">
-                  {improvementTips.slice(0, 5).map((tip, index) => (
-                    <span 
-                      key={index}
-                      className="text-[10px] bg-muted px-2 py-0.5 rounded-full text-muted-foreground"
-                    >
-                      {tip}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-2">
-                  💡 Clique em "Suporte" para solicitar implementações
-                </p>
               </div>
             </div>
-          </PopoverContent>
-        </Popover>
-
-        {/* Support Button with Collapse */}
-        <div className="flex items-center gap-1">
-          <Button
-            onClick={handleSupportClick}
-            variant="outline"
-            size="sm"
-            className="rounded-full shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-purple-500 hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300 h-8 text-xs px-3"
-            title="Suporte via WhatsApp"
-          >
-            <MessageCircle className="w-4 h-4 mr-1" />
-            Suporte
-          </Button>
-          <Button
-            onClick={() => setIsCollapsed(true)}
-            size="icon"
-            variant="ghost"
-            className="rounded-full w-6 h-6 bg-muted/80 hover:bg-muted text-muted-foreground"
-            title="Recolher"
-          >
-            <ChevronDown className="w-3 h-3" />
-          </Button>
-        </div>
-      </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Send Tip to Client Dialog */}
       <Dialog open={showSendDialog} onOpenChange={(open) => { setShowSendDialog(open); if (!open) resetSendForm(); }}>
@@ -425,7 +370,6 @@ export default function SupportButton() {
           </DialogHeader>
           
           <div className="space-y-4">
-            {/* Send Mode Tabs */}
             <Tabs value={sendMode} onValueChange={(v) => setSendMode(v as 'client' | 'custom')}>
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="client">Cliente Cadastrado</TabsTrigger>
