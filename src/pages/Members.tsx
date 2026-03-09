@@ -250,9 +250,29 @@ export default function Members() {
       aprovado: "default", pendente: "secondary", vencido: "destructive", cancelado: "outline"
     };
     const labels: Record<string, string> = {
-      aprovado: "✓ Ativo", pendente: "⏳ Pendente", vencido: "⚠️ Vencido", cancelado: "🚫 Banido"
+      aprovado: "aprovado", pendente: "pendente", vencido: "vencido", cancelado: "cancelado"
     };
-    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
+    const colors: Record<string, string> = {
+      aprovado: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      pendente: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      vencido: "bg-red-500/20 text-red-400 border-red-500/30",
+      cancelado: "bg-rose-500/20 text-rose-400 border-rose-500/30"
+    };
+    return <Badge className={`${colors[status] || ''} text-xs`}>{labels[status] || status}</Badge>;
+  };
+
+  const getTimeRemaining = (member: Member) => {
+    if (!member.subscription) return { label: '-', color: 'text-muted-foreground' };
+    if (member.subscription.plan === 'vitalicio' && member.subscription.status === 'aprovado') {
+      return { label: '∞', color: 'text-emerald-400' };
+    }
+    if (!member.subscription.end_date) return { label: '-', color: 'text-muted-foreground' };
+    const ms = new Date(member.subscription.end_date).getTime() - Date.now();
+    if (ms <= 0) return { label: '0d', color: 'text-red-500' };
+    const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
+    if (days <= 3) return { label: `${days}d`, color: 'text-red-500' };
+    if (days <= 7) return { label: `${days}d`, color: 'text-amber-500' };
+    return { label: `${days}d`, color: 'text-emerald-400' };
   };
 
   const filteredMembers = members.filter(m => m.email.toLowerCase().includes(search.toLowerCase()));
