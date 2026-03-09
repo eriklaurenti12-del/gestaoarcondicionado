@@ -704,7 +704,6 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsContent>
 
           {/* === CLIENTES === */}
-          {canAccess('clientes') && (
             <TabsContent value="clientes" className="mt-3 space-y-3">
               <div className="flex gap-2">
                 <div className="relative flex-1">
