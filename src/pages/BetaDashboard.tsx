@@ -877,14 +877,7 @@ export default function BetaDashboard() {
   );
 
   const renderImpostos = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Gestão de Impostos</p>
-        <p className="text-xs text-muted-foreground">Controle DAS, ISS, INSS e IRPF</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><ImpostosTab /></div>
   );
 
   const renderLembretes = () => (<div className="px-4 pt-4"><LembretesTab /></div>);
