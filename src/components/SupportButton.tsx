@@ -293,7 +293,7 @@ export default function SupportButton({ tipsOpen, onTipsOpenChange }: SupportBut
   return (
     <>
       {/* Tips Dialog */}
-      <Dialog open={showTips} onOpenChange={setShowTips}>
+      <Dialog open={isTipsOpen} onOpenChange={handleTipsChange}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden p-0">
           <DialogHeader className="p-4 pb-2">
             <DialogTitle className="flex items-center gap-2">
