@@ -88,6 +88,9 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState('overview');
   const [detectedPlatforms, setDetectedPlatforms] = useState<string[]>([]);
+  const [integrationKeys, setIntegrationKeys] = useState<Array<{ id: string; name: string; value: string; showValue: boolean }>>([]);
+  const [newKeyName, setNewKeyName] = useState('');
+  const [newKeyValue, setNewKeyValue] = useState('');
 
   const [simulationType, setSimulationType] = useState<'mensal' | 'anual' | 'custom'>('mensal');
   
