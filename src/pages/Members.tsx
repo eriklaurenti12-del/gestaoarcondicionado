@@ -98,10 +98,17 @@ export default function Members() {
   const [newPin, setNewPin] = useState("");
   const [newRole, setNewRole] = useState("sistema");
 
+  // Tab configuration
+  const [tabOrder, setTabOrder] = useState(DEFAULT_TABS);
+  const [showTabConfig, setShowTabConfig] = useState(false);
+  const [tabDragIdx, setTabDragIdx] = useState<number | null>(null);
+  const [tabDragOverIdx, setTabDragOverIdx] = useState<number | null>(null);
+
   useEffect(() => {
     checkSuperAdmin();
     loadMembers();
     loadTeamMembers();
+    loadTabOrder();
   }, []);
 
   const checkSuperAdmin = async () => {
