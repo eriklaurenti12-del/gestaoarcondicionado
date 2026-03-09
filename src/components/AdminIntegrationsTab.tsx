@@ -173,24 +173,35 @@ export const AdminIntegrationsTab: React.FC = () => {
     setSimEmail(`teste_${rand}@simulacao.fake`);
   };
 
+  const callCreateFakeUser = async (email: string): Promise<boolean> => {
+    const password = 'Teste@1234';
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) throw new Error('Sessão não encontrada. Faça login novamente.');
+
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-fake-user`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) throw new Error(data.error || 'Erro ao criar usuário');
+    return true;
+  };
+
   const createFakeUser = async (withPlan = false) => {
     setCreatingFake(true);
     try {
       const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
       const password = 'Teste@1234';
       
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { username: email.split('@')[0] } }
-      });
-      
-      if (signUpError) throw signUpError;
+      await callCreateFakeUser(email);
       
       const msg = `Usuário ${email} criado (senha: ${password})`;
       
-      if (withPlan && signUpData.user) {
-        // Simulate a webhook to activate plan
+      if (withPlan) {
         const amount = parseFloat(simAmount) || 29.90;
         const payload = generatePayload(email, amount, true);
         await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -250,17 +261,12 @@ export const AdminIntegrationsTab: React.FC = () => {
     try {
       const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
       if (!simEmail) setSimEmail(email);
-      const password = 'Teste@1234';
 
-      // Step 1: Create user
+      // Step 1: Create user via edge function (preserves admin session)
       addLog(true, `[Fluxo] Criando usuário ${email}...`);
-      const { error: signUpError } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { username: email.split('@')[0] } }
-      });
-      if (signUpError) throw signUpError;
+      await callCreateFakeUser(email);
 
-      // Step 2: Wait a bit
+      // Step 2: Wait for triggers
       await new Promise(r => setTimeout(r, 1500));
 
       // Step 3: Simulate webhook
