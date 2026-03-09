@@ -240,6 +240,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: number
+          instagram: string | null
           logo_url: string | null
           updated_at: string
           user_id: string
@@ -252,6 +253,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: number
+          instagram?: string | null
           logo_url?: string | null
           updated_at?: string
           user_id: string
@@ -264,6 +266,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: number
+          instagram?: string | null
           logo_url?: string | null
           updated_at?: string
           user_id?: string
