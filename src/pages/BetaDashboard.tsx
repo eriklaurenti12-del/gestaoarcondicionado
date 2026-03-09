@@ -22,6 +22,9 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LembretesTab from '@/components/LembretesTab';
+import ImpostosTab from '@/components/ImpostosTab';
+import OnlineBookingsTab from '@/components/OnlineBookingsTab';
+import CompanyDataTab from '@/components/CompanyDataTab';
 
 type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
