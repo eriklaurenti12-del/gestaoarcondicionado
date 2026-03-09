@@ -154,7 +154,8 @@ export const AdminIntegrationsTab: React.FC = () => {
   const generatePayload = (email: string, amount: number, success: boolean) => {
     const base = { customer: { email, phone: '11999999999' } };
     const slug = settings.plataforma_ativa;
-    const evt = success ? (activePlatform.events[0] || 'paid') : (activePlatform.events[activePlatform.events.length - 1] || 'failed');
+    const platform = PLATFORMS.find(p => p.slug === slug) || PLATFORMS[0];
+    const evt = success ? (platform.events[0] || 'paid') : (platform.events[platform.events.length - 1] || 'failed');
     switch (slug) {
       case 'hotmart':
       case 'pepper':
@@ -163,6 +164,36 @@ export const AdminIntegrationsTab: React.FC = () => {
         return { type: evt, data: { object: { customer_email: email, amount_total: Math.round(amount * 100), id: `cs_${Date.now()}` } } };
       case 'mercadopago':
         return { action: 'payment.updated', data: { id: `MP_${Date.now()}` }, email, amount, event: evt };
+      case 'cakto':
+        // Cakto real format: uses secret + purchase_approved + nested data.customer
+        return {
+          secret: 'cakto_test_secret',
+          event: success ? 'purchase_approved' : 'purchase_refused',
+          data: {
+            id: `CAKTO_${Date.now()}`,
+            refId: `CK${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            customer: { name: 'Teste Cakto', email, phone: '11999999999', docNumber: '12345678909', docType: 'cpf' },
+            offer: { id: 'test_offer', name: 'Plano Teste', price: amount },
+            product: { name: 'Sistema Gestão', id: 'test_product', type: 'unique' },
+            status: success ? 'paid' : 'refused',
+            amount,
+            baseAmount: amount,
+            discount: 0,
+            installments: 1,
+            paymentMethod: 'credit_card',
+            paymentMethodName: 'Cartão de Crédito',
+            paidAt: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+          }
+        };
+      case 'kiwify':
+        return { ...base, event: evt, transaction_id: `KW_${Date.now()}`, amount, email };
+      case 'eduzz':
+        return { ...base, event: evt, trans_cod: `ED_${Date.now()}`, eduzz_id: `ED_${Date.now()}`, amount, email };
+      case 'monetizze':
+        return { ...base, evento: evt === 'Finalizada' ? 'Finalizada' : evt, chave_unica: `MN_${Date.now()}`, amount, email };
+      case 'braip':
+        return { ...base, event: evt, transaction_id: `BR_${Date.now()}`, producer: true, amount, email };
       default:
         return { ...base, event: evt, transaction_id: `${slug.toUpperCase()}_${Date.now()}`, amount, email };
     }
