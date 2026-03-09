@@ -196,6 +196,7 @@ export default function Members() {
       if (plan !== 'vitalicio') {
         endDate = new Date();
         if (plan === 'anual') endDate.setFullYear(endDate.getFullYear() + 1);
+        else if (plan === 'semestral') endDate.setMonth(endDate.getMonth() + 6);
         else if (plan === 'trimestral') endDate.setMonth(endDate.getMonth() + 3);
         else if (plan === '7dias') endDate.setDate(endDate.getDate() + 7);
         else if (plan === '1dia') endDate.setDate(endDate.getDate() + 1);
