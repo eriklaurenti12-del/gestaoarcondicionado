@@ -13,7 +13,8 @@ import {
   Loader2, Wind, User, KeyRound, RefreshCw, LogOut, CalendarDays, 
   ClipboardList, Clock, Users, DollarSign, Plus, Search, Phone, 
   Download, Package, Headphones, MessageCircle, ArrowLeft, Truck,
-  UserCheck, UserX, Shield, CalendarPlus, CheckCircle2
+  UserCheck, UserX, Shield, CalendarPlus, CheckCircle2, Link2, 
+  ExternalLink, Copy, AlertTriangle, Timer
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
