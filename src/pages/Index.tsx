@@ -28,7 +28,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, RefreshCw, Wind, Zap } from "lucide-react";
+import { Bell, HelpCircle, MessageCircle, RefreshCw, Wind, Zap } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
