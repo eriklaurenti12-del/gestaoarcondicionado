@@ -4,18 +4,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Copy, CheckCircle2, XCircle, Send, Loader2,
   ExternalLink, RefreshCw, Zap, Globe, Shield,
   CreditCard, Smartphone, Eye, EyeOff, Code, Plug,
-  FileJson, Key, Plus, Trash2, Settings, ChevronDown
+  FileJson, Key, Trash2, Settings, ChevronDown,
+  UserPlus, Sparkles, Play, AlertCircle
 } from "lucide-react";
 
 const WEBHOOK_URL = 'https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/payment-webhook';
 
-type TestResult = { success: boolean; message: string; data?: any; timestamp: string; };
+type TestResult = { success: boolean; message: string; data?: any; timestamp: string };
 
 type Platform = {
   name: string;
@@ -27,48 +28,54 @@ type Platform = {
 };
 
 const PLATFORMS: Platform[] = [
-  { name: 'Cakto', slug: 'cakto', color: 'from-pink-500 to-rose-600', icon: '🎂', guide: ['Configurações > Integrações > Webhook', 'Cole a URL do webhook', 'Selecione: pagamento aprovado/recusado', 'Salve e teste'], events: ['payment_approved', 'payment_refused', 'subscription_active'] },
-  { name: 'GGCheckout', slug: 'ggcheckout', color: 'from-green-500 to-emerald-600', icon: '💳', guide: ['Configurações > Webhooks', 'Adicionar Webhook', 'Cole a URL, selecione "Pagamento Aprovado"', 'Salve'], events: ['pix_paid', 'card_paid', 'failed'] },
+  { name: 'GGCheckout', slug: 'ggcheckout', color: 'from-green-500 to-emerald-600', icon: '💳', guide: ['Acesse GGCheckout', 'Vá em Webhooks', 'Cole a URL acima', 'Selecione "Pagamento Aprovado"'], events: ['pix_paid', 'card_paid', 'paid', 'approved'] },
   { name: 'Hotmart', slug: 'hotmart', color: 'from-orange-500 to-red-500', icon: '🔥', guide: ['Ferramentas > Webhook (Hottok)', 'Configure a URL de notificação', 'Selecione compra aprovada', 'Ative'], events: ['PURCHASE_APPROVED', 'PURCHASE_COMPLETE'] },
   { name: 'Kiwify', slug: 'kiwify', color: 'from-purple-500 to-violet-600', icon: '🥝', guide: ['Configurações > Webhooks', 'Adicione URL', 'Selecione "Compra Aprovada"', 'Salve'], events: ['order_paid', 'subscription_created'] },
   { name: 'Eduzz', slug: 'eduzz', color: 'from-blue-500 to-indigo-600', icon: '📦', guide: ['Configurações > Notificações', 'Configure Postback URL', 'Selecione "Pago"', 'Ative'], events: ['paid', 'refunded'] },
   { name: 'Monetizze', slug: 'monetizze', color: 'from-teal-500 to-cyan-600', icon: '💰', guide: ['Configurações > Postback', 'Informe a URL', 'Selecione "Compra Finalizada"', 'Salve'], events: ['Finalizada', 'Cancelada'] },
-  { name: 'Stripe', slug: 'stripe', color: 'from-indigo-500 to-purple-600', icon: '💎', guide: ['Developers > Webhooks', 'Add Endpoint', 'Cole URL e selecione eventos', 'Salve'], events: ['checkout.session.completed', 'payment_intent.succeeded'] },
-  { name: 'Mercado Pago', slug: 'mercadopago', color: 'from-sky-400 to-blue-500', icon: '🔵', guide: ['Configurações > Notificações IPN', 'Configure URL', 'Selecione "Payments"', 'Salve'], events: ['payment.created', 'payment.updated'] },
   { name: 'PagSeguro', slug: 'pagseguro', color: 'from-green-400 to-green-600', icon: '🟢', guide: ['Vendas > Configurações', 'URL de notificação', 'Transações aprovadas', 'Salve'], events: ['paid', 'available'] },
+  { name: 'Mercado Pago', slug: 'mercadopago', color: 'from-sky-400 to-blue-500', icon: '🔵', guide: ['Configurações > Notificações IPN', 'Configure URL', 'Selecione "Payments"', 'Salve'], events: ['payment.created', 'payment.updated'] },
+  { name: 'Stripe', slug: 'stripe', color: 'from-indigo-500 to-purple-600', icon: '💎', guide: ['Developers > Webhooks', 'Add Endpoint', 'Cole URL e selecione eventos', 'Salve'], events: ['checkout.session.completed', 'payment_intent.succeeded'] },
+  { name: 'Cakto', slug: 'cakto', color: 'from-pink-500 to-rose-600', icon: '🎂', guide: ['Configurações > Integrações > Webhook', 'Cole a URL do webhook', 'Selecione: pagamento aprovado/recusado', 'Salve e teste'], events: ['payment_approved', 'payment_refused', 'subscription_active'] },
   { name: 'Braip', slug: 'braip', color: 'from-amber-500 to-orange-600', icon: '🚀', guide: ['Configurações > Postback', 'URL de notificação', '"Venda Aprovada"', 'Ative'], events: ['approved', 'refunded'] },
   { name: 'Yampi', slug: 'yampi', color: 'from-violet-500 to-fuchsia-600', icon: '🛒', guide: ['Configurações > Webhooks', 'Adicione URL', 'Eventos de pedido', 'Salve'], events: ['order.paid', 'order.cancelled'] },
-  { name: 'Pepper', slug: 'pepper', color: 'from-red-500 to-orange-500', icon: '🌶️', guide: ['Mesmo do Hotmart', 'Ferramentas > Webhook', 'Configure compra', 'Salve'], events: ['PURCHASE_APPROVED'] },
+  { name: 'Pepper (Hotmart)', slug: 'pepper', color: 'from-red-500 to-orange-500', icon: '🌶️', guide: ['Mesmo do Hotmart', 'Ferramentas > Webhook', 'Configure compra', 'Salve'], events: ['PURCHASE_APPROVED'] },
 ];
 
 const PLANS = [
-  { id: 'mensal', label: 'Mensal', icon: '💳', placeholder: '29.90' },
-  { id: 'trimestral', label: 'Trimestral', icon: '📘', placeholder: '69.90' },
-  { id: 'semestral', label: 'Semestral', icon: '📗', placeholder: '149.90' },
-  { id: 'anual', label: 'Anual', icon: '⭐', placeholder: '199.90' },
-  { id: 'vitalicio', label: 'Vitalício', icon: '👑', placeholder: '499.90' },
+  { id: 'mensal', label: 'Mensal', icon: '💳', color: 'bg-blue-600', placeholder: '29.90' },
+  { id: 'trimestral', label: 'Trimestral', icon: '📘', color: 'bg-purple-600', placeholder: '69.90' },
+  { id: 'semestral', label: 'Semestral', icon: '📗', color: 'bg-teal-600', placeholder: '149.90' },
+  { id: 'anual', label: 'Anual', icon: '⭐', color: 'bg-yellow-600', placeholder: '199.90' },
+  { id: 'vitalicio', label: 'Vitalício', icon: '👑', color: 'bg-amber-600', placeholder: '499.90' },
 ];
+
+const FAKE_NAMES = ['João Silva', 'Maria Santos', 'Pedro Costa', 'Ana Oliveira', 'Carlos Lima', 'Fernanda Souza'];
 
 export const AdminIntegrationsTab: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [creatingFake, setCreatingFake] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'online' | 'offline'>('idle');
-  const [activeTab, setActiveTab] = useState('conexao');
-  const [showGuide, setShowGuide] = useState(false);
-  const [testEmail, setTestEmail] = useState('');
-  const [testAmount, setTestAmount] = useState('99.90');
+  const [showCode, setShowCode] = useState(false);
   const [integrationKeys, setIntegrationKeys] = useState<Array<{ id: string; name: string; value: string; show: boolean }>>([]);
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
+
+  // Simulator state
+  const [simEmail, setSimEmail] = useState('usuario@email.com');
+  const [simPlan, setSimPlan] = useState('mensal');
+  const [simAmount, setSimAmount] = useState('');
+
   const [settings, setSettings] = useState<Record<string, string>>({
-    plataforma_ativa: 'cakto',
+    plataforma_ativa: 'ggcheckout',
     plano_ativo_checkout: 'anual',
     checkout_mensal: '', checkout_trimestral: '', checkout_semestral: '', checkout_anual: '', checkout_vitalicio: '',
-    preco_mensal: '', preco_trimestral: '', preco_semestral: '', preco_anual: '', preco_vitalicio: '',
+    preco_mensal: '29.90', preco_trimestral: '69.90', preco_semestral: '149.90', preco_anual: '199.90', preco_vitalicio: '499.90',
     whatsapp_suporte: '',
   });
 
@@ -78,6 +85,12 @@ export const AdminIntegrationsTab: React.FC = () => {
     loadSettings();
     testConnection();
   }, []);
+
+  // Update simAmount when simPlan changes
+  useEffect(() => {
+    const price = settings[`preco_${simPlan}`] || PLANS.find(p => p.id === simPlan)?.placeholder || '29.90';
+    setSimAmount(price);
+  }, [simPlan, settings]);
 
   const loadSettings = async () => {
     try {
@@ -112,7 +125,7 @@ export const AdminIntegrationsTab: React.FC = () => {
           { onConflict: 'key' }
         );
       }
-      toast({ title: "✅ Salvo!", description: "Todas as configurações foram atualizadas." });
+      toast({ title: "✅ Salvo!", description: "Configurações atualizadas." });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -123,7 +136,7 @@ export const AdminIntegrationsTab: React.FC = () => {
   const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopied(label);
-    toast({ title: "Copiado!", description: `${label} copiado.` });
+    toast({ title: "📋 Copiado!", description: `${label} copiado.` });
     setTimeout(() => setCopied(null), 2000);
   };
 
@@ -155,35 +168,123 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
-  const runTest = async (type: 'success' | 'error') => {
-    const email = testEmail || `teste_${Date.now()}@simulacao.fake`;
-    if (!testEmail) setTestEmail(email);
+  const generateFakeEmail = () => {
+    const rand = Math.floor(Math.random() * 9999);
+    setSimEmail(`teste_${rand}@simulacao.fake`);
+  };
+
+  const createFakeUser = async (withPlan = false) => {
+    setCreatingFake(true);
+    try {
+      const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
+      const password = 'Teste@1234';
+      
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username: email.split('@')[0] } }
+      });
+      
+      if (signUpError) throw signUpError;
+      
+      const msg = `Usuário ${email} criado (senha: ${password})`;
+      
+      if (withPlan && signUpData.user) {
+        // Simulate a webhook to activate plan
+        const amount = parseFloat(simAmount) || 29.90;
+        const payload = generatePayload(email, amount, true);
+        await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        
+        addLog(true, `${msg} + Plano ${simPlan} ativado via webhook`);
+        toast({ title: "✅ Usuário + Plano criados!", description: `${email} com plano ${simPlan}` });
+      } else {
+        addLog(true, msg);
+        toast({ title: "✅ Usuário fake criado!", description: email });
+      }
+    } catch (error: any) {
+      addLog(false, `Erro ao criar usuário: ${error.message}`);
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setCreatingFake(false);
+    }
+  };
+
+  const runTest = async (type: 'success' | 'error' | 'ping') => {
+    if (type === 'ping') {
+      setTesting(true);
+      try {
+        const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '' });
+        const data = await res.json();
+        addLog(data.success, `[Ping] ${data.message || 'OK'}`, data);
+        toast({ title: data.success ? '✅ Ping OK' : '❌ Ping falhou', description: data.message });
+      } catch (e: any) {
+        addLog(false, `[Ping] ${e.message}`);
+      } finally {
+        setTesting(false);
+      }
+      return;
+    }
+    
+    const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
     setTesting(true);
     try {
-      const payload = generatePayload(email, parseFloat(testAmount) || 99.90, type === 'success');
+      const payload = generatePayload(email, parseFloat(simAmount) || 99.90, type === 'success');
       const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const data = await res.json();
-      setTestResults(prev => [{
-        success: data.success,
-        message: `[${activePlatform.name}] ${data.message || data.error || 'OK'}`,
-        data,
-        timestamp: new Date().toLocaleString('pt-BR')
-      }, ...prev.slice(0, 19)]);
+      addLog(data.success, `[${activePlatform.name}] ${data.message || data.error || 'OK'}`, data);
       toast({
-        title: data.success ? `✅ ${activePlatform.name} OK!` : 'Resultado',
+        title: data.success ? `✅ ${activePlatform.name} OK!` : '❌ Resultado',
         description: data.message || data.error,
         variant: data.success ? 'default' : 'destructive'
       });
     } catch (error: any) {
-      setTestResults(prev => [{
-        success: false,
-        message: error.message,
-        timestamp: new Date().toLocaleString('pt-BR')
-      }, ...prev.slice(0, 19)]);
+      addLog(false, error.message);
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
       setTesting(false);
     }
+  };
+
+  const runFullFlow = async () => {
+    setCreatingFake(true);
+    try {
+      const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
+      if (!simEmail) setSimEmail(email);
+      const password = 'Teste@1234';
+
+      // Step 1: Create user
+      addLog(true, `[Fluxo] Criando usuário ${email}...`);
+      const { error: signUpError } = await supabase.auth.signUp({
+        email, password,
+        options: { data: { username: email.split('@')[0] } }
+      });
+      if (signUpError) throw signUpError;
+
+      // Step 2: Wait a bit
+      await new Promise(r => setTimeout(r, 1500));
+
+      // Step 3: Simulate webhook
+      const amount = parseFloat(simAmount) || 29.90;
+      addLog(true, `[Fluxo] Simulando webhook ${activePlatform.name} — R$ ${amount.toFixed(2)}...`);
+      const payload = generatePayload(email, amount, true);
+      const res = await fetch(WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const data = await res.json();
+
+      addLog(data.success, `[Fluxo Completo] ${data.message || data.error || 'OK'}`, data);
+      toast({ title: "✅ Fluxo completo!", description: `Usuário ${email} criado e plano ativado via ${activePlatform.name}` });
+    } catch (error: any) {
+      addLog(false, `[Fluxo] Erro: ${error.message}`);
+      toast({ title: "Erro no fluxo", description: error.message, variant: "destructive" });
+    } finally {
+      setCreatingFake(false);
+    }
+  };
+
+  const addLog = (success: boolean, message: string, data?: any) => {
+    setTestResults(prev => [{
+      success, message, data,
+      timestamp: new Date().toLocaleString('pt-BR')
+    }, ...prev.slice(0, 29)]);
   };
 
   const saveKey = async () => {
@@ -203,7 +304,7 @@ export const AdminIntegrationsTab: React.FC = () => {
       }
       setNewKeyName('');
       setNewKeyValue('');
-      toast({ title: "✅ Chave salva!", description: `${newKeyName} pronta para uso.` });
+      toast({ title: "✅ Chave salva!" });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -222,554 +323,475 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
-  const statusColor = connectionStatus === 'online'
-    ? 'bg-green-500'
-    : connectionStatus === 'offline'
-      ? 'bg-red-500'
-      : connectionStatus === 'testing'
-        ? 'bg-yellow-500 animate-pulse'
-        : 'bg-gray-500';
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 relative">
-            <Zap className="w-5 h-5 text-purple-400" />
-            <div className={`absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full ${statusColor} border-2 border-[#0a0a0f]`} />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-white">Integrações</h2>
-            <p className="text-gray-500 text-xs">Webhook universal • Alteração rápida</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={testConnection}
-            className="bg-[#1a1a24] border-[#2a2a3a] text-white hover:bg-[#2a2a3a] h-8 text-xs"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${connectionStatus === 'testing' ? 'animate-spin' : ''}`} />
-            {connectionStatus === 'online' ? 'Online' : 'Verificar'}
-          </Button>
-          <Button
-            size="sm"
-            onClick={saveAll}
-            disabled={saving}
-            className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-          >
-            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-            Salvar Tudo
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
 
-      {/* Plataforma Ativa */}
-      <Card className="bg-gradient-to-r from-[#1a1a24] to-[#1a1a2e] border-[#2a2a3a]">
-        <CardContent className="p-4 space-y-3">
+      {/* ═══════════ PLATAFORMA ATIVA ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Plug className="w-4 h-4 text-purple-400" />
-              Plataforma Ativa
-            </h3>
-            <Badge className={`bg-gradient-to-r ${activePlatform.color} text-white border-0 text-xs`}>
-              {activePlatform.icon} {activePlatform.name}
+            <div>
+              <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <Zap className="w-4 h-4 text-purple-400" /> Plataforma Ativa
+              </h3>
+              <p className="text-[11px] text-muted-foreground">Selecione sua plataforma de pagamento</p>
+            </div>
+            <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-xs">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 mr-1.5" /> Conectado
             </Badge>
           </div>
-          <div className="flex flex-wrap gap-1.5">
-            {PLATFORMS.map(p => (
-              <Button
-                key={p.slug}
-                size="sm"
-                variant={settings.plataforma_ativa === p.slug ? 'default' : 'outline'}
-                className={`h-8 text-xs ${
-                  settings.plataforma_ativa === p.slug
-                    ? `bg-gradient-to-r ${p.color} text-white border-0 shadow-lg`
-                    : 'bg-[#0f0f17] border-[#2a2a3a] text-gray-400 hover:text-white hover:bg-[#2a2a3a]'
-                }`}
-                onClick={() => setSettings(prev => ({ ...prev, plataforma_ativa: p.slug }))}
-              >
-                <span className="mr-1">{p.icon}</span>{p.name}
-              </Button>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {PLATFORMS.map(p => {
+              const isActive = settings.plataforma_ativa === p.slug;
+              return (
+                <button
+                  key={p.slug}
+                  onClick={() => setSettings(prev => ({ ...prev, plataforma_ativa: p.slug }))}
+                  className={`p-3 rounded-lg border text-left transition-all ${
+                    isActive
+                      ? 'bg-[#1a1a2e] border-green-500/50 ring-1 ring-green-500/20'
+                      : 'bg-[#12121c] border-[#1e1e2e] hover:border-[#3a3a4a] hover:bg-[#1a1a24]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm">{p.icon}</span>
+                    <span className={`text-xs font-medium ${isActive ? 'text-white' : 'text-gray-400'}`}>{p.name}</span>
+                  </div>
+                  {isActive && (
+                    <Badge className="mt-1.5 bg-green-600 text-white border-0 text-[9px] h-4 px-1.5">Ativo</Badge>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══════════ WEBHOOK UNIVERSAL ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <Globe className="w-4 h-4 text-cyan-400" /> Webhook Universal — {activePlatform.name}
+            </h3>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={testConnection}
+              className="bg-[#1a1a24] border-[#2a2a3a] text-white hover:bg-[#2a2a3a] h-8 text-xs"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${connectionStatus === 'testing' ? 'animate-spin' : ''}`} />
+              Testar Conexão
+            </Button>
+          </div>
+
+          {/* URL */}
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <Input
+                value={WEBHOOK_URL}
+                readOnly
+                className="bg-[#0a0a12] border-[#1e1e2e] text-cyan-300 font-mono text-xs pr-16 h-10"
+              />
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                <Badge className="bg-green-600 text-white border-0 text-[9px] h-5">POST</Badge>
+              </div>
+            </div>
+            <Button
+              onClick={() => copyText(WEBHOOK_URL, 'Webhook URL')}
+              variant="outline"
+              className="bg-[#1a1a24] border-[#2a2a3a] text-white hover:bg-[#2a2a3a] h-10"
+            >
+              {copied === 'Webhook URL' ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+              <span className="ml-1.5 text-xs">Copiar</span>
+            </Button>
+          </div>
+
+          {/* Steps */}
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {activePlatform.guide.map((step, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+                  i === 0 ? 'bg-blue-600' : i === 1 ? 'bg-green-600' : i === 2 ? 'bg-amber-600' : 'bg-purple-600'
+                } text-white`}>{i + 1}</span>
+                <span className="text-[11px] text-gray-400">{step}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Code toggle */}
+          <button
+            onClick={() => setShowCode(!showCode)}
+            className="text-[11px] text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+          >
+            <Code className="w-3 h-3" /> Ver código de integração
+          </button>
+
+          {showCode && (
+            <div className="bg-[#0a0a12] rounded-lg border border-[#1e1e2e] overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 bg-[#0d0d17] border-b border-[#1e1e2e]">
+                <span className="text-[10px] text-gray-500">Payload — {activePlatform.name}</span>
+                <Button size="sm" variant="ghost" onClick={() => copyText(JSON.stringify(generatePayload('cliente@email.com', 99.90, true), null, 2), 'Código')} className="text-cyan-400 h-6 px-2 text-[10px]">
+                  <Copy className="w-3 h-3 mr-1" /> Copiar
+                </Button>
+              </div>
+              <pre className="p-3 text-[11px] text-gray-300 font-mono overflow-x-auto max-h-[150px]">
+                {JSON.stringify(generatePayload('cliente@email.com', 99.90, true), null, 2)}
+              </pre>
+            </div>
+          )}
+
+          {/* Events */}
+          <div className="flex flex-wrap gap-1.5 items-center">
+            <span className="text-[10px] text-gray-500">Eventos:</span>
+            {activePlatform.events.map(evt => (
+              <Badge key={evt} className="bg-[#1a1a24] text-gray-300 border-[#2a2a3a] text-[10px] font-mono">{evt}</Badge>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Simulador Verde */}
-      <div className="p-3 rounded-xl bg-gradient-to-r from-green-600/15 to-emerald-600/10 border border-green-500/30 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-          <span className="text-[10px] font-bold text-green-400 uppercase tracking-wider">Simulador</span>
-        </div>
-        <Input
-          placeholder="email@teste.com"
-          value={testEmail}
-          onChange={e => setTestEmail(e.target.value)}
-          className="bg-[#1a1a24] border-green-500/30 text-white text-xs h-8 w-[150px] placeholder:text-gray-600"
-        />
-        <Input
-          placeholder="R$"
-          value={testAmount}
-          onChange={e => setTestAmount(e.target.value)}
-          className="bg-[#1a1a24] border-green-500/30 text-white text-xs h-8 w-[70px] placeholder:text-gray-600"
-        />
-        <Button
-          size="sm"
-          disabled={testing}
-          onClick={() => runTest('success')}
-          className="bg-green-600 hover:bg-green-700 text-white h-8 text-xs"
-        >
-          {testing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Send className="w-3 h-3 mr-1" />}
-          Testar
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          disabled={testing}
-          onClick={() => runTest('error')}
-          className="border-red-500/30 text-red-400 hover:bg-red-500/10 h-8 text-xs"
-        >
-          <XCircle className="w-3 h-3 mr-1" /> Erro
-        </Button>
-        {testResults.length > 0 && (
-          <Badge className={`text-[10px] ${testResults[0].success ? 'bg-green-600/20 text-green-400 border-green-500/30' : 'bg-red-600/20 text-red-400 border-red-500/30'}`}>
-            {testResults[0].success ? <CheckCircle2 className="w-3 h-3 mr-1" /> : <XCircle className="w-3 h-3 mr-1" />}
-            {testResults[0].success ? 'Recebido ✓' : 'Falhou ✗'}
-          </Badge>
-        )}
-      </div>
+      {/* ═══════════ PLANOS & CHECKOUT ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-green-400" /> Planos & Checkout
+            </h3>
+            <div className="flex items-center gap-1.5 text-xs text-amber-400">
+              <span>⭐</span>
+              <span>{PLANS.find(p => p.id === settings.plano_ativo_checkout)?.label || 'Anual'} ativo</span>
+            </div>
+          </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="bg-[#1a1a24] border border-[#2a2a3a] w-full flex flex-wrap h-auto gap-1 p-1">
-          <TabsTrigger value="conexao" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs">
-            <Globe className="w-3.5 h-3.5 mr-1" /> Conexão
-          </TabsTrigger>
-          <TabsTrigger value="checkout" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs">
-            <CreditCard className="w-3.5 h-3.5 mr-1" /> Checkout
-          </TabsTrigger>
-          <TabsTrigger value="chaves" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs">
-            <Key className="w-3.5 h-3.5 mr-1" /> Chaves
-          </TabsTrigger>
-          <TabsTrigger value="logs" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white text-xs">
-            <FileJson className="w-3.5 h-3.5 mr-1" /> Logs ({testResults.length})
-          </TabsTrigger>
-        </TabsList>
+          {/* Plan selector tabs */}
+          <div className="flex flex-wrap gap-1.5">
+            {PLANS.map(plan => (
+              <Button
+                key={plan.id}
+                size="sm"
+                className={`h-8 text-xs ${
+                  settings.plano_ativo_checkout === plan.id
+                    ? `${plan.color} text-white`
+                    : 'bg-[#12121c] border border-[#1e1e2e] text-gray-400 hover:text-white hover:bg-[#1a1a24]'
+                }`}
+                onClick={() => setSettings(prev => ({ ...prev, plano_ativo_checkout: plan.id }))}
+              >
+                {plan.icon} {plan.label}
+              </Button>
+            ))}
+          </div>
 
-        {/* TAB: Conexão */}
-        <TabsContent value="conexao" className="mt-4 space-y-4">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardContent className="p-4 space-y-4">
-              <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                <Globe className="w-4 h-4 text-cyan-400" />
-                Webhook Universal — {activePlatform.icon} {activePlatform.name}
-              </h4>
-
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
+          {/* Plan rows */}
+          <div className="space-y-2">
+            {PLANS.map(plan => {
+              const isActive = settings.plano_ativo_checkout === plan.id;
+              return (
+                <div
+                  key={plan.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                    isActive ? 'bg-yellow-500/5 border-yellow-500/30' : 'bg-[#0a0a12] border-[#1e1e2e]'
+                  }`}
+                >
+                  <span className="text-sm shrink-0">{plan.icon}</span>
+                  <span className="text-xs font-medium text-white w-20 shrink-0">{plan.label}</span>
                   <Input
-                    value={WEBHOOK_URL}
-                    readOnly
-                    className="bg-[#0f0f17] border-[#2a2a3a] text-cyan-300 font-mono text-xs pr-14"
+                    type="number"
+                    step="0.01"
+                    placeholder={plan.placeholder}
+                    value={settings[`preco_${plan.id}`] || ''}
+                    onChange={e => setSettings(prev => ({ ...prev, [`preco_${plan.id}`]: e.target.value }))}
+                    className="bg-[#12121c] border-[#1e1e2e] text-white h-9 text-sm w-24 shrink-0"
                   />
-                  <Badge className="absolute right-2 top-1/2 -translate-y-1/2 bg-green-600/20 text-green-400 border-green-600/30 text-[9px]">
-                    POST
-                  </Badge>
+                  <Input
+                    placeholder="Link do checkout..."
+                    value={settings[`checkout_${plan.id}`] || ''}
+                    onChange={e => setSettings(prev => ({ ...prev, [`checkout_${plan.id}`]: e.target.value }))}
+                    className="bg-[#12121c] border-[#1e1e2e] text-white h-9 text-sm flex-1"
+                  />
                 </div>
-                <Button
-                  onClick={() => copyText(WEBHOOK_URL, 'Webhook URL')}
-                  variant="outline"
-                  size="sm"
-                  className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a]"
-                >
-                  {copied === 'Webhook URL' ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                </Button>
-              </div>
+              );
+            })}
+          </div>
 
-              {/* Guia */}
-              <div className="bg-[#0f0f17] rounded-lg p-4 border border-[#2a2a3a] space-y-3">
-                <button onClick={() => setShowGuide(!showGuide)} className="w-full flex items-center justify-between text-left">
-                  <span className="text-xs font-medium text-white flex items-center gap-2">
-                    <span>{activePlatform.icon}</span>
-                    Como configurar no {activePlatform.name}
-                  </span>
-                  <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showGuide ? 'rotate-180' : ''}`} />
-                </button>
-                {showGuide && (
-                  <div className="space-y-3 pt-2 border-t border-[#2a2a3a]">
-                    <ol className="text-xs text-gray-400 space-y-1.5 list-decimal list-inside">
-                      {activePlatform.guide.map((step, i) => (
-                        <li key={i}>{step}</li>
-                      ))}
-                    </ol>
-                    <div className="flex flex-wrap gap-1">
-                      <span className="text-[10px] text-gray-500">Eventos:</span>
-                      {activePlatform.events.map(evt => (
-                        <Badge key={evt} className="bg-green-600/10 text-green-400 border border-green-600/20 text-[9px] font-mono">
-                          {evt}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+          {/* WhatsApp */}
+          <div>
+            <label className="text-[11px] text-gray-500 mb-1 block">WhatsApp Suporte</label>
+            <Input
+              placeholder="https://wa.me/55..."
+              value={settings.whatsapp_suporte}
+              onChange={e => setSettings(prev => ({ ...prev, whatsapp_suporte: e.target.value }))}
+              className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
+            />
+          </div>
 
-              {/* Payload */}
-              <div className="bg-[#0f0f17] rounded-lg border border-[#2a2a3a] overflow-hidden">
-                <div className="flex items-center justify-between px-3 py-2 bg-[#13131d] border-b border-[#2a2a3a]">
-                  <span className="text-[10px] text-gray-400 flex items-center gap-1">
-                    <Code className="w-3 h-3 text-cyan-400" /> Payload exemplo — {activePlatform.name}
+          <div className="flex justify-end">
+            <Button size="sm" onClick={saveAll} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
+              Salvar Planos & Checkout
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══════════ CHAVES DE INTEGRAÇÃO ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Key className="w-4 h-4 text-amber-400" /> Chaves de Integração
+          </h3>
+
+          <div className="flex gap-2">
+            <Input
+              placeholder="NOME_DA_CHAVE"
+              value={newKeyName}
+              onChange={e => setNewKeyName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
+              className="bg-[#0a0a12] border-[#1e1e2e] text-white text-sm h-9 flex-1"
+            />
+            <Input
+              placeholder="Valor da chave"
+              value={newKeyValue}
+              onChange={e => setNewKeyValue(e.target.value)}
+              className="bg-[#0a0a12] border-[#1e1e2e] text-white text-sm h-9 flex-1 font-mono"
+            />
+            <Button size="sm" disabled={!newKeyName || !newKeyValue || saving} onClick={saveKey} className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-9">
+              + Salvar
+            </Button>
+          </div>
+
+          {integrationKeys.length === 0 ? (
+            <p className="text-center text-xs text-gray-500 py-4">Nenhuma chave cadastrada</p>
+          ) : (
+            <div className="space-y-1.5">
+              {integrationKeys.map((k, idx) => (
+                <div key={k.id} className="flex items-center gap-2 p-2.5 rounded-lg bg-[#0a0a12] border border-[#1e1e2e]">
+                  <Key className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="text-xs text-white font-medium flex-1 truncate">{k.name}</span>
+                  <span className="text-[10px] text-gray-500 font-mono truncate max-w-[120px]">
+                    {k.show ? k.value : '•'.repeat(12)}
                   </span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      const code = `// Webhook: ${activePlatform.name}\n// URL: ${WEBHOOK_URL}\n// Método: POST\n// Eventos: ${activePlatform.events.join(', ')}\n\n${JSON.stringify(generatePayload('cliente@email.com', 99.90, true), null, 2)}`;
-                      copyText(code, 'Código');
-                    }}
-                    className="text-cyan-400 hover:text-cyan-300 h-6 px-2 text-[10px]"
-                  >
-                    <Copy className="w-3 h-3 mr-1" /> Copiar
+                  <Button size="sm" variant="ghost" onClick={() => setIntegrationKeys(prev => prev.map((x, i) => i === idx ? { ...x, show: !x.show } : x))} className="h-7 w-7 p-0 text-gray-400">
+                    {k.show ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
                   </Button>
+                  <Button size="sm" variant="ghost" onClick={() => copyText(k.value, k.name)} className="h-7 w-7 p-0 text-gray-400"><Copy className="w-3 h-3" /></Button>
+                  <Button size="sm" variant="ghost" onClick={() => removeKey(idx)} className="h-7 w-7 p-0 text-gray-400 hover:text-red-400"><Trash2 className="w-3 h-3" /></Button>
                 </div>
-                <pre className="p-3 text-[11px] text-gray-300 font-mono overflow-x-auto max-h-[150px] leading-relaxed">
-                  {JSON.stringify(generatePayload('cliente@email.com', 99.90, true), null, 2)}
-                </pre>
-              </div>
+              ))}
+            </div>
+          )}
 
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  onClick={saveAll}
-                  disabled={saving}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-xs"
-                >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-                  Salvar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <div className="p-2.5 rounded-lg bg-amber-500/5 border border-amber-500/20">
+            <p className="text-[10px] text-amber-400 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> Chaves armazenadas localmente. Use para tokens de API, secret keys e credenciais de integração.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* TAB: Checkout */}
-        <TabsContent value="checkout" className="mt-4 space-y-4">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardContent className="p-4 space-y-4">
-              {/* Plano ativo */}
-              <div className="space-y-2">
-                <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                  🎯 Plano Ativo no Gate
-                </h4>
-                <div className="flex flex-wrap gap-1.5">
-                  {PLANS.map(plan => (
-                    <Button
-                      key={plan.id}
-                      size="sm"
-                      className={`h-8 text-xs ${
-                        settings.plano_ativo_checkout === plan.id
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : 'bg-[#0f0f17] border border-[#2a2a3a] text-gray-400 hover:text-white hover:bg-[#2a2a3a]'
-                      }`}
-                      onClick={() => setSettings(prev => ({ ...prev, plano_ativo_checkout: plan.id }))}
-                    >
-                      {plan.icon} {plan.label}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+      {/* ═══════════ SIMULADOR COMPLETO ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <Sparkles className="w-4 h-4 text-green-400" /> Simulador Completo
+            </h3>
+            <Badge className="bg-blue-600 text-white border-0 text-xs">{activePlatform.name}</Badge>
+          </div>
 
-              {/* Plans */}
-              <div className="space-y-3">
-                {PLANS.map(plan => {
-                  const isActive = settings.plano_ativo_checkout === plan.id;
-                  return (
-                    <div
-                      key={plan.id}
-                      className={`p-3 rounded-lg border transition-all ${
-                        isActive ? 'bg-green-500/5 border-green-500/30' : 'bg-[#0f0f17] border-[#2a2a3a]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <span>{plan.icon}</span>
-                        <span className="text-sm font-medium text-white">{plan.label}</span>
-                        {isActive && <Badge className="bg-green-600 text-white text-[9px] h-5">Ativo</Badge>}
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <div>
-                          <label className="text-[10px] text-gray-500 mb-1 block">Preço (R$)</label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            placeholder={plan.placeholder}
-                            value={settings[`preco_${plan.id}`] || ''}
-                            onChange={e => setSettings(prev => ({ ...prev, [`preco_${plan.id}`]: e.target.value }))}
-                            className="bg-[#1a1a24] border-[#2a2a3a] text-white h-9 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] text-gray-500 mb-1 block">Link Checkout</label>
-                          <div className="flex gap-1">
-                            <Input
-                              placeholder="https://checkout..."
-                              value={settings[`checkout_${plan.id}`] || ''}
-                              onChange={e => setSettings(prev => ({ ...prev, [`checkout_${plan.id}`]: e.target.value }))}
-                              className="bg-[#1a1a24] border-[#2a2a3a] text-white h-9 text-sm"
-                            />
-                            {settings[`checkout_${plan.id}`] && (
-                              <>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => copyText(settings[`checkout_${plan.id}`], plan.label)}
-                                  className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a] h-9 w-9 shrink-0"
-                                >
-                                  <Copy className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="icon"
-                                  onClick={() => window.open(settings[`checkout_${plan.id}`], '_blank')}
-                                  className="bg-[#2a2a3a] border-[#3a3a4a] text-white hover:bg-[#3a3a4a] h-9 w-9 shrink-0"
-                                >
-                                  <ExternalLink className="w-3.5 h-3.5" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* WhatsApp */}
+          {/* Step 1: Fake data */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-blue-600 text-[10px] font-bold flex items-center justify-center text-white">1</span>
+              <span className="text-xs font-medium text-white">Gerar Dados Fake</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr_auto] gap-2 items-end">
               <div>
-                <label className="text-xs text-gray-400 mb-1 block flex items-center gap-1.5">
-                  <Smartphone className="w-3.5 h-3.5 text-green-400" /> WhatsApp Suporte
-                </label>
+                <label className="text-[10px] text-gray-500 mb-1 block">Email</label>
                 <Input
-                  placeholder="https://wa.me/5511999999999"
-                  value={settings.whatsapp_suporte}
-                  onChange={e => setSettings(prev => ({ ...prev, whatsapp_suporte: e.target.value }))}
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white h-9 text-sm"
+                  placeholder="usuario@email.com"
+                  value={simEmail}
+                  onChange={e => setSimEmail(e.target.value)}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white text-sm h-9"
                 />
               </div>
+              <Button size="sm" onClick={generateFakeEmail} className="bg-green-600 hover:bg-green-700 text-white text-xs h-9">
+                <Zap className="w-3 h-3 mr-1" /> Gerar
+              </Button>
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">Plano</label>
+                <Select value={simPlan} onValueChange={setSimPlan}>
+                  <SelectTrigger className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PLANS.map(p => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.icon} {p.label} — R$ {settings[`preco_${p.id}`] || p.placeholder}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">Valor (R$)</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={simAmount}
+                  onChange={e => setSimAmount(e.target.value)}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white text-sm h-9 w-24"
+                />
+              </div>
+            </div>
+          </div>
 
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  onClick={saveAll}
-                  disabled={saving}
-                  className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white text-xs"
+          {/* Step 2: Create fake user */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-purple-600 text-[10px] font-bold flex items-center justify-center text-white">2</span>
+              <span className="text-xs font-medium text-white">Criar Usuário Fake no Sistema</span>
+              <span className="text-[10px] text-gray-500">(cadastro real para teste)</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={creatingFake || !simEmail}
+                onClick={() => createFakeUser(false)}
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 text-xs"
+              >
+                {creatingFake ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <UserPlus className="w-3 h-3 mr-1" />}
+                Criar Usuário Fake
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={creatingFake || !simEmail}
+                onClick={() => createFakeUser(true)}
+                className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs"
+              >
+                {creatingFake ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                Criar + Ativar Plano {PLANS.find(p => p.id === simPlan)?.label}
+              </Button>
+            </div>
+          </div>
+
+          {/* Step 3: Simulate webhook */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-red-600 text-[10px] font-bold flex items-center justify-center text-white">3</span>
+              <span className="text-xs font-medium text-white">Simular Webhook da Plataforma</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                disabled={testing}
+                onClick={() => runTest('success')}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs"
+              >
+                {testing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                Simular Aprovado
+              </Button>
+              <Button
+                size="sm"
+                disabled={testing}
+                onClick={() => runTest('error')}
+                className="bg-red-600 hover:bg-red-700 text-white text-xs"
+              >
+                <XCircle className="w-3 h-3 mr-1" /> Simular Recusa
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={testing}
+                onClick={() => runTest('ping')}
+                className="border-[#2a2a3a] text-gray-400 hover:text-white text-xs"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" /> Ping
+              </Button>
+            </div>
+          </div>
+
+          {/* Full flow button */}
+          <Button
+            onClick={runFullFlow}
+            disabled={creatingFake || testing || !simEmail}
+            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white h-10 text-sm font-medium"
+          >
+            {(creatingFake || testing) ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            ⚡ Fluxo Completo: Criar Usuário + Ativar Plano + Simular Webhook
+          </Button>
+
+          {/* Info badges */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="p-2 rounded-lg bg-[#0a0a12] border border-[#1e1e2e]">
+              <p className="text-[10px] text-gray-500">Detecção</p>
+              <p className="text-xs font-bold text-white">Automática</p>
+            </div>
+            <div className="p-2 rounded-lg bg-[#0a0a12] border border-[#1e1e2e]">
+              <p className="text-[10px] text-gray-500">Plano</p>
+              <p className="text-xs font-bold text-white">Por valor</p>
+            </div>
+            <div className="p-2 rounded-lg bg-[#0a0a12] border border-[#1e1e2e]">
+              <p className="text-[10px] text-gray-500">Ativação</p>
+              <p className="text-xs font-bold text-white">Instantânea</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══════════ LOGS ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <FileJson className="w-4 h-4 text-cyan-400" /> Logs ({testResults.length})
+            </h3>
+            {testResults.length > 0 && (
+              <Button size="sm" variant="ghost" onClick={() => setTestResults([])} className="text-gray-500 hover:text-white text-[10px] h-7">Limpar</Button>
+            )}
+          </div>
+
+          {testResults.length === 0 ? (
+            <p className="text-center text-xs text-gray-500 py-6">Nenhum log</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[300px] overflow-y-auto">
+              {testResults.map((r, i) => (
+                <div
+                  key={i}
+                  className={`flex items-start gap-2 p-2.5 rounded-lg border ${
+                    r.success ? 'bg-green-950/10 border-green-800/20' : 'bg-red-950/10 border-red-800/20'
+                  }`}
                 >
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-                  Salvar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB: Chaves */}
-        <TabsContent value="chaves" className="mt-4 space-y-4">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardContent className="p-4 space-y-4">
-              <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                <Key className="w-4 h-4 text-amber-400" /> Chaves de Integração
-              </h4>
-              <p className="text-xs text-gray-500">Cole sua chave secreta, salve e o sistema reconhece automaticamente.</p>
-
-              {/* Add key */}
-              <div className="p-3 rounded-lg border border-dashed border-green-500/30 bg-green-500/5 space-y-2">
-                <Input
-                  placeholder="NOME_DA_CHAVE (ex: API_KEY_CAKTO)"
-                  value={newKeyName}
-                  onChange={e => setNewKeyName(e.target.value.toUpperCase().replace(/[^A-Z0-9_]/g, '_'))}
-                  className="bg-[#1a1a24] border-[#2a2a3a] text-white text-sm h-9"
-                />
-                <div className="relative">
-                  <Input
-                    placeholder="Cole sua chave secreta aqui (Ctrl+V)"
-                    value={newKeyValue}
-                    onChange={e => setNewKeyValue(e.target.value)}
-                    className="bg-[#1a1a24] border-[#2a2a3a] text-white text-sm h-9 font-mono pr-16"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={async () => {
-                      try {
-                        const t = await navigator.clipboard.readText();
-                        setNewKeyValue(t);
-                        toast({ title: "Colado!" });
-                      } catch {
-                        // silent
-                      }
-                    }}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 h-7 px-2 text-green-400 hover:text-green-300 text-[10px]"
-                  >
-                    <Copy className="w-3 h-3 mr-1" /> Colar
-                  </Button>
+                  {r.success ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-white">{r.message}</p>
+                    <p className="text-[9px] text-gray-500 mt-0.5">{r.timestamp}</p>
+                    {r.data && (
+                      <details className="mt-1">
+                        <summary className="text-[9px] text-gray-500 cursor-pointer hover:text-gray-300">JSON</summary>
+                        <pre className="text-[9px] text-gray-400 mt-1 bg-[#0a0a12] p-2 rounded overflow-x-auto max-h-[100px]">
+                          {JSON.stringify(r.data, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    disabled={!newKeyName || !newKeyValue || saving}
-                    onClick={saveKey}
-                    className="bg-green-600 hover:bg-green-700 text-white text-xs"
-                  >
-                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-                    Salvar Chave
-                  </Button>
-                  {newKeyValue && (
-                    <span className="text-[10px] text-green-400/70">{newKeyValue.length} caracteres</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Existing keys */}
-              {integrationKeys.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <Key className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                  <p className="text-xs">Nenhuma chave cadastrada</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {integrationKeys.map((k, idx) => (
-                    <div
-                      key={k.id}
-                      className="flex items-center gap-2 p-2.5 rounded-lg bg-[#0f0f17] border border-[#2a2a3a] hover:border-amber-500/30 transition-all"
-                    >
-                      <Key className="w-4 h-4 text-amber-400 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-white truncate">{k.name}</p>
-                        <p className="text-[10px] text-gray-500 font-mono truncate">
-                          {k.show ? k.value : `${'•'.repeat(16)} (${k.value.length})`}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setIntegrationKeys(prev => prev.map((x, i) => i === idx ? { ...x, show: !x.show } : x))}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-white"
-                      >
-                        {k.show ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyText(k.value, k.name)}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-white"
-                      >
-                        <Copy className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => { setNewKeyName(k.name); setNewKeyValue(k.value); }}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-amber-400"
-                      >
-                        <Settings className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeKey(idx)}
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-red-400"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="p-2.5 rounded-lg bg-green-500/5 border border-green-500/20">
-                <p className="text-[10px] text-green-400 flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Chaves salvas com segurança. Use o simulador para validar.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* TAB: Logs */}
-        <TabsContent value="logs" className="mt-4 space-y-4">
-          <Card className="bg-[#1a1a24] border-[#2a2a3a]">
-            <CardContent className="p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium text-white flex items-center gap-2">
-                  <FileJson className="w-4 h-4 text-cyan-400" /> Histórico de Testes
-                </h4>
-                {testResults.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setTestResults([])}
-                    className="text-gray-500 hover:text-white text-[10px] h-7"
-                  >
-                    Limpar
-                  </Button>
-                )}
-              </div>
-
-              {testResults.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <FileJson className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                  <p className="text-xs">Nenhum teste realizado</p>
-                  <p className="text-[10px] mt-1">Use o simulador verde acima</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
-                  {testResults.map((r, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-start gap-2 p-2.5 rounded-lg border transition-all ${
-                        r.success
-                          ? 'bg-green-950/10 border-green-800/20'
-                          : 'bg-red-950/10 border-red-800/20'
-                      }`}
-                    >
-                      {r.success ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-green-400 mt-0.5 shrink-0" />
-                      ) : (
-                        <XCircle className="w-3.5 h-3.5 text-red-400 mt-0.5 shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-white">{r.message}</p>
-                        <p className="text-[9px] text-gray-500 mt-0.5">{r.timestamp}</p>
-                        {r.data && (
-                          <details className="mt-1">
-                            <summary className="text-[9px] text-gray-500 cursor-pointer hover:text-gray-300">
-                              JSON
-                            </summary>
-                            <pre className="text-[9px] text-gray-400 mt-1 bg-[#0f0f17] p-2 rounded overflow-x-auto max-h-[100px]">
-                              {JSON.stringify(r.data, null, 2)}
-                            </pre>
-                          </details>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
