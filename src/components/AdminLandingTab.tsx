@@ -458,7 +458,7 @@ gtag('config', '${settings.landing_pixel_google}');
           <TabsTrigger value="efeitos" className="text-xs"><Sparkles className="w-3 h-3 mr-1" />Efeitos</TabsTrigger>
           <TabsTrigger value="background" className="text-xs"><ImagePlus className="w-3 h-3 mr-1" />Fundo</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
-          <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Checkout</TabsTrigger>
+          <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Landing</TabsTrigger>
         </TabsList>
 
         {/* TEMPLATE */}
