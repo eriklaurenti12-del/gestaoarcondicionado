@@ -162,28 +162,6 @@ export default function Members() {
     if (data) setTeamMembers(data as TeamMember[]);
     if (error) console.error('loadTeamMembers error:', error.message);
   };
-
-  const loadTabOrder = async () => {
-    const { data } = await supabase
-      .from('admin_settings')
-      .select('value')
-      .eq('key', 'members_tab_order')
-      .maybeSingle();
-    if (data?.value) {
-      try {
-        const parsed = JSON.parse(data.value);
-        if (Array.isArray(parsed)) {
-          // Merge with defaults to handle new tabs
-          const merged = parsed.filter((t: any) => DEFAULT_TABS.some(d => d.id === t.id));
-          const missing = DEFAULT_TABS.filter(d => !parsed.some((t: any) => t.id === d.id));
-          setTabOrder([...merged, ...missing]);
-        }
-      } catch {}
-    }
-  };
-
-  const saveTabOrder = async (newOrder: typeof DEFAULT_TABS) => {
-    setTabOrder(newOrder);
     await supabase.from('admin_settings').upsert({
       key: 'members_tab_order',
       value: JSON.stringify(newOrder),
