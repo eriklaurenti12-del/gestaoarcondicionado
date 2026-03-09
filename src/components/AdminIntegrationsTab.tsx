@@ -67,7 +67,7 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [newKeyValue, setNewKeyValue] = useState('');
 
   // Simulator state
-  const [simEmail, setSimEmail] = useState('usuario@email.com');
+  const [simEmail, setSimEmail] = useState(`teste_${Math.floor(Math.random() * 9999)}@simulacao.fake`);
   const [simPlan, setSimPlan] = useState('mensal');
   const [simAmount, setSimAmount] = useState('');
 
