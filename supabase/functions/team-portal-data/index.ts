@@ -275,12 +275,73 @@ Deno.serve(async (req) => {
     if (type === 'products') {
       const { data: products } = await supabase
         .from('products')
-        .select('id, name, price, cost_price, qty, type')
+        .select('id, name, price, cost_price, qty, type, service_duration')
         .eq('user_id', owner_id)
         .order('name')
         .limit(300);
 
       return new Response(JSON.stringify({ products: products || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === SALES ===
+    if (type === 'sales') {
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('id, sale_date, sale_price, total_profit, qty, payment_method, clients(name), products(name)')
+        .eq('user_id', owner_id)
+        .order('sale_date', { ascending: false })
+        .limit(100);
+
+      return new Response(JSON.stringify({ sales: sales || [] }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // === CREATE SALE ===
+    if (type === 'create_sale') {
+      const { client_id, product_id, qty: saleQty, sale_price, payment_method } = body;
+      if (!client_id || !product_id || !sale_price || !payment_method) {
+        return new Response(JSON.stringify({ error: 'Dados da venda incompletos' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Get product cost for profit calc
+      const { data: product } = await supabase
+        .from('products')
+        .select('cost_price, qty, type')
+        .eq('id', product_id)
+        .single();
+
+      const quantity = saleQty || 1;
+      const totalProfit = sale_price - ((product?.cost_price || 0) * quantity);
+
+      const { data, error } = await supabase.from('sales').insert({
+        user_id: owner_id,
+        client_id: Number(client_id),
+        product_id: Number(product_id),
+        qty: quantity,
+        sale_price,
+        total_profit: totalProfit,
+        payment_method,
+      }).select().single();
+
+      if (error) {
+        return new Response(JSON.stringify({ error: error.message }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Deduct stock for non-service products
+      if (product && product.type !== 'service') {
+        await supabase.from('products')
+          .update({ qty: Math.max(0, (product.qty || 0) - quantity) })
+          .eq('id', product_id);
+      }
+
+      return new Response(JSON.stringify({ success: true, sale: data }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
