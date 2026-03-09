@@ -56,6 +56,7 @@ const CompanyDataTab: React.FC = () => {
         setWhatsapp((data as any).whatsapp || '');
         setEmail((data as any).email || '');
         setAddress((data as any).address || '');
+        setInstagram((data as any).instagram || '');
         // Persist to localStorage for PDF access
         localStorage.setItem('company_name', (data as any).company_name || '');
         localStorage.setItem('company_cnpj', (data as any).cnpj_cpf || '');
@@ -82,8 +83,9 @@ const CompanyDataTab: React.FC = () => {
             company_name: companyName,
             whatsapp,
             email,
-            address
-          })
+            address,
+            instagram
+          } as any)
           .eq('user_id', userId);
         
         if (error) throw error;
@@ -96,8 +98,9 @@ const CompanyDataTab: React.FC = () => {
             company_name: companyName,
             whatsapp,
             email,
-            address
-          }]);
+            address,
+            instagram
+          } as any]);
         
         if (error) throw error;
       }

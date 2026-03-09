@@ -7,12 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin } from "lucide-react";
+import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin, Instagram } from "lucide-react";
 import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type ServiceOption = { id: number; name: string; price: number; service_duration?: number; image_url?: string };
-type CompanyInfo = { company_name: string; whatsapp?: string; address?: string; logo_url?: string };
+type CompanyInfo = { company_name: string; whatsapp?: string; address?: string; logo_url?: string; instagram?: string };
 type BookingResult = {
   id: string;
   client_name: string;
@@ -294,6 +294,22 @@ export default function PublicBooking() {
                 className="bg-green-600 hover:bg-green-700 text-white w-full mt-2">
                 <Phone className="w-4 h-4 mr-2" /> Falar no WhatsApp
               </Button>
+            )}
+
+            {company.instagram && (
+              <a
+                href={`https://instagram.com/${company.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mt-3"
+              >
+                <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 rounded-xl p-[1px]">
+                  <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+                    <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">Siga @{company.instagram.replace('@', '')}</span>
+                  </div>
+                </div>
+              </a>
             )}
 
             <div className="border-t border-slate-700 pt-4 mt-4">
@@ -720,6 +736,33 @@ export default function PublicBooking() {
                     )}
                   </CardContent>
                 </Card>
+              </div>
+            )}
+
+            {/* Instagram Follow CTA */}
+            {company.instagram && (
+              <div className="mb-24 mt-6">
+                <a
+                  href={`https://instagram.com/${company.instagram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block max-w-lg mx-auto"
+                >
+                  <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 rounded-2xl p-[1px]">
+                    <div className="bg-slate-900/90 backdrop-blur-sm rounded-2xl p-4 flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 via-pink-500 to-orange-400 flex items-center justify-center flex-shrink-0">
+                        <Instagram className="w-6 h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white font-semibold text-sm">Siga-nos no Instagram!</p>
+                        <p className="text-slate-400 text-xs truncate">@{company.instagram.replace('@', '')}</p>
+                      </div>
+                      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold px-4 py-2 rounded-xl flex-shrink-0">
+                        Seguir
+                      </div>
+                    </div>
+                  </div>
+                </a>
               </div>
             )}
 
