@@ -283,6 +283,7 @@ export default function SupportButton() {
   if (isCollapsed) {
     return (
       <Button
+        data-support-trigger
         onClick={() => setIsCollapsed(false)}
         size="icon"
         className="fixed bottom-4 right-4 rounded-full shadow-lg z-50 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-purple-500 hover:shadow-[0_0_30px_rgba(168,85,247,0.6)] transition-all duration-300 w-10 h-10"
