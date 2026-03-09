@@ -16,34 +16,43 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Verify caller is super_admin
+    // Verify caller is super_admin or service_role
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    const apikeyHeader = req.headers.get('apikey');
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    
+    // Allow service role key via apikey header or Authorization header
+    const isServiceRole = apikeyHeader === serviceRoleKey || (authHeader && authHeader.replace('Bearer ', '') === serviceRoleKey);
+    
+    if (!authHeader && !isServiceRole) {
       return new Response(JSON.stringify({ error: 'Não autorizado' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !caller) {
-      return new Response(JSON.stringify({ error: 'Token inválido' }), {
-        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
+    const token = authHeader ? authHeader.replace('Bearer ', '') : '';
+    
+    if (!isServiceRole) {
+      const { data: { user: caller }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !caller) {
+        return new Response(JSON.stringify({ error: 'Token inválido' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
-    // Check super_admin role
-    const { data: roleData } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', caller.id)
-      .eq('role', 'super_admin')
-      .maybeSingle();
+      // Check super_admin role
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', caller.id)
+        .eq('role', 'super_admin')
+        .maybeSingle();
 
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: 'Apenas super admin pode criar usuários fake' }), {
-        status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: 'Apenas super admin pode criar usuários fake' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     const { email, password } = await req.json();
