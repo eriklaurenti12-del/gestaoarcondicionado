@@ -294,19 +294,34 @@ export default function Index() {
                   <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Support button in header */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
-                    onClick={() => {
-                      const supportBtn = document.querySelector('[data-support-trigger]');
-                      if (supportBtn) (supportBtn as HTMLButtonElement).click();
-                    }}
-                    title="Suporte Técnico"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                  </Button>
+                  {/* Dicas & Suporte dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
+                        title="Dicas & Suporte"
+                      >
+                        <Lightbulb className="h-5 w-5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => setShowTipsDialog(true)} className="gap-2 cursor-pointer">
+                        <Lightbulb className="w-4 h-4 text-primary" />
+                        Dicas AC
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => {
+                          window.open("https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+Gestão+de+Negócios+e+preciso+de+suporte", '_blank', 'noopener,noreferrer');
+                        }} 
+                        className="gap-2 cursor-pointer"
+                      >
+                        <MessageCircle className="w-4 h-4 text-green-600" />
+                        Suporte WhatsApp
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {/* Beta access button */}
                   <Button
                     variant="ghost"
