@@ -1833,121 +1833,106 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
 
-        {/* CHECKOUT */}
+        {/* LANDING CONFIG */}
         <TabsContent value="checkout">
           <div className="space-y-4">
-            <AdminGuideCards tab="checkout" />
-
-            {/* Toggle ativar checkout */}
+            {/* Toggle ativar landing */}
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                  Ativar Checkout na Landing Page
+                  <Globe className="w-5 h-5 text-primary" />
+                  Ativar Landing Page
                 </CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Os botões da landing redirecionam automaticamente para o link de pagamento. Funciona com links daqui OU das Configurações de Checkout.
+                  Ative ou desative a landing page pública do sistema. Quando desativada, visitantes verão apenas a tela de login.
                 </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Cross-reference alert */}
-                <div className="p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
-                  <p className="text-xs text-purple-400">
-                    <strong>🔗 Integrado com a aba Integrações:</strong> Os links de checkout globais configurados na aba 
-                    <strong> Integrações → Checkout</strong> também funcionam aqui como fallback. Se você configurar links aqui, 
-                    eles terão <strong>prioridade</strong>. Se deixar vazio, o sistema usa os links da aba Integrações automaticamente.
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20">
-                  <p className="text-xs text-green-600 dark:text-green-400">
-                    <strong>✅ Como funciona:</strong> O sistema usa automaticamente qualquer link disponível. 
-                    Prioridade: Links da Landing → Links da Integração → Cadastro manual.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Links de checkout */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Link2 className="w-5 h-5 text-accent" />
-                  Links de Pagamento
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Cole os links de checkout da sua plataforma (Kiwify, Hotmart, etc). Os botões da landing page redirecionarão automaticamente.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs">Mensal</Badge>
-                    Link do Plano Mensal
-                    <AIFieldHelper context="checkout" fieldName="link checkout mensal" />
-                  </Label>
-                  <Input 
-                    value={settings.landing_checkout_mensal_link || ''} 
-                    onChange={e => update('landing_checkout_mensal_link', e.target.value)} 
-                    placeholder="https://pay.kiwify.com.br/... ou https://pay.hotmart.com/..." 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">Anual</Badge>
-                    Link do Plano Anual
-                    <AIFieldHelper context="checkout" fieldName="link checkout anual" />
-                  </Label>
-                  <Input 
-                    value={settings.landing_checkout_anual_link || ''} 
-                    onChange={e => update('landing_checkout_anual_link', e.target.value)} 
-                    placeholder="https://pay.kiwify.com.br/... ou https://pay.hotmart.com/..." 
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Redirect após pagamento */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-500" />
-                  Após o Pagamento
-                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
                   <div>
-                    <p className="text-sm font-medium">Redirecionar para o sistema</p>
-                    <p className="text-xs text-muted-foreground">O webhook reconhece o pagamento, ativa a assinatura e libera o acesso automaticamente</p>
+                    <p className="text-sm font-medium">Landing Page Ativa</p>
+                    <p className="text-xs text-muted-foreground">Os visitantes poderão ver sua página de vendas</p>
+                  </div>
+                  <Switch 
+                    checked={settings.landing_checkout_ativo !== 'false'} 
+                    onCheckedChange={v => update('landing_checkout_ativo', v ? 'true' : 'false')} 
+                  />
+                </div>
+
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Redirecionar para o sistema após pagamento</p>
+                    <p className="text-xs text-muted-foreground">O webhook reconhece o pagamento e libera o acesso automaticamente</p>
                   </div>
                   <Switch 
                     checked={settings.landing_checkout_redirect_sistema !== 'false'} 
                     onCheckedChange={v => update('landing_checkout_redirect_sistema', v ? 'true' : 'false')} 
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Checkout info */}
+            <Card>
+              <CardContent className="p-4 space-y-3">
+                <div className="p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm text-blue-600 dark:text-blue-400">
+                    <strong>💳 Links de Checkout:</strong> Todos os links de checkout e preços são configurados exclusivamente na aba <strong>Integrações → Checkout</strong>. A landing page, tela de ativação e webhook puxam automaticamente de lá.
+                  </p>
+                </div>
 
                 <div className="p-4 rounded-lg bg-primary/5 border border-primary/20 space-y-2">
                   <h4 className="text-sm font-semibold flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-primary" /> Como funciona o fluxo
+                    <Shield className="w-4 h-4 text-primary" /> Fluxo de Pagamento
                   </h4>
                   <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside">
                     <li>Cliente clica no botão de compra na landing page</li>
-                    <li>É redirecionado para a plataforma de pagamento (Kiwify/Hotmart)</li>
+                    <li>É redirecionado para a plataforma de pagamento configurada na aba Integrações</li>
                     <li>Após pagar, o webhook recebe a confirmação automaticamente</li>
                     <li>A assinatura é ativada e o acesso ao sistema é liberado</li>
                     <li>Você recebe uma notificação no painel admin</li>
-                    <li>O usuário pode acessar o sistema fazendo login</li>
                   </ol>
                 </div>
+              </CardContent>
+            </Card>
 
-                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    <strong>⚠️ Importante:</strong> Configure o webhook da sua plataforma de pagamento apontando para:<br/>
-                    <code className="bg-background px-2 py-0.5 rounded text-[11px] mt-1 inline-block select-all">
-                      {`https://${import.meta.env.VITE_SUPABASE_PROJECT_ID || 'gnrinwqmqhfasfojysep'}.supabase.co/functions/v1/payment-webhook`}
-                    </code>
-                  </p>
+            {/* WhatsApp Suporte */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-green-500" />
+                  Mensagem de Suporte
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Configure a mensagem de suporte que aparece na landing page para visitantes.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Mensagem do WhatsApp Flutuante</Label>
+                  <Input 
+                    value={settings.landing_whatsapp_mensagem || ''} 
+                    onChange={e => update('landing_whatsapp_mensagem', e.target.value)} 
+                    placeholder="Olá! Preciso de ajuda com o sistema..." 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">Link do WhatsApp</Label>
+                  <Input 
+                    value={settings.landing_whatsapp_link || ''} 
+                    onChange={e => update('landing_whatsapp_link', e.target.value)} 
+                    placeholder="https://wa.me/5511999999999" 
+                  />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium">Botão WhatsApp Flutuante</p>
+                    <p className="text-xs text-muted-foreground">Exibir botão de WhatsApp na landing page</p>
+                  </div>
+                  <Switch 
+                    checked={settings.landing_whatsapp_flutuante === 'true'} 
+                    onCheckedChange={v => update('landing_whatsapp_flutuante', v ? 'true' : 'false')} 
+                  />
                 </div>
               </CardContent>
             </Card>
