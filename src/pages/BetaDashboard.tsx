@@ -883,25 +883,11 @@ export default function BetaDashboard() {
   const renderLembretes = () => (<div className="px-4 pt-4"><LembretesTab /></div>);
 
   const renderOnlineBookings = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Globe className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Agendamento Online</p>
-        <p className="text-xs text-muted-foreground">Link para clientes agendarem</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><OnlineBookingsTab /></div>
   );
 
   const renderConfiguracoes = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Settings className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Configurações</p>
-        <p className="text-xs text-muted-foreground">Empresa, notificações, backup</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><CompanyDataTab /></div>
   );
 
   const renderEstoque = () => (
