@@ -925,7 +925,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
             </TabsContent>
           )}
 
-          {/* === ASSINANTES === */}
+          {/* === USUÁRIOS / ASSINANTES === */}
           {canAccess('assinantes') && (
             <TabsContent value="assinantes" className="mt-3 space-y-3">
               <div className="relative">
@@ -934,7 +934,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </div>
 
               {/* Summary cards */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <Card>
                   <CardContent className="p-3 text-center">
                     <p className="text-xs text-muted-foreground">Ativos</p>
@@ -949,11 +949,78 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 </Card>
                 <Card>
                   <CardContent className="p-3 text-center">
+                    <p className="text-xs text-muted-foreground">Expirando</p>
+                    <p className="text-xl font-bold text-red-500">
+                      {(portalSubscribers as any[]).filter((s: any) => {
+                        if (!s.end_date || s.status !== 'aprovado') return false;
+                        const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                        return daysLeft <= 7 && daysLeft >= 0;
+                      }).length}
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3 text-center">
                     <p className="text-xs text-muted-foreground">Total</p>
                     <p className="text-xl font-bold">{(portalSubscribers as any[]).length}</p>
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Expiring soon */}
+              {(() => {
+                const expiring = (portalSubscribers as any[]).filter((s: any) => {
+                  if (!s.end_date || s.status !== 'aprovado') return false;
+                  const daysLeft = Math.ceil((new Date(s.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                  return daysLeft <= 7 && daysLeft >= 0;
+                });
+                if (expiring.length === 0) return null;
+                return (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-bold text-red-600 dark:text-red-400 flex items-center gap-1">
+                      <AlertTriangle className="w-4 h-4" /> Prazos Expirando ({expiring.length})
+                    </h3>
+                    {expiring.map((sub: any) => {
+                      const daysLeft = Math.ceil((new Date(sub.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                      return (
+                        <Card key={sub.id} className="border-l-4 border-l-red-500">
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm truncate">{sub.email}</p>
+                                <div className="flex items-center gap-2">
+                                  <Badge variant="outline" className="text-[8px] h-4">{sub.plan}</Badge>
+                                  <span className="text-[10px] text-red-500 font-bold flex items-center gap-1">
+                                    <Timer className="w-3 h-3" />
+                                    {daysLeft <= 0 ? 'Expirado hoje!' : `${daysLeft} dia${daysLeft > 1 ? 's' : ''} restante${daysLeft > 1 ? 's' : ''}`}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                                  <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="1dia">1 Dia</SelectItem>
+                                    <SelectItem value="7dias">7 Dias</SelectItem>
+                                    <SelectItem value="mensal">Mensal</SelectItem>
+                                    <SelectItem value="anual">Anual</SelectItem>
+                                    <SelectItem value="vitalicio">Vitalício</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                                  disabled={activatingUser === sub.id}
+                                  onClick={() => handleActivateSubscriber(sub.id, true)}>
+                                  {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <>🔄</>}
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Pending first */}
               {pendingSubscribers.length > 0 && (
@@ -961,38 +1028,45 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                   <h3 className="text-sm font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                     ⏳ Aguardando Ativação ({pendingSubscribers.length})
                   </h3>
-                  {pendingSubscribers.map((sub: any) => (
-                    <Card key={sub.id} className="border-l-4 border-l-amber-500">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{sub.email}</p>
-                            <p className="text-[10px] text-muted-foreground">
-                              {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy') : '-'}
-                            </p>
+                  {pendingSubscribers.map((sub: any) => {
+                    const hoursAgo = Math.floor((Date.now() - new Date(sub.created_at).getTime()) / (1000 * 60 * 60));
+                    const trialExpired = hoursAgo >= 24;
+                    return (
+                      <Card key={sub.id} className={`border-l-4 ${trialExpired ? 'border-l-red-500' : 'border-l-amber-500'}`}>
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm truncate">{sub.email}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {sub.username} • Desde {sub.created_at ? format(new Date(sub.created_at), 'dd/MM/yyyy HH:mm') : '-'}
+                              </p>
+                              <span className={`text-[10px] font-semibold ${trialExpired ? 'text-red-500' : 'text-amber-500'}`}>
+                                {trialExpired ? `⛔ Trial expirado (${hoursAgo}h atrás)` : `⏱️ Trial: ${24 - hoursAgo}h restantes`}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Select value={selectedPlan} onValueChange={setSelectedPlan}>
+                                <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="1dia">1 Dia</SelectItem>
+                                  <SelectItem value="7dias">7 Dias</SelectItem>
+                                  <SelectItem value="mensal">Mensal</SelectItem>
+                                  <SelectItem value="trimestral">Trimestral</SelectItem>
+                                  <SelectItem value="anual">Anual</SelectItem>
+                                  <SelectItem value="vitalicio">Vitalício</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
+                                disabled={activatingUser === sub.id}
+                                onClick={() => handleActivateSubscriber(sub.id, true)}>
+                                {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Select value={selectedPlan} onValueChange={setSelectedPlan}>
-                              <SelectTrigger className="h-7 text-[10px] w-20"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="1dia">1 Dia</SelectItem>
-                                <SelectItem value="7dias">7 Dias</SelectItem>
-                                <SelectItem value="mensal">Mensal</SelectItem>
-                                <SelectItem value="trimestral">Trimestral</SelectItem>
-                                <SelectItem value="anual">Anual</SelectItem>
-                                <SelectItem value="vitalicio">Vitalício</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Button size="sm" className="h-7 px-2 text-[10px] bg-green-600 hover:bg-green-700 text-white"
-                              disabled={activatingUser === sub.id}
-                              onClick={() => handleActivateSubscriber(sub.id, true)}>
-                              {activatingUser === sub.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <UserCheck className="w-3 h-3" />}
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               )}
 
