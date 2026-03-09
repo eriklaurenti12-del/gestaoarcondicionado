@@ -883,7 +883,7 @@ export default function BetaDashboard() {
   const renderLembretes = () => (<div className="px-4 pt-4"><LembretesTab /></div>);
 
   const renderOnlineBookings = () => (
-    <div className="px-4 pt-4"><OnlineBookingsTab /></div>
+    <div className="px-4 pt-4"><OnlineBookingsTab userId={userId} /></div>
   );
 
   const renderConfiguracoes = () => (
