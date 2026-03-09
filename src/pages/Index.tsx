@@ -28,7 +28,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, RefreshCw, Wind, Zap } from "lucide-react";
+import { Bell, HelpCircle, MessageCircle, RefreshCw, Wind, Zap } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
@@ -292,6 +292,19 @@ export default function Index() {
                   <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
                 <div className="flex items-center gap-2">
+                  {/* Support button in header */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
+                    onClick={() => {
+                      const supportBtn = document.querySelector('[data-support-trigger]');
+                      if (supportBtn) (supportBtn as HTMLButtonElement).click();
+                    }}
+                    title="Suporte Técnico"
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                  </Button>
                   {/* Beta access button */}
                   <Button
                     variant="ghost"
