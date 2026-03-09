@@ -22,6 +22,9 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import LembretesTab from '@/components/LembretesTab';
+import ImpostosTab from '@/components/ImpostosTab';
+import OnlineBookingsTab from '@/components/OnlineBookingsTab';
+import CompanyDataTab from '@/components/CompanyDataTab';
 
 type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
@@ -874,38 +877,17 @@ export default function BetaDashboard() {
   );
 
   const renderImpostos = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <TrendingUp className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Gestão de Impostos</p>
-        <p className="text-xs text-muted-foreground">Controle DAS, ISS, INSS e IRPF</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><ImpostosTab /></div>
   );
 
   const renderLembretes = () => (<div className="px-4 pt-4"><LembretesTab /></div>);
 
   const renderOnlineBookings = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Globe className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Agendamento Online</p>
-        <p className="text-xs text-muted-foreground">Link para clientes agendarem</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><OnlineBookingsTab userId={userId} /></div>
   );
 
   const renderConfiguracoes = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card><CardContent className="p-6 text-center">
-        <Settings className="w-8 h-8 text-primary mx-auto mb-2" />
-        <p className="font-semibold">Configurações</p>
-        <p className="text-xs text-muted-foreground">Empresa, notificações, backup</p>
-        <Button className="mt-4" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>Acessar no Sistema Completo</Button>
-      </CardContent></Card>
-    </div>
+    <div className="px-4 pt-4"><CompanyDataTab /></div>
   );
 
   const renderEstoque = () => (
