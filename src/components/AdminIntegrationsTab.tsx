@@ -261,17 +261,12 @@ export const AdminIntegrationsTab: React.FC = () => {
     try {
       const email = simEmail || `teste_${Date.now()}@simulacao.fake`;
       if (!simEmail) setSimEmail(email);
-      const password = 'Teste@1234';
 
-      // Step 1: Create user
+      // Step 1: Create user via edge function (preserves admin session)
       addLog(true, `[Fluxo] Criando usuário ${email}...`);
-      const { error: signUpError } = await supabase.auth.signUp({
-        email, password,
-        options: { data: { username: email.split('@')[0] } }
-      });
-      if (signUpError) throw signUpError;
+      await callCreateFakeUser(email);
 
-      // Step 2: Wait a bit
+      // Step 2: Wait for triggers
       await new Promise(r => setTimeout(r, 1500));
 
       // Step 3: Simulate webhook
