@@ -296,6 +296,22 @@ export default function PublicBooking() {
               </Button>
             )}
 
+            {company.instagram && (
+              <a
+                href={`https://instagram.com/${company.instagram.replace('@', '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block mt-3"
+              >
+                <div className="bg-gradient-to-r from-purple-600 via-pink-500 to-orange-400 rounded-xl p-[1px]">
+                  <div className="bg-slate-800 rounded-xl p-3 flex items-center gap-3">
+                    <Instagram className="w-5 h-5 text-pink-400 flex-shrink-0" />
+                    <span className="text-white text-sm font-medium">Siga @{company.instagram.replace('@', '')}</span>
+                  </div>
+                </div>
+              </a>
+            )}
+
             <div className="border-t border-slate-700 pt-4 mt-4">
               <p className="text-cyan-300 text-sm font-medium mb-2">🙏 Obrigado por agendar conosco!</p>
               <p className="text-slate-500 text-xs">Ficamos felizes em atendê-lo. Qualquer dúvida, entre em contato.</p>
