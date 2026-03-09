@@ -117,37 +117,42 @@ Deno.serve(async (req) => {
     const platform = detectPlatform(payload);
     console.log(`🔌 Webhook received from: ${platform}`, JSON.stringify(payload, null, 2));
 
-    // Extract event
-    const event = payload.event || payload.type || payload.status || payload.action || '';
+    // Extract event - handle Cakto's nested status
+    const event = payload.event || payload.type || payload.data?.status || payload.status || payload.action || '';
     
     // Paid events detection
-    const paidKeywords = ['paid', 'approved', 'completed', 'succeeded', 'finalizada', 'active', 'completed'];
-    const isPaidEvent = paidKeywords.some(k => event.toLowerCase().includes(k)) || payload.paid === true;
+    const paidKeywords = ['paid', 'approved', 'completed', 'succeeded', 'finalizada', 'active'];
+    const isPaidEvent = paidKeywords.some(k => event.toLowerCase().includes(k)) || 
+      payload.paid === true || 
+      payload.data?.status === 'paid'; // Cakto nested status
 
     // Error events detection
     const errorKeywords = ['failed', 'declined', 'refused', 'error', 'cancelled', 'canceled', 'refunded', 'chargeback'];
     const isErrorEvent = errorKeywords.some(k => event.toLowerCase().includes(k));
 
-    // Extract email from multiple possible structures
+    // Extract email from multiple possible structures (Cakto uses data.customer.email)
     const email = 
       payload.email || payload.customer?.email || payload.buyer?.email || payload.client?.email ||
       payload.data?.customer?.email || payload.data?.email || payload.payer?.email ||
       payload.customer_email || payload.buyer_email ||
       payload.data?.object?.customer_email || // Stripe
       payload.data?.buyer?.email || // Hotmart
-      payload.data?.purchase?.buyer?.email; // Hotmart alt
+      payload.data?.purchase?.buyer?.email || // Hotmart alt
+      payload.data?.subscription?.customer?.email; // Cakto subscription
 
-    // Extract phone
+    // Extract phone (Cakto uses data.customer.phone)
     const phone = 
       payload.phone || payload.customer?.phone || payload.buyer?.phone || payload.client?.phone ||
-      payload.data?.customer?.phone || payload.data?.phone || payload.customer_phone || payload.buyer_phone || null;
+      payload.data?.customer?.phone || payload.data?.phone || payload.customer_phone || payload.buyer_phone ||
+      payload.data?.subscription?.customer?.phone || null;
 
-    // Extract amount
+    // Extract amount (Cakto uses data.amount)
     let amount = 
       payload.amount || payload.value || payload.total || payload.price ||
       payload.data?.amount || payload.data?.value ||
       payload.data?.purchase?.price?.value || // Hotmart
       payload.data?.object?.amount_total || // Stripe (cents)
+      payload.data?.offer?.price || // Cakto offer price
       payload.transaction?.amount || payload.order?.amount || 0;
 
     if (typeof amount === 'number' && amount > 1000) amount = amount / 100;
@@ -155,6 +160,7 @@ Deno.serve(async (req) => {
 
     const transactionId = 
       payload.transaction_id || payload.id || payload.order_id || payload.data?.id ||
+      payload.data?.refId || // Cakto refId
       payload.reference || payload.trans_cod || payload.chave_unica || `wh_${Date.now()}`;
 
     console.log(`Processing: platform=${platform}, email=${email}, amount=${amount}, event=${event}, isPaid=${isPaidEvent}`);
