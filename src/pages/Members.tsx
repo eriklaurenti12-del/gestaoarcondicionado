@@ -455,41 +455,65 @@ export default function Members() {
         </div>
 
         <Tabs defaultValue="team" className="w-full">
-          <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 rounded-xl">
-            <TabsTrigger value="team" className="text-xs rounded-lg">
-              <Users className="w-4 h-4 mr-1" /> Equipe
-            </TabsTrigger>
-            <TabsTrigger value="users" className="text-xs rounded-lg">
-              <UserPlus className="w-4 h-4 mr-1" /> Usuários
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="text-xs rounded-lg">
-              <Bell className="w-4 h-4 mr-1" /> Notificações
-            </TabsTrigger>
-            <TabsTrigger value="integrations" className="text-xs rounded-lg">
-              <Zap className="w-4 h-4 mr-1" /> Integrações
-            </TabsTrigger>
-            <TabsTrigger value="n8n" className="text-xs rounded-lg">
-              <Webhook className="w-4 h-4 mr-1" /> n8n
-            </TabsTrigger>
-            <TabsTrigger value="landing" className="text-xs rounded-lg">
-              <Megaphone className="w-4 h-4 mr-1" /> Landing
-            </TabsTrigger>
-            <TabsTrigger value="links" className="text-xs rounded-lg">
-              <Link className="w-4 h-4 mr-1" /> Links
-            </TabsTrigger>
-            <TabsTrigger value="raffle" className="text-xs rounded-lg">
-              <Gift className="w-4 h-4 mr-1" /> Sorteio
-            </TabsTrigger>
-            <TabsTrigger value="sidebar-config" className="text-xs rounded-lg">
-              <Menu className="w-4 h-4 mr-1" /> Menu
-            </TabsTrigger>
-            <TabsTrigger value="support" className="text-xs rounded-lg">
-              <LifeBuoy className="w-4 h-4 mr-1" /> Suporte
-            </TabsTrigger>
-            <TabsTrigger value="system-guide" className="text-xs rounded-lg">
-              <BookOpen className="w-4 h-4 mr-1" /> Guia PDF
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-2">
+            <TabsList className="flex flex-wrap h-auto gap-1 p-1.5 rounded-xl flex-1">
+              {tabOrder.map(tab => {
+                const IconComp = TAB_ICONS[tab.icon];
+                return (
+                  <TabsTrigger key={tab.id} value={tab.id} className="text-xs rounded-lg">
+                    {IconComp && <IconComp className="w-4 h-4 mr-1" />} {tab.label}
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+            <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0" onClick={() => setShowTabConfig(true)} title="Reorganizar abas">
+              <Settings2 className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Tab order config dialog */}
+          <Dialog open={showTabConfig} onOpenChange={setShowTabConfig}>
+            <DialogContent className="max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings2 className="w-5 h-5 text-primary" />
+                  Reorganizar Abas
+                </DialogTitle>
+              </DialogHeader>
+              <p className="text-sm text-muted-foreground">Arraste para reordenar as abas do painel</p>
+              <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+                {tabOrder.map((tab, idx) => {
+                  const IconComp = TAB_ICONS[tab.icon];
+                  return (
+                    <div
+                      key={tab.id}
+                      draggable
+                      onDragStart={() => handleTabDragStart(idx)}
+                      onDragOver={(e) => handleTabDragOver(e, idx)}
+                      onDrop={() => handleTabDrop(idx)}
+                      onDragEnd={handleTabDragEnd}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-grab active:cursor-grabbing transition-all ${
+                        tabDragOverIdx === idx ? 'border-primary bg-primary/10' : 'bg-muted/30'
+                      } ${tabDragIdx === idx ? 'opacity-40' : ''}`}
+                    >
+                      <GripVertical className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      {IconComp && <IconComp className="w-4 h-4 text-primary flex-shrink-0" />}
+                      <span className="text-sm font-medium flex-1">{tab.label}</span>
+                      <Badge variant="outline" className="text-[10px] font-mono">{idx + 1}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button variant="outline" size="sm" className="flex-1" onClick={() => { saveTabOrder(DEFAULT_TABS); }}>
+                  Restaurar Padrão
+                </Button>
+                <Button size="sm" className="flex-1" onClick={() => setShowTabConfig(false)}>
+                  Fechar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* ============ TEAM TAB ============ */}
           <TabsContent value="team" className="mt-6 space-y-6">
