@@ -397,10 +397,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
-  const handleActivateSubscriber = async (targetUserId: string, activate: boolean) => {
+  const handleActivateSubscriber = async (targetUserId: string, activate: boolean, plan?: string) => {
     setActivatingUser(targetUserId);
     try {
-      const data = await fetchPortalData('activate_subscriber', { target_user_id: targetUserId, plan: selectedPlan, activate });
+      const data = await fetchPortalData('activate_subscriber', { target_user_id: targetUserId, plan: plan || selectedPlan, activate });
       if (data?.error) throw new Error(data.error);
       toast({ title: activate ? '✅ Acesso liberado!' : '🚫 Acesso bloqueado!' });
       refetchSubscribers();
