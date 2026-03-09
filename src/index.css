@@ -64,59 +64,59 @@
   }
 
   .dark {
-    /* Modo Escuro - Cyan/Blue Professional - Deep Blue Enhanced */
-    --background: 220 35% 7%;
-    --foreground: 200 15% 95%;
+    /* Modo Escuro - Deep Navy com acentos azul-roxo */
+    --background: 225 40% 6%;
+    --foreground: 210 20% 92%;
 
-    --card: 218 30% 11%;
-    --card-foreground: 200 15% 95%;
+    --card: 225 35% 10%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 218 30% 11%;
-    --popover-foreground: 200 15% 95%;
+    --popover: 225 35% 10%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 190 90% 50%;
-    --primary-foreground: 220 35% 7%;
+    --primary: 225 70% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 80% 55%;
+    --secondary: 235 55% 55%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 218 25% 16%;
-    --muted-foreground: 200 15% 65%;
+    --muted: 225 30% 14%;
+    --muted-foreground: 220 15% 55%;
 
-    --accent: 190 85% 55%;
-    --accent-foreground: 220 35% 7%;
+    --accent: 230 65% 58%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 218 22% 18%;
-    --input: 218 25% 16%;
-    --ring: 190 90% 50%;
+    --border: 225 25% 16%;
+    --input: 225 30% 14%;
+    --ring: 225 70% 60%;
 
-    /* Gradientes AC Service - dark enhanced */
-    --gradient-primary: linear-gradient(135deg, hsl(190 90% 50%), hsl(210 80% 55%));
-    --gradient-secondary: linear-gradient(180deg, hsl(218 30% 11%), hsl(220 35% 7%));
-    --gradient-glow: linear-gradient(135deg, hsl(190 90% 50% / 0.15), hsl(210 80% 55% / 0.15));
-    --gradient-glass: linear-gradient(135deg, hsl(218 30% 15% / 0.6), hsl(220 35% 10% / 0.4));
-    --gradient-mesh: radial-gradient(ellipse at 20% 50%, hsl(190 90% 50% / 0.06) 0%, transparent 50%),
-                     radial-gradient(ellipse at 80% 20%, hsl(210 80% 55% / 0.05) 0%, transparent 50%),
-                     radial-gradient(ellipse at 50% 80%, hsl(260 60% 50% / 0.03) 0%, transparent 50%);
+    /* Gradientes - Deep Navy */
+    --gradient-primary: linear-gradient(135deg, hsl(225 70% 60%), hsl(235 55% 55%));
+    --gradient-secondary: linear-gradient(180deg, hsl(225 35% 10%), hsl(225 40% 6%));
+    --gradient-glow: linear-gradient(135deg, hsl(225 70% 60% / 0.12), hsl(235 55% 55% / 0.12));
+    --gradient-glass: linear-gradient(135deg, hsl(225 35% 13% / 0.6), hsl(225 40% 8% / 0.4));
+    --gradient-mesh: radial-gradient(ellipse at 20% 50%, hsl(225 70% 60% / 0.05) 0%, transparent 50%),
+                     radial-gradient(ellipse at 80% 20%, hsl(235 55% 55% / 0.04) 0%, transparent 50%),
+                     radial-gradient(ellipse at 50% 80%, hsl(260 50% 50% / 0.03) 0%, transparent 50%);
 
-    /* Sombras com glow cyan enhanced */
-    --shadow-glow-primary: 0 0 50px hsl(190 90% 50% / 0.3);
-    --shadow-glow-secondary: 0 0 50px hsl(210 80% 55% / 0.3);
-    --shadow-elegant: 0 20px 40px -10px hsl(190 90% 50% / 0.2);
-    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.2), 0 4px 16px hsl(0 0% 0% / 0.15);
-    --shadow-card-hover: 0 4px 24px hsl(190 90% 50% / 0.15), 0 8px 32px hsl(0 0% 0% / 0.2);
+    /* Sombras com glow azul-roxo */
+    --shadow-glow-primary: 0 0 50px hsl(225 70% 60% / 0.25);
+    --shadow-glow-secondary: 0 0 50px hsl(235 55% 55% / 0.25);
+    --shadow-elegant: 0 20px 40px -10px hsl(225 70% 60% / 0.18);
+    --shadow-card: 0 1px 3px hsl(0 0% 0% / 0.25), 0 4px 16px hsl(0 0% 0% / 0.2);
+    --shadow-card-hover: 0 4px 24px hsl(225 70% 60% / 0.12), 0 8px 32px hsl(0 0% 0% / 0.25);
 
-    --sidebar-background: 220 30% 9%;
-    --sidebar-foreground: 200 15% 95%;
-    --sidebar-primary: 190 90% 50%;
-    --sidebar-primary-foreground: 220 35% 7%;
-    --sidebar-accent: 218 25% 14%;
-    --sidebar-accent-foreground: 200 15% 95%;
-    --sidebar-border: 218 22% 16%;
-    --sidebar-ring: 190 90% 50%;
+    --sidebar-background: 225 38% 8%;
+    --sidebar-foreground: 210 20% 92%;
+    --sidebar-primary: 225 70% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 28% 13%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 225 25% 14%;
+    --sidebar-ring: 225 70% 60%;
   }
 }
 
