@@ -143,7 +143,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(settings)) {
-        if (['checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'whatsapp_suporte', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio', 'promo_end_date', 'plano_ativo_checkout'].includes(key)) {
+        if (['checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'whatsapp_suporte', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio', 'promo_end_date', 'plano_ativo_checkout', 'plataforma_ativa'].includes(key)) {
           await supabase.from('admin_settings').upsert({ key, value, description: `Config: ${key}` }, { onConflict: 'key' });
         }
       }
