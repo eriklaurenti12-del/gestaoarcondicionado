@@ -189,6 +189,10 @@ export const AdminLandingTab: React.FC = () => {
   const [syncingIntegration, setSyncingIntegration] = useState(false);
   const [integrationPlans, setIntegrationPlans] = useState<IntegrationPlan[]>([]);
 
+  // Use domain settings for landing URL - auto-updates with custom domain
+  const domainSettings = useDomainSettingsHook();
+  const landingUrl = domainSettings.landingUrl;
+
   const PLAN_META: Record<string, { label: string; icon: string }> = {
     mensal: { label: 'Mensal', icon: '💳' },
     trimestral: { label: 'Trimestral', icon: '📘' },
