@@ -149,6 +149,8 @@ const TestimonialEditor: React.FC<{
   );
 };
 
+type IntegrationPlan = { id: string; label: string; icon: string; price: string; checkoutUrl: string };
+
 export const AdminLandingTab: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -163,8 +165,51 @@ export const AdminLandingTab: React.FC = () => {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
+  const [syncingIntegration, setSyncingIntegration] = useState(false);
+  const [integrationPlans, setIntegrationPlans] = useState<IntegrationPlan[]>([]);
 
-  useEffect(() => { loadSettings(); }, []);
+  const PLAN_META: Record<string, { label: string; icon: string }> = {
+    mensal: { label: 'Mensal', icon: '💳' },
+    trimestral: { label: 'Trimestral', icon: '📘' },
+    semestral: { label: 'Semestral', icon: '📗' },
+    anual: { label: 'Anual', icon: '⭐' },
+    vitalicio: { label: 'Vitalício', icon: '👑' },
+  };
+
+  const syncFromIntegration = async () => {
+    setSyncingIntegration(true);
+    try {
+      const { data } = await supabase.from('admin_settings').select('key, value')
+        .or('key.eq.planos_visiveis_landing,key.like.preco_%,key.like.checkout_%');
+      if (!data) throw new Error('Sem dados');
+      const map: Record<string, string> = {};
+      data.forEach(item => { map[item.key] = item.value || ''; });
+
+      const visibleIds = (map.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+      const plans: IntegrationPlan[] = visibleIds.map(id => ({
+        id,
+        label: PLAN_META[id]?.label || id,
+        icon: PLAN_META[id]?.icon || '📦',
+        price: (map[`preco_${id}`] || '0').replace('.', ','),
+        checkoutUrl: map[`checkout_${id}`] || '',
+      }));
+      setIntegrationPlans(plans);
+
+      // Sync prices to landing settings
+      const updates: Record<string, string> = { planos_visiveis_landing: map.planos_visiveis_landing || 'mensal,anual' };
+      visibleIds.forEach(id => {
+        updates[`landing_preco_${id}`] = (map[`preco_${id}`] || '0').replace('.', ',');
+      });
+      setSettings(prev => ({ ...prev, ...updates }));
+      toast({ title: "✅ Sincronizado!", description: `${plans.length} plano(s) ativo(s) carregados da integração.` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncingIntegration(false);
+    }
+  };
+
+  useEffect(() => { loadSettings(); syncFromIntegration(); }, []);
 
   const loadSettings = async () => {
     try {
@@ -578,43 +623,78 @@ gtag('config', '${settings.landing_pixel_google}');
           <AdminGuideCards tab="landing-precos" />
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <DollarSign className="w-5 h-5 text-green-500" /> Preços dos Planos
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <DollarSign className="w-5 h-5 text-green-500" /> Preços dos Planos
+                </CardTitle>
+                <Button size="sm" variant="outline" onClick={syncFromIntegration} disabled={syncingIntegration}
+                  className="border-green-500/30 text-green-500 hover:bg-green-500/10">
+                  {syncingIntegration ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Zap className="w-4 h-4 mr-1" />}
+                  Puxar da Integração
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Os preços e planos ativos são sincronizados da aba Integrações. Clique em "Puxar da Integração" para atualizar.</p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
-                  <h4 className="text-primary font-semibold text-sm flex items-center">💳 Plano Mensal <AIFieldHelper context="precos" fieldName="preco mensal" /></h4>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Preço (R$)</Label>
-                    <Input value={settings.landing_preco_mensal || ''} onChange={e => update('landing_preco_mensal', e.target.value)}
-                      placeholder="39,90" />
-                  </div>
-                  <div>
-                    <Label className="text-muted-foreground text-sm">Preço Original Riscado (R$)</Label>
-                    <Input value={settings.landing_preco_mensal_original || ''} onChange={e => update('landing_preco_mensal_original', e.target.value)}
-                      placeholder="Ex: 59,90 (deixe vazio para não mostrar)" />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs text-muted-foreground">Exibir preço riscado</Label>
-                    <Switch checked={settings.landing_preco_mensal_riscado === 'true'}
-                      onCheckedChange={v => update('landing_preco_mensal_riscado', v ? 'true' : 'false')} />
-                  </div>
-                </div>
-                <div className="bg-muted/30 border border-primary/20 rounded-xl p-4 space-y-3">
-                  <h4 className="text-amber-500 font-semibold text-sm flex items-center">⭐ Plano Anual <AIFieldHelper context="precos" fieldName="preco anual" /></h4>
-                  {[
-                    { key: 'landing_preco_anual', label: 'Preço Anual (R$)', ph: '370' },
-                    { key: 'landing_preco_anual_original', label: 'Preço Original (riscado)', ph: '478,80' },
-                    { key: 'landing_economia_anual', label: 'Economia (R$)', ph: '108' },
-                    { key: 'landing_preco_mensal_equivalente', label: 'Equivalente Mensal (R$)', ph: '30,83' },
-                  ].map(f => (
-                    <div key={f.key}>
-                      <Label className="text-muted-foreground text-sm">{f.label}</Label>
-                      <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
+              {integrationPlans.length > 0 ? (
+                <div className="space-y-3">
+                  {integrationPlans.map(plan => (
+                    <div key={plan.id} className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-sm flex items-center gap-2">
+                          {plan.icon} {plan.label}
+                          <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[9px]">Ativo na Landing</Badge>
+                        </h4>
+                        <span className="text-lg font-bold text-primary">R$ {plan.price}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CreditCard className="w-3 h-3" />
+                        {plan.checkoutUrl ? (
+                          <span className="text-green-500 truncate max-w-[300px]">{plan.checkoutUrl}</span>
+                        ) : (
+                          <span className="text-red-400">Sem link de checkout configurado</span>
+                        )}
+                      </div>
                     </div>
                   ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground text-sm">
+                  <Zap className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p>Nenhum plano ativo na integração.</p>
+                  <p className="text-xs mt-1">Vá na aba <strong>Integrações</strong>, ative planos e clique "Puxar da Integração".</p>
+                </div>
+              )}
+              
+              <div className="border-t border-border pt-4 space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground">Personalização de Preço na Landing</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-muted/30 border border-border rounded-xl p-4 space-y-3">
+                    <h4 className="text-primary font-semibold text-sm flex items-center">💳 Plano Mensal <AIFieldHelper context="precos" fieldName="preco mensal" /></h4>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Preço Original Riscado (R$)</Label>
+                      <Input value={settings.landing_preco_mensal_original || ''} onChange={e => update('landing_preco_mensal_original', e.target.value)}
+                        placeholder="Ex: 59,90 (deixe vazio para não mostrar)" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">Exibir preço riscado</Label>
+                      <Switch checked={settings.landing_preco_mensal_riscado === 'true'}
+                        onCheckedChange={v => update('landing_preco_mensal_riscado', v ? 'true' : 'false')} />
+                    </div>
+                  </div>
+                  <div className="bg-muted/30 border border-primary/20 rounded-xl p-4 space-y-3">
+                    <h4 className="text-amber-500 font-semibold text-sm flex items-center">⭐ Plano Anual <AIFieldHelper context="precos" fieldName="preco anual" /></h4>
+                    {[
+                      { key: 'landing_preco_anual_original', label: 'Preço Original (riscado)', ph: '478,80' },
+                      { key: 'landing_economia_anual', label: 'Economia (R$)', ph: '108' },
+                      { key: 'landing_preco_mensal_equivalente', label: 'Equivalente Mensal (R$)', ph: '30,83' },
+                    ].map(f => (
+                      <div key={f.key}>
+                        <Label className="text-muted-foreground text-sm">{f.label}</Label>
+                        <Input value={settings[f.key] || ''} onChange={e => update(f.key, e.target.value)} placeholder={f.ph} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1839,10 +1919,17 @@ gtag('config', '${settings.landing_pixel_google}');
             {/* Toggle ativar landing */}
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  Ativar Landing Page
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    Ativar Landing Page
+                  </CardTitle>
+                  <Button size="sm" variant="outline" onClick={syncFromIntegration} disabled={syncingIntegration}
+                    className="border-green-500/30 text-green-500 hover:bg-green-500/10">
+                    {syncingIntegration ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Zap className="w-4 h-4 mr-1" />}
+                    Puxar da Integração
+                  </Button>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Ative ou desative a landing page pública do sistema. Quando desativada, visitantes verão apenas a tela de login.
                 </p>
@@ -1869,6 +1956,23 @@ gtag('config', '${settings.landing_pixel_google}');
                     onCheckedChange={v => update('landing_checkout_redirect_sistema', v ? 'true' : 'false')} 
                   />
                 </div>
+
+                {/* Planos ativos da integração */}
+                {integrationPlans.length > 0 && (
+                  <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-2">
+                    <p className="text-xs font-bold text-green-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Planos ativos na Landing (da Integração)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {integrationPlans.map(plan => (
+                        <Badge key={plan.id} className="bg-green-600/20 text-green-300 border-green-600/30 text-xs">
+                          {plan.icon} {plan.label} — R$ {plan.price}
+                          {plan.checkoutUrl ? ' ✓' : ' (sem link)'}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
