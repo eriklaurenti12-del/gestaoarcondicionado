@@ -200,10 +200,10 @@ Deno.serve(async (req) => {
     const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
     
     if (!user) {
-      await sendNotification(supabase, 'pending_activation', email, phone, '', amount, platform);
+      await sendNotification(supabase, 'pending_activation', email, phone, planName, amount, platform);
       return new Response(
-        JSON.stringify({ success: false, error: 'User not registered', email, platform, hint: 'O usuário precisa se cadastrar antes.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: true, message: 'Payment recorded. User not registered yet - will auto-activate on signup.', email, platform, hint: 'Quando o usuário criar a conta com este email, o acesso será liberado automaticamente.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
