@@ -1002,7 +1002,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4 bg-gradient-to-r from-amber-950/30 to-red-950/30">
         <div className="container mx-auto text-center max-w-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">Você já viu o vídeo. Agora é <span className="text-amber-400">sua decisão.</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-6 h-6 mr-2" /> QUERO COMEÇAR AGORA
           </Button>
         </div>
