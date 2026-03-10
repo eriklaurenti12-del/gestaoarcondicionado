@@ -374,7 +374,7 @@ const Landing: React.FC = () => {
     trackEvent('ViewContent', { content_name: section, content_category: 'landing_section' });
   };
 
-  const features = [
+  const defaultFeatures = [
     { icon: Calendar, title: "Agenda Inteligente", desc: "Nunca mais perca um serviço" },
     { icon: Users, title: "Clientes Organizados", desc: "Histórico completo em segundos" },
     { icon: Wind, title: "Controle de Equipamentos", desc: "Tudo sobre cada ar do cliente" },
@@ -384,6 +384,12 @@ const Landing: React.FC = () => {
     { icon: Smartphone, title: "No Celular", desc: "Acesse em qualquer lugar" },
     { icon: Shield, title: "Dados Seguros", desc: "Tudo salvo na nuvem" },
   ];
+  const featureIcons = [Calendar, Users, Wind, Wrench, FileText, BarChart3, Smartphone, Shield];
+  const features = defaultFeatures.map((f, i) => ({
+    icon: featureIcons[i],
+    title: settings[`landing_feature${i+1}_titulo`] || f.title,
+    desc: settings[`landing_feature${i+1}_desc`] || f.desc,
+  }));
 
   const testimonials = [1, 2, 3, 4].map(i => ({
     name: settings[`landing_depoimento${i}_nome`] || '',
