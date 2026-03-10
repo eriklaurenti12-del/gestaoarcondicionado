@@ -176,6 +176,7 @@ const Landing: React.FC = () => {
     landing_whatsapp_flutuante: 'true', landing_whatsapp_link: 'https://wa.me/5511999999999',
     landing_whatsapp_mensagem: 'Olá! Vim pela landing page e gostaria de saber mais!',
     landing_template: 'persuasao', landing_vsl_url: '', landing_vsl_trava: 'false',
+    landing_vsl_cta_ativo: 'true', landing_vsl_cta_delay: '5', landing_vsl_cta_texto: 'QUERO COMEÇAR AGORA', landing_vsl_cta_link: '',
     landing_faq1_pergunta: 'O sistema é difícil de usar?', landing_faq1_resposta: 'Não! É mais simples que WhatsApp. Em 2 minutos você já está usando.', landing_faq1_ativa: 'true',
     landing_faq2_pergunta: 'Funciona no celular?', landing_faq2_resposta: 'Sim! 100% responsivo, funciona em qualquer celular, tablet ou computador.', landing_faq2_ativa: 'true',
     landing_faq3_pergunta: 'Posso cancelar a qualquer momento?', landing_faq3_resposta: 'Sim! Sem multa, sem burocracia. Cancele quando quiser pelo WhatsApp.', landing_faq3_ativa: 'true',
@@ -268,6 +269,10 @@ const Landing: React.FC = () => {
         });
         if (error) throw error;
         if (authData.user && phone) await supabase.from('profiles').update({ phone }).eq('user_id', authData.user.id);
+        // Fire pixel events for signup/lead
+        trackEvent('Lead', { content_name: 'Signup', value: 0, currency: 'BRL' });
+        trackEvent('CompleteRegistration', { content_name: 'New Account' });
+        trackInternalEvent('signup', { email, has_phone: !!phone });
         toast({ title: "Conta criada com sucesso! 🎉", description: "Redirecionando para ativação..." });
         setShowLogin(false);
         navigate('/awaiting-activation');
@@ -359,11 +364,10 @@ const Landing: React.FC = () => {
 
   const trackConversion = (type: string) => {
     const price = settings[`preco_${type}`] || '0';
-    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: price, currency: 'BRL' });
+    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: parseFloat(price.replace(',', '.')), currency: 'BRL' });
+    trackEvent('AddToCart', { content_name: `Plano ${type}`, value: parseFloat(price.replace(',', '.')), currency: 'BRL' });
     trackEvent('Lead', { content_name: `Plano ${type}` });
-    if (typeof trackInternalEvent === 'function') {
-      trackInternalEvent('cta_click', { plan: type, value: price });
-    }
+    trackInternalEvent('cta_click', { plan: type, value: price });
   };
 
   const trackScrollMilestone = (section: string) => {
@@ -923,6 +927,28 @@ const Landing: React.FC = () => {
   );
 
   // ─── TEMPLATE: VSL (VIDEO SALES LETTER) ─────────────────────────
+  const [vslCtaVisible, setVslCtaVisible] = React.useState(false);
+  const vslCtaTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Start CTA timer when VSL video is in view
+  React.useEffect(() => {
+    if (template !== 'vsl' || settings.landing_vsl_cta_ativo !== 'true') return;
+    const delay = (Number(settings.landing_vsl_cta_delay) || 5) * 1000;
+    vslCtaTimerRef.current = setTimeout(() => setVslCtaVisible(true), delay);
+    return () => { if (vslCtaTimerRef.current) clearTimeout(vslCtaTimerRef.current); };
+  }, [template, settings.landing_vsl_cta_ativo, settings.landing_vsl_cta_delay]);
+
+  const handleVslCtaClick = () => {
+    trackEvent('Lead', { content_name: 'VSL CTA Click' });
+    trackInternalEvent('vsl_cta_click', { delay: settings.landing_vsl_cta_delay });
+    const link = settings.landing_vsl_cta_link;
+    if (link && link.startsWith('http')) {
+      window.open(link, '_blank');
+    } else {
+      handleMainCTA();
+    }
+  };
+
   const renderVSL = () => (
     <>
       {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
@@ -965,13 +991,17 @@ const Landing: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-            <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all"
-              onClick={handleMainCTA}>
-              <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
-            </Button>
+          {/* Delayed CTA - appears after X seconds */}
+          <div className={`transition-all duration-700 ${vslCtaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all animate-pulse"
+                onClick={handleVslCtaClick}>
+                <Crown className="w-6 h-6 mr-2" /> {settings.landing_vsl_cta_texto || settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
+              </Button>
+            </div>
           </div>
 
+          {/* Always visible info */}
           <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
             <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-green-400" /> {settings.landing_garantia_dias} dias de garantia</span>
             <span>•</span>
