@@ -791,7 +791,7 @@ const Landing: React.FC = () => {
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium">{settings.landing_frase_destaque}</p>
           </ScrollReveal>
           <ScrollReveal direction="scale" delay={800}>
-          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
           </ScrollReveal>
