@@ -55,7 +55,7 @@ const AwaitingActivation: React.FC = () => {
       const { data: settings } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_anual', 'checkout_vitalicio']);
+        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'planos_visiveis_landing', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
       
       if (settings) {
         settings.forEach(s => {

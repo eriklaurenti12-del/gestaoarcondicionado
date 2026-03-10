@@ -218,11 +218,12 @@ Deno.serve(async (req) => {
     const { data: precosSettings } = await supabase
       .from('admin_settings')
       .select('key, value')
-      .in('key', ['preco_mensal', 'preco_trimestral', 'preco_anual', 'preco_vitalicio']);
+      .in('key', ['preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
     
     const precoMensal = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_mensal')?.value || '50');
     const precoTrimestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_trimestral')?.value || '120');
-    const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '200');
+    const precoSemestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_semestral')?.value || '200');
+    const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '300');
     const precoVitalicio = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_vitalicio')?.value || '997');
     
     // Match amount to closest plan (within 20% tolerance)
@@ -242,6 +243,10 @@ Deno.serve(async (req) => {
       plan = 'anual';
       planName = 'Anual';
       durationMonths = 12;
+    } else if (matchPlan(amount, precoSemestral) || amount >= precoSemestral * 0.8) {
+      plan = 'semestral';
+      planName = 'Semestral';
+      durationMonths = 6;
     } else if (matchPlan(amount, precoTrimestral) || amount >= precoTrimestral * 0.8) {
       plan = 'trimestral';
       planName = 'Trimestral';

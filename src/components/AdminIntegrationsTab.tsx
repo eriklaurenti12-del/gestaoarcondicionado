@@ -125,11 +125,11 @@ export const AdminIntegrationsTab: React.FC = () => {
         'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
         ...PLANS.flatMap(p => [`checkout_${p.id}`, `preco_${p.id}`])];
       
-      // Also sync landing page price settings
-      const landingSyncKeys: Record<string, string> = {
-        'landing_preco_mensal': settings.preco_mensal?.replace('.', ',') || '29,90',
-        'landing_preco_anual': settings.preco_anual?.replace('.', ',') || '199,90',
-      };
+      // Sync ALL plan prices to landing page settings
+      const landingSyncKeys: Record<string, string> = {};
+      PLANS.forEach(p => {
+        landingSyncKeys[`landing_preco_${p.id}`] = settings[`preco_${p.id}`]?.replace('.', ',') || p.placeholder.replace('.', ',');
+      });
       
       const allUpserts = [
         ...keysToSave.map(key => ({

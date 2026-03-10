@@ -226,17 +226,25 @@ const Landing: React.FC = () => {
   }, [navigate, isPreviewMode]);
 
   const handleCheckout = (planId: string) => {
-    trackConversion(planId as any);
+    trackConversion(planId);
     
     const checkoutUrl = settings[`checkout_${planId}`];
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
       window.open(checkoutUrl, '_blank');
     } else {
+      // Scroll to pricing section if no checkout URL
+      const el = document.getElementById('precos');
+      if (el) { el.scrollIntoView({ behavior: 'smooth' }); return; }
       setShowLogin(true); 
       setIsLogin(false); 
       toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." });
     }
+  };
+
+  const handleMainCTA = () => {
+    const el = document.getElementById('precos');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleContactSupport = () => {
@@ -349,12 +357,12 @@ const Landing: React.FC = () => {
     }
   }, [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok]);
 
-  const trackConversion = (type: 'mensal' | 'anual') => {
-    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual, currency: 'BRL' });
+  const trackConversion = (type: string) => {
+    const price = settings[`preco_${type}`] || '0';
+    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: price, currency: 'BRL' });
     trackEvent('Lead', { content_name: `Plano ${type}` });
-    // Internal analytics
     if (typeof trackInternalEvent === 'function') {
-      trackInternalEvent('cta_click', { plan: type, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual });
+      trackInternalEvent('cta_click', { plan: type, value: price });
     }
   };
 
@@ -783,7 +791,7 @@ const Landing: React.FC = () => {
           <p className="text-base md:text-lg text-amber-300 mb-8 max-w-xl mx-auto font-medium">{settings.landing_frase_destaque}</p>
           </ScrollReveal>
           <ScrollReveal direction="scale" delay={800}>
-          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-green-500/25 hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
           </ScrollReveal>
@@ -900,7 +908,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4 relative">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">A decisão é <span className="text-cyan-400">sua</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
           <div className="mt-4">
@@ -959,7 +967,7 @@ const Landing: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
             <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all"
-              onClick={() => handleCheckout('anual')}>
+              onClick={handleMainCTA}>
               <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
             </Button>
           </div>
@@ -994,7 +1002,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4 bg-gradient-to-r from-amber-950/30 to-red-950/30">
         <div className="container mx-auto text-center max-w-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4">Você já viu o vídeo. Agora é <span className="text-amber-400">sua decisão.</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-6 h-6 mr-2" /> QUERO COMEÇAR AGORA
           </Button>
         </div>
@@ -1015,7 +1023,7 @@ const Landing: React.FC = () => {
             {settings.landing_hero_descricao}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-8 py-6 rounded-lg" onClick={() => handleCheckout('anual')}>
+            <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-8 py-6 rounded-lg" onClick={handleMainCTA}>
               Começar agora <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button size="lg" variant="outline" className="border-gray-300 text-slate-700 hover:bg-gray-50 text-base px-8 py-6 rounded-lg" onClick={handleContactSupport}>
@@ -1055,7 +1063,7 @@ const Landing: React.FC = () => {
         <div className="container mx-auto text-center max-w-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-slate-900">Pronto para se organizar?</h2>
           <p className="text-gray-500 mb-6">Comece gratuitamente. Sem cartão de crédito.</p>
-          <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-10 py-6 rounded-lg" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-10 py-6 rounded-lg" onClick={handleMainCTA}>
             Começar agora <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -1091,7 +1099,7 @@ const Landing: React.FC = () => {
               <p className="text-lg text-gray-300 mb-6">{settings.landing_hero_descricao}</p>
               <p className="text-amber-300 mb-8 font-medium">{settings.landing_frase_destaque}</p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 hover:scale-105 transition-all" onClick={handleMainCTA}>
                   {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button size="lg" variant="outline" className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10 text-lg px-8 py-6 rounded-xl" onClick={handleContactSupport}>
@@ -1149,7 +1157,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto text-center">
           <h2 className="text-2xl sm:text-3xl font-bold mb-6">Comece <span className="bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">agora mesmo</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto}
           </Button>
         </div>
@@ -1180,7 +1188,7 @@ const Landing: React.FC = () => {
           <p className="text-lg md:text-xl text-gray-400 mb-4 max-w-2xl mx-auto">{settings.landing_hero_descricao}</p>
           <p className="text-violet-300 mb-8 font-medium">{settings.landing_frase_destaque}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all backdrop-blur-sm border border-white/10" onClick={() => handleCheckout('anual')}>
+            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all backdrop-blur-sm border border-white/10" onClick={handleMainCTA}>
               <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
@@ -1220,7 +1228,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6">Comece <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">agora</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto}
           </Button>
         </div>
