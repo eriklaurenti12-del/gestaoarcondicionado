@@ -117,7 +117,9 @@ const Landing: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [settings, setSettings] = useState<AdminSettings>({
-    checkout_mensal: '', checkout_anual: '',
+    checkout_mensal: '', checkout_trimestral: '', checkout_semestral: '', checkout_anual: '', checkout_vitalicio: '',
+    preco_mensal: '29.90', preco_trimestral: '69.90', preco_semestral: '149.90', preco_anual: '199.90', preco_vitalicio: '499.90',
+    planos_visiveis_landing: 'mensal,anual',
     whatsapp_suporte: 'https://wa.me/5511999999999', promo_end_date: '',
     landing_preco_mensal: '39,90', landing_preco_anual: '370',
     landing_preco_anual_original: '478,80', landing_economia_anual: '108',
