@@ -42,7 +42,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const queryClient = useQueryClient();
   const [bookings, setBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pendentes');
+  const [activeTab, setActiveTab] = useState('futuras');
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     return localStorage.getItem('online-booking-notifications') !== 'false';
   });
@@ -131,12 +131,31 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const pendingBookings = useMemo(() => 
     bookings.filter(b => b.status === 'pendente'), [bookings]);
 
+  const confirmedBookings = useMemo(() =>
+    bookings.filter(b => b.status === 'confirmado'), [bookings]);
+
+  const todayBookings = useMemo(() =>
+    bookings.filter(b => {
+      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      return isToday(bookingDate) && (b.status === 'confirmado' || b.status === 'pendente');
+    }).sort((a, b) => a.preferred_time.localeCompare(b.preferred_time)),
+    [bookings, today]
+  );
+
   const futureBookings = useMemo(() => 
     bookings.filter(b => {
       const bookingDate = new Date(b.preferred_date + 'T12:00:00');
       return (b.status === 'confirmado' || b.status === 'pendente') && 
-             (isAfter(bookingDate, today) || isToday(bookingDate));
+             isAfter(bookingDate, today) && !isToday(bookingDate);
     }).sort((a, b) => new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime()),
+    [bookings, today]
+  );
+
+  const historyBookings = useMemo(() =>
+    bookings.filter(b => {
+      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      return isBefore(bookingDate, today) || b.status === 'recusado' || b.status === 'cancelado';
+    }).sort((a, b) => new Date(b.preferred_date).getTime() - new Date(a.preferred_date).getTime()),
     [bookings, today]
   );
 
@@ -439,6 +458,26 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         },
       ]} />
 
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-primary">{todayBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Hoje</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-primary">{futureBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Futuros</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-green-500">{confirmedBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Confirmados</p>
+        </div>
+        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-amber-500">{pendingBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Pendentes</p>
+        </div>
+      </div>
+
       {/* Booking Link */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
         <CardHeader className="pb-3">
@@ -458,16 +497,16 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
             <Button onClick={copyLink} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground shrink-0">
               <Copy className="w-4 h-4" />
             </Button>
+            <Button size="sm" variant="outline" className="shrink-0" onClick={() => window.open(bookingUrl, '_blank')}>
+              <ExternalLink className="w-4 h-4" />
+            </Button>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button size="sm" variant="outline" onClick={() => {
               const msg = `Olá! Agende seu serviço de Ar Condicionado online: ${bookingUrl}`;
               window.open(formatWhatsAppUrl('', msg), '_blank');
             }}>
-              📱 WhatsApp
-            </Button>
-            <Button size="sm" variant="outline" onClick={toggleNotifications}>
-              {notificationsEnabled ? <><Bell className="w-3 h-3 mr-1" /> ON</> : <><Bell className="w-3 h-3 mr-1" /> OFF</>}
+              <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
             </Button>
             <Button size="sm" variant="outline" onClick={loadBookings}>
               <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
@@ -479,63 +518,38 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         </CardContent>
       </Card>
 
-      {/* Tabbed Bookings */}
+      {/* Tabbed Bookings — tabs at bottom like the reference */}
       <Card>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <CardHeader className="pb-2">
-            <TabsList className="w-full flex flex-wrap h-auto gap-1">
-              <TabsTrigger value="pendentes" className="flex-1 min-w-[80px] text-xs sm:text-sm gap-1">
-                <Clock className="w-3 h-3" />
-                Pendentes
-                {pendingBookings.length > 0 && (
-                  <Badge className="bg-amber-500 text-white text-[10px] px-1.5 py-0">{pendingBookings.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="futuras" className="flex-1 min-w-[80px] text-xs sm:text-sm gap-1">
-                <CalendarClock className="w-3 h-3" />
-                Próximos
-                {futureBookings.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{futureBookings.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="todos" className="flex-1 min-w-[80px] text-xs sm:text-sm gap-1">
-                <List className="w-3 h-3" />
-                Todos
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{bookings.length}</Badge>
-              </TabsTrigger>
-            </TabsList>
-          </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6 pb-2">
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
               </div>
             ) : (
               <>
-                <TabsContent value="pendentes" className="mt-0">
-                  {pendingBookings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <CalendarCheck className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Nenhum agendamento pendente 🎉</p>
-                      <p className="text-xs mt-1">Todos os agendamentos foram processados.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {pendingBookings.map(b => renderBookingCard(b))}
-                    </div>
-                  )}
-                </TabsContent>
-
                 <TabsContent value="futuras" className="mt-0">
                   {futureBookings.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <CalendarClock className="w-10 h-10 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">Nenhum agendamento futuro.</p>
-                      <p className="text-xs mt-1">Os próximos agendamentos confirmados aparecerão aqui.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       {futureBookings.map(b => renderBookingCard(b))}
+                    </div>
+                  )}
+                </TabsContent>
+
+                <TabsContent value="hoje" className="mt-0">
+                  {todayBookings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <CalendarCheck className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Nenhum agendamento para hoje.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {todayBookings.map(b => renderBookingCard(b))}
                     </div>
                   )}
                 </TabsContent>
@@ -545,7 +559,6 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                     <div className="text-center py-8 text-muted-foreground">
                       <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
                       <p className="text-sm">Nenhum agendamento online ainda.</p>
-                      <p className="text-xs mt-1">Compartilhe o link acima com seus clientes!</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -553,9 +566,48 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                     </div>
                   )}
                 </TabsContent>
+
+                <TabsContent value="historico" className="mt-0">
+                  {historyBookings.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm">Nenhum histórico disponível.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {historyBookings.map(b => renderBookingCard(b, false))}
+                    </div>
+                  )}
+                </TabsContent>
               </>
             )}
           </CardContent>
+
+          {/* Tabs at bottom */}
+          <div className="border-t border-border px-2 sm:px-4 pb-2 pt-2">
+            <TabsList className="w-full flex h-auto gap-1 bg-transparent">
+              <TabsTrigger value="futuras" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                <CalendarClock className="w-3 h-3 hidden sm:inline" />
+                Futuros
+                {futureBookings.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{futureBookings.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="hoje" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                <Clock className="w-3 h-3 hidden sm:inline" />
+                Hoje
+                {todayBookings.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{todayBookings.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="todos" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                Histórico
+              </TabsTrigger>
+            </TabsList>
+          </div>
         </Tabs>
       </Card>
     </div>
