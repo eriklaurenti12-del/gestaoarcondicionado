@@ -9,9 +9,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { type, context } = await req.json();
+    const { type, context, activeSections } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const sectionsInfo = activeSections ? `\nSeções ativas na página: ${activeSections.join(', ')}. Gere conteúdo APENAS para as seções ativas.` : '';
 
     const prompts: Record<string, string> = {
       hero: `Gere textos persuasivos para a landing page de um sistema de gestão para técnicos de ar condicionado chamado "AC Service Pro". Gere:
@@ -40,6 +42,7 @@ Foque em benefícios reais e urgência.`,
 
 INFORMAÇÕES ATUAIS DO PRODUTO:
 ${context}
+${sectionsInfo}
 
 Gere os seguintes campos (todos em português brasileiro, tom persuasivo, com gatilhos mentais):
 
@@ -51,20 +54,24 @@ Gere os seguintes campos (todos em português brasileiro, tom persuasivo, com ga
 6. btn_cta: Texto do botão CTA principal (máx 5 palavras, ação forte com caps)
 7. dor_titulo: Título da seção de dor. Use ** para destacar. Ex: "Você se **identifica** com isso?"
 8. dor_itens: 8 itens de dor do técnico, separados por \\n (um por linha)
-9. dor_conclusao: Frase de conclusão da dor. Use ** para destaque. Ex: "Se marcou 2 ou mais... **você PRECISA desse sistema.**"
+9. dor_conclusao: Frase de conclusão da dor. Use ** para destaque.
 10. comparativo_titulo: Título do comparativo. Use ** para destaque.
-11. comparativo_outros: 6 itens negativos dos concorrentes, separados por \\n. IMPORTANTE: Use os preços REAIS do contexto, não invente valores.
-12. comparativo_nosso: 6 itens positivos do AC Service Pro, separados por \\n. Use {{preco_mensal}} como placeholder para o preço dinâmico.
+11. comparativo_outros: 6 itens negativos dos concorrentes, separados por \\n. Use os preços REAIS do contexto.
+12. comparativo_nosso: 6 itens positivos do AC Service Pro, separados por \\n. Use {{preco_mensal}} como placeholder.
 13. features_titulo: Título da seção de funcionalidades. Use ** para destaque.
 14. urgencia_titulo: Título de urgência final. Use ** para destaque.
-15. urgencia_subtitulo: Subtítulo urgência. Use ** para destaque bold.
+15. urgencia_subtitulo: Subtítulo urgência. Use ** para destaque.
 16. cta_final_titulo: Título do CTA final. Use ** para destaque.
+17. faqs: Array de 6 objetos com {pergunta, resposta} eliminando objeções de compra.
+18. depoimentos: Array de 4 objetos com {nome, role, texto, estrelas} de técnicos realistas.
+19. features: Array de 8 objetos com {titulo, desc} para cards de funcionalidade.
 
 REGRAS IMPORTANTES:
 - NÃO invente preços, use EXATAMENTE os valores fornecidos no contexto
 - Use {{preco_mensal}} para referência dinâmica ao preço mensal nos itens do comparativo
 - Todos os textos devem ser persuasivos e falar diretamente com técnicos de ar condicionado
-- Use gatilhos: urgência, escassez, prova social, medo de perda`,
+- Use gatilhos: urgência, escassez, prova social, medo de perda
+- Reconheça as seções ativas e gere conteúdo coerente entre elas`,
     };
 
     const systemPrompt = `Você é um copywriter especialista em landing pages de alta conversão para o mercado de ar condicionado no Brasil. Sempre responda em português brasileiro. Seus textos devem ser persuasivos, usar gatilhos mentais (urgência, escassez, prova social, autoridade) e falar diretamente com técnicos de ar condicionado.`;
@@ -88,8 +95,46 @@ REGRAS IMPORTANTES:
         urgencia_titulo: { type: "string" },
         urgencia_subtitulo: { type: "string" },
         cta_final_titulo: { type: "string" },
+        faqs: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              pergunta: { type: "string" },
+              resposta: { type: "string" },
+            },
+            required: ["pergunta", "resposta"],
+            additionalProperties: false,
+          }
+        },
+        depoimentos: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              nome: { type: "string" },
+              role: { type: "string" },
+              texto: { type: "string" },
+              estrelas: { type: "string" },
+            },
+            required: ["nome", "role", "texto", "estrelas"],
+            additionalProperties: false,
+          }
+        },
+        features: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              titulo: { type: "string" },
+              desc: { type: "string" },
+            },
+            required: ["titulo", "desc"],
+            additionalProperties: false,
+          }
+        },
       },
-      required: ["hero_titulo", "hero_subtitulo", "hero_descricao", "badge_urgencia", "frase_destaque", "btn_cta", "dor_titulo", "dor_itens", "dor_conclusao", "comparativo_titulo", "comparativo_outros", "comparativo_nosso", "features_titulo", "urgencia_titulo", "urgencia_subtitulo", "cta_final_titulo"],
+      required: ["hero_titulo", "hero_subtitulo", "hero_descricao", "badge_urgencia", "frase_destaque", "btn_cta", "dor_titulo", "dor_itens", "dor_conclusao", "comparativo_titulo", "comparativo_outros", "comparativo_nosso", "features_titulo", "urgencia_titulo", "urgencia_subtitulo", "cta_final_titulo", "faqs", "depoimentos", "features"],
       additionalProperties: false,
     } : type === 'hero' ? {
       type: "object",

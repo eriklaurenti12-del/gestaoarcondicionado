@@ -2213,6 +2213,45 @@ gtag('config', '${settings.landing_pixel_google}');
         {/* CONTEÚDO IA - NOVA ABA */}
         <TabsContent value="conteudo">
           <div className="space-y-4">
+            {/* Scanner de Seções Ativas */}
+            <Card className="border-blue-500/30 bg-gradient-to-r from-blue-500/5 to-transparent">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Eye className="w-6 h-6 text-blue-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">📋 Seções Detectadas na Página</p>
+                    <p className="text-xs text-muted-foreground">A IA reconhece quais seções estão ativas e gera conteúdo apenas para elas</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { key: 'landing_secao_hero', label: 'Hero', icon: '🎯' },
+                    { key: 'landing_secao_dor', label: 'Dor', icon: '😰' },
+                    { key: 'landing_secao_comparativo', label: 'Comparativo', icon: '⚔️' },
+                    { key: 'landing_secao_features', label: 'Features', icon: '⚡' },
+                    { key: 'landing_secao_depoimentos', label: 'Depoimentos', icon: '💬' },
+                    { key: 'landing_secao_faq', label: 'FAQ', icon: '❓' },
+                    { key: 'landing_secao_precos', label: 'Preços', icon: '💰' },
+                    { key: 'landing_secao_garantia', label: 'Garantia', icon: '🛡️' },
+                    { key: 'landing_secao_urgencia_final', label: 'Urgência', icon: '⚠️' },
+                    { key: 'landing_secao_cta_final', label: 'CTA Final', icon: '🚀' },
+                    { key: 'landing_secao_vsl', label: 'VSL', icon: '🎬' },
+                    { key: 'landing_secao_frase_destaque', label: 'Destaque', icon: '✨' },
+                  ].map(sec => {
+                    const isActive = settings[sec.key] !== 'false';
+                    return (
+                      <Badge key={sec.key} variant={isActive ? 'default' : 'outline'}
+                        className={`cursor-pointer text-xs ${isActive ? 'bg-green-600/20 text-green-300 border-green-600/30' : 'opacity-50'}`}
+                        onClick={() => update(sec.key, isActive ? 'false' : 'true')}>
+                        {sec.icon} {sec.label} {isActive ? '✓' : '✗'}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Gerador de Conteúdo com IA */}
             <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -2220,15 +2259,27 @@ gtag('config', '${settings.landing_pixel_google}');
                   <div className="flex-1">
                     <p className="text-sm font-semibold">🤖 Gerador de Conteúdo com IA</p>
                     <p className="text-xs text-muted-foreground">
-                      Gere ou atualize todos os textos da landing page automaticamente. A IA reconhece seus preços, planos e links de checkout atuais.
+                      Gera textos para TODAS as seções ativas: Hero, Dor, Comparativo, Features, FAQs, Depoimentos, Urgência e CTA. Reconhece preços e planos atuais.
                     </p>
                   </div>
                   <Button onClick={async () => {
                     try {
                       update('_ai_loading', 'true');
-                      // Gather current prices context
-                      const ctx = `Preços atuais: Mensal R$${settings.preco_mensal || settings.landing_preco_mensal || '39,90'}, Trimestral R$${settings.preco_trimestral || '69,90'}, Semestral R$${settings.preco_semestral || '149,90'}, Anual R$${settings.preco_anual || settings.landing_preco_anual || '370'}, Vitalício R$${settings.preco_vitalicio || '499,90'}. Planos visíveis: ${settings.planos_visiveis_landing || 'mensal,anual'}.`;
-                      const { data, error } = await supabase.functions.invoke('generate-landing-copy', { body: { type: 'completo', context: ctx } });
+                      // Detect active sections
+                      const activeSections = [
+                        settings.landing_secao_hero !== 'false' && 'hero',
+                        settings.landing_secao_dor !== 'false' && 'dor',
+                        settings.landing_secao_comparativo !== 'false' && 'comparativo',
+                        settings.landing_secao_features !== 'false' && 'features',
+                        settings.landing_secao_depoimentos !== 'false' && 'depoimentos',
+                        settings.landing_secao_faq !== 'false' && 'faq',
+                        settings.landing_secao_precos !== 'false' && 'precos',
+                        settings.landing_secao_urgencia_final !== 'false' && 'urgencia',
+                        settings.landing_secao_cta_final !== 'false' && 'cta',
+                      ].filter(Boolean);
+                      
+                      const ctx = `Preços atuais: Mensal R$${settings.preco_mensal || settings.landing_preco_mensal || '39,90'}, Trimestral R$${settings.preco_trimestral || '69,90'}, Semestral R$${settings.preco_semestral || '149,90'}, Anual R$${settings.preco_anual || settings.landing_preco_anual || '370'}, Vitalício R$${settings.preco_vitalicio || '499,90'}. Planos visíveis: ${settings.planos_visiveis_landing || 'mensal,anual'}. Seções ativas: ${activeSections.join(', ')}.`;
+                      const { data, error } = await supabase.functions.invoke('generate-landing-copy', { body: { type: 'completo', context: ctx, activeSections } });
                       if (error) throw error;
                       if (data?.generated) {
                         const g = data.generated;
@@ -2248,7 +2299,37 @@ gtag('config', '${settings.landing_pixel_google}');
                         if (g.urgencia_titulo) update('landing_urgencia_titulo', g.urgencia_titulo);
                         if (g.urgencia_subtitulo) update('landing_urgencia_subtitulo', g.urgencia_subtitulo);
                         if (g.cta_final_titulo) update('landing_cta_final_titulo', g.cta_final_titulo);
-                        toast({ title: '✅ Conteúdo gerado com IA!', description: 'Revise e salve.' });
+                        // FAQs
+                        if (g.faqs) {
+                          g.faqs.forEach((faq: any, i: number) => {
+                            if (i < 6) {
+                              update(`landing_faq${i+1}_pergunta`, faq.pergunta);
+                              update(`landing_faq${i+1}_resposta`, faq.resposta);
+                              update(`landing_faq${i+1}_ativa`, 'true');
+                            }
+                          });
+                        }
+                        // Depoimentos
+                        if (g.depoimentos) {
+                          g.depoimentos.forEach((dep: any, i: number) => {
+                            if (i < 4) {
+                              update(`landing_depoimento${i+1}_nome`, dep.nome);
+                              update(`landing_depoimento${i+1}_role`, dep.role);
+                              update(`landing_depoimento${i+1}_texto`, dep.texto);
+                              update(`landing_depoimento${i+1}_estrelas`, dep.estrelas || '5');
+                            }
+                          });
+                        }
+                        // Features individuais
+                        if (g.features) {
+                          g.features.forEach((feat: any, i: number) => {
+                            if (i < 8) {
+                              update(`landing_feature${i+1}_titulo`, feat.titulo);
+                              update(`landing_feature${i+1}_desc`, feat.desc);
+                            }
+                          });
+                        }
+                        toast({ title: '✅ Conteúdo completo gerado com IA!', description: `${activeSections.length} seções atualizadas. Revise e salve.` });
                       }
                     } catch (e: any) {
                       toast({ title: 'Erro na IA', description: e.message, variant: 'destructive' });
@@ -2258,6 +2339,82 @@ gtag('config', '${settings.landing_pixel_google}');
                     Gerar Tudo com IA
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Upload de Mídia por Seção */}
+            <Card className="border-amber-500/30">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ImagePlus className="w-5 h-5 text-amber-500" /> Mídia por Seção (Fotos & Vídeos)
+                </CardTitle>
+                <CardDescription>Anexe fotos e vídeos a seções específicas da landing page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {[
+                  { key: 'landing_hero_bg_image', label: '🎯 Imagem de Fundo do Hero', accept: 'image/*' },
+                  { key: 'landing_vsl_url', label: '🎬 Vídeo VSL Principal', accept: 'video/*', isVideo: true },
+                  { key: 'landing_precos_bg_image', label: '💰 Imagem de Fundo dos Preços', accept: 'image/*' },
+                  { key: 'landing_depoimentos_bg_image', label: '💬 Imagem de Fundo dos Depoimentos', accept: 'image/*' },
+                  { key: 'landing_video_prova_social_1', label: '📹 Vídeo Prova Social 1', accept: 'video/*', isVideo: true },
+                  { key: 'landing_video_prova_social_2', label: '📹 Vídeo Prova Social 2', accept: 'video/*', isVideo: true },
+                  { key: 'landing_video_prova_social_3', label: '📹 Vídeo Prova Social 3', accept: 'video/*', isVideo: true },
+                ].map(media => (
+                  <div key={media.key} className="p-3 rounded-lg border border-border bg-muted/20 space-y-2">
+                    <Label className="text-sm font-medium">{media.label}</Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={settings[media.key] || ''}
+                        onChange={e => update(media.key, e.target.value)}
+                        placeholder={media.isVideo ? 'https://youtube.com/... ou URL do vídeo' : 'URL da imagem'}
+                        className="flex-1 h-8 text-xs"
+                      />
+                      <input
+                        type="file"
+                        accept={media.accept}
+                        className="hidden"
+                        id={`upload-${media.key}`}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setUploading(true);
+                            const ext = file.name.split('.').pop();
+                            const path = `${media.key.replace('landing_', '')}/${Date.now()}.${ext}`;
+                            const { data, error } = await supabase.storage
+                              .from('landing-media')
+                              .upload(path, file, { cacheControl: '3600', upsert: true });
+                            if (error) throw error;
+                            const { data: urlData } = supabase.storage.from('landing-media').getPublicUrl(data.path);
+                            update(media.key, urlData.publicUrl);
+                            toast({ title: '✅ Arquivo enviado!' });
+                          } catch (err: any) {
+                            toast({ title: 'Erro no upload', description: err.message, variant: 'destructive' });
+                          } finally { setUploading(false); }
+                        }}
+                      />
+                      <Button variant="outline" size="sm" className="h-8 text-xs"
+                        onClick={() => document.getElementById(`upload-${media.key}`)?.click()}
+                        disabled={uploading}>
+                        {uploading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3 mr-1" />}
+                        Upload
+                      </Button>
+                      {settings[media.key] && (
+                        <Button variant="ghost" size="sm" className="h-8 text-destructive" onClick={() => update(media.key, '')}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                    {settings[media.key] && !media.isVideo && (
+                      <img src={settings[media.key]} alt="preview" className="w-20 h-12 rounded object-cover border border-border" />
+                    )}
+                    {settings[media.key] && media.isVideo && (
+                      <div className="flex items-center gap-2 text-xs text-green-400">
+                        <Video className="w-3 h-3" /> Vídeo configurado ✓
+                      </div>
+                    )}
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
