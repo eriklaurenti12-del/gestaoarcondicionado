@@ -1245,8 +1245,12 @@ const Landing: React.FC = () => {
           interval={Number(settings.landing_notif_intervalo || 10) * 1000}
           soundEnabled={settings.landing_notif_som !== 'false'}
           soundUrl={settings.landing_notif_som_url || undefined}
-          precoMensal={settings.landing_preco_mensal || '39,90'}
-          precoAnual={settings.landing_preco_anual || '370'}
+          precoMensal={settings.landing_preco_mensal || settings.preco_mensal || '39,90'}
+          precoAnual={settings.landing_preco_anual || settings.preco_anual || '370'}
+          precoTrimestral={settings.preco_trimestral || undefined}
+          precoSemestral={settings.preco_semestral || undefined}
+          precoVitalicio={settings.preco_vitalicio || undefined}
+          planosVisiveis={settings.planos_visiveis_landing || 'mensal,anual'}
           customActions={settings.landing_notif_acoes || ''}
           customNames={settings.landing_notif_nomes || ''}
           customCities={settings.landing_notif_cidades || ''}
