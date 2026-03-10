@@ -71,6 +71,7 @@ const DEFAULT_TABS = [
   { id: 'integrations', label: 'Integrações', icon: 'Zap' },
   { id: 'n8n', label: 'n8n', icon: 'Webhook' },
   { id: 'landing', label: 'Landing', icon: 'Megaphone' },
+  { id: 'theme', label: 'Tema', icon: 'Palette' },
   { id: 'links', label: 'Links', icon: 'Link' },
   { id: 'raffle', label: 'Sorteio', icon: 'Gift' },
   { id: 'sidebar-config', label: 'Menu', icon: 'Menu' },
