@@ -120,15 +120,29 @@ export const AdminIntegrationsTab: React.FC = () => {
   const saveAll = async () => {
     setSaving(true);
     try {
-      const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'whatsapp_suporte',
+      const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'planos_visiveis_landing',
+        'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
         ...PLANS.flatMap(p => [`checkout_${p.id}`, `preco_${p.id}`])];
-      for (const key of keysToSave) {
-        await supabase.from('admin_settings').upsert(
-          { key, value: settings[key] || '', description: `Config: ${key}` },
-          { onConflict: 'key' }
-        );
+      
+      // Also sync landing page price settings
+      const landingSyncKeys: Record<string, string> = {
+        'landing_preco_mensal': settings.preco_mensal?.replace('.', ',') || '29,90',
+        'landing_preco_anual': settings.preco_anual?.replace('.', ',') || '199,90',
+      };
+      
+      const allUpserts = [
+        ...keysToSave.map(key => ({
+          key, value: settings[key] || '', description: `Config: ${key}`
+        })),
+        ...Object.entries(landingSyncKeys).map(([key, value]) => ({
+          key, value, description: `Sync: ${key}`
+        })),
+      ];
+      
+      for (const item of allUpserts) {
+        await supabase.from('admin_settings').upsert(item, { onConflict: 'key' });
       }
-      toast({ title: "✅ Salvo!", description: "Configurações atualizadas." });
+      toast({ title: "✅ Salvo!", description: "Todas as configurações e links de checkout foram atualizados." });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
