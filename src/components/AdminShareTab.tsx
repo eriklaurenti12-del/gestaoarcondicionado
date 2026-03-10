@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, ExternalLink, Globe, Send, Save, Loader2, Info, LinkIcon, Users, Calendar, LogIn, Link2, LayoutDashboard, Zap, Plus, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Globe, Send, Save, Loader2, Info, LinkIcon, Users, Calendar, LogIn, Link2, Plus, Trash2 } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -23,7 +23,6 @@ const USAGE_OPTIONS = [
   { value: 'cadastro', label: 'Cadastro', desc: 'Página de cadastro' },
   { value: 'portal', label: 'Portal da Equipe', desc: 'Portal da equipe' },
   { value: 'agendamento', label: 'Agendamento', desc: 'Agendamento online' },
-  { value: 'dashboard', label: 'Dashboard', desc: 'Painel de controle' },
 ];
 
 export const AdminShareTab: React.FC = () => {
@@ -50,11 +49,7 @@ export const AdminShareTab: React.FC = () => {
       if (data) {
         const domainRow = data.find(r => r.key === 'custom_domain');
         const domainsListRow = data.find(r => r.key === 'custom_domains_list');
-
-        if (domainRow?.value) {
-          setPrimaryDomain(domainRow.value);
-        }
-
+        if (domainRow?.value) setPrimaryDomain(domainRow.value);
         if (domainsListRow?.value) {
           try {
             const parsed = JSON.parse(domainsListRow.value);
@@ -72,11 +67,7 @@ export const AdminShareTab: React.FC = () => {
   const saveDomainsList = async (list: DomainEntry[]) => {
     const value = JSON.stringify(list);
     const { data: existing } = await supabase
-      .from('admin_settings')
-      .select('id')
-      .eq('key', 'custom_domains_list')
-      .maybeSingle();
-
+      .from('admin_settings').select('id').eq('key', 'custom_domains_list').maybeSingle();
     if (existing) {
       await supabase.from('admin_settings').update({ value, updated_at: new Date().toISOString() }).eq('key', 'custom_domains_list');
     } else {
@@ -85,16 +76,8 @@ export const AdminShareTab: React.FC = () => {
   };
 
   const savePrimaryDomain = async (domain: string) => {
-    for (const [key, value] of [
-      ['custom_domain', domain],
-      ['use_custom_domain', domain ? 'true' : 'false'],
-    ] as const) {
-      const { data: existing } = await supabase
-        .from('admin_settings')
-        .select('id')
-        .eq('key', key)
-        .maybeSingle();
-
+    for (const [key, value] of [['custom_domain', domain], ['use_custom_domain', domain ? 'true' : 'false']] as const) {
+      const { data: existing } = await supabase.from('admin_settings').select('id').eq('key', key).maybeSingle();
       if (existing) {
         await supabase.from('admin_settings').update({ value, updated_at: new Date().toISOString() }).eq('key', key);
       } else {
@@ -108,48 +91,30 @@ export const AdminShareTab: React.FC = () => {
     setSaving(true);
     try {
       let domain = newDomain.trim().replace(/\/+$/, '');
-      if (domain && !domain.startsWith('http')) {
-        domain = 'https://' + domain;
-      }
-
-      const entry: DomainEntry = {
-        id: crypto.randomUUID(),
-        domain,
-        nickname: newNickname.trim(),
-        usage: newUsage,
-      };
-
+      if (domain && !domain.startsWith('http')) domain = 'https://' + domain;
+      const entry: DomainEntry = { id: crypto.randomUUID(), domain, nickname: newNickname.trim(), usage: newUsage };
       const updated = [...domains, entry];
       setDomains(updated);
       await saveDomainsList(updated);
-
-      // Set as primary if it's the first or if it's a landing domain
       if (updated.length === 1 || newUsage === 'landing') {
         setPrimaryDomain(domain);
         await savePrimaryDomain(domain);
       }
-
-      setNewDomain('');
-      setNewNickname('');
-      setNewUsage('landing');
+      setNewDomain(''); setNewNickname(''); setNewUsage('landing');
       toast({ title: "Domínio adicionado! 🌐", description: `${domain} configurado como ${USAGE_OPTIONS.find(o => o.value === newUsage)?.label}.` });
     } catch {
-      toast({ title: "Erro", description: "Não foi possível salvar o domínio.", variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+      toast({ title: "Erro", description: "Não foi possível salvar.", variant: "destructive" });
+    } finally { setSaving(false); }
   };
 
   const removeDomain = async (id: string) => {
     const updated = domains.filter(d => d.id !== id);
     setDomains(updated);
     await saveDomainsList(updated);
-
     const landingDomain = updated.find(d => d.usage === 'landing');
     const newPrimary = landingDomain?.domain || '';
     setPrimaryDomain(newPrimary);
     await savePrimaryDomain(newPrimary);
-
     toast({ title: "Domínio removido", description: "Links atualizados automaticamente." });
   };
 
@@ -161,18 +126,24 @@ export const AdminShareTab: React.FC = () => {
   const baseUrl = primaryDomain || DEFAULT_URL;
 
   const links = [
-    { icon: Globe, label: 'Landing Page (Vendas)', desc: 'Página de vendas principal', url: getDomainForUsage('landing') + '/vendas', color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { icon: Users, label: 'Portal da Equipe', desc: 'Login do portal da equipe', url: getDomainForUsage('portal') + '/portal', color: 'text-blue-400', bg: 'bg-blue-500/10' },
-    { icon: Calendar, label: 'Agendamento Online', desc: 'Agendamento público', url: getDomainForUsage('agendamento') + '/agendar', color: 'text-amber-400', bg: 'bg-amber-500/10' },
-    { icon: LogIn, label: 'Login do Sistema', desc: 'Link direto para login', url: getDomainForUsage('login') + '/?login=true', color: 'text-green-400', bg: 'bg-green-500/10' },
-    { icon: Link2, label: 'Cadastro', desc: 'Link para criar conta', url: getDomainForUsage('cadastro') + '/?cadastro=true', color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { icon: LayoutDashboard, label: 'Dashboard', desc: 'Painel de controle', url: getDomainForUsage('dashboard') + '/members', color: 'text-cyan-400', bg: 'bg-cyan-500/10' },
-    { icon: Zap, label: 'Simplificado', desc: 'Interface simplificada', url: baseUrl, color: 'text-yellow-400', bg: 'bg-yellow-500/10' },
+    { icon: Globe, label: 'Landing Page', desc: 'Página de vendas principal', url: getDomainForUsage('landing') + '/vendas', color: 'text-cyan-400', borderColor: 'border-l-cyan-500' },
+    { icon: LogIn, label: 'Página de Login', desc: 'Link direto para login', url: getDomainForUsage('login') + '/?login=true', color: 'text-green-400', borderColor: 'border-l-green-500' },
+    { icon: Link2, label: 'Página de Cadastro', desc: 'Link direto para criar conta', url: getDomainForUsage('cadastro') + '/?cadastro=true', color: 'text-purple-400', borderColor: 'border-l-purple-500' },
+    { icon: Users, label: 'Portal da Equipe', desc: 'Link para equipe administrar e solicitar suporte', url: getDomainForUsage('portal') + '/portal', color: 'text-blue-400', borderColor: 'border-l-blue-500' },
+    { icon: Calendar, label: 'Agendamento Online', desc: 'Página pública de agendamento', url: getDomainForUsage('agendamento') + '/agendar', color: 'text-amber-400', borderColor: 'border-l-amber-500' },
   ];
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast({ title: "Copiado! 📋", description: `${label} copiado.` });
+    toast({ title: "Copiado! 📋", description: `${label} copiado para a área de transferência.` });
+  };
+
+  const shareLink = async (url: string, title: string) => {
+    if (navigator.share) {
+      try { await navigator.share({ title, url, text: `Confira o ${title}!` }); } catch {}
+    } else {
+      copyToClipboard(url, title);
+    }
   };
 
   const whatsappTemplates = [
@@ -187,24 +158,46 @@ export const AdminShareTab: React.FC = () => {
 
       {/* Header */}
       <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
-        <CardContent className="p-5">
+        <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/20">
-              <Send className="w-6 h-6 text-blue-400" />
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+              <LinkIcon className="w-5 h-5 text-cyan-400" />
             </div>
-            <div>
-              <h2 className="text-white font-bold text-lg">Links & Domínios</h2>
-              <p className="text-gray-400 text-sm">Gerencie seus domínios personalizados e links do sistema</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h2 className="text-white font-bold text-base">Links do Sistema</h2>
+                <Badge className="bg-cyan-600 text-white text-[10px] px-2 py-0">COMPARTILHAR</Badge>
+              </div>
+              <p className="text-gray-400 text-xs">Gerencie os links de acesso ao sistema: landing page, cadastro, login e agendamento online. Copie e compartilhe facilmente.</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Domínios Personalizados */}
-      <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
-        <CardContent className="p-5 space-y-5">
+      {/* Info Banner */}
+      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
+        <LinkIcon className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
+        <p className="text-blue-300 text-xs">
+          <span className="font-semibold">Também usado na aba Landing e Portal:</span> O link da Landing Page é compartilhado com a aba Landing para personalização. O link de agendamento (/agendar) é o mesmo usado na página de agendamento online público.
+        </p>
+      </div>
+
+      {/* Compartilhar Links Section */}
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
+          <Send className="w-5 h-5 text-cyan-400" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold text-white">Compartilhar Links</h2>
+          <p className="text-gray-400 text-xs">Copie e compartilhe os links do sistema</p>
+        </div>
+      </div>
+
+      {/* Domínio Personalizado */}
+      <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-blue-500">
+        <CardContent className="p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Globe className="w-5 h-5 text-white" />
               <h3 className="text-white font-bold text-base">Domínios Personalizados</h3>
               <Badge className="bg-blue-600 text-white text-[10px] px-2 py-0">PRO</Badge>
@@ -213,39 +206,29 @@ export const AdminShareTab: React.FC = () => {
               {domains.length} domínio(s)
             </Badge>
           </div>
-          <p className="text-gray-400 text-sm -mt-2">Conecte múltiplos domínios para landing page, agendamento, portal e mais</p>
+          <p className="text-gray-400 text-xs -mt-2">Conecte múltiplos domínios para landing page, agendamento, portal e mais</p>
 
-          {/* Add New Domain Form */}
+          {/* Add New Domain */}
           <div className="bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 space-y-4">
             <div className="flex items-center gap-2 text-white font-semibold text-sm">
               <Plus className="w-4 h-4" />
               Adicionar Novo Domínio
             </div>
-
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
-                <label className="text-gray-400 text-xs font-medium mb-1 block">Domínio</label>
-                <Input
-                  value={newDomain}
-                  onChange={(e) => setNewDomain(e.target.value)}
-                  placeholder="meusite.com.br"
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600"
-                />
+                <label className="text-gray-300 text-xs font-medium mb-1.5 block">Domínio</label>
+                <Input value={newDomain} onChange={(e) => setNewDomain(e.target.value)} placeholder="meusite.com.br"
+                  className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600" />
               </div>
               <div>
-                <label className="text-gray-400 text-xs font-medium mb-1 block">Apelido (opcional)</label>
-                <Input
-                  value={newNickname}
-                  onChange={(e) => setNewNickname(e.target.value)}
-                  placeholder="Meu site principal"
-                  className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600"
-                />
+                <label className="text-gray-300 text-xs font-medium mb-1.5 block">Apelido (opcional)</label>
+                <Input value={newNickname} onChange={(e) => setNewNickname(e.target.value)} placeholder="Meu site principal"
+                  className="bg-[#0f0f17] border-[#2a2a3a] text-white placeholder:text-gray-600" />
               </div>
             </div>
-
             <div className="flex items-end gap-3">
               <div className="flex-1">
-                <label className="text-gray-400 text-xs font-medium mb-1 block">Tipo de uso</label>
+                <label className="text-gray-300 text-xs font-medium mb-1.5 block">Tipo de uso</label>
                 <Select value={newUsage} onValueChange={setNewUsage}>
                   <SelectTrigger className="bg-[#0f0f17] border-[#2a2a3a] text-white">
                     <SelectValue />
@@ -260,11 +243,8 @@ export const AdminShareTab: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button
-                onClick={addDomain}
-                disabled={saving || !newDomain.trim()}
-                className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 h-10 px-5"
-              >
+              <Button onClick={addDomain} disabled={saving || !newDomain.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 h-10 px-5">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Plus className="w-4 h-4 mr-1" />}
                 Adicionar
               </Button>
@@ -287,22 +267,10 @@ export const AdminShareTab: React.FC = () => {
                       <span className="text-gray-500 text-xs">{usageLabel}</span>
                     </div>
                     <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 text-[10px] shrink-0">Ativo</Badge>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => copyToClipboard(d.domain, d.nickname || d.domain)}
-                      className="text-gray-400 hover:text-white h-8 w-8 p-0"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => removeDomain(d.id)}
-                      className="text-gray-400 hover:text-red-400 h-8 w-8 p-0"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(d.domain, d.nickname || d.domain)}
+                      className="text-gray-400 hover:text-white h-8 w-8 p-0"><Copy className="w-3.5 h-3.5" /></Button>
+                    <Button size="sm" variant="ghost" onClick={() => removeDomain(d.id)}
+                      className="text-gray-400 hover:text-red-400 h-8 w-8 p-0"><Trash2 className="w-3.5 h-3.5" /></Button>
                   </div>
                 );
               })}
@@ -310,7 +278,7 @@ export const AdminShareTab: React.FC = () => {
           )}
 
           {/* DNS Instructions */}
-          <div className="bg-[#12121a] border border-[#2a2a3a] rounded-lg p-4 space-y-2">
+          <div className="bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3 space-y-2">
             <div className="flex items-start gap-2">
               <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
               <div className="text-xs text-gray-400 space-y-1">
@@ -330,90 +298,67 @@ export const AdminShareTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Links Rápidos Grid */}
-      <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
-              <LinkIcon className="w-5 h-5 text-cyan-400" />
-            </div>
-            <div>
-              <h2 className="text-white font-bold text-lg">Links Rápidos & Compartilhamento</h2>
-              <p className="text-gray-400 text-sm">Acesse e compartilhe todos os links do sistema</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {links.map((link, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 bg-[#12121a] border border-[#2a2a3a] rounded-xl p-4 hover:border-[#3a3a5a] transition-colors group"
-              >
-                <div className={`p-2.5 rounded-xl ${link.bg} shrink-0`}>
+      {/* Links List - Full width cards with visible URLs */}
+      <div className="grid gap-4">
+        {links.map((link, i) => (
+          <Card key={i} className={`bg-[#1a1a2e] border-[#2a2a3a] border-l-4 ${link.borderColor}`}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 rounded-xl bg-[#12121a]">
                   <link.icon className={`w-5 h-5 ${link.color}`} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-white font-semibold text-sm">{link.label}</h4>
-                  <p className="text-gray-500 text-xs truncate">{link.desc}</p>
+                  <h3 className="text-white font-semibold text-sm">{link.label}</h3>
+                  <p className="text-gray-500 text-xs">{link.desc}</p>
+                  <div className="mt-2">
+                    <Input value={link.url} readOnly
+                      className="bg-[#0f0f17] border-[#2a2a3a] text-cyan-300 text-xs h-9 font-mono cursor-text" />
+                  </div>
                 </div>
-                <div className="flex gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => copyToClipboard(link.url, link.label)}
-                    className="text-gray-400 hover:text-white h-8 w-8 p-0"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
+                <div className="flex flex-col gap-2 shrink-0">
+                  <Button size="sm" onClick={() => copyToClipboard(link.url, link.label)}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
+                    <Copy className="w-3 h-3 mr-1" /> Copiar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => window.open(link.url, '_blank')}
-                    className="text-gray-400 hover:text-white h-8 w-8 p-0"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
+                  <Button size="sm" onClick={() => shareLink(link.url, link.label)}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
+                    <Send className="w-3 h-3 mr-1" /> Enviar
+                  </Button>
+                  <Button size="sm" onClick={() => window.open(link.url, '_blank')}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
+                    <ExternalLink className="w-3 h-3 mr-1" /> Abrir
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
 
       {/* WhatsApp Templates */}
-      <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
-        <CardContent className="p-5 space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">💬</span>
-            <div>
-              <h2 className="text-white font-bold text-lg">Mensagens Prontas para WhatsApp</h2>
-              <p className="text-gray-400 text-sm">Clique para copiar e enviar</p>
-            </div>
-          </div>
+      <div className="flex items-center gap-3 mt-2">
+        <span className="text-2xl">💬</span>
+        <div>
+          <h2 className="text-lg font-bold text-white">Mensagens Prontas para WhatsApp</h2>
+          <p className="text-gray-400 text-xs">Clique para copiar e enviar</p>
+        </div>
+      </div>
 
-          <div className="space-y-2">
-            {whatsappTemplates.map((tmpl, i) => (
-              <div key={i} className="flex items-center gap-3 bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold">{tmpl.label}</p>
-                  <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{tmpl.msg}</p>
-                </div>
-                <Button size="sm" onClick={() => copyToClipboard(tmpl.msg, tmpl.label)}
-                  className="bg-green-600 hover:bg-green-700 text-white text-xs shrink-0 h-9 px-4">
-                  <Copy className="w-3 h-3 mr-1" /> Copiar
-                </Button>
+      <div className="space-y-3">
+        {whatsappTemplates.map((tmpl, i) => (
+          <Card key={i} className="bg-[#1a1a2e] border-[#2a2a3a]">
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-white text-sm font-semibold">{tmpl.label}</p>
+                <p className="text-gray-500 text-xs mt-1 line-clamp-2">{tmpl.msg}</p>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Info Banner */}
-      <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
-        <LinkIcon className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
-        <p className="text-blue-300 text-xs">
-          <span className="font-semibold">Integração automática:</span> Ao configurar um domínio, todos os links do sistema são atualizados automaticamente — Landing Page, Login, Cadastro, Portal, Agendamento e mensagens do WhatsApp.
-        </p>
+              <Button size="sm" onClick={() => copyToClipboard(tmpl.msg, tmpl.label)}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs shrink-0 h-9 px-4">
+                <Copy className="w-3 h-3 mr-1" /> Copiar
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
