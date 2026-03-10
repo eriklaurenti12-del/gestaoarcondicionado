@@ -42,7 +42,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const queryClient = useQueryClient();
   const [bookings, setBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('pendentes');
+  const [activeTab, setActiveTab] = useState('futuras');
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     return localStorage.getItem('online-booking-notifications') !== 'false';
   });
