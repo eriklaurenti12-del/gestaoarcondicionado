@@ -608,6 +608,189 @@ const AdminThemeTab: React.FC = () => {
           ))}
         </CardContent>
       </Card>
+
+      {/* Fonts & Typography */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Type className="w-5 h-5 text-primary" /> Tipografia & Fontes
+          </CardTitle>
+          <CardDescription>Escolha as fontes, pesos e estilos de texto do sistema</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Fonte do Corpo</Label>
+              <Select value={fontFamily} onValueChange={setFontFamily}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Fonte dos Títulos</Label>
+              <Select value={headingFont} onValueChange={setHeadingFont}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Peso da Fonte (Corpo)</Label>
+              <Select value={fontWeight} onValueChange={setFontWeight}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_WEIGHT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Peso da Fonte (Títulos)</Label>
+              <Select value={headingWeight} onValueChange={setHeadingWeight}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_WEIGHT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Tamanho Base ({fontSize}px)</Label>
+              <Slider value={[fontSize]} onValueChange={v => setFontSize(v[0])} min={12} max={22} step={1} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Espaçamento entre Letras ({letterSpacing.toFixed(2)}em)</Label>
+              <Slider value={[letterSpacing]} onValueChange={v => setLetterSpacing(v[0])} min={-0.05} max={0.15} step={0.01} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+            <p className="text-sm">Sombra no Texto (Text Shadow)</p>
+            <Switch checked={textShadow} onCheckedChange={setTextShadow} />
+          </div>
+
+          {/* Font Preview */}
+          <div className="p-4 rounded-xl border border-border bg-card space-y-2">
+            <h3 className="text-lg" style={{ fontFamily: headingFont, fontWeight: Number(headingWeight) }}>
+              Preview dos Títulos — Heading
+            </h3>
+            <p className="text-sm" style={{ fontFamily: fontFamily, fontWeight: Number(fontWeight), fontSize: `${fontSize}px`, letterSpacing: `${letterSpacing}em` }}>
+              Preview do corpo de texto com a fonte selecionada. Aqui está um exemplo de como o texto aparecerá no sistema.
+            </p>
+            <p className="text-xs text-muted-foreground" style={{ fontFamily: fontFamily }}>
+              ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Light Effects */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-primary" /> Efeitos de Luz
+          </CardTitle>
+          <CardDescription>Escolha um efeito de iluminação ambiente para o sistema</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {LIGHT_EFFECT_PRESETS.map(ef => (
+              <button key={ef.value} onClick={() => setLightEffect(ef.value)}
+                className={`p-3 rounded-xl border transition-all text-center space-y-1 hover:scale-105 active:scale-95 ${
+                  lightEffect === ef.value ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
+                }`}>
+                <p className="text-xl">{ef.emoji}</p>
+                <p className="text-xs font-medium">{ef.label}</p>
+              </button>
+            ))}
+          </div>
+          {/* Light effect live preview */}
+          <div className="mt-4 h-24 rounded-xl border border-border overflow-hidden relative" style={{ backgroundColor: `hsl(${currentColors.background})` }}>
+            {lightEffect === 'neon' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full animate-pulse" style={{ backgroundColor: `hsl(${currentColors.primary} / 0.3)`, boxShadow: `0 0 60px 30px hsl(${currentColors.primary} / 0.4)` }} />
+              </div>
+            )}
+            {lightEffect === 'aurora' && (
+              <div className="absolute inset-0 opacity-60" style={{ background: `linear-gradient(135deg, hsl(${currentColors.primary} / 0.3), hsl(${currentColors.secondary} / 0.3), hsl(${currentColors.accent} / 0.3))`, animation: 'gradient-shift 4s ease infinite', backgroundSize: '200% 200%' }} />
+            )}
+            {lightEffect === 'pulse' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-full" style={{ backgroundColor: `hsl(${currentColors.primary} / 0.2)`, animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite', boxShadow: `0 0 40px 15px hsl(${currentColors.primary} / 0.15)` }} />
+              </div>
+            )}
+            {lightEffect === 'spotlight' && (
+              <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 0%, hsl(${currentColors.primary} / 0.35) 0%, transparent 70%)` }} />
+            )}
+            {lightEffect === 'firefly' && (
+              <div className="absolute inset-0 flex items-center justify-around">
+                {[0,1,2,3,4].map(i => (
+                  <div key={i} className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${currentColors.primary})`, animation: `pulse ${1.5 + i * 0.3}s ease-in-out infinite`, opacity: 0.6 + i * 0.08 }} />
+                ))}
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-xs text-muted-foreground font-medium z-10">
+                {lightEffect === 'none' ? 'Nenhum efeito selecionado' : `Efeito: ${LIGHT_EFFECT_PRESETS.find(e => e.value === lightEffect)?.label}`}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transitions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowRightLeft className="w-5 h-5 text-primary" /> Transições & Animações
+          </CardTitle>
+          <CardDescription>Controle a velocidade das transições e animações do sistema</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Velocidade das Transições</Label>
+            <Select value={transitionSpeed} onValueChange={setTransitionSpeed}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TRANSITION_SPEED_OPTIONS.map(t => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Transition Preview */}
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 h-12 rounded-xl border border-border bg-primary/10 hover:bg-primary/30 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Passe o mouse aqui</p>
+            </div>
+            <div className="flex-1 h-12 rounded-xl border border-border hover:border-primary hover:scale-105 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Efeito hover</p>
+            </div>
+            <div className="flex-1 h-12 rounded-xl border border-border hover:shadow-lg hover:shadow-primary/20 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Sombra hover</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
