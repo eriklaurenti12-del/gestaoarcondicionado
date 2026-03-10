@@ -1099,7 +1099,7 @@ const Landing: React.FC = () => {
               <p className="text-lg text-gray-300 mb-6">{settings.landing_hero_descricao}</p>
               <p className="text-amber-300 mb-8 font-medium">{settings.landing_frase_destaque}</p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+                <Button size="lg" className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-lg px-8 py-6 rounded-xl shadow-lg shadow-purple-500/25 hover:scale-105 transition-all" onClick={handleMainCTA}>
                   {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
                 <Button size="lg" variant="outline" className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10 text-lg px-8 py-6 rounded-xl" onClick={handleContactSupport}>
