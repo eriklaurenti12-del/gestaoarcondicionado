@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can read theme settings" ON public.admin_settings FOR SELECT USING (key LIKE 'theme_%');
