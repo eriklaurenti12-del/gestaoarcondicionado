@@ -63,7 +63,7 @@ const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; desc
   sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Agenda, Clientes, Agendar e Suporte' },
 };
 
-const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
+// publishedUrl is now provided by useDomainSettings hook inside the component
 
 const DEFAULT_TABS = [
   { id: 'team', label: 'Equipe', icon: 'Users' },
