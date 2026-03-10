@@ -1935,6 +1935,158 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
 
+        {/* SEÇÕES */}
+        <TabsContent value="secoes">
+          <div className="space-y-4">
+            <Card className="border-primary/10">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">💡 Dica: Seções</p>
+                    <p className="text-xs text-muted-foreground">
+                      Ative ou desative seções inteiras da landing page. Útil para simplificar a página ou esconder seções que você ainda não preencheu. A seção Hero é obrigatória.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Eye className="w-5 h-5 text-emerald-500" /> Visibilidade das Seções
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { key: 'landing_secao_hero', label: '🏠 Hero (Cabeçalho)', desc: 'Seção principal com título, CTA e prova social', required: true },
+                  { key: 'landing_secao_frase_destaque', label: '💬 Frase de Destaque', desc: 'Quote/citação de impacto' },
+                  { key: 'landing_secao_comparativo', label: '😰 vs 😄 Dor vs Solução', desc: 'Comparativo sem/com sistema' },
+                  { key: 'landing_secao_vsl', label: '📹 Vídeo de Vendas', desc: 'Seção do VSL' },
+                  { key: 'landing_secao_features', label: '⚡ Funcionalidades', desc: 'Grid de funcionalidades do sistema' },
+                  { key: 'landing_secao_dor', label: '😰 Seção de Dor', desc: 'Problemas que o sistema resolve' },
+                  { key: 'landing_secao_precos', label: '💰 Preços', desc: 'Tabela de planos e preços' },
+                  { key: 'landing_secao_depoimentos', label: '💬 Depoimentos', desc: 'Avaliações de clientes' },
+                  { key: 'landing_secao_faq', label: '❓ FAQ', desc: 'Perguntas frequentes' },
+                  { key: 'landing_secao_garantia', label: '🛡️ Garantia', desc: 'Seção de garantia de satisfação' },
+                  { key: 'landing_secao_urgencia_final', label: '⚠️ Urgência Final', desc: 'Contador e urgência antes do CTA' },
+                  { key: 'landing_secao_cta_final', label: '🎯 CTA Final', desc: 'Botão de chamada para ação final' },
+                ].map(s => (
+                  <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div>
+                      <span className="text-sm font-medium">{s.label}</span>
+                      {s.desc && <p className="text-xs text-muted-foreground">{s.desc}</p>}
+                    </div>
+                    <Switch 
+                      checked={settings[s.key] !== 'false'}
+                      onCheckedChange={v => update(s.key, v ? 'true' : 'false')}
+                      disabled={s.required}
+                    />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* RISCADO */}
+        <TabsContent value="riscado">
+          <div className="space-y-4">
+            <Card className="border-primary/10">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">💡 Dica: Preço Riscado</p>
+                    <p className="text-xs text-muted-foreground">
+                      Exiba o preço original riscado ao lado do preço com desconto para aumentar a percepção de valor e urgência na compra.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <DollarSign className="w-5 h-5 text-red-500" /> Preço Riscado — Plano Mensal
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <Label className="text-sm">Exibir preço riscado no mensal</Label>
+                  <Switch checked={settings.landing_preco_mensal_riscado === 'true'}
+                    onCheckedChange={v => update('landing_preco_mensal_riscado', v ? 'true' : 'false')} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Preço Original Riscado (R$)</Label>
+                  <Input value={settings.landing_preco_mensal_original || ''} onChange={e => update('landing_preco_mensal_original', e.target.value)}
+                    placeholder="Ex: 59,90" />
+                </div>
+                {settings.landing_preco_mensal_riscado === 'true' && settings.landing_preco_mensal_original && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border text-center">
+                    <span className="text-muted-foreground line-through text-sm mr-2">R$ {settings.landing_preco_mensal_original}</span>
+                    <span className="text-primary font-bold text-lg">R$ {settings.landing_preco_mensal || '39,90'}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <DollarSign className="w-5 h-5 text-amber-500" /> Preço Riscado — Plano Anual
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <Label className="text-sm">Exibir preço riscado no anual</Label>
+                  <Switch checked={settings.landing_preco_anual_riscado === 'true'}
+                    onCheckedChange={v => update('landing_preco_anual_riscado', v ? 'true' : 'false')} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Preço Original Riscado (R$)</Label>
+                  <Input value={settings.landing_preco_anual_original || ''} onChange={e => update('landing_preco_anual_original', e.target.value)}
+                    placeholder="Ex: 478,80" />
+                </div>
+                {settings.landing_preco_anual_riscado === 'true' && settings.landing_preco_anual_original && (
+                  <div className="p-3 rounded-lg bg-muted/30 border border-border text-center">
+                    <span className="text-muted-foreground line-through text-sm mr-2">R$ {settings.landing_preco_anual_original}</span>
+                    <span className="text-amber-500 font-bold text-lg">R$ {settings.landing_preco_anual || '370,80'}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Nome riscado */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Type className="w-5 h-5 text-violet-500" /> Texto Riscado Personalizado
+                </CardTitle>
+                <CardDescription>Exiba um texto riscado customizado na landing page</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
+                  <Label className="text-sm">Ativo</Label>
+                  <Switch checked={settings.landing_nome_riscado_ativo === 'true'}
+                    onCheckedChange={v => update('landing_nome_riscado_ativo', v ? 'true' : 'false')} />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Texto riscado</Label>
+                  <Input value={settings.landing_nome_riscado_texto || ''} onChange={e => update('landing_nome_riscado_texto', e.target.value)}
+                    placeholder="Ex: Sem organização, sem controle..." />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* EXTRAS */}
         <TabsContent value="extras">
           <AdminGuideCards tab="landing-extras" />
