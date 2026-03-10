@@ -112,7 +112,7 @@ const RotatingNotifications: React.FC = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('installments')
-        .select('*, clients(name)')
+        .select('*, appointments(clients(name))')
         .eq('is_paid', false)
         .order('due_date', { ascending: true })
         .limit(10);
@@ -211,7 +211,7 @@ const RotatingNotifications: React.FC = () => {
     installments?.forEach((inst: any) => {
       const dueDate = new Date(inst.due_date);
       const daysUntil = differenceInDays(dueDate, today);
-      const clientName = inst.clients?.name || 'Cliente';
+      const clientName = inst.appointments?.clients?.name || 'Cliente';
       
       if (daysUntil < 0) {
         notifications.push({
