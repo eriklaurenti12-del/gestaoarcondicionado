@@ -634,40 +634,24 @@ export const AdminIntegrationsTab: React.FC = () => {
             })}
           </div>
 
-          {/* ── Planos visíveis na Landing Page ── */}
-          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20 space-y-2">
-            <p className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
-              <Globe className="w-3.5 h-3.5" /> Planos visíveis na Landing Page
+          {/* ── Resumo: Planos visíveis na Landing ── */}
+          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
+            <p className="text-xs font-bold text-purple-300 flex items-center gap-1.5 mb-1.5">
+              <Globe className="w-3.5 h-3.5" /> Planos na Landing Page
             </p>
-            <p className="text-[10px] text-gray-500">Selecione quais planos aparecem como opção de compra na landing page. Marque mais de um para mostrar múltiplas opções.</p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-1.5">
               {PLANS.map(plan => {
-                const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
-                const isChecked = visiblePlans.includes(plan.id);
+                const isVisible = (settings.planos_visiveis_landing || 'mensal,anual').split(',').includes(plan.id);
+                const hasLink = !!settings[`checkout_${plan.id}`];
+                if (!isVisible) return null;
                 return (
-                  <label key={plan.id} className="flex items-center gap-2 cursor-pointer">
-                    <Checkbox
-                      checked={isChecked}
-                      onCheckedChange={(checked) => {
-                        setSettings(prev => {
-                          const current = (prev.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
-                          const next = checked 
-                            ? [...new Set([...current, plan.id])]
-                            : current.filter(id => id !== plan.id);
-                          return { ...prev, planos_visiveis_landing: next.length ? next.join(',') : plan.id };
-                        });
-                      }}
-                    />
-                    <span className="text-xs text-white">{plan.icon} {plan.label}</span>
-                    {settings[`checkout_${plan.id}`] ? (
-                      <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[9px] h-4">Link OK</Badge>
-                    ) : (
-                      <Badge className="bg-red-600/20 text-red-400 border-red-600/30 text-[9px] h-4">Sem link</Badge>
-                    )}
-                  </label>
+                  <Badge key={plan.id} className={`text-[10px] ${hasLink ? 'bg-green-600/20 text-green-400 border-green-600/30' : 'bg-amber-600/20 text-amber-400 border-amber-600/30'}`}>
+                    {plan.icon} {plan.label} — R$ {settings[`preco_${plan.id}`] || plan.placeholder} {hasLink ? '✓' : '⚠ sem link'}
+                  </Badge>
                 );
               })}
             </div>
+            <p className="text-[10px] text-gray-500 mt-1">Use o botão "Landing ✓/✗" acima para ativar/desativar planos.</p>
           </div>
 
           {/* ── Notificações ── */}
