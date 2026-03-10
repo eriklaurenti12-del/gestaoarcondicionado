@@ -526,6 +526,7 @@ gtag('config', '${settings.landing_pixel_google}');
           <TabsTrigger value="secoes" className="text-xs"><Eye className="w-3 h-3 mr-1" />Seções</TabsTrigger>
           <TabsTrigger value="riscado" className="text-xs"><DollarSign className="w-3 h-3 mr-1" />Riscado</TabsTrigger>
           <TabsTrigger value="extras" className="text-xs"><Star className="w-3 h-3 mr-1" />Extras</TabsTrigger>
+          <TabsTrigger value="conteudo" className="text-xs"><Sparkles className="w-3 h-3 mr-1" />Conteúdo IA</TabsTrigger>
           <TabsTrigger value="checkout" className="text-xs"><CreditCard className="w-3 h-3 mr-1" />Landing</TabsTrigger>
         </TabsList>
 
