@@ -61,27 +61,67 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const loadCustomTheme = async (currentTheme: Theme) => {
     try {
-      const key = currentTheme === 'dark' ? 'theme_dark_colors' : 'theme_light_colors';
       const { data } = await supabase
         .from('admin_settings')
-        .select('value')
-        .eq('key', key)
-        .maybeSingle();
-      if (data?.value) {
-        const colors = JSON.parse(data.value);
-        applyCustomColors(colors, currentTheme === 'dark');
-      } else {
-        // No custom theme - remove inline styles to use CSS defaults
+        .select('key, value')
+        .like('key', 'theme_%');
+      
+      if (!data || data.length === 0) {
         document.documentElement.removeAttribute('style');
+        return;
       }
-      // Load border radius
-      const { data: radiusData } = await supabase
-        .from('admin_settings')
-        .select('value')
-        .eq('key', 'theme_border_radius')
-        .maybeSingle();
-      if (radiusData?.value) {
-        document.documentElement.style.setProperty('--radius', `${Number(radiusData.value) / 16}rem`);
+
+      const map: Record<string, string> = {};
+      data.forEach((r: any) => { map[r.key] = r.value || ''; });
+
+      // Apply colors
+      const colorKey = currentTheme === 'dark' ? 'theme_dark_colors' : 'theme_light_colors';
+      if (map[colorKey]) {
+        const colors = JSON.parse(map[colorKey]);
+        applyCustomColors(colors, currentTheme === 'dark');
+      }
+
+      // Apply border radius
+      if (map.theme_border_radius) {
+        document.documentElement.style.setProperty('--radius', `${Number(map.theme_border_radius) / 16}rem`);
+      }
+
+      // Apply fonts
+      if (map.theme_font_family) {
+        const ff = map.theme_font_family;
+        const familyName = ff.replace(/["']/g, '').split(',')[0].trim();
+        if (familyName && !['sans-serif','serif','monospace'].includes(familyName)) {
+          const linkId = `gfont-${familyName.replace(/\s+/g, '-')}`;
+          if (!document.getElementById(linkId)) {
+            const link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'stylesheet';
+            link.href = `https://fonts.googleapis.com/css2?family=${familyName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+            document.head.appendChild(link);
+          }
+        }
+        document.body.style.fontFamily = ff;
+      }
+      if (map.theme_heading_font) {
+        const hf = map.theme_heading_font;
+        const familyName = hf.replace(/["']/g, '').split(',')[0].trim();
+        if (familyName && !['sans-serif','serif','monospace'].includes(familyName)) {
+          const linkId = `gfont-${familyName.replace(/\s+/g, '-')}`;
+          if (!document.getElementById(linkId)) {
+            const link = document.createElement('link');
+            link.id = linkId;
+            link.rel = 'stylesheet';
+            link.href = `https://fonts.googleapis.com/css2?family=${familyName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+            document.head.appendChild(link);
+          }
+        }
+        document.documentElement.style.setProperty('--font-heading', hf);
+      }
+      if (map.theme_font_weight) document.body.style.fontWeight = map.theme_font_weight;
+      if (map.theme_font_size) document.body.style.fontSize = `${map.theme_font_size}px`;
+      if (map.theme_letter_spacing) document.body.style.letterSpacing = `${map.theme_letter_spacing}em`;
+      if (map.theme_transition_speed) {
+        document.documentElement.style.setProperty('--transition-speed', `${map.theme_transition_speed}ms`);
       }
     } catch {
       // Silently fail - use CSS defaults
