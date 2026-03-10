@@ -173,6 +173,8 @@ REGRAS IMPORTANTES:
       additionalProperties: false,
     };
 
+    const functionName = type === 'completo' ? 'generate_complete_copy' : type === 'hero' ? 'generate_hero_copy' : type === 'faq' ? 'generate_faq_copy' : type === 'depoimentos' ? 'generate_depoimentos_copy' : 'generate_ofertas_copy';
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -180,7 +182,7 @@ REGRAS IMPORTANTES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: prompts[type] || prompts.hero },
@@ -188,12 +190,12 @@ REGRAS IMPORTANTES:
         tools: [{
           type: "function",
           function: {
-            name: "generate_copy",
-            description: "Return generated copy for the landing page section",
+            name: functionName,
+            description: `Return generated copy fields. You MUST return all required fields with the exact names specified in the schema.`,
             parameters: toolSchema,
           }
         }],
-        tool_choice: { type: "function", function: { name: "generate_copy" } },
+        tool_choice: { type: "function", function: { name: functionName } },
       }),
     });
 
