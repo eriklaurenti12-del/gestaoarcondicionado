@@ -923,8 +923,16 @@ const Landing: React.FC = () => {
       <ScrollReveal direction="scale">
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</h2>
-          <p className="text-gray-300 mb-6">Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</p>
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">
+            {settings.landing_urgencia_titulo
+              ? <>{settings.landing_urgencia_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-red-400">{p}</span> : p)}</>
+              : <>⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</>}
+          </h2>
+          <p className="text-gray-300 mb-6">
+            {settings.landing_urgencia_subtitulo 
+              ? <>{settings.landing_urgencia_subtitulo.split('**').map((p: string, i: number) => i % 2 ? <strong key={i} className="text-amber-400">{p}</strong> : p)}</>
+              : <>Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</>}
+          </p>
         </div>
       </section>
       </ScrollReveal>
