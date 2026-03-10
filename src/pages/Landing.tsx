@@ -364,11 +364,10 @@ const Landing: React.FC = () => {
 
   const trackConversion = (type: string) => {
     const price = settings[`preco_${type}`] || '0';
-    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: price, currency: 'BRL' });
+    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: parseFloat(price.replace(',', '.')), currency: 'BRL' });
+    trackEvent('AddToCart', { content_name: `Plano ${type}`, value: parseFloat(price.replace(',', '.')), currency: 'BRL' });
     trackEvent('Lead', { content_name: `Plano ${type}` });
-    if (typeof trackInternalEvent === 'function') {
-      trackInternalEvent('cta_click', { plan: type, value: price });
-    }
+    trackInternalEvent('cta_click', { plan: type, value: price });
   };
 
   const trackScrollMilestone = (section: string) => {
