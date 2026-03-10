@@ -967,7 +967,7 @@ const Landing: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
             <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all"
-              onClick={() => handleCheckout('anual')}>
+              onClick={handleMainCTA}>
               <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
             </Button>
           </div>
