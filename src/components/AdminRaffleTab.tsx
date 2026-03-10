@@ -65,7 +65,7 @@ export const AdminRaffleTab: React.FC = () => {
   };
 
   const eligibleMembers = members.filter(m => {
-    if (m.email === 'eriklaurenti09@gmail.com') return false;
+    if (['eriklaurenti09@gmail.com', 'leonardoleal372@gmail.com'].includes(m.email)) return false;
     if (filter === 'active') return m.subscription?.status === 'aprovado';
     return true;
   });
