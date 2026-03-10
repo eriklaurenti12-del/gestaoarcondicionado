@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Copy, ExternalLink, Link2, LogIn, Globe, Share2, Server, Save, Loader2, Info, Send, LinkIcon, Users } from "lucide-react";
+import { Copy, ExternalLink, Link2, LogIn, Globe, Send, Save, Loader2, Info, LinkIcon, Users, Calendar } from "lucide-react";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 
 export const AdminShareTab: React.FC = () => {
   const { toast } = useToast();
@@ -15,8 +16,6 @@ export const AdminShareTab: React.FC = () => {
   const [useCustomDomain, setUseCustomDomain] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
-
-  const defaultUrl = 'https://gestaoarcondicionado.lovable.app';
 
   useEffect(() => {
     loadDomainSettings();
@@ -75,7 +74,7 @@ export const AdminShareTab: React.FC = () => {
 
       setSavedDomain(domain);
       setUseCustomDomain(!!domain);
-      toast({ title: "Domínio salvo! 🌐", description: domain ? `Domínio ${domain} configurado com sucesso.` : "Domínio removido. Usando URL padrão." });
+      toast({ title: "Domínio salvo! 🌐", description: domain ? `Domínio ${domain} configurado. Todos os links foram atualizados automaticamente.` : "Domínio removido. Usando URL padrão." });
     } catch (e) {
       toast({ title: "Erro", description: "Não foi possível salvar o domínio.", variant: "destructive" });
     } finally {
@@ -91,7 +90,7 @@ export const AdminShareTab: React.FC = () => {
       await supabase.from('admin_settings').update({ value: 'false', updated_at: new Date().toISOString() }).eq('key', 'use_custom_domain');
       setSavedDomain('');
       setUseCustomDomain(false);
-      toast({ title: "Domínio removido", description: "Voltando para a URL padrão." });
+      toast({ title: "Domínio removido", description: "Voltando para a URL padrão. Todos os links foram atualizados." });
     } catch (e) {
       toast({ title: "Erro", description: "Falha ao remover domínio.", variant: "destructive" });
     } finally {
@@ -99,11 +98,12 @@ export const AdminShareTab: React.FC = () => {
     }
   };
 
-  const baseUrl = useCustomDomain && savedDomain ? savedDomain : defaultUrl;
+  const baseUrl = useCustomDomain && savedDomain ? savedDomain : DEFAULT_URL;
   const landingUrl = baseUrl + '/vendas';
   const loginUrl = baseUrl + '/?login=true';
   const cadastroUrl = baseUrl + '/?cadastro=true';
   const portalUrl = baseUrl + '/portal';
+  const agendamentoUrl = baseUrl + '/agendar';
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -123,6 +123,7 @@ export const AdminShareTab: React.FC = () => {
     { icon: LogIn, label: 'Página de Login', desc: 'Link direto para login', url: loginUrl, color: 'text-green-400', borderColor: 'border-l-green-500' },
     { icon: Link2, label: 'Página de Cadastro', desc: 'Link direto para criar conta', url: cadastroUrl, color: 'text-purple-400', borderColor: 'border-l-purple-500' },
     { icon: Users, label: 'Portal da Equipe', desc: 'Link para equipe administrar e solicitar suporte', url: portalUrl, color: 'text-blue-400', borderColor: 'border-l-blue-500' },
+    { icon: Calendar, label: 'Agendamento Online', desc: 'Página pública de agendamento', url: agendamentoUrl, color: 'text-amber-400', borderColor: 'border-l-amber-500' },
   ];
 
   const whatsappTemplates = [
@@ -135,7 +136,7 @@ export const AdminShareTab: React.FC = () => {
     <div className="space-y-6">
       <AdminGuideCards tab="share" />
 
-      {/* Header Card */}
+      {/* Header */}
       <Card className="bg-[#1a1a24] border-[#2a2a3a]">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
@@ -157,7 +158,7 @@ export const AdminShareTab: React.FC = () => {
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 flex items-start gap-2">
         <LinkIcon className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
         <p className="text-blue-300 text-xs">
-          <span className="font-semibold">Também usado na aba Landing e Portal:</span> O link da Landing Page é compartilhado com a aba Landing para personalização. O link de agendamento (/agendar) é o mesmo usado na página de agendamento online público.
+          <span className="font-semibold">Integração automática:</span> Ao configurar um domínio, todos os links do sistema são atualizados automaticamente — Landing Page, Login, Cadastro, Portal, Agendamento e mensagens do WhatsApp. As abas Landing e Portal também usam esses links.
         </p>
       </div>
 
@@ -186,6 +187,7 @@ export const AdminShareTab: React.FC = () => {
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2.5">
               <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-emerald-300 text-xs font-medium">Domínio ativo: {savedDomain}</span>
+              <span className="text-emerald-500/60 text-[10px] ml-auto">Aplicado em todos os links</span>
             </div>
           )}
 
@@ -228,10 +230,11 @@ export const AdminShareTab: React.FC = () => {
                 <p className="font-medium text-blue-300">Como configurar seu domínio:</p>
                 <ol className="list-decimal list-inside space-y-1 ml-1">
                   <li>Compre um domínio (ex: Registro.br, GoDaddy, Hostinger)</li>
-                  <li>No painel do domínio, adicione um registro <span className="text-amber-300 font-mono">A</span> apontando para <span className="text-cyan-300 font-mono">185.158.133.1</span></li>
-                  <li>Adicione também o <span className="text-amber-300 font-mono">www</span> como registro A para o mesmo IP</li>
-                  <li>Acesse as configurações do projeto e conecte o domínio na aba <span className="text-cyan-300">Domains</span></li>
-                  <li>Cole o domínio aqui para os links serem atualizados automaticamente</li>
+                  <li>No painel do domínio, adicione um registro <span className="text-amber-300 font-mono">A</span> para <span className="text-amber-300 font-mono">@</span> apontando para <span className="text-cyan-300 font-mono">185.158.133.1</span></li>
+                  <li>Adicione um registro <span className="text-amber-300 font-mono">A</span> para <span className="text-amber-300 font-mono">www</span> apontando para <span className="text-cyan-300 font-mono">185.158.133.1</span></li>
+                  <li>Adicione um registro <span className="text-amber-300 font-mono">TXT</span> com nome <span className="text-cyan-300 font-mono">_lovable</span> (o valor será fornecido nas configurações do projeto)</li>
+                  <li>No projeto, acesse <span className="text-cyan-300">Settings → Domains</span> e conecte o domínio</li>
+                  <li>Cole o domínio aqui — todos os links serão atualizados automaticamente</li>
                 </ol>
                 <p className="text-gray-500 mt-2">⏱ A propagação do DNS pode levar até 72h após a configuração.</p>
               </div>
@@ -261,25 +264,16 @@ export const AdminShareTab: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    onClick={() => copyToClipboard(link.url, link.label)}
-                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3"
-                  >
+                  <Button size="sm" onClick={() => copyToClipboard(link.url, link.label)}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
                     <Copy className="w-3 h-3 mr-1" /> Copiar
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => shareLink(link.url, link.label)}
-                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3"
-                  >
+                  <Button size="sm" onClick={() => shareLink(link.url, link.label)}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
                     <Send className="w-3 h-3 mr-1" /> Enviar
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => window.open(link.url, '_blank')}
-                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3"
-                  >
+                  <Button size="sm" onClick={() => window.open(link.url, '_blank')}
+                    className="bg-[#2a2a3a] hover:bg-[#3a3a4a] text-white text-xs border border-[#3a3a4a] h-8 px-3">
                     <ExternalLink className="w-3 h-3 mr-1" /> Abrir
                   </Button>
                 </div>
@@ -306,11 +300,8 @@ export const AdminShareTab: React.FC = () => {
                 <p className="text-white text-sm font-semibold">{tmpl.label}</p>
                 <p className="text-gray-500 text-xs mt-1 line-clamp-2">{tmpl.msg}</p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => copyToClipboard(tmpl.msg, tmpl.label)}
-                className="bg-green-600 hover:bg-green-700 text-white text-xs shrink-0 h-9 px-4"
-              >
+              <Button size="sm" onClick={() => copyToClipboard(tmpl.msg, tmpl.label)}
+                className="bg-green-600 hover:bg-green-700 text-white text-xs shrink-0 h-9 px-4">
                 <Copy className="w-3 h-3 mr-1" /> Copiar
               </Button>
             </CardContent>
