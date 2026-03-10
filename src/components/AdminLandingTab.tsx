@@ -1474,6 +1474,8 @@ gtag('config', '${settings.landing_pixel_google}');
         {/* EFEITOS - NOVA ABA */}
         <TabsContent value="efeitos">
           <div className="space-y-4">
+            <AdminGuideCards tab="landing-efeitos" />
+            
             {/* Toggle geral animações */}
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
@@ -1502,6 +1504,37 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardContent>
             </Card>
 
+            {/* Individual Effect Toggles */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Zap className="w-5 h-5 text-amber-500" /> Efeitos Individuais
+                </CardTitle>
+                <CardDescription>Controle cada efeito visual separadamente</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[
+                  { key: 'landing_efeito_gradiente_animado', icon: '🎨', label: 'Gradiente Animado', desc: 'Fundo com gradiente que se move suavemente' },
+                  { key: 'landing_efeito_formas_flutuantes', icon: '🔵', label: 'Formas Flutuantes', desc: 'Círculos flutuantes no fundo do hero' },
+                  { key: 'landing_efeito_glow', icon: '✨', label: 'Efeito Glow', desc: 'Brilho nos cards e botões ao passar o mouse' },
+                  { key: 'landing_efeito_particulas', icon: '🌟', label: 'Partículas', desc: 'Partículas animadas no fundo (pode ser pesado)' },
+                  { key: 'landing_efeito_parallax', icon: '🏔️', label: 'Parallax', desc: 'Efeito de profundidade ao rolar a página' },
+                  { key: 'landing_efeito_typewriter', icon: '💻', label: 'Efeito Máquina de Escrever', desc: 'Título aparece letra por letra' },
+                  { key: 'landing_efeito_pulsar_cta', icon: '💚', label: 'Pulsar Botão CTA', desc: 'Botão de ação com efeito pulsante' },
+                  { key: 'landing_efeito_contagem_animada', icon: '🔢', label: 'Contagem Animada', desc: 'Números sobem de 0 até o valor final' },
+                ].map(effect => (
+                  <div key={effect.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                    <div>
+                      <Label className="text-sm font-medium">{effect.icon} {effect.label}</Label>
+                      <p className="text-xs text-muted-foreground">{effect.desc}</p>
+                    </div>
+                    <Switch checked={settings[effect.key] === 'true'}
+                      onCheckedChange={v => update(effect.key, v ? 'true' : 'false')} />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
             {/* Marquee Banners */}
             {[1, 2, 3].map(num => {
               const prefix = `landing_marquee${num}`;
@@ -1520,7 +1553,6 @@ gtag('config', '${settings.landing_pixel_google}');
                   </CardHeader>
                   {isActive && (
                     <CardContent className="space-y-4">
-                      {/* Tipo de conteúdo */}
                       <div>
                         <Label className="text-muted-foreground text-sm">Tipo de conteúdo</Label>
                         <Select value={settings[`${prefix}_tipo`] || 'texto'} onValueChange={v => update(`${prefix}_tipo`, v)}>
@@ -1533,36 +1565,25 @@ gtag('config', '${settings.landing_pixel_google}');
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {/* Textos (separados por |) */}
                       <div>
                         <Label className="text-muted-foreground text-sm">Textos (separe com |)</Label>
                         <Textarea value={settings[`${prefix}_textos`] || ''} onChange={e => update(`${prefix}_textos`, e.target.value)}
                           placeholder="🔥 PROMOÇÃO 50% OFF | ❄️ Instalação Grátis | ⚡ Últimas vagas"
                           className="min-h-[60px]" />
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          {settings[`${prefix}_tipo`] === 'clientes' ? '💡 Deixe vazio para exibir automaticamente nomes de clientes do sistema' :
-                           settings[`${prefix}_tipo`] === 'fornecedores' ? '💡 Deixe vazio para exibir automaticamente fornecedores do sistema' :
-                           '💡 Use | para separar cada item do banner'}
-                        </p>
                       </div>
-
-                      {/* Posição */}
                       <div>
                         <Label className="text-muted-foreground text-sm">Posição na página</Label>
                         <Select value={settings[`${prefix}_posicao`] || 'hero-below'} onValueChange={v => update(`${prefix}_posicao`, v)}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="top">⬆️ Topo da página (fixo)</SelectItem>
+                            <SelectItem value="top">⬆️ Topo da página</SelectItem>
                             <SelectItem value="hero-below">🏠 Abaixo do Hero</SelectItem>
                             <SelectItem value="above-prices">💰 Acima dos Preços</SelectItem>
                             <SelectItem value="bottom">⬇️ Rodapé</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
                       <div className="grid grid-cols-2 gap-3">
-                        {/* Direção */}
                         <div>
                           <Label className="text-muted-foreground text-sm">Direção</Label>
                           <Select value={settings[`${prefix}_direcao`] || 'left'} onValueChange={v => update(`${prefix}_direcao`, v)}>
@@ -1573,8 +1594,6 @@ gtag('config', '${settings.landing_pixel_google}');
                             </SelectContent>
                           </Select>
                         </div>
-
-                        {/* Velocidade */}
                         <div>
                           <Label className="text-muted-foreground text-sm">Velocidade</Label>
                           <Select value={settings[`${prefix}_velocidade`] || 'normal'} onValueChange={v => update(`${prefix}_velocidade`, v)}>
@@ -1587,14 +1606,11 @@ gtag('config', '${settings.landing_pixel_google}');
                           </Select>
                         </div>
                       </div>
-
                       <div className="grid grid-cols-2 gap-3">
                         <ColorInput label="Cor de fundo" value={settings[`${prefix}_cor_fundo`] || '#06b6d4'} onChange={v => update(`${prefix}_cor_fundo`, v)} />
                         <ColorInput label="Cor do texto" value={settings[`${prefix}_cor_texto`] || '#ffffff'} onChange={v => update(`${prefix}_cor_texto`, v)} />
                       </div>
-
                       <div className="grid grid-cols-2 gap-3">
-                        {/* Estilo */}
                         <div>
                           <Label className="text-muted-foreground text-sm">Estilo visual</Label>
                           <Select value={settings[`${prefix}_estilo`] || 'solid'} onValueChange={v => update(`${prefix}_estilo`, v)}>
@@ -1607,8 +1623,6 @@ gtag('config', '${settings.landing_pixel_google}');
                             </SelectContent>
                           </Select>
                         </div>
-
-                        {/* Tamanho */}
                         <div>
                           <Label className="text-muted-foreground text-sm">Tamanho do texto</Label>
                           <Select value={settings[`${prefix}_tamanho`] || 'md'} onValueChange={v => update(`${prefix}_tamanho`, v)}>
@@ -1622,8 +1636,6 @@ gtag('config', '${settings.landing_pixel_google}');
                           </Select>
                         </div>
                       </div>
-
-                      {/* Separador */}
                       <div>
                         <Label className="text-muted-foreground text-sm">Separador entre itens</Label>
                         <Select value={settings[`${prefix}_separador`] || '✦'} onValueChange={v => update(`${prefix}_separador`, v)}>
@@ -1638,8 +1650,6 @@ gtag('config', '${settings.landing_pixel_google}');
                           </SelectContent>
                         </Select>
                       </div>
-
-                      {/* Preview */}
                       <div className="rounded-xl overflow-hidden border border-border">
                         <div className="overflow-hidden py-2" style={{ backgroundColor: settings[`${prefix}_cor_fundo`] || '#06b6d4' }}>
                           <div className="flex items-center gap-4 animate-marquee-preview whitespace-nowrap text-sm" style={{ color: settings[`${prefix}_cor_texto`] || '#fff' }}>
@@ -1655,20 +1665,124 @@ gtag('config', '${settings.landing_pixel_google}');
               );
             })}
 
-            {/* Info */}
             <Card className="border-border">
               <CardContent className="p-4">
                 <Label className="font-semibold text-sm flex items-center gap-2 mb-2">💡 Dicas de efeitos</Label>
                 <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li>• <strong>Marquee #1 + posição "hero-below"</strong>: Banner com promoções logo após o título principal</li>
-                  <li>• <strong>Marquee #2 + posição "above-prices"</strong>: Destaque antes dos preços para criar urgência</li>
-                  <li>• <strong>Marquee #3 + tipo "clientes"</strong>: Exiba nomes de clientes como prova social automática</li>
-                  <li>• <strong>Estilo Neon</strong>: Efeito luminoso ideal para fundos escuros</li>
-                  <li>• <strong>Estilo Glass</strong>: Efeito transparente sofisticado com blur</li>
-                  <li>• Combine direções opostas em marquees diferentes para efeito dinâmico</li>
+                  <li>• <strong>Gradiente Animado</strong>: Cria um fundo dinâmico que chama atenção</li>
+                  <li>• <strong>Formas Flutuantes + Partículas</strong>: Efeito high-tech moderno</li>
+                  <li>• <strong>Parallax</strong>: Profundidade ao rolar, sensação premium</li>
+                  <li>• <strong>Pulsar CTA</strong>: Destaca o botão de ação principal</li>
+                  <li>• <strong>Contagem Animada</strong>: Números subindo impressionam visitantes</li>
+                  <li>• Combine efeitos com moderação para não sobrecarregar</li>
                 </ul>
               </CardContent>
             </Card>
+          </div>
+        </TabsContent>
+
+        {/* BANNERS - NOVA ABA */}
+        <TabsContent value="banners">
+          <div className="space-y-4">
+            <Card className="border-primary/10">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <HelpCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold">💡 Dica: Banners</p>
+                    <p className="text-xs text-muted-foreground">
+                      Adicione banners promocionais com imagem, texto e link. Posicione no topo, entre seções ou no final da página para destacar promoções, bônus ou avisos importantes.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {[1, 2, 3, 4, 5].map(num => {
+              const prefix = `landing_img_banner${num}`;
+              const isActive = settings[`${prefix}_ativo`] === 'true';
+              const hasContent = settings[`${prefix}_imagem`] || settings[`${prefix}_texto`];
+              
+              if (!isActive && !hasContent && num > 1) {
+                // Only show inactive banners after #1 if they have content
+                const prevActive = settings[`landing_img_banner${num-1}_ativo`] === 'true' || settings[`landing_img_banner${num-1}_imagem`];
+                if (!prevActive && num > 2) return null;
+              }
+
+              return (
+                <Card key={num} className={isActive ? 'border-primary/30' : 'border-border/50'}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        <Image className="w-5 h-5 text-primary" /> Banner #{num}
+                      </CardTitle>
+                      <Switch checked={isActive}
+                        onCheckedChange={v => update(`${prefix}_ativo`, v ? 'true' : 'false')} />
+                    </div>
+                  </CardHeader>
+                  {isActive && (
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label className="text-muted-foreground text-sm">URL da Imagem</Label>
+                        <div className="flex gap-2">
+                          <Input value={settings[`${prefix}_imagem`] || ''} onChange={e => update(`${prefix}_imagem`, e.target.value)}
+                            placeholder="https://... ou faça upload" className="flex-1" />
+                          <Button variant="outline" size="icon" onClick={() => handleBgUpload(`${prefix}_imagem`)} disabled={uploading}>
+                            <Upload className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      {settings[`${prefix}_imagem`] && (
+                        <div className="relative rounded-xl overflow-hidden border border-border">
+                          <img src={settings[`${prefix}_imagem`]} alt={`Banner ${num}`} className="w-full h-32 object-cover" />
+                          <Button variant="destructive" size="sm" className="absolute top-2 right-2"
+                            onClick={() => update(`${prefix}_imagem`, '')}>
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      )}
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Texto do Banner (opcional)</Label>
+                        <Input value={settings[`${prefix}_texto`] || ''} onChange={e => update(`${prefix}_texto`, e.target.value)}
+                          placeholder="Texto sobre a imagem (opcional)" />
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Link ao clicar (opcional)</Label>
+                        <Input value={settings[`${prefix}_link`] || ''} onChange={e => update(`${prefix}_link`, e.target.value)}
+                          placeholder="https://..." />
+                      </div>
+                      <div>
+                        <Label className="text-muted-foreground text-sm">Posição na página</Label>
+                        <Select value={settings[`${prefix}_posicao`] || 'hero-below'} onValueChange={v => update(`${prefix}_posicao`, v)}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="top">⬆️ Topo da página</SelectItem>
+                            <SelectItem value="hero-below">🏠 Abaixo do Hero</SelectItem>
+                            <SelectItem value="above-prices">💰 Acima dos Preços</SelectItem>
+                            <SelectItem value="below-prices">💰 Abaixo dos Preços</SelectItem>
+                            <SelectItem value="bottom">⬇️ Final da página</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </CardContent>
+                  )}
+                </Card>
+              );
+            })}
+
+            {/* Empty state */}
+            {![1,2,3,4,5].some(n => settings[`landing_img_banner${n}_ativo`] === 'true') && (
+              <Card className="border-dashed border-2 border-border/50">
+                <CardContent className="p-8 flex flex-col items-center justify-center text-center">
+                  <ImagePlus className="w-12 h-12 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm text-muted-foreground">
+                    Nenhum banner adicionado. Ative um banner acima para criar.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </TabsContent>
 
