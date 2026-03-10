@@ -1896,34 +1896,6 @@ gtag('config', '${settings.landing_pixel_google}');
               </CardContent>
             </Card>
 
-            {/* Visibilidade das Seções */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Eye className="w-5 h-5 text-emerald-500" /> Visibilidade das Seções
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {[
-                  { key: 'landing_secao_hero', label: '🏠 Hero (Topo)' },
-                  { key: 'landing_secao_dor', label: '😰 Seção de Dor (Problemas)' },
-                  { key: 'landing_secao_features', label: '⚡ Funcionalidades' },
-                  { key: 'landing_secao_comparativo', label: '📊 Comparativo' },
-                  { key: 'landing_secao_precos', label: '💰 Preços' },
-                  { key: 'landing_secao_depoimentos', label: '💬 Depoimentos' },
-                  { key: 'landing_secao_faq', label: '❓ FAQ' },
-                  { key: 'landing_secao_garantia', label: '🛡️ Garantia' },
-                  { key: 'landing_secao_urgencia_final', label: '⚠️ Urgência Final' },
-                  { key: 'landing_secao_cta_final', label: '🎯 CTA Final' },
-                ].map(s => (
-                  <div key={s.key} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
-                    <span className="text-sm font-medium">{s.label}</span>
-                    <Switch checked={settings[s.key] !== 'false'}
-                      onCheckedChange={v => update(s.key, v ? 'true' : 'false')} />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
 
             {/* Fundos por Seção */}
             <Card>
