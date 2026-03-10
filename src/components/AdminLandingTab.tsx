@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useDomainSettings as useDomainSettingsHook } from '@/hooks/useDomainSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -452,7 +453,9 @@ gtag('config', '${settings.landing_pixel_google}');
       color: 'border-pink-500', gradient: 'from-pink-500/20 to-purple-500/20' },
   ];
 
-  const landingUrl = `${window.location.origin}/vendas`;
+  // Use domain settings for landing URL - auto-updates with custom domain
+  const domainSettings = useDomainSettingsHook();
+  const landingUrl = domainSettings.landingUrl;
 
   return (
     <div className="space-y-4">

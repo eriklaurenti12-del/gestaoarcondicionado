@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useDomainSettings } from "@/hooks/useDomainSettings";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,7 +63,7 @@ const TEAM_ROLES: Record<string, { label: string; icon: any; color: string; desc
   sistema: { label: 'Sistema Completo', icon: Monitor, color: 'text-emerald-400', description: 'Agenda, Clientes, Agendar e Suporte' },
 };
 
-const publishedUrl = 'https://gestaoarcondicionado.lovable.app';
+// publishedUrl is now provided by useDomainSettings hook inside the component
 
 const DEFAULT_TABS = [
   { id: 'team', label: 'Equipe', icon: 'Users' },
@@ -86,6 +87,7 @@ const TAB_ICONS: Record<string, any> = {
 export default function Members() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { baseUrl: publishedUrl } = useDomainSettings();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
