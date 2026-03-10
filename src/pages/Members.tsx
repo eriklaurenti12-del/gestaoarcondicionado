@@ -25,6 +25,7 @@ import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
 
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
+import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
 import { Switch } from "@/components/ui/switch";
 
