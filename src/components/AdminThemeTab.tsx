@@ -204,6 +204,16 @@ const AdminThemeTab: React.FC = () => {
   const [glowIntensity, setGlowIntensity] = useState(50);
   const [borderRadius, setBorderRadius] = useState(12);
 
+  const [fontFamily, setFontFamily] = useState('Inter, sans-serif');
+  const [headingFont, setHeadingFont] = useState('Inter, sans-serif');
+  const [fontWeight, setFontWeight] = useState('400');
+  const [headingWeight, setHeadingWeight] = useState('700');
+  const [fontSize, setFontSize] = useState(16);
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [transitionSpeed, setTransitionSpeed] = useState('300');
+  const [lightEffect, setLightEffect] = useState('none');
+  const [textShadow, setTextShadow] = useState(false);
+
   useEffect(() => {
     loadThemeSettings();
   }, []);
