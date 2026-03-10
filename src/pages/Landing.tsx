@@ -226,17 +226,25 @@ const Landing: React.FC = () => {
   }, [navigate, isPreviewMode]);
 
   const handleCheckout = (planId: string) => {
-    trackConversion(planId as any);
+    trackConversion(planId);
     
     const checkoutUrl = settings[`checkout_${planId}`];
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
       window.open(checkoutUrl, '_blank');
     } else {
+      // Scroll to pricing section if no checkout URL
+      const el = document.getElementById('precos');
+      if (el) { el.scrollIntoView({ behavior: 'smooth' }); return; }
       setShowLogin(true); 
       setIsLogin(false); 
       toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." });
     }
+  };
+
+  const handleMainCTA = () => {
+    const el = document.getElementById('precos');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleContactSupport = () => {
