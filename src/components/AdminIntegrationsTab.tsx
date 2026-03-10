@@ -611,6 +611,65 @@ export const AdminIntegrationsTab: React.FC = () => {
             })}
           </div>
 
+          {/* ── Planos visíveis na Landing Page ── */}
+          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20 space-y-2">
+            <p className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" /> Planos visíveis na Landing Page
+            </p>
+            <p className="text-[10px] text-gray-500">Selecione quais planos aparecem como opção de compra na landing page. Marque mais de um para mostrar múltiplas opções.</p>
+            <div className="flex flex-wrap gap-3">
+              {PLANS.map(plan => {
+                const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
+                const isChecked = visiblePlans.includes(plan.id);
+                return (
+                  <label key={plan.id} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        setSettings(prev => {
+                          const current = (prev.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+                          const next = checked 
+                            ? [...new Set([...current, plan.id])]
+                            : current.filter(id => id !== plan.id);
+                          return { ...prev, planos_visiveis_landing: next.length ? next.join(',') : plan.id };
+                        });
+                      }}
+                    />
+                    <span className="text-xs text-white">{plan.icon} {plan.label}</span>
+                    {settings[`checkout_${plan.id}`] ? (
+                      <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[9px] h-4">Link OK</Badge>
+                    ) : (
+                      <Badge className="bg-red-600/20 text-red-400 border-red-600/30 text-[9px] h-4">Sem link</Badge>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Notificações ── */}
+          <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 space-y-2">
+            <p className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5" /> Notificações de Vendas
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={settings.notificar_vendas !== 'false'}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, notificar_vendas: checked ? 'true' : 'false' }))}
+                />
+                <span className="text-xs text-white">📬 Notificar vendas aprovadas</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={settings.notificar_erros !== 'false'}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, notificar_erros: checked ? 'true' : 'false' }))}
+                />
+                <span className="text-xs text-white">❌ Notificar erros de pagamento</span>
+              </label>
+            </div>
+          </div>
+
           {/* WhatsApp */}
           <div>
             <label className="text-[11px] text-gray-500 mb-1 block">WhatsApp Suporte</label>
@@ -625,7 +684,7 @@ export const AdminIntegrationsTab: React.FC = () => {
           <div className="flex justify-end">
             <Button size="sm" onClick={saveAll} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-              Salvar Planos & Checkout
+              Salvar Tudo (Planos, Links, Notificações)
             </Button>
           </div>
         </CardContent>
