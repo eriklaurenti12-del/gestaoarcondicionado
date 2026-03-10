@@ -10,7 +10,47 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Palette, Sun, Moon, Save, Loader2, RotateCcw, Sparkles, Eye, Zap, Droplets } from "lucide-react";
+import { Palette, Sun, Moon, Save, Loader2, RotateCcw, Sparkles, Eye, Zap, Droplets, Type, Wand2, ArrowRightLeft } from "lucide-react";
+
+const FONT_OPTIONS = [
+  { value: 'Inter, sans-serif', label: 'Inter (Padrão)' },
+  { value: '"Poppins", sans-serif', label: 'Poppins' },
+  { value: '"Roboto", sans-serif', label: 'Roboto' },
+  { value: '"Open Sans", sans-serif', label: 'Open Sans' },
+  { value: '"Montserrat", sans-serif', label: 'Montserrat' },
+  { value: '"Nunito", sans-serif', label: 'Nunito' },
+  { value: '"Lato", sans-serif', label: 'Lato' },
+  { value: '"Raleway", sans-serif', label: 'Raleway' },
+  { value: '"Outfit", sans-serif', label: 'Outfit' },
+  { value: '"Space Grotesk", sans-serif', label: 'Space Grotesk' },
+  { value: '"JetBrains Mono", monospace', label: 'JetBrains Mono' },
+  { value: '"Playfair Display", serif', label: 'Playfair Display' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: '300', label: 'Light (300)' },
+  { value: '400', label: 'Normal (400)' },
+  { value: '500', label: 'Medium (500)' },
+  { value: '600', label: 'Semi-Bold (600)' },
+  { value: '700', label: 'Bold (700)' },
+];
+
+const TRANSITION_SPEED_OPTIONS = [
+  { value: '0', label: 'Sem transição' },
+  { value: '150', label: 'Rápida (150ms)' },
+  { value: '300', label: 'Normal (300ms)' },
+  { value: '500', label: 'Suave (500ms)' },
+  { value: '700', label: 'Lenta (700ms)' },
+];
+
+const LIGHT_EFFECT_PRESETS = [
+  { value: 'none', label: 'Nenhum', emoji: '⬛' },
+  { value: 'neon', label: 'Neon Glow', emoji: '💡' },
+  { value: 'aurora', label: 'Aurora Boreal', emoji: '🌌' },
+  { value: 'pulse', label: 'Pulso Suave', emoji: '💓' },
+  { value: 'spotlight', label: 'Holofote', emoji: '🔦' },
+  { value: 'firefly', label: 'Vagalume', emoji: '✨' },
+];
 
 type ThemeColors = Record<string, string>;
 
