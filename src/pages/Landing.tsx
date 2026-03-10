@@ -187,7 +187,7 @@ const Landing: React.FC = () => {
   useEffect(() => {
     const loadSettings = async () => {
       const { data } = await supabase.from('admin_settings').select('key, value')
-        .or('key.in.(checkout_mensal,checkout_anual,whatsapp_suporte,promo_end_date),key.like.landing_%');
+        .or('key.in.(checkout_mensal,checkout_trimestral,checkout_semestral,checkout_anual,checkout_vitalicio,preco_mensal,preco_trimestral,preco_semestral,preco_anual,preco_vitalicio,planos_visiveis_landing,whatsapp_suporte,promo_end_date),key.like.landing_%');
       if (data) {
         const settingsMap: Partial<AdminSettings> = {};
         data.forEach(item => { settingsMap[item.key as keyof AdminSettings] = item.value || ''; });
