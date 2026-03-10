@@ -2210,6 +2210,190 @@ gtag('config', '${settings.landing_pixel_google}');
           </div>
         </TabsContent>
 
+        {/* CONTEÚDO IA - NOVA ABA */}
+        <TabsContent value="conteudo">
+          <div className="space-y-4">
+            <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-8 h-8 text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold">🤖 Gerador de Conteúdo com IA</p>
+                    <p className="text-xs text-muted-foreground">
+                      Gere ou atualize todos os textos da landing page automaticamente. A IA reconhece seus preços, planos e links de checkout atuais.
+                    </p>
+                  </div>
+                  <Button onClick={async () => {
+                    const confirmed = confirm('Deseja gerar novos textos com IA? Os textos editáveis serão atualizados (você pode editar depois manualmente).');
+                    if (!confirmed) return;
+                    try {
+                      update('_ai_loading', 'true');
+                      // Gather current prices context
+                      const ctx = `Preços atuais: Mensal R$${settings.preco_mensal || settings.landing_preco_mensal || '39,90'}, Trimestral R$${settings.preco_trimestral || '69,90'}, Semestral R$${settings.preco_semestral || '149,90'}, Anual R$${settings.preco_anual || settings.landing_preco_anual || '370'}, Vitalício R$${settings.preco_vitalicio || '499,90'}. Planos visíveis: ${settings.planos_visiveis_landing || 'mensal,anual'}.`;
+                      const { data, error } = await supabase.functions.invoke('generate-landing-copy', { body: { type: 'completo', context: ctx } });
+                      if (error) throw error;
+                      if (data?.generated) {
+                        const g = data.generated;
+                        if (g.hero_titulo) update('landing_hero_titulo', g.hero_titulo);
+                        if (g.hero_subtitulo) update('landing_hero_subtitulo', g.hero_subtitulo);
+                        if (g.hero_descricao) update('landing_hero_descricao', g.hero_descricao);
+                        if (g.badge_urgencia) update('landing_badge_urgencia', g.badge_urgencia);
+                        if (g.frase_destaque) update('landing_frase_destaque', g.frase_destaque);
+                        if (g.btn_cta) update('landing_btn_cta_texto', g.btn_cta);
+                        if (g.dor_titulo) update('landing_dor_titulo', g.dor_titulo);
+                        if (g.dor_itens) update('landing_dor_itens', g.dor_itens);
+                        if (g.dor_conclusao) update('landing_dor_conclusao', g.dor_conclusao);
+                        if (g.comparativo_titulo) update('landing_comparativo_titulo', g.comparativo_titulo);
+                        if (g.comparativo_outros) update('landing_comparativo_outros', g.comparativo_outros);
+                        if (g.comparativo_nosso) update('landing_comparativo_nosso', g.comparativo_nosso);
+                        if (g.features_titulo) update('landing_features_titulo', g.features_titulo);
+                        if (g.urgencia_titulo) update('landing_urgencia_titulo', g.urgencia_titulo);
+                        if (g.urgencia_subtitulo) update('landing_urgencia_subtitulo', g.urgencia_subtitulo);
+                        if (g.cta_final_titulo) update('landing_cta_final_titulo', g.cta_final_titulo);
+                        toast({ title: '✅ Conteúdo gerado com IA!', description: 'Revise e salve.' });
+                      }
+                    } catch (e: any) {
+                      toast({ title: 'Erro na IA', description: e.message, variant: 'destructive' });
+                    } finally { update('_ai_loading', ''); }
+                  }} disabled={settings._ai_loading === 'true'} className="bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white">
+                    {settings._ai_loading === 'true' ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                    Gerar Tudo com IA
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Seção de Dor */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">😰 Seção de Dor (Problemas)</CardTitle>
+                <CardDescription>Textos que mostram os problemas que o sistema resolve</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Título da seção</Label>
+                  <Input value={settings.landing_dor_titulo || ''} onChange={e => update('landing_dor_titulo', e.target.value)}
+                    placeholder='Você se identifica com isso?' />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Itens de dor (um por linha)</Label>
+                  <Textarea value={settings.landing_dor_itens || ''} onChange={e => update('landing_dor_itens', e.target.value)}
+                    placeholder={'Anota serviços no papel e depois perde\nEsquece de cobrar cliente\nNão sabe quanto lucrou no mês\nPerde tempo procurando no WhatsApp\nCliente liga e você não lembra o histórico\nJá perdeu serviço por falta de organização\nTrabalha muito mas o dinheiro não sobra\nUsa planilha Excel mas nunca atualiza'}
+                    className="min-h-[140px] text-sm font-mono" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Frase de conclusão</Label>
+                  <Input value={settings.landing_dor_conclusao || ''} onChange={e => update('landing_dor_conclusao', e.target.value)}
+                    placeholder='Se marcou 2 ou mais... você PRECISA desse sistema.' />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Comparativo */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">⚔️ Comparativo (Outros vs Nosso)</CardTitle>
+                <CardDescription>Textos do comparativo entre concorrentes e seu sistema</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Título da seção</Label>
+                  <Input value={settings.landing_comparativo_titulo || ''} onChange={e => update('landing_comparativo_titulo', e.target.value)}
+                    placeholder='Por que esse é o melhor sistema?' />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">❌ Itens "Outros Sistemas" (um por linha)</Label>
+                  <Textarea value={settings.landing_comparativo_outros || ''} onChange={e => update('landing_comparativo_outros', e.target.value)}
+                    placeholder={'Custam R$ 150 a R$ 500/mês\nComplicados demais\nPrecisam de treinamento\nFeitos para empresas grandes\nSuporte demora dias\nInterface confusa'}
+                    className="min-h-[100px] text-sm font-mono" />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">✅ Itens "AC Service Pro" (um por linha) — use {'{{preco_mensal}}'} para preço dinâmico</Label>
+                  <Textarea value={settings.landing_comparativo_nosso || ''} onChange={e => update('landing_comparativo_nosso', e.target.value)}
+                    placeholder={'Apenas R$ {{preco_mensal}}/mês\nSimples igual WhatsApp\nComeça em 2 minutos\nFeito POR técnico PARA técnico\nSuporte em minutos no WhatsApp\nInterface moderna e bonita'}
+                    className="min-h-[100px] text-sm font-mono" />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Features */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">⚡ Funcionalidades</CardTitle>
+                <CardDescription>Títulos e descrições dos cards de funcionalidade</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Título da seção</Label>
+                  <Input value={settings.landing_features_titulo || ''} onChange={e => update('landing_features_titulo', e.target.value)}
+                    placeholder='O que você ganha de verdade' />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { i: 1, defTitle: 'Agenda Inteligente', defDesc: 'Nunca mais perca um serviço' },
+                    { i: 2, defTitle: 'Clientes Organizados', defDesc: 'Histórico completo em segundos' },
+                    { i: 3, defTitle: 'Controle de Equipamentos', defDesc: 'Tudo sobre cada ar do cliente' },
+                    { i: 4, defTitle: 'Manutenção Preventiva', defDesc: 'Clientes voltando todo mês' },
+                    { i: 5, defTitle: 'OS Profissional', defDesc: 'Impressione e cobre mais' },
+                    { i: 6, defTitle: 'Lucro Real', defDesc: 'Veja quanto sobra de verdade' },
+                    { i: 7, defTitle: 'No Celular', defDesc: 'Acesse em qualquer lugar' },
+                    { i: 8, defTitle: 'Dados Seguros', defDesc: 'Tudo salvo na nuvem' },
+                  ].map(f => (
+                    <div key={f.i} className="space-y-1 p-2 rounded-lg bg-muted/20 border border-border/50">
+                      <Input value={settings[`landing_feature${f.i}_titulo`] || ''} onChange={e => update(`landing_feature${f.i}_titulo`, e.target.value)}
+                        placeholder={f.defTitle} className="h-8 text-xs" />
+                      <Input value={settings[`landing_feature${f.i}_desc`] || ''} onChange={e => update(`landing_feature${f.i}_desc`, e.target.value)}
+                        placeholder={f.defDesc} className="h-8 text-xs" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Features por plano */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">💰 Features por Plano</CardTitle>
+                <CardDescription>Lista de benefícios exibida em cada card de preço (uma por linha)</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {['mensal','trimestral','semestral','anual','vitalicio'].map(plan => (
+                  <div key={plan}>
+                    <Label className="text-muted-foreground text-sm capitalize">{plan}</Label>
+                    <Textarea value={settings[`landing_oferta_${plan}_features`] || ''} onChange={e => update(`landing_oferta_${plan}_features`, e.target.value)}
+                      placeholder={'Acesso COMPLETO a tudo\nClientes ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte no WhatsApp'}
+                      className="min-h-[80px] text-xs font-mono" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Urgência e CTA final */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base">⚠️ Urgência & CTA Final</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-muted-foreground text-sm">Título de urgência</Label>
+                  <Input value={settings.landing_urgencia_titulo || ''} onChange={e => update('landing_urgencia_titulo', e.target.value)}
+                    placeholder='⚠️ Quanto você já perdeu esse mês por falta de organização?' />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Subtítulo de urgência</Label>
+                  <Input value={settings.landing_urgencia_subtitulo || ''} onChange={e => update('landing_urgencia_subtitulo', e.target.value)}
+                    placeholder='Cada dia sem sistema é dinheiro que fica na mesa.' />
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-sm">Título do CTA final</Label>
+                  <Input value={settings.landing_cta_final_titulo || ''} onChange={e => update('landing_cta_final_titulo', e.target.value)}
+                    placeholder='A decisão é sua' />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
         {/* LANDING CONFIG */}
         <TabsContent value="checkout">
           <div className="space-y-4">
