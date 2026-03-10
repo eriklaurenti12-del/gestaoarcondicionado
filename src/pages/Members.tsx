@@ -135,10 +135,10 @@ export default function Members() {
     const { data: roleData, error } = await supabase
       .from('user_roles')
       .select('role')
-      .eq('user_id', user.id)
-      .eq('role', 'super_admin')
-      .maybeSingle();
-    if (error || !roleData) { navigate("/"); return; }
+      .eq('user_id', user.id);
+    if (error || !roleData?.length) { navigate("/"); return; }
+    const hasSuperAdmin = roleData.some((r: any) => r.role === 'super_admin');
+    if (!hasSuperAdmin) { navigate("/"); return; }
     setIsSuperAdmin(true);
   };
 
