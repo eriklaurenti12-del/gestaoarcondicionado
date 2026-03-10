@@ -721,7 +721,7 @@ export default function Members() {
                     </TableHeader>
                     <TableBody>
                       {filteredMembers.map((member) => {
-                        const isSuperAdminUser = member.email === 'eriklaurenti09@gmail.com';
+                        const isSuperAdminUser = ['eriklaurenti09@gmail.com', 'leonardoleal372@gmail.com'].includes(member.email);
                         const timeInfo = getTimeRemaining(member);
                         const whatsapp = member.company_whatsapp || member.phone;
                         return (
