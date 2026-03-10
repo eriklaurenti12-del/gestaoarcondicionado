@@ -82,6 +82,15 @@ const LANDING_KEYS = [
   ]).flat(),
   // Seções - Frase de destaque & VSL
   'landing_secao_frase_destaque', 'landing_secao_vsl',
+  // Conteúdo editável das seções
+  'landing_dor_itens', 'landing_dor_titulo', 'landing_dor_conclusao',
+  'landing_features_titulo',
+  ...Array.from({length: 8}, (_, i) => [`landing_feature${i+1}_titulo`, `landing_feature${i+1}_desc`]).flat(),
+  'landing_comparativo_titulo', 'landing_comparativo_outros', 'landing_comparativo_nosso',
+  'landing_urgencia_titulo', 'landing_urgencia_subtitulo',
+  'landing_cta_final_titulo',
+  // Per-plan features
+  ...['mensal','trimestral','semestral','anual','vitalicio'].map(p => `landing_oferta_${p}_features`),
 ];
 
 type LandingSettings = Record<string, string>;
