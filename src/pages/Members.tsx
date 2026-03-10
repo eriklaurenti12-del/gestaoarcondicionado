@@ -80,7 +80,7 @@ const DEFAULT_TABS = [
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette
 };
 
 export default function Members() {
