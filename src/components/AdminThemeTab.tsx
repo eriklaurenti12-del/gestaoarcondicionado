@@ -235,6 +235,15 @@ const AdminThemeTab: React.FC = () => {
       }
       if (map.theme_glow_intensity) setGlowIntensity(Number(map.theme_glow_intensity) || 50);
       if (map.theme_border_radius) setBorderRadius(Number(map.theme_border_radius) || 12);
+      if (map.theme_font_family) setFontFamily(map.theme_font_family);
+      if (map.theme_heading_font) setHeadingFont(map.theme_heading_font);
+      if (map.theme_font_weight) setFontWeight(map.theme_font_weight);
+      if (map.theme_heading_weight) setHeadingWeight(map.theme_heading_weight);
+      if (map.theme_font_size) setFontSize(Number(map.theme_font_size) || 16);
+      if (map.theme_letter_spacing) setLetterSpacing(Number(map.theme_letter_spacing) || 0);
+      if (map.theme_transition_speed) setTransitionSpeed(map.theme_transition_speed);
+      if (map.theme_light_effect) setLightEffect(map.theme_light_effect);
+      if (map.theme_text_shadow) setTextShadow(map.theme_text_shadow === 'true');
 
       const fx: Record<string, string> = {};
       EFFECTS_KEYS.forEach(e => { fx[e.key] = map[e.key] || e.default; });
