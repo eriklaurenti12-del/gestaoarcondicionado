@@ -349,12 +349,12 @@ const Landing: React.FC = () => {
     }
   }, [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok]);
 
-  const trackConversion = (type: 'mensal' | 'anual') => {
-    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual, currency: 'BRL' });
+  const trackConversion = (type: string) => {
+    const price = settings[`preco_${type}`] || '0';
+    trackEvent('InitiateCheckout', { content_name: `Plano ${type}`, value: price, currency: 'BRL' });
     trackEvent('Lead', { content_name: `Plano ${type}` });
-    // Internal analytics
     if (typeof trackInternalEvent === 'function') {
-      trackInternalEvent('cta_click', { plan: type, value: type === 'mensal' ? settings.landing_preco_mensal : settings.landing_preco_anual });
+      trackInternalEvent('cta_click', { plan: type, value: price });
     }
   };
 
