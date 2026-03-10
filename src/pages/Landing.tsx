@@ -269,6 +269,10 @@ const Landing: React.FC = () => {
         });
         if (error) throw error;
         if (authData.user && phone) await supabase.from('profiles').update({ phone }).eq('user_id', authData.user.id);
+        // Fire pixel events for signup/lead
+        trackEvent('Lead', { content_name: 'Signup', value: 0, currency: 'BRL' });
+        trackEvent('CompleteRegistration', { content_name: 'New Account' });
+        trackInternalEvent('signup', { email, has_phone: !!phone });
         toast({ title: "Conta criada com sucesso! 🎉", description: "Redirecionando para ativação..." });
         setShowLogin(false);
         navigate('/awaiting-activation');
