@@ -149,6 +149,8 @@ const TestimonialEditor: React.FC<{
   );
 };
 
+type IntegrationPlan = { id: string; label: string; icon: string; price: string; checkoutUrl: string };
+
 export const AdminLandingTab: React.FC = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -163,8 +165,51 @@ export const AdminLandingTab: React.FC = () => {
   const videoInputRef = useRef<HTMLInputElement>(null);
   const iconInputRef = useRef<HTMLInputElement>(null);
   const soundInputRef = useRef<HTMLInputElement>(null);
+  const [syncingIntegration, setSyncingIntegration] = useState(false);
+  const [integrationPlans, setIntegrationPlans] = useState<IntegrationPlan[]>([]);
 
-  useEffect(() => { loadSettings(); }, []);
+  const PLAN_META: Record<string, { label: string; icon: string }> = {
+    mensal: { label: 'Mensal', icon: '💳' },
+    trimestral: { label: 'Trimestral', icon: '📘' },
+    semestral: { label: 'Semestral', icon: '📗' },
+    anual: { label: 'Anual', icon: '⭐' },
+    vitalicio: { label: 'Vitalício', icon: '👑' },
+  };
+
+  const syncFromIntegration = async () => {
+    setSyncingIntegration(true);
+    try {
+      const { data } = await supabase.from('admin_settings').select('key, value')
+        .or('key.eq.planos_visiveis_landing,key.like.preco_%,key.like.checkout_%');
+      if (!data) throw new Error('Sem dados');
+      const map: Record<string, string> = {};
+      data.forEach(item => { map[item.key] = item.value || ''; });
+
+      const visibleIds = (map.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+      const plans: IntegrationPlan[] = visibleIds.map(id => ({
+        id,
+        label: PLAN_META[id]?.label || id,
+        icon: PLAN_META[id]?.icon || '📦',
+        price: (map[`preco_${id}`] || '0').replace('.', ','),
+        checkoutUrl: map[`checkout_${id}`] || '',
+      }));
+      setIntegrationPlans(plans);
+
+      // Sync prices to landing settings
+      const updates: Record<string, string> = { planos_visiveis_landing: map.planos_visiveis_landing || 'mensal,anual' };
+      visibleIds.forEach(id => {
+        updates[`landing_preco_${id}`] = (map[`preco_${id}`] || '0').replace('.', ',');
+      });
+      setSettings(prev => ({ ...prev, ...updates }));
+      toast({ title: "✅ Sincronizado!", description: `${plans.length} plano(s) ativo(s) carregados da integração.` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncingIntegration(false);
+    }
+  };
+
+  useEffect(() => { loadSettings(); syncFromIntegration(); }, []);
 
   const loadSettings = async () => {
     try {
