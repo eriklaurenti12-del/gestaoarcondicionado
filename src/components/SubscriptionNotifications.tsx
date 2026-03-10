@@ -142,7 +142,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
     const name = namesList[Math.floor(Math.random() * namesList.length)];
     const city = citiesList[Math.floor(Math.random() * citiesList.length)];
     const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
-    const plan = Math.random() > 0.4 ? plans[1] : plans[0];
+    const plan = plans.length > 0 ? plans[Math.floor(Math.random() * plans.length)] : { name: 'Plano Mensal', price: `R$ ${precoMensal}`, isAnnual: false };
 
     const newNotification: Notification = { id: Date.now() + Math.random(), name, city, plan, actionType, visible: true };
     setNotifications(prev => [...prev.slice(-1), newNotification]);
