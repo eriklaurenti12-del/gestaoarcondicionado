@@ -10,7 +10,47 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/contexts/ThemeContext";
-import { Palette, Sun, Moon, Save, Loader2, RotateCcw, Sparkles, Eye, Zap, Droplets } from "lucide-react";
+import { Palette, Sun, Moon, Save, Loader2, RotateCcw, Sparkles, Eye, Zap, Droplets, Type, Wand2, ArrowRightLeft } from "lucide-react";
+
+const FONT_OPTIONS = [
+  { value: 'Inter, sans-serif', label: 'Inter (Padrão)' },
+  { value: '"Poppins", sans-serif', label: 'Poppins' },
+  { value: '"Roboto", sans-serif', label: 'Roboto' },
+  { value: '"Open Sans", sans-serif', label: 'Open Sans' },
+  { value: '"Montserrat", sans-serif', label: 'Montserrat' },
+  { value: '"Nunito", sans-serif', label: 'Nunito' },
+  { value: '"Lato", sans-serif', label: 'Lato' },
+  { value: '"Raleway", sans-serif', label: 'Raleway' },
+  { value: '"Outfit", sans-serif', label: 'Outfit' },
+  { value: '"Space Grotesk", sans-serif', label: 'Space Grotesk' },
+  { value: '"JetBrains Mono", monospace', label: 'JetBrains Mono' },
+  { value: '"Playfair Display", serif', label: 'Playfair Display' },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: '300', label: 'Light (300)' },
+  { value: '400', label: 'Normal (400)' },
+  { value: '500', label: 'Medium (500)' },
+  { value: '600', label: 'Semi-Bold (600)' },
+  { value: '700', label: 'Bold (700)' },
+];
+
+const TRANSITION_SPEED_OPTIONS = [
+  { value: '0', label: 'Sem transição' },
+  { value: '150', label: 'Rápida (150ms)' },
+  { value: '300', label: 'Normal (300ms)' },
+  { value: '500', label: 'Suave (500ms)' },
+  { value: '700', label: 'Lenta (700ms)' },
+];
+
+const LIGHT_EFFECT_PRESETS = [
+  { value: 'none', label: 'Nenhum', emoji: '⬛' },
+  { value: 'neon', label: 'Neon Glow', emoji: '💡' },
+  { value: 'aurora', label: 'Aurora Boreal', emoji: '🌌' },
+  { value: 'pulse', label: 'Pulso Suave', emoji: '💓' },
+  { value: 'spotlight', label: 'Holofote', emoji: '🔦' },
+  { value: 'firefly', label: 'Vagalume', emoji: '✨' },
+];
 
 type ThemeColors = Record<string, string>;
 
@@ -164,6 +204,16 @@ const AdminThemeTab: React.FC = () => {
   const [glowIntensity, setGlowIntensity] = useState(50);
   const [borderRadius, setBorderRadius] = useState(12);
 
+  const [fontFamily, setFontFamily] = useState('Inter, sans-serif');
+  const [headingFont, setHeadingFont] = useState('Inter, sans-serif');
+  const [fontWeight, setFontWeight] = useState('400');
+  const [headingWeight, setHeadingWeight] = useState('700');
+  const [fontSize, setFontSize] = useState(16);
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [transitionSpeed, setTransitionSpeed] = useState('300');
+  const [lightEffect, setLightEffect] = useState('none');
+  const [textShadow, setTextShadow] = useState(false);
+
   useEffect(() => {
     loadThemeSettings();
   }, []);
@@ -185,6 +235,15 @@ const AdminThemeTab: React.FC = () => {
       }
       if (map.theme_glow_intensity) setGlowIntensity(Number(map.theme_glow_intensity) || 50);
       if (map.theme_border_radius) setBorderRadius(Number(map.theme_border_radius) || 12);
+      if (map.theme_font_family) setFontFamily(map.theme_font_family);
+      if (map.theme_heading_font) setHeadingFont(map.theme_heading_font);
+      if (map.theme_font_weight) setFontWeight(map.theme_font_weight);
+      if (map.theme_heading_weight) setHeadingWeight(map.theme_heading_weight);
+      if (map.theme_font_size) setFontSize(Number(map.theme_font_size) || 16);
+      if (map.theme_letter_spacing) setLetterSpacing(Number(map.theme_letter_spacing) || 0);
+      if (map.theme_transition_speed) setTransitionSpeed(map.theme_transition_speed);
+      if (map.theme_light_effect) setLightEffect(map.theme_light_effect);
+      if (map.theme_text_shadow) setTextShadow(map.theme_text_shadow === 'true');
 
       const fx: Record<string, string> = {};
       EFFECTS_KEYS.forEach(e => { fx[e.key] = map[e.key] || e.default; });
@@ -276,11 +335,57 @@ const AdminThemeTab: React.FC = () => {
     applyPreset('default');
     setBorderRadius(12);
     setGlowIntensity(50);
+    setFontFamily('Inter, sans-serif');
+    setHeadingFont('Inter, sans-serif');
+    setFontWeight('400');
+    setHeadingWeight('700');
+    setFontSize(16);
+    setLetterSpacing(0);
+    setTransitionSpeed('300');
+    setLightEffect('none');
+    setTextShadow(false);
     const root = document.documentElement;
-    // Remove all inline styles to revert to CSS defaults
     root.removeAttribute('style');
     toast({ title: 'Tema resetado para o padrão 🔄' });
   };
+
+  // Apply fonts & effects instantly
+  const applyFontsInstantly = useCallback((ff: string, hf: string, fw: string, hw: string, fs: number, ls: number, ts: string, le: string, shadow: boolean) => {
+    const root = document.documentElement;
+    // Load Google Font dynamically
+    [ff, hf].forEach(font => {
+      const familyName = font.replace(/["']/g, '').split(',')[0].trim();
+      if (familyName && familyName !== 'sans-serif' && familyName !== 'serif' && familyName !== 'monospace') {
+        const linkId = `gfont-${familyName.replace(/\s+/g, '-')}`;
+        if (!document.getElementById(linkId)) {
+          const link = document.createElement('link');
+          link.id = linkId;
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${familyName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+          document.head.appendChild(link);
+        }
+      }
+    });
+    root.style.setProperty('--font-body', ff);
+    root.style.setProperty('--font-heading', hf);
+    root.style.setProperty('--font-weight-body', fw);
+    root.style.setProperty('--font-weight-heading', hw);
+    root.style.setProperty('--font-size-base', `${fs}px`);
+    root.style.setProperty('--letter-spacing', `${ls}em`);
+    root.style.setProperty('--transition-speed', `${ts}ms`);
+    root.style.setProperty('--light-effect', le);
+    root.style.setProperty('--text-shadow', shadow ? '1' : '0');
+    // Apply directly to body
+    document.body.style.fontFamily = ff;
+    document.body.style.fontWeight = fw;
+    document.body.style.fontSize = `${fs}px`;
+    document.body.style.letterSpacing = `${ls}em`;
+    document.body.style.transition = `all ${ts}ms ease`;
+  }, []);
+
+  useEffect(() => {
+    applyFontsInstantly(fontFamily, headingFont, fontWeight, headingWeight, fontSize, letterSpacing, transitionSpeed, lightEffect, textShadow);
+  }, [fontFamily, headingFont, fontWeight, headingWeight, fontSize, letterSpacing, transitionSpeed, lightEffect, textShadow, applyFontsInstantly]);
 
   const saveTheme = async () => {
     setSaving(true);
@@ -290,6 +395,15 @@ const AdminThemeTab: React.FC = () => {
         { key: 'theme_dark_colors', value: JSON.stringify(darkColors), description: 'Cores do tema escuro' },
         { key: 'theme_glow_intensity', value: String(glowIntensity), description: 'Intensidade do glow' },
         { key: 'theme_border_radius', value: String(borderRadius), description: 'Arredondamento das bordas' },
+        { key: 'theme_font_family', value: fontFamily, description: 'Fonte do corpo' },
+        { key: 'theme_heading_font', value: headingFont, description: 'Fonte dos títulos' },
+        { key: 'theme_font_weight', value: fontWeight, description: 'Peso da fonte corpo' },
+        { key: 'theme_heading_weight', value: headingWeight, description: 'Peso da fonte títulos' },
+        { key: 'theme_font_size', value: String(fontSize), description: 'Tamanho base da fonte' },
+        { key: 'theme_letter_spacing', value: String(letterSpacing), description: 'Espaçamento entre letras' },
+        { key: 'theme_transition_speed', value: transitionSpeed, description: 'Velocidade das transições' },
+        { key: 'theme_light_effect', value: lightEffect, description: 'Efeito de luz' },
+        { key: 'theme_text_shadow', value: String(textShadow), description: 'Sombra no texto' },
         ...EFFECTS_KEYS.map(e => ({ key: e.key, value: effects[e.key] || e.default, description: e.label })),
       ];
 
@@ -299,7 +413,7 @@ const AdminThemeTab: React.FC = () => {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'key' });
       }
-      toast({ title: '✅ Tema salvo com sucesso!', description: 'As cores serão aplicadas para todos os usuários.' });
+      toast({ title: '✅ Tema salvo com sucesso!', description: 'Fontes, cores e efeitos serão aplicados para todos.' });
     } catch (e: any) {
       toast({ title: 'Erro ao salvar tema', description: e.message, variant: 'destructive' });
     } finally { setSaving(false); }
@@ -492,6 +606,189 @@ const AdminThemeTab: React.FC = () => {
               />
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* Fonts & Typography */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Type className="w-5 h-5 text-primary" /> Tipografia & Fontes
+          </CardTitle>
+          <CardDescription>Escolha as fontes, pesos e estilos de texto do sistema</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Fonte do Corpo</Label>
+              <Select value={fontFamily} onValueChange={setFontFamily}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Fonte dos Títulos</Label>
+              <Select value={headingFont} onValueChange={setHeadingFont}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>
+                      <span style={{ fontFamily: f.value }}>{f.label}</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Peso da Fonte (Corpo)</Label>
+              <Select value={fontWeight} onValueChange={setFontWeight}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_WEIGHT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Peso da Fonte (Títulos)</Label>
+              <Select value={headingWeight} onValueChange={setHeadingWeight}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {FONT_WEIGHT_OPTIONS.map(f => (
+                    <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Tamanho Base ({fontSize}px)</Label>
+              <Slider value={[fontSize]} onValueChange={v => setFontSize(v[0])} min={12} max={22} step={1} />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Espaçamento entre Letras ({letterSpacing.toFixed(2)}em)</Label>
+              <Slider value={[letterSpacing]} onValueChange={v => setLetterSpacing(v[0])} min={-0.05} max={0.15} step={0.01} />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20">
+            <p className="text-sm">Sombra no Texto (Text Shadow)</p>
+            <Switch checked={textShadow} onCheckedChange={setTextShadow} />
+          </div>
+
+          {/* Font Preview */}
+          <div className="p-4 rounded-xl border border-border bg-card space-y-2">
+            <h3 className="text-lg" style={{ fontFamily: headingFont, fontWeight: Number(headingWeight) }}>
+              Preview dos Títulos — Heading
+            </h3>
+            <p className="text-sm" style={{ fontFamily: fontFamily, fontWeight: Number(fontWeight), fontSize: `${fontSize}px`, letterSpacing: `${letterSpacing}em` }}>
+              Preview do corpo de texto com a fonte selecionada. Aqui está um exemplo de como o texto aparecerá no sistema.
+            </p>
+            <p className="text-xs text-muted-foreground" style={{ fontFamily: fontFamily }}>
+              ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz 0123456789
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Light Effects */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-primary" /> Efeitos de Luz
+          </CardTitle>
+          <CardDescription>Escolha um efeito de iluminação ambiente para o sistema</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+            {LIGHT_EFFECT_PRESETS.map(ef => (
+              <button key={ef.value} onClick={() => setLightEffect(ef.value)}
+                className={`p-3 rounded-xl border transition-all text-center space-y-1 hover:scale-105 active:scale-95 ${
+                  lightEffect === ef.value ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-border hover:border-primary/50'
+                }`}>
+                <p className="text-xl">{ef.emoji}</p>
+                <p className="text-xs font-medium">{ef.label}</p>
+              </button>
+            ))}
+          </div>
+          {/* Light effect live preview */}
+          <div className="mt-4 h-24 rounded-xl border border-border overflow-hidden relative" style={{ backgroundColor: `hsl(${currentColors.background})` }}>
+            {lightEffect === 'neon' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-32 h-32 rounded-full animate-pulse" style={{ backgroundColor: `hsl(${currentColors.primary} / 0.3)`, boxShadow: `0 0 60px 30px hsl(${currentColors.primary} / 0.4)` }} />
+              </div>
+            )}
+            {lightEffect === 'aurora' && (
+              <div className="absolute inset-0 opacity-60" style={{ background: `linear-gradient(135deg, hsl(${currentColors.primary} / 0.3), hsl(${currentColors.secondary} / 0.3), hsl(${currentColors.accent} / 0.3))`, animation: 'gradient-shift 4s ease infinite', backgroundSize: '200% 200%' }} />
+            )}
+            {lightEffect === 'pulse' && (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-20 h-20 rounded-full" style={{ backgroundColor: `hsl(${currentColors.primary} / 0.2)`, animation: 'pulse 2s cubic-bezier(0.4,0,0.6,1) infinite', boxShadow: `0 0 40px 15px hsl(${currentColors.primary} / 0.15)` }} />
+              </div>
+            )}
+            {lightEffect === 'spotlight' && (
+              <div className="absolute inset-0" style={{ background: `radial-gradient(circle at 50% 0%, hsl(${currentColors.primary} / 0.35) 0%, transparent 70%)` }} />
+            )}
+            {lightEffect === 'firefly' && (
+              <div className="absolute inset-0 flex items-center justify-around">
+                {[0,1,2,3,4].map(i => (
+                  <div key={i} className="w-2 h-2 rounded-full" style={{ backgroundColor: `hsl(${currentColors.primary})`, animation: `pulse ${1.5 + i * 0.3}s ease-in-out infinite`, opacity: 0.6 + i * 0.08 }} />
+                ))}
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <p className="text-xs text-muted-foreground font-medium z-10">
+                {lightEffect === 'none' ? 'Nenhum efeito selecionado' : `Efeito: ${LIGHT_EFFECT_PRESETS.find(e => e.value === lightEffect)?.label}`}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Transitions */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ArrowRightLeft className="w-5 h-5 text-primary" /> Transições & Animações
+          </CardTitle>
+          <CardDescription>Controle a velocidade das transições e animações do sistema</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Velocidade das Transições</Label>
+            <Select value={transitionSpeed} onValueChange={setTransitionSpeed}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TRANSITION_SPEED_OPTIONS.map(t => (
+                  <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {/* Transition Preview */}
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 h-12 rounded-xl border border-border bg-primary/10 hover:bg-primary/30 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Passe o mouse aqui</p>
+            </div>
+            <div className="flex-1 h-12 rounded-xl border border-border hover:border-primary hover:scale-105 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Efeito hover</p>
+            </div>
+            <div className="flex-1 h-12 rounded-xl border border-border hover:shadow-lg hover:shadow-primary/20 flex items-center justify-center cursor-pointer"
+              style={{ transition: `all ${transitionSpeed}ms ease` }}>
+              <p className="text-xs text-muted-foreground">Sombra hover</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
