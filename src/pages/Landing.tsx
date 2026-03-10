@@ -225,16 +225,14 @@ const Landing: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navigate, isPreviewMode]);
 
-  const handleCheckout = (type: 'mensal' | 'anual') => {
-    trackConversion(type);
+  const handleCheckout = (planId: string) => {
+    trackConversion(planId as any);
     
-    // Always use global integration checkout links
-    const checkoutUrl = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
+    const checkoutUrl = settings[`checkout_${planId}`];
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
       window.open(checkoutUrl, '_blank');
     } else {
-      // No checkout link found anywhere - redirect to signup
       setShowLogin(true); 
       setIsLogin(false); 
       toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." });
