@@ -584,10 +584,12 @@ export const AdminIntegrationsTab: React.FC = () => {
           <div className="space-y-2">
             {PLANS.map(plan => {
               const isActive = settings.plano_ativo_checkout === plan.id;
+              const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
+              const isLandingActive = visiblePlans.includes(plan.id);
               return (
                 <div
                   key={plan.id}
-                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                  className={`flex flex-wrap items-center gap-3 p-3 rounded-lg border transition-all ${
                     isActive ? 'bg-yellow-500/5 border-yellow-500/30' : 'bg-[#0a0a12] border-[#1e1e2e]'
                   }`}
                 >
@@ -607,6 +609,26 @@ export const AdminIntegrationsTab: React.FC = () => {
                     onChange={e => setSettings(prev => ({ ...prev, [`checkout_${plan.id}`]: e.target.value }))}
                     className="bg-[#12121c] border-[#1e1e2e] text-white h-9 text-sm flex-1"
                   />
+                  <button
+                    onClick={() => {
+                      setSettings(prev => {
+                        const current = (prev.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+                        const next = isLandingActive
+                          ? current.filter(id => id !== plan.id)
+                          : [...new Set([...current, plan.id])];
+                        return { ...prev, planos_visiveis_landing: next.length ? next.join(',') : plan.id };
+                      });
+                    }}
+                    className={`shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-semibold border transition-all ${
+                      isLandingActive
+                        ? 'bg-green-600/20 text-green-400 border-green-600/40 hover:bg-green-600/30'
+                        : 'bg-red-600/10 text-red-400 border-red-600/30 hover:bg-red-600/20'
+                    }`}
+                    title={isLandingActive ? 'Desativar na landing' : 'Ativar na landing'}
+                  >
+                    <Globe className="w-3 h-3" />
+                    {isLandingActive ? 'Landing ✓' : 'Landing ✗'}
+                  </button>
                 </div>
               );
             })}
