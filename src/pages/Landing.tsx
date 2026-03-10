@@ -1063,7 +1063,7 @@ const Landing: React.FC = () => {
         <div className="container mx-auto text-center max-w-2xl">
           <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-slate-900">Pronto para se organizar?</h2>
           <p className="text-gray-500 mb-6">Comece gratuitamente. Sem cartão de crédito.</p>
-          <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-10 py-6 rounded-lg" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-10 py-6 rounded-lg" onClick={handleMainCTA}>
             Começar agora <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
