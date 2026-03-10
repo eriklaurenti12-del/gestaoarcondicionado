@@ -987,6 +987,41 @@ gtag('config', '${settings.landing_pixel_google}');
                 <Switch checked={settings.landing_vsl_trava === 'true'}
                   onCheckedChange={v => update('landing_vsl_trava', v ? 'true' : 'false')} />
               </div>
+
+              {/* Delayed CTA */}
+              <div className="border-t border-border pt-4 mt-4">
+                <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-500" /> Link/CTA com Delay (aparece após o vídeo iniciar)
+                </h4>
+                <div className="flex items-center justify-between bg-muted/30 border border-border rounded-lg p-3 mb-3">
+                  <div>
+                    <Label className="text-sm">Ativar CTA com delay</Label>
+                    <p className="text-muted-foreground text-xs">Botão aparece X segundos após o vídeo começar</p>
+                  </div>
+                  <Switch checked={settings.landing_vsl_cta_ativo === 'true'}
+                    onCheckedChange={v => update('landing_vsl_cta_ativo', v ? 'true' : 'false')} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Delay (segundos)</Label>
+                    <Input type="number" value={settings.landing_vsl_cta_delay || '5'} 
+                      onChange={e => update('landing_vsl_cta_delay', e.target.value)}
+                      placeholder="5" min="1" max="300" />
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground text-xs">Texto do Botão</Label>
+                    <Input value={settings.landing_vsl_cta_texto || 'QUERO COMEÇAR AGORA'} 
+                      onChange={e => update('landing_vsl_cta_texto', e.target.value)}
+                      placeholder="QUERO COMEÇAR AGORA" />
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <Label className="text-muted-foreground text-xs">Link do Botão (vazio = rola até preços)</Label>
+                  <Input value={settings.landing_vsl_cta_link || ''} 
+                    onChange={e => update('landing_vsl_cta_link', e.target.value)}
+                    placeholder="https://checkout.com/... ou deixe vazio" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
