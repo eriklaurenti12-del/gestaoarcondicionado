@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, Wind, User, Shield, Headphones, Monitor, KeyRound } from "lucide-react";
+import { Loader2, Mail, Lock, Wind, User, Shield, Headphones, Monitor, KeyRound, Chrome } from "lucide-react";
+import { lovable } from "@/integrations/lovable/index";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { Badge } from "@/components/ui/badge";
 
