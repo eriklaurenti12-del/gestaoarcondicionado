@@ -114,8 +114,11 @@ export default function Members() {
       try {
         const parsed = JSON.parse(data.value);
         if (Array.isArray(parsed)) {
-          const merged = parsed.filter((t: any) => DEFAULT_TABS.some(d => d.id === t.id));
-          const missing = DEFAULT_TABS.filter(d => !parsed.some((t: any) => t.id === d.id));
+          const seen = new Set<string>();
+          const merged = parsed
+            .filter((t: any) => DEFAULT_TABS.some(d => d.id === t.id))
+            .filter((t: any) => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+          const missing = DEFAULT_TABS.filter(d => !seen.has(d.id));
           setTabOrder([...merged, ...missing]);
         }
       } catch {}
