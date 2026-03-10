@@ -1228,7 +1228,7 @@ const Landing: React.FC = () => {
       <section className="py-16 px-4">
         <div className="container mx-auto text-center">
           <h2 className="text-3xl font-bold mb-6">Comece <span className="bg-gradient-to-r from-indigo-400 to-violet-400 bg-clip-text text-transparent">agora</span></h2>
-          <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={() => handleCheckout('anual')}>
+          <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto}
           </Button>
         </div>
