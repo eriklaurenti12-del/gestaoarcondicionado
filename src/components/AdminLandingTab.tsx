@@ -62,6 +62,9 @@ const LANDING_KEYS = [
   'landing_nome_riscado_ativo', 'landing_nome_riscado_texto',
   // Marquee & Effects settings
   'landing_animacoes_ativas', 'landing_scroll_reveal',
+  'landing_efeito_gradiente_animado', 'landing_efeito_formas_flutuantes', 'landing_efeito_glow',
+  'landing_efeito_particulas', 'landing_efeito_parallax', 'landing_efeito_typewriter',
+  'landing_efeito_pulsar_cta', 'landing_efeito_contagem_animada',
   'landing_marquee1_ativo', 'landing_marquee1_textos', 'landing_marquee1_direcao', 'landing_marquee1_velocidade',
   'landing_marquee1_cor_fundo', 'landing_marquee1_cor_texto', 'landing_marquee1_estilo', 'landing_marquee1_posicao',
   'landing_marquee1_tamanho', 'landing_marquee1_separador', 'landing_marquee1_tipo',
@@ -71,6 +74,13 @@ const LANDING_KEYS = [
   'landing_marquee3_ativo', 'landing_marquee3_textos', 'landing_marquee3_direcao', 'landing_marquee3_velocidade',
   'landing_marquee3_cor_fundo', 'landing_marquee3_cor_texto', 'landing_marquee3_estilo', 'landing_marquee3_posicao',
   'landing_marquee3_tamanho', 'landing_marquee3_separador', 'landing_marquee3_tipo',
+  // Image Banners
+  ...Array.from({length: 5}, (_, i) => [
+    `landing_img_banner${i+1}_ativo`, `landing_img_banner${i+1}_imagem`, `landing_img_banner${i+1}_texto`,
+    `landing_img_banner${i+1}_link`, `landing_img_banner${i+1}_posicao`,
+  ]).flat(),
+  // Seções - Frase de destaque & VSL
+  'landing_secao_frase_destaque', 'landing_secao_vsl',
 ];
 
 type LandingSettings = Record<string, string>;
