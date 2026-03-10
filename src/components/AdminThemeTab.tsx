@@ -335,11 +335,57 @@ const AdminThemeTab: React.FC = () => {
     applyPreset('default');
     setBorderRadius(12);
     setGlowIntensity(50);
+    setFontFamily('Inter, sans-serif');
+    setHeadingFont('Inter, sans-serif');
+    setFontWeight('400');
+    setHeadingWeight('700');
+    setFontSize(16);
+    setLetterSpacing(0);
+    setTransitionSpeed('300');
+    setLightEffect('none');
+    setTextShadow(false);
     const root = document.documentElement;
-    // Remove all inline styles to revert to CSS defaults
     root.removeAttribute('style');
     toast({ title: 'Tema resetado para o padrão 🔄' });
   };
+
+  // Apply fonts & effects instantly
+  const applyFontsInstantly = useCallback((ff: string, hf: string, fw: string, hw: string, fs: number, ls: number, ts: string, le: string, shadow: boolean) => {
+    const root = document.documentElement;
+    // Load Google Font dynamically
+    [ff, hf].forEach(font => {
+      const familyName = font.replace(/["']/g, '').split(',')[0].trim();
+      if (familyName && familyName !== 'sans-serif' && familyName !== 'serif' && familyName !== 'monospace') {
+        const linkId = `gfont-${familyName.replace(/\s+/g, '-')}`;
+        if (!document.getElementById(linkId)) {
+          const link = document.createElement('link');
+          link.id = linkId;
+          link.rel = 'stylesheet';
+          link.href = `https://fonts.googleapis.com/css2?family=${familyName.replace(/\s+/g, '+')}:wght@300;400;500;600;700&display=swap`;
+          document.head.appendChild(link);
+        }
+      }
+    });
+    root.style.setProperty('--font-body', ff);
+    root.style.setProperty('--font-heading', hf);
+    root.style.setProperty('--font-weight-body', fw);
+    root.style.setProperty('--font-weight-heading', hw);
+    root.style.setProperty('--font-size-base', `${fs}px`);
+    root.style.setProperty('--letter-spacing', `${ls}em`);
+    root.style.setProperty('--transition-speed', `${ts}ms`);
+    root.style.setProperty('--light-effect', le);
+    root.style.setProperty('--text-shadow', shadow ? '1' : '0');
+    // Apply directly to body
+    document.body.style.fontFamily = ff;
+    document.body.style.fontWeight = fw;
+    document.body.style.fontSize = `${fs}px`;
+    document.body.style.letterSpacing = `${ls}em`;
+    document.body.style.transition = `all ${ts}ms ease`;
+  }, []);
+
+  useEffect(() => {
+    applyFontsInstantly(fontFamily, headingFont, fontWeight, headingWeight, fontSize, letterSpacing, transitionSpeed, lightEffect, textShadow);
+  }, [fontFamily, headingFont, fontWeight, headingWeight, fontSize, letterSpacing, transitionSpeed, lightEffect, textShadow, applyFontsInstantly]);
 
   const saveTheme = async () => {
     setSaving(true);
@@ -349,6 +395,15 @@ const AdminThemeTab: React.FC = () => {
         { key: 'theme_dark_colors', value: JSON.stringify(darkColors), description: 'Cores do tema escuro' },
         { key: 'theme_glow_intensity', value: String(glowIntensity), description: 'Intensidade do glow' },
         { key: 'theme_border_radius', value: String(borderRadius), description: 'Arredondamento das bordas' },
+        { key: 'theme_font_family', value: fontFamily, description: 'Fonte do corpo' },
+        { key: 'theme_heading_font', value: headingFont, description: 'Fonte dos títulos' },
+        { key: 'theme_font_weight', value: fontWeight, description: 'Peso da fonte corpo' },
+        { key: 'theme_heading_weight', value: headingWeight, description: 'Peso da fonte títulos' },
+        { key: 'theme_font_size', value: String(fontSize), description: 'Tamanho base da fonte' },
+        { key: 'theme_letter_spacing', value: String(letterSpacing), description: 'Espaçamento entre letras' },
+        { key: 'theme_transition_speed', value: transitionSpeed, description: 'Velocidade das transições' },
+        { key: 'theme_light_effect', value: lightEffect, description: 'Efeito de luz' },
+        { key: 'theme_text_shadow', value: String(textShadow), description: 'Sombra no texto' },
         ...EFFECTS_KEYS.map(e => ({ key: e.key, value: effects[e.key] || e.default, description: e.label })),
       ];
 
@@ -358,7 +413,7 @@ const AdminThemeTab: React.FC = () => {
           updated_at: new Date().toISOString(),
         }, { onConflict: 'key' });
       }
-      toast({ title: '✅ Tema salvo com sucesso!', description: 'As cores serão aplicadas para todos os usuários.' });
+      toast({ title: '✅ Tema salvo com sucesso!', description: 'Fontes, cores e efeitos serão aplicados para todos.' });
     } catch (e: any) {
       toast({ title: 'Erro ao salvar tema', description: e.message, variant: 'destructive' });
     } finally { setSaving(false); }
