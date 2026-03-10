@@ -32,7 +32,7 @@ const defaultCities = [
 const defaultActionTypes = [
   { action: "acabou de assinar", icon: CheckCircle, color: "text-green-400" },
   { action: "acabou de renovar", icon: RefreshCw, color: "text-blue-400" },
-  { action: "fez upgrade para anual", icon: TrendingUp, color: "text-amber-400" },
+  { action: "fez upgrade", icon: TrendingUp, color: "text-amber-400" },
   { action: "ativou sua conta", icon: Star, color: "text-purple-400" }
 ];
 
