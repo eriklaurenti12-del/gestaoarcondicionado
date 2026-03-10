@@ -158,7 +158,7 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
     const initialTimeout = setTimeout(createNotification, 5000);
     const timer = setInterval(createNotification, interval);
     return () => { clearTimeout(initialTimeout); clearInterval(timer); };
-  }, [interval, precoMensal, precoAnual, customActions, customNames, customCities, soundUrl]);
+  }, [interval, precoMensal, precoAnual, precoTrimestral, precoSemestral, precoVitalicio, planosVisiveis, customActions, customNames, customCities, soundUrl]);
 
   const dismissNotification = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, visible: false } : n));
