@@ -169,6 +169,18 @@ export default function Auth() {
     } finally { setLoading(false); }
   };
 
+  const handleGoogleSignIn = async () => {
+    setLoading(true);
+    try {
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({ title: "Erro no login com Google", description: error.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
