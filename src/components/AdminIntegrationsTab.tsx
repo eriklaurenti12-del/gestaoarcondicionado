@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import {
   Copy, CheckCircle2, XCircle, Send, Loader2,
@@ -74,6 +75,9 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
     plataforma_ativa: 'ggcheckout',
     plano_ativo_checkout: 'anual',
+    planos_visiveis_landing: 'mensal,anual', // quais planos aparecem na landing
+    notificar_vendas: 'true',
+    notificar_erros: 'true',
     checkout_mensal: '', checkout_trimestral: '', checkout_semestral: '', checkout_anual: '', checkout_vitalicio: '',
     preco_mensal: '29.90', preco_trimestral: '69.90', preco_semestral: '149.90', preco_anual: '199.90', preco_vitalicio: '499.90',
     whatsapp_suporte: '',
@@ -117,15 +121,29 @@ export const AdminIntegrationsTab: React.FC = () => {
   const saveAll = async () => {
     setSaving(true);
     try {
-      const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'whatsapp_suporte',
+      const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'planos_visiveis_landing',
+        'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
         ...PLANS.flatMap(p => [`checkout_${p.id}`, `preco_${p.id}`])];
-      for (const key of keysToSave) {
-        await supabase.from('admin_settings').upsert(
-          { key, value: settings[key] || '', description: `Config: ${key}` },
-          { onConflict: 'key' }
-        );
+      
+      // Also sync landing page price settings
+      const landingSyncKeys: Record<string, string> = {
+        'landing_preco_mensal': settings.preco_mensal?.replace('.', ',') || '29,90',
+        'landing_preco_anual': settings.preco_anual?.replace('.', ',') || '199,90',
+      };
+      
+      const allUpserts = [
+        ...keysToSave.map(key => ({
+          key, value: settings[key] || '', description: `Config: ${key}`
+        })),
+        ...Object.entries(landingSyncKeys).map(([key, value]) => ({
+          key, value, description: `Sync: ${key}`
+        })),
+      ];
+      
+      for (const item of allUpserts) {
+        await supabase.from('admin_settings').upsert(item, { onConflict: 'key' });
       }
-      toast({ title: "✅ Salvo!", description: "Configurações atualizadas." });
+      toast({ title: "✅ Salvo!", description: "Todas as configurações e links de checkout foram atualizados." });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
@@ -594,6 +612,65 @@ export const AdminIntegrationsTab: React.FC = () => {
             })}
           </div>
 
+          {/* ── Planos visíveis na Landing Page ── */}
+          <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20 space-y-2">
+            <p className="text-xs font-bold text-purple-300 flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" /> Planos visíveis na Landing Page
+            </p>
+            <p className="text-[10px] text-gray-500">Selecione quais planos aparecem como opção de compra na landing page. Marque mais de um para mostrar múltiplas opções.</p>
+            <div className="flex flex-wrap gap-3">
+              {PLANS.map(plan => {
+                const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
+                const isChecked = visiblePlans.includes(plan.id);
+                return (
+                  <label key={plan.id} className="flex items-center gap-2 cursor-pointer">
+                    <Checkbox
+                      checked={isChecked}
+                      onCheckedChange={(checked) => {
+                        setSettings(prev => {
+                          const current = (prev.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+                          const next = checked 
+                            ? [...new Set([...current, plan.id])]
+                            : current.filter(id => id !== plan.id);
+                          return { ...prev, planos_visiveis_landing: next.length ? next.join(',') : plan.id };
+                        });
+                      }}
+                    />
+                    <span className="text-xs text-white">{plan.icon} {plan.label}</span>
+                    {settings[`checkout_${plan.id}`] ? (
+                      <Badge className="bg-green-600/20 text-green-400 border-green-600/30 text-[9px] h-4">Link OK</Badge>
+                    ) : (
+                      <Badge className="bg-red-600/20 text-red-400 border-red-600/30 text-[9px] h-4">Sem link</Badge>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* ── Notificações ── */}
+          <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 space-y-2">
+            <p className="text-xs font-bold text-blue-300 flex items-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5" /> Notificações de Vendas
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={settings.notificar_vendas !== 'false'}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, notificar_vendas: checked ? 'true' : 'false' }))}
+                />
+                <span className="text-xs text-white">📬 Notificar vendas aprovadas</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <Checkbox
+                  checked={settings.notificar_erros !== 'false'}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, notificar_erros: checked ? 'true' : 'false' }))}
+                />
+                <span className="text-xs text-white">❌ Notificar erros de pagamento</span>
+              </label>
+            </div>
+          </div>
+
           {/* WhatsApp */}
           <div>
             <label className="text-[11px] text-gray-500 mb-1 block">WhatsApp Suporte</label>
@@ -608,7 +685,7 @@ export const AdminIntegrationsTab: React.FC = () => {
           <div className="flex justify-end">
             <Button size="sm" onClick={saveAll} disabled={saving} className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
               {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <CheckCircle2 className="w-3.5 h-3.5 mr-1" />}
-              Salvar Planos & Checkout
+              Salvar Tudo (Planos, Links, Notificações)
             </Button>
           </div>
         </CardContent>

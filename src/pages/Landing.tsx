@@ -14,7 +14,7 @@ import {
   FileText, Shield, Smartphone, Zap, ArrowRight, Sparkles,
   Crown, Gift, Clock, DollarSign, ChevronDown, Wind, Wrench,
   Download, LogIn, UserPlus, Eye, EyeOff, Loader2, X,
-  Percent, BadgeCheck, TrendingUp, MessageCircle, HelpCircle, ChevronUp, Video, Play
+  Percent, BadgeCheck, TrendingUp, MessageCircle, HelpCircle, ChevronUp, Video, Play, CreditCard
 } from "lucide-react";
 import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
 import { PromoCountdown } from "@/components/PromoCountdown";
@@ -117,7 +117,9 @@ const Landing: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [settings, setSettings] = useState<AdminSettings>({
-    checkout_mensal: '', checkout_anual: '',
+    checkout_mensal: '', checkout_trimestral: '', checkout_semestral: '', checkout_anual: '', checkout_vitalicio: '',
+    preco_mensal: '29.90', preco_trimestral: '69.90', preco_semestral: '149.90', preco_anual: '199.90', preco_vitalicio: '499.90',
+    planos_visiveis_landing: 'mensal,anual',
     whatsapp_suporte: 'https://wa.me/5511999999999', promo_end_date: '',
     landing_preco_mensal: '39,90', landing_preco_anual: '370',
     landing_preco_anual_original: '478,80', landing_economia_anual: '108',
@@ -185,7 +187,7 @@ const Landing: React.FC = () => {
   useEffect(() => {
     const loadSettings = async () => {
       const { data } = await supabase.from('admin_settings').select('key, value')
-        .or('key.in.(checkout_mensal,checkout_anual,whatsapp_suporte,promo_end_date),key.like.landing_%');
+        .or('key.in.(checkout_mensal,checkout_trimestral,checkout_semestral,checkout_anual,checkout_vitalicio,preco_mensal,preco_trimestral,preco_semestral,preco_anual,preco_vitalicio,planos_visiveis_landing,whatsapp_suporte,promo_end_date),key.like.landing_%');
       if (data) {
         const settingsMap: Partial<AdminSettings> = {};
         data.forEach(item => { settingsMap[item.key as keyof AdminSettings] = item.value || ''; });
@@ -223,16 +225,14 @@ const Landing: React.FC = () => {
     return () => subscription.unsubscribe();
   }, [navigate, isPreviewMode]);
 
-  const handleCheckout = (type: 'mensal' | 'anual') => {
-    trackConversion(type);
+  const handleCheckout = (planId: string) => {
+    trackConversion(planId as any);
     
-    // Always use global integration checkout links
-    const checkoutUrl = type === 'mensal' ? settings.checkout_mensal : settings.checkout_anual;
+    const checkoutUrl = settings[`checkout_${planId}`];
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
       window.open(checkoutUrl, '_blank');
     } else {
-      // No checkout link found anywhere - redirect to signup
       setShowLogin(true); 
       setIsLogin(false); 
       toast({ title: "Crie sua conta primeiro!", description: "Após o cadastro, finalize a ativação." });
@@ -542,6 +542,17 @@ const Landing: React.FC = () => {
     </div>
   );
 
+  const LANDING_PLANS = [
+    { id: 'mensal', label: 'Mensal', suffix: '/mês', icon: '💳', gradient: 'from-cyan-500 to-blue-500', btnGradient: 'from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600' },
+    { id: 'trimestral', label: 'Trimestral', suffix: '/trimestre', icon: '📘', gradient: 'from-purple-500 to-violet-500', btnGradient: 'from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600' },
+    { id: 'semestral', label: 'Semestral', suffix: '/semestre', icon: '📗', gradient: 'from-teal-500 to-emerald-500', btnGradient: 'from-teal-500 to-emerald-500 hover:from-teal-600 hover:to-emerald-600' },
+    { id: 'anual', label: 'Anual', suffix: '/ano', icon: '⭐', gradient: 'from-amber-500 to-orange-500', btnGradient: 'from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600', popular: true },
+    { id: 'vitalicio', label: 'Vitalício', suffix: ' (único)', icon: '👑', gradient: 'from-yellow-500 to-amber-500', btnGradient: 'from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600' },
+  ];
+
+  const visiblePlanIds = (settings.planos_visiveis_landing || 'mensal,anual').split(',').filter(Boolean);
+  const visiblePlans = LANDING_PLANS.filter(p => visiblePlanIds.includes(p.id));
+
   const PricingSection = () => (
     <section id="precos" className={`py-16 px-4 relative ${template === 'minimalista' ? '' : ''}`}>
       <div className="container mx-auto relative">
@@ -552,82 +563,77 @@ const Landing: React.FC = () => {
             </Badge>
           )}
           <h2 className={`text-2xl sm:text-3xl md:text-4xl font-bold mb-3 ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>
-            {template === 'minimalista' ? 'Planos simples e transparentes' : <>Menos que <span className="text-cyan-400">uma limpeza</span> por mês</>}
+            {template === 'minimalista' ? 'Planos simples e transparentes' : <>Escolha o <span className="text-cyan-400">melhor plano</span> para você</>}
           </h2>
           {template !== 'minimalista' && (
             <p className="text-gray-400 max-w-lg mx-auto text-sm md:text-base px-4">
-              O sistema custa <strong className="text-cyan-400">R$ {settings.landing_preco_mensal}</strong>. <span className="text-amber-400">Faça as contas.</span>
+              {visiblePlans.length > 1 
+                ? 'Compare os planos e escolha o ideal para o seu negócio.'
+                : <>O sistema custa <strong className="text-cyan-400">R$ {(settings[`preco_${visiblePlans[0]?.id}`] || '29.90').replace('.', ',')}</strong>. <span className="text-amber-400">Faça as contas.</span></>
+              }
             </p>
           )}
         </div>
 
-        <div className={`grid gap-6 max-w-4xl mx-auto ${
-          settings.landing_oferta1_ativa !== 'false' && settings.landing_oferta2_ativa !== 'false' ? 'md:grid-cols-2' : 'md:grid-cols-1 max-w-lg'
+        <div className={`grid gap-6 max-w-5xl mx-auto ${
+          visiblePlans.length === 1 ? 'max-w-lg' 
+          : visiblePlans.length === 2 ? 'md:grid-cols-2 max-w-4xl'
+          : visiblePlans.length === 3 ? 'md:grid-cols-3'
+          : visiblePlans.length === 4 ? 'md:grid-cols-2 lg:grid-cols-4'
+          : 'md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5'
         }`}>
-          {settings.landing_oferta1_ativa !== 'false' && (
-            <Card className={template === 'minimalista' ? 'border-gray-200 shadow-sm' : '!bg-white/5 !border-white/10 backdrop-blur-sm relative overflow-hidden'}>
-              {settings.landing_oferta1_badge && <div className="absolute top-3 right-3"><Badge className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white border-0 text-xs">{settings.landing_oferta1_badge}</Badge></div>}
-              <CardHeader className="pb-3">
-                <CardTitle className={template === 'minimalista' ? 'text-slate-900' : 'text-white'}>{settings.landing_oferta1_titulo || 'Plano Mensal'}</CardTitle>
-                <CardDescription>{settings.landing_oferta1_descricao || 'Para testar e ver resultado rápido'}</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <div className="mb-4">
-                  <span className={`text-3xl md:text-4xl font-bold ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>R$ {settings.landing_preco_mensal}</span>
-                  <span className="text-gray-400">/mês</span>
-                </div>
-                <ul className="space-y-2">
-                  {oferta1Features.map((item, i) => (
-                    <li key={i} className={`flex items-center gap-2 text-sm ${template === 'minimalista' ? 'text-slate-600' : 'text-gray-300'}`}>
-                      <CheckCircle className={`w-4 h-4 flex-shrink-0 ${template === 'minimalista' ? 'text-green-500' : 'text-cyan-400'}`} /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button className={`w-full ${template === 'minimalista' ? 'bg-slate-900 text-white hover:bg-slate-800' : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white'}`}
-                  onClick={() => handleCheckout('mensal')}>
-                  {settings.landing_oferta1_btn_texto || `Começar por R$ ${settings.landing_preco_mensal}`}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
-
-          {settings.landing_oferta2_ativa !== 'false' && (
-            <Card className={template === 'minimalista' ? 'border-slate-900 shadow-lg ring-2 ring-slate-900 relative overflow-hidden' : '!bg-gradient-to-br !from-cyan-500/20 !to-blue-500/20 !border-cyan-500/50 backdrop-blur-sm relative overflow-hidden'}>
-              {settings.landing_oferta2_badge && <div className="absolute top-3 right-3"><Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs"><TrendingUp className="w-3 h-3 mr-1" />{settings.landing_oferta2_badge}</Badge></div>}
-              <CardHeader className="pb-3">
-                <CardTitle className={`flex items-center gap-2 ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>
-                  <Crown className="w-5 h-5 text-amber-400" /> {settings.landing_oferta2_titulo || 'Plano Anual'}
-                </CardTitle>
-                <CardDescription className={template === 'minimalista' ? '' : 'text-cyan-300'}>{settings.landing_oferta2_descricao}</CardDescription>
-              </CardHeader>
-              <CardContent className="pb-4">
-                <div className="mb-1">
-                  <span className="text-gray-400 line-through text-sm">R$ {settings.landing_preco_anual_original}</span>
-                  <span className="text-green-400 text-sm ml-2">Economize R$ {settings.landing_economia_anual}!</span>
-                </div>
-                <div className="mb-4">
-                  <span className={`text-3xl md:text-4xl font-bold ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>R$ {settings.landing_preco_anual}</span>
-                  <span className="text-gray-400">/ano</span>
-                  <div className="text-cyan-400 text-xs mt-1">= R$ {settings.landing_preco_mensal_equivalente}/mês</div>
-                </div>
-                <ul className="space-y-2">
-                  {oferta2Features.map((item, i) => (
-                    <li key={i} className={`flex items-center gap-2 text-sm ${template === 'minimalista' ? 'text-slate-700' : 'text-white'}`}>
-                      <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" /> {item}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button size="lg" className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-semibold shadow-lg"
-                  onClick={() => handleCheckout('anual')}>
-                  <Crown className="w-5 h-5 mr-2" /> {settings.landing_oferta2_btn_texto || `QUERO ECONOMIZAR R$ ${settings.landing_economia_anual}`}
-                </Button>
-              </CardFooter>
-            </Card>
-          )}
+          {visiblePlans.map((plan, idx) => {
+            const price = (settings[`preco_${plan.id}`] || '0').replace('.', ',');
+            const isPopular = plan.popular || (visiblePlans.length > 1 && idx === visiblePlans.length - 1);
+            const hasCheckout = !!settings[`checkout_${plan.id}`];
+            const planFeatures = (settings[`landing_oferta_${plan.id}_features`] || 
+              'Acesso COMPLETO a tudo\nClientes ilimitados\nOrdens de serviço profissionais\nControle financeiro real\nSuporte no WhatsApp').split('\n').filter(Boolean);
+            
+            return (
+              <Card key={plan.id} className={
+                template === 'minimalista' 
+                  ? `${isPopular ? 'border-slate-900 shadow-lg ring-2 ring-slate-900' : 'border-gray-200 shadow-sm'} relative overflow-hidden`
+                  : `${isPopular ? '!bg-gradient-to-br !from-cyan-500/20 !to-blue-500/20 !border-cyan-500/50' : '!bg-white/5 !border-white/10'} backdrop-blur-sm relative overflow-hidden`
+              }>
+                {isPopular && (
+                  <div className="absolute top-3 right-3">
+                    <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 text-xs">
+                      <TrendingUp className="w-3 h-3 mr-1" /> MAIS ESCOLHIDO
+                    </Badge>
+                  </div>
+                )}
+                <CardHeader className="pb-3">
+                  <CardTitle className={`flex items-center gap-2 ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>
+                    {plan.id === 'vitalicio' || plan.id === 'anual' ? <Crown className="w-5 h-5 text-amber-400" /> : null}
+                    {plan.icon} {plan.label}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-4">
+                  <div className="mb-4">
+                    <span className={`text-3xl md:text-4xl font-bold ${template === 'minimalista' ? 'text-slate-900' : 'text-white'}`}>R$ {price}</span>
+                    <span className="text-gray-400">{plan.suffix}</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {planFeatures.map((item, i) => (
+                      <li key={i} className={`flex items-center gap-2 text-sm ${template === 'minimalista' ? 'text-slate-600' : 'text-gray-300'}`}>
+                        <CheckCircle className={`w-4 h-4 flex-shrink-0 ${template === 'minimalista' ? 'text-green-500' : 'text-cyan-400'}`} /> {item}
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    size={isPopular ? 'lg' : 'default'}
+                    className={`w-full text-white font-semibold shadow-lg bg-gradient-to-r ${plan.btnGradient}`}
+                    onClick={() => handleCheckout(plan.id)}
+                  >
+                    {plan.id === 'vitalicio' ? <Crown className="w-5 h-5 mr-2" /> : <CreditCard className="w-4 h-4 mr-2" />}
+                    {hasCheckout ? `Assinar ${plan.label} por R$ ${price}` : `Começar ${plan.label}`}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
 
         <div className="text-center mt-8">
