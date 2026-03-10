@@ -374,7 +374,7 @@ const Landing: React.FC = () => {
     trackEvent('ViewContent', { content_name: section, content_category: 'landing_section' });
   };
 
-  const features = [
+  const defaultFeatures = [
     { icon: Calendar, title: "Agenda Inteligente", desc: "Nunca mais perca um serviço" },
     { icon: Users, title: "Clientes Organizados", desc: "Histórico completo em segundos" },
     { icon: Wind, title: "Controle de Equipamentos", desc: "Tudo sobre cada ar do cliente" },
@@ -384,6 +384,12 @@ const Landing: React.FC = () => {
     { icon: Smartphone, title: "No Celular", desc: "Acesse em qualquer lugar" },
     { icon: Shield, title: "Dados Seguros", desc: "Tudo salvo na nuvem" },
   ];
+  const featureIcons = [Calendar, Users, Wind, Wrench, FileText, BarChart3, Smartphone, Shield];
+  const features = defaultFeatures.map((f, i) => ({
+    icon: featureIcons[i],
+    title: settings[`landing_feature${i+1}_titulo`] || f.title,
+    desc: settings[`landing_feature${i+1}_desc`] || f.desc,
+  }));
 
   const testimonials = [1, 2, 3, 4].map(i => ({
     name: settings[`landing_depoimento${i}_nome`] || '',
@@ -819,9 +825,13 @@ const Landing: React.FC = () => {
         <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-gradient-to-b from-transparent to-red-950/20">
           <div className="container mx-auto max-w-4xl">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">Você se <span className="text-red-400">identifica</span> com isso?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-4">
+              {settings.landing_dor_titulo 
+                ? <>{settings.landing_dor_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-red-400">{p}</span> : p)}</>
+                : <>Você se <span className="text-red-400">identifica</span> com isso?</>}
+            </h2>
             <div className="grid md:grid-cols-2 gap-4 mb-10">
-              {["Anota serviços no papel e depois perde","Esquece de cobrar cliente","Não sabe quanto lucrou no mês","Perde tempo procurando no WhatsApp","Cliente liga e você não lembra o histórico","Já perdeu serviço por falta de organização","Trabalha muito mas o dinheiro não sobra","Usa planilha Excel mas nunca atualiza"].map((pain, i) => (
+              {(settings.landing_dor_itens || "Anota serviços no papel e depois perde\nEsquece de cobrar cliente\nNão sabe quanto lucrou no mês\nPerde tempo procurando no WhatsApp\nCliente liga e você não lembra o histórico\nJá perdeu serviço por falta de organização\nTrabalha muito mas o dinheiro não sobra\nUsa planilha Excel mas nunca atualiza").split('\n').filter(Boolean).map((pain: string, i: number) => (
                 <ScrollReveal key={i} delay={i * 80} direction="left">
                 <div className="flex items-center gap-3 bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   <X className="w-5 h-5 text-red-400 flex-shrink-0" /><span className="text-gray-300 text-sm">{pain}</span>
@@ -831,7 +841,11 @@ const Landing: React.FC = () => {
             </div>
             <ScrollReveal direction="scale">
             <div className="text-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/30 rounded-2xl p-6">
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">
+                {settings.landing_dor_conclusao 
+                  ? <>{settings.landing_dor_conclusao.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-cyan-400">{p}</span> : p)}</>
+                  : <>Se marcou 2 ou mais... <span className="text-cyan-400">você PRECISA desse sistema.</span></>}
+              </h3>
             </div>
             </ScrollReveal>
           </div>
@@ -844,7 +858,11 @@ const Landing: React.FC = () => {
         <ScrollReveal direction="up">
         <section className="py-16 px-4">
           <div className="container mx-auto">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">
+              {settings.landing_features_titulo
+                ? <>{settings.landing_features_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-green-400">{p}</span> : p)}</>
+                : <>O que você ganha <span className="text-green-400">de verdade</span></>}
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {features.map((f, i) => (
                 <ScrollReveal key={i} delay={i * 100} direction="scale">
@@ -870,18 +888,22 @@ const Landing: React.FC = () => {
         <ScrollReveal direction="up">
         <section className="py-16 px-4 bg-slate-900/50">
           <div className="container mx-auto max-w-4xl">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">
+              {settings.landing_comparativo_titulo
+                ? <>{settings.landing_comparativo_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-cyan-400">{p}</span> : p)}</>
+                : <>Por que <span className="text-cyan-400">esse é o melhor</span> sistema?</>}
+            </h2>
             <div className="grid md:grid-cols-2 gap-6">
               <ScrollReveal direction="left" delay={100}>
               <Card className="!bg-red-500/5 !border-red-500/20">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-red-400"><X className="w-5 h-5" /> Outros Sistemas</CardTitle></CardHeader>
-                <CardContent><ul className="space-y-2">{["Custam R$ 150 a R$ 500/mês","Complicados demais","Precisam de treinamento","Feitos para empresas grandes","Suporte demora dias","Interface confusa"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
+                <CardContent><ul className="space-y-2">{(settings.landing_comparativo_outros || "Custam R$ 150 a R$ 500/mês\nComplicados demais\nPrecisam de treinamento\nFeitos para empresas grandes\nSuporte demora dias\nInterface confusa").split('\n').filter(Boolean).map((item: string, i: number) => (<li key={i} className="flex items-center gap-2 text-gray-400 text-sm"><X className="w-4 h-4 text-red-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
               </ScrollReveal>
               <ScrollReveal direction="right" delay={200}>
               <Card className="!bg-green-500/5 !border-green-500/30">
                 <CardHeader className="pb-2"><CardTitle className="flex items-center gap-2 text-green-400"><CheckCircle className="w-5 h-5" /> AC Service Pro</CardTitle></CardHeader>
-                <CardContent><ul className="space-y-2">{[`Apenas R$ ${settings.landing_preco_mensal}/mês`,"Simples igual WhatsApp","Começa em 2 minutos","Feito POR técnico PARA técnico","Suporte em minutos no WhatsApp","Interface moderna e bonita"].map((item, i) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
+                <CardContent><ul className="space-y-2">{(settings.landing_comparativo_nosso || `Apenas R$ {{preco_mensal}}/mês\nSimples igual WhatsApp\nComeça em 2 minutos\nFeito POR técnico PARA técnico\nSuporte em minutos no WhatsApp\nInterface moderna e bonita`).replace(/\{\{preco_mensal\}\}/g, settings.landing_preco_mensal || '39,90').split('\n').filter(Boolean).map((item: string, i: number) => (<li key={i} className="flex items-center gap-2 text-gray-200 text-sm"><CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />{item}</li>))}</ul></CardContent>
               </Card>
               </ScrollReveal>
             </div>
@@ -901,8 +923,16 @@ const Landing: React.FC = () => {
       <ScrollReveal direction="scale">
       <section className="py-12 px-4 bg-gradient-to-r from-red-950/30 to-orange-950/30">
         <div className="container mx-auto text-center max-w-3xl">
-          <h2 className="text-xl sm:text-2xl font-bold mb-4">⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</h2>
-          <p className="text-gray-300 mb-6">Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</p>
+          <h2 className="text-xl sm:text-2xl font-bold mb-4">
+            {settings.landing_urgencia_titulo
+              ? <>{settings.landing_urgencia_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-red-400">{p}</span> : p)}</>
+              : <>⚠️ Quanto você já <span className="text-red-400">perdeu</span> esse mês por falta de organização?</>}
+          </h2>
+          <p className="text-gray-300 mb-6">
+            {settings.landing_urgencia_subtitulo 
+              ? <>{settings.landing_urgencia_subtitulo.split('**').map((p: string, i: number) => i % 2 ? <strong key={i} className="text-amber-400">{p}</strong> : p)}</>
+              : <>Cada dia sem sistema é <strong className="text-amber-400">dinheiro que fica na mesa</strong>.</>}
+          </p>
         </div>
       </section>
       </ScrollReveal>
@@ -911,7 +941,11 @@ const Landing: React.FC = () => {
       <ScrollReveal direction="up" delay={100}>
       <section className="py-16 px-4 relative">
         <div className="container mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6">A decisão é <span className="text-cyan-400">sua</span></h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6">
+            {settings.landing_cta_final_titulo
+              ? <>{settings.landing_cta_final_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-cyan-400">{p}</span> : p)}</>
+              : <>A decisão é <span className="text-cyan-400">sua</span></>}
+          </h2>
           <Button size="lg" className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-lg px-8 py-6 rounded-xl shadow-lg hover:scale-105 transition-all" onClick={handleMainCTA}>
             <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
           </Button>
