@@ -131,12 +131,31 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const pendingBookings = useMemo(() => 
     bookings.filter(b => b.status === 'pendente'), [bookings]);
 
+  const confirmedBookings = useMemo(() =>
+    bookings.filter(b => b.status === 'confirmado'), [bookings]);
+
+  const todayBookings = useMemo(() =>
+    bookings.filter(b => {
+      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      return isToday(bookingDate) && (b.status === 'confirmado' || b.status === 'pendente');
+    }).sort((a, b) => a.preferred_time.localeCompare(b.preferred_time)),
+    [bookings, today]
+  );
+
   const futureBookings = useMemo(() => 
     bookings.filter(b => {
       const bookingDate = new Date(b.preferred_date + 'T12:00:00');
       return (b.status === 'confirmado' || b.status === 'pendente') && 
-             (isAfter(bookingDate, today) || isToday(bookingDate));
+             isAfter(bookingDate, today) && !isToday(bookingDate);
     }).sort((a, b) => new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime()),
+    [bookings, today]
+  );
+
+  const historyBookings = useMemo(() =>
+    bookings.filter(b => {
+      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      return isBefore(bookingDate, today) || b.status === 'recusado' || b.status === 'cancelado';
+    }).sort((a, b) => new Date(b.preferred_date).getTime() - new Date(a.preferred_date).getTime()),
     [bookings, today]
   );
 
