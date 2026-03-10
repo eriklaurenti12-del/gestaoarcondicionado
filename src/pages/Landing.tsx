@@ -924,6 +924,28 @@ const Landing: React.FC = () => {
   );
 
   // ─── TEMPLATE: VSL (VIDEO SALES LETTER) ─────────────────────────
+  const [vslCtaVisible, setVslCtaVisible] = React.useState(false);
+  const vslCtaTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Start CTA timer when VSL video is in view
+  React.useEffect(() => {
+    if (template !== 'vsl' || settings.landing_vsl_cta_ativo !== 'true') return;
+    const delay = (Number(settings.landing_vsl_cta_delay) || 5) * 1000;
+    vslCtaTimerRef.current = setTimeout(() => setVslCtaVisible(true), delay);
+    return () => { if (vslCtaTimerRef.current) clearTimeout(vslCtaTimerRef.current); };
+  }, [template, settings.landing_vsl_cta_ativo, settings.landing_vsl_cta_delay]);
+
+  const handleVslCtaClick = () => {
+    trackEvent('Lead', { content_name: 'VSL CTA Click' });
+    trackInternalEvent('vsl_cta_click', { delay: settings.landing_vsl_cta_delay });
+    const link = settings.landing_vsl_cta_link;
+    if (link && link.startsWith('http')) {
+      window.open(link, '_blank');
+    } else {
+      handleMainCTA();
+    }
+  };
+
   const renderVSL = () => (
     <>
       {settings.landing_bg_effect && settings.landing_bg_effect !== 'none' && (
@@ -966,13 +988,17 @@ const Landing: React.FC = () => {
             </div>
           )}
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
-            <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all"
-              onClick={handleMainCTA}>
-              <Crown className="w-6 h-6 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
-            </Button>
+          {/* Delayed CTA - appears after X seconds */}
+          <div className={`transition-all duration-700 ${vslCtaVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6 pointer-events-none'}`}>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mb-6">
+              <Button size="lg" className="bg-gradient-to-r from-amber-500 to-red-500 hover:from-amber-600 hover:to-red-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-amber-500/30 hover:scale-105 transition-all animate-pulse"
+                onClick={handleVslCtaClick}>
+                <Crown className="w-6 h-6 mr-2" /> {settings.landing_vsl_cta_texto || settings.landing_btn_cta_texto} <ArrowRight className="w-6 h-6 ml-2" />
+              </Button>
+            </div>
           </div>
 
+          {/* Always visible info */}
           <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
             <span className="flex items-center gap-1"><Shield className="w-4 h-4 text-green-400" /> {settings.landing_garantia_dias} dias de garantia</span>
             <span>•</span>
