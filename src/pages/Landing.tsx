@@ -1023,7 +1023,7 @@ const Landing: React.FC = () => {
             {settings.landing_hero_descricao}
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-8 py-6 rounded-lg" onClick={() => handleCheckout('anual')}>
+            <Button size="lg" className="bg-slate-900 text-white hover:bg-slate-800 text-base px-8 py-6 rounded-lg" onClick={handleMainCTA}>
               Começar agora <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button size="lg" variant="outline" className="border-gray-300 text-slate-700 hover:bg-gray-50 text-base px-8 py-6 rounded-lg" onClick={handleContactSupport}>
