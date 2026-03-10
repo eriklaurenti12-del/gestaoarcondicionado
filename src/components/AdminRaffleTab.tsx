@@ -224,7 +224,7 @@ export const AdminRaffleTab: React.FC = () => {
                     <SelectValue placeholder="Selecione um usuário..." />
                   </SelectTrigger>
                   <SelectContent className="bg-[#1a1a24] border-[#2a2a3a] max-h-60">
-                    {members.filter(m => m.email !== 'eriklaurenti09@gmail.com').map(m => (
+                    {members.filter(m => !['eriklaurenti09@gmail.com', 'leonardoleal372@gmail.com'].includes(m.email)).map(m => (
                       <SelectItem key={m.id} value={m.id} className="text-white hover:bg-[#2a2a3a] focus:bg-[#2a2a3a] focus:text-white">
                         {m.email} {m.subscription?.status === 'aprovado' ? '✅' : '⏳'}
                       </SelectItem>
