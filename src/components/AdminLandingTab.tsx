@@ -1919,10 +1919,17 @@ gtag('config', '${settings.landing_pixel_google}');
             {/* Toggle ativar landing */}
             <Card className="border-primary/30">
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Globe className="w-5 h-5 text-primary" />
-                  Ativar Landing Page
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Globe className="w-5 h-5 text-primary" />
+                    Ativar Landing Page
+                  </CardTitle>
+                  <Button size="sm" variant="outline" onClick={syncFromIntegration} disabled={syncingIntegration}
+                    className="border-green-500/30 text-green-500 hover:bg-green-500/10">
+                    {syncingIntegration ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Zap className="w-4 h-4 mr-1" />}
+                    Puxar da Integração
+                  </Button>
+                </div>
                 <p className="text-sm text-muted-foreground">
                   Ative ou desative a landing page pública do sistema. Quando desativada, visitantes verão apenas a tela de login.
                 </p>
@@ -1949,6 +1956,23 @@ gtag('config', '${settings.landing_pixel_google}');
                     onCheckedChange={v => update('landing_checkout_redirect_sistema', v ? 'true' : 'false')} 
                   />
                 </div>
+
+                {/* Planos ativos da integração */}
+                {integrationPlans.length > 0 && (
+                  <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-2">
+                    <p className="text-xs font-bold text-green-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Planos ativos na Landing (da Integração)
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {integrationPlans.map(plan => (
+                        <Badge key={plan.id} className="bg-green-600/20 text-green-300 border-green-600/30 text-xs">
+                          {plan.icon} {plan.label} — R$ {plan.price}
+                          {plan.checkoutUrl ? ' ✓' : ' (sem link)'}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
