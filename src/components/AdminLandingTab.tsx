@@ -46,6 +46,7 @@ const LANDING_KEYS = [
   'landing_whatsapp_flutuante', 'landing_whatsapp_link', 'landing_whatsapp_mensagem', 'landing_whatsapp_icon_url',
   'landing_template',
   'landing_vsl_url', 'landing_vsl_trava',
+  'landing_vsl_cta_delay', 'landing_vsl_cta_texto', 'landing_vsl_cta_link', 'landing_vsl_cta_ativo',
   ...Array.from({length: 6}, (_, i) => [`landing_faq${i+1}_pergunta`, `landing_faq${i+1}_resposta`, `landing_faq${i+1}_ativa`]).flat(),
   'landing_pixel_facebook', 'landing_pixel_google', 'landing_pixel_tiktok',
   'landing_bg_image_url', 'landing_bg_overlay_opacity', 'landing_bg_particles',
