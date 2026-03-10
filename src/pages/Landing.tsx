@@ -858,7 +858,11 @@ const Landing: React.FC = () => {
         <ScrollReveal direction="up">
         <section className="py-16 px-4">
           <div className="container mx-auto">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">O que você ganha <span className="text-green-400">de verdade</span></h2>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center mb-8">
+              {settings.landing_features_titulo
+                ? <>{settings.landing_features_titulo.split('**').map((p: string, i: number) => i % 2 ? <span key={i} className="text-green-400">{p}</span> : p)}</>
+                : <>O que você ganha <span className="text-green-400">de verdade</span></>}
+            </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               {features.map((f, i) => (
                 <ScrollReveal key={i} delay={i * 100} direction="scale">
