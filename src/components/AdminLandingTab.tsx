@@ -2224,8 +2224,6 @@ gtag('config', '${settings.landing_pixel_google}');
                     </p>
                   </div>
                   <Button onClick={async () => {
-                    const confirmed = confirm('Deseja gerar novos textos com IA? Os textos editáveis serão atualizados (você pode editar depois manualmente).');
-                    if (!confirmed) return;
                     try {
                       update('_ai_loading', 'true');
                       // Gather current prices context
