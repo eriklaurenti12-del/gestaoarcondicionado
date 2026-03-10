@@ -518,10 +518,36 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         </CardContent>
       </Card>
 
-      {/* Tabbed Bookings — tabs at bottom like the reference */}
+      {/* Tabbed Bookings — tabs at top below stats */}
       <Card>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <CardContent className="pt-6 pb-2">
+          {/* Tabs at top */}
+          <div className="border-b border-border px-2 sm:px-4 pt-3 pb-2">
+            <TabsList className="w-full flex h-auto gap-1 bg-transparent">
+              <TabsTrigger value="futuras" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                <CalendarClock className="w-3 h-3 hidden sm:inline" />
+                Futuros
+                {futureBookings.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{futureBookings.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="hoje" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                <Clock className="w-3 h-3 hidden sm:inline" />
+                Hoje
+                {todayBookings.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{todayBookings.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="todos" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                Todos
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
+                Histórico
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <CardContent className="pt-4 pb-4">
             {loading ? (
               <div className="flex justify-center py-8">
                 <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -582,32 +608,6 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               </>
             )}
           </CardContent>
-
-          {/* Tabs at bottom */}
-          <div className="border-t border-border px-2 sm:px-4 pb-2 pt-2">
-            <TabsList className="w-full flex h-auto gap-1 bg-transparent">
-              <TabsTrigger value="futuras" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                <CalendarClock className="w-3 h-3 hidden sm:inline" />
-                Futuros
-                {futureBookings.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{futureBookings.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="hoje" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                <Clock className="w-3 h-3 hidden sm:inline" />
-                Hoje
-                {todayBookings.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{todayBookings.length}</Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="todos" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                Todos
-              </TabsTrigger>
-              <TabsTrigger value="historico" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                Histórico
-              </TabsTrigger>
-            </TabsList>
-          </div>
         </Tabs>
       </Card>
     </div>
