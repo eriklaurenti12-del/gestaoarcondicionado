@@ -55,7 +55,7 @@ const CadastrosUnifiedTab: React.FC = () => {
       <TabGuideCards cards={guideCards} columns={4} />
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl h-auto flex-wrap">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
             <Users className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Clientes</span>

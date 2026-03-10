@@ -31,10 +31,10 @@ const colorMap: Record<string, { border: string; bg: string; text: string; badge
 };
 
 const TabGuideCards: React.FC<TabGuideCardsProps> = ({ cards, columns = 2 }) => {
-  const gridClass = columns === 3 ? 'md:grid-cols-3' : columns === 4 ? 'md:grid-cols-4' : 'md:grid-cols-2';
+  const gridClass = columns === 3 ? 'sm:grid-cols-2 md:grid-cols-3' : columns === 4 ? 'sm:grid-cols-2 md:grid-cols-4' : 'sm:grid-cols-2';
 
   return (
-    <div className={`grid grid-cols-1 ${gridClass} gap-3`}>
+    <div className={`grid grid-cols-1 ${gridClass} gap-2 sm:gap-3`}>
       {cards.map((card, idx) => {
         const colors = colorMap[card.badgeColor] || colorMap.blue;
         const Icon = card.icon;
