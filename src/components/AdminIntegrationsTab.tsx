@@ -74,6 +74,9 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
     plataforma_ativa: 'ggcheckout',
     plano_ativo_checkout: 'anual',
+    planos_visiveis_landing: 'mensal,anual', // quais planos aparecem na landing
+    notificar_vendas: 'true',
+    notificar_erros: 'true',
     checkout_mensal: '', checkout_trimestral: '', checkout_semestral: '', checkout_anual: '', checkout_vitalicio: '',
     preco_mensal: '29.90', preco_trimestral: '69.90', preco_semestral: '149.90', preco_anual: '199.90', preco_vitalicio: '499.90',
     whatsapp_suporte: '',
