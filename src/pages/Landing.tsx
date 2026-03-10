@@ -14,7 +14,7 @@ import {
   FileText, Shield, Smartphone, Zap, ArrowRight, Sparkles,
   Crown, Gift, Clock, DollarSign, ChevronDown, Wind, Wrench,
   Download, LogIn, UserPlus, Eye, EyeOff, Loader2, X,
-  Percent, BadgeCheck, TrendingUp, MessageCircle, HelpCircle, ChevronUp, Video, Play
+  Percent, BadgeCheck, TrendingUp, MessageCircle, HelpCircle, ChevronUp, Video, Play, CreditCard
 } from "lucide-react";
 import { SubscriptionNotifications } from "@/components/SubscriptionNotifications";
 import { PromoCountdown } from "@/components/PromoCountdown";
