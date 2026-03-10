@@ -188,33 +188,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Find user by email
-    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
-    if (userError) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'Error finding user', platform }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-    
-    if (!user) {
-      await sendNotification(supabase, 'pending_activation', email, phone, '', amount, platform);
-      return new Response(
-        JSON.stringify({ success: false, error: 'User not registered', email, platform, hint: 'O usuário precisa se cadastrar antes.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get phone from profile if not in payload
-    let userPhone = phone;
-    if (!userPhone) {
-      const { data: profile } = await supabase.from('profiles').select('phone').eq('user_id', user.id).maybeSingle();
-      userPhone = profile?.phone || null;
-    }
-
-    // Determine plan based on amount - configurable thresholds
+    // Determine plan based on amount - configurable thresholds (moved before user lookup)
     const { data: precosSettings } = await supabase
       .from('admin_settings')
       .select('key, value')
@@ -235,26 +209,41 @@ Deno.serve(async (req) => {
     let isLifetime = false;
     
     if (matchPlan(amount, precoVitalicio) || amount >= precoVitalicio * 0.8) {
-      plan = 'vitalicio';
-      planName = 'Vitalício';
-      durationMonths = 0;
-      isLifetime = true;
+      plan = 'vitalicio'; planName = 'Vitalício'; durationMonths = 0; isLifetime = true;
     } else if (matchPlan(amount, precoAnual) || amount >= precoAnual * 0.8) {
-      plan = 'anual';
-      planName = 'Anual';
-      durationMonths = 12;
+      plan = 'anual'; planName = 'Anual'; durationMonths = 12;
     } else if (matchPlan(amount, precoSemestral) || amount >= precoSemestral * 0.8) {
-      plan = 'semestral';
-      planName = 'Semestral';
-      durationMonths = 6;
+      plan = 'semestral'; planName = 'Semestral'; durationMonths = 6;
     } else if (matchPlan(amount, precoTrimestral) || amount >= precoTrimestral * 0.8) {
-      plan = 'trimestral';
-      planName = 'Trimestral';
-      durationMonths = 3;
+      plan = 'trimestral'; planName = 'Trimestral'; durationMonths = 3;
     } else {
-      plan = 'mensal';
-      planName = 'Mensal';
-      durationMonths = 1;
+      plan = 'mensal'; planName = 'Mensal'; durationMonths = 1;
+    }
+
+    // Find user by email
+    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
+    if (userError) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Error finding user', platform }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    
+    if (!user) {
+      await sendNotification(supabase, 'pending_activation', email, phone, planName, amount, platform);
+      return new Response(
+        JSON.stringify({ success: true, message: 'Payment recorded. User not registered yet - will auto-activate on signup.', email, platform, plan: planName, hint: 'Quando o usuário criar a conta com este email, o acesso será liberado automaticamente.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get phone from profile if not in payload
+    let userPhone = phone;
+    if (!userPhone) {
+      const { data: profile } = await supabase.from('profiles').select('phone').eq('user_id', user.id).maybeSingle();
+      userPhone = profile?.phone || null;
     }
     
     const startDate = new Date();
