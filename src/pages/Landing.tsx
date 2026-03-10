@@ -1188,7 +1188,7 @@ const Landing: React.FC = () => {
           <p className="text-lg md:text-xl text-gray-400 mb-4 max-w-2xl mx-auto">{settings.landing_hero_descricao}</p>
           <p className="text-violet-300 mb-8 font-medium">{settings.landing_frase_destaque}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all backdrop-blur-sm border border-white/10" onClick={() => handleCheckout('anual')}>
+            <Button size="lg" className="bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-lg px-10 py-7 rounded-2xl shadow-xl shadow-indigo-500/25 hover:scale-105 transition-all backdrop-blur-sm border border-white/10" onClick={handleMainCTA}>
               <Crown className="w-5 h-5 mr-2" /> {settings.landing_btn_cta_texto} <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
           </div>
