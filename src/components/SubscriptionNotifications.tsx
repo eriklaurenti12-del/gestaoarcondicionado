@@ -77,6 +77,10 @@ interface SubscriptionNotificationsProps {
   soundUrl?: string;
   precoMensal?: string;
   precoAnual?: string;
+  precoTrimestral?: string;
+  precoSemestral?: string;
+  precoVitalicio?: string;
+  planosVisiveis?: string;
   customActions?: string;
   customNames?: string;
   customCities?: string;
@@ -88,6 +92,10 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
   soundUrl,
   precoMensal = '39,90',
   precoAnual = '370',
+  precoTrimestral,
+  precoSemestral,
+  precoVitalicio,
+  planosVisiveis = 'mensal,anual',
   customActions,
   customNames,
   customCities,
@@ -106,10 +114,19 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
       }))
     : defaultActionTypes;
 
-  const plans: PlanInfo[] = [
-    { name: "Plano Mensal", price: `R$ ${precoMensal}`, isAnnual: false },
-    { name: "Plano Anual", price: `R$ ${precoAnual}`, isAnnual: true }
-  ];
+  // Build plans dynamically based on visible plans
+  const allPlans: Record<string, PlanInfo> = {
+    mensal: { name: "Plano Mensal", price: `R$ ${precoMensal}`, isAnnual: false },
+    trimestral: { name: "Plano Trimestral", price: precoTrimestral ? `R$ ${precoTrimestral}` : '', isAnnual: false },
+    semestral: { name: "Plano Semestral", price: precoSemestral ? `R$ ${precoSemestral}` : '', isAnnual: false },
+    anual: { name: "Plano Anual", price: `R$ ${precoAnual}`, isAnnual: true },
+    vitalicio: { name: "Plano Vitalício", price: precoVitalicio ? `R$ ${precoVitalicio}` : '', isAnnual: false },
+  };
+
+  const visibleIds = planosVisiveis.split(',').filter(Boolean);
+  const plans: PlanInfo[] = visibleIds
+    .map(id => allPlans[id])
+    .filter(p => p && p.price);
 
   useEffect(() => {
     const handleInteraction = () => { hasInteracted.current = true; };
