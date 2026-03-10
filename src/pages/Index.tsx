@@ -288,22 +288,22 @@ export default function Index() {
 
             <div className="flex-1 flex flex-col min-w-0">
               {/* Header */}
-              <header className="h-16 border-b border-border flex items-center justify-between px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
-                <div className="flex items-center gap-3">
-                  <SidebarTrigger className="h-11 w-11 min-h-[44px] min-w-[44px] touch-target relative z-50" />
-                  <h1 className="text-base sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
+              <header className="h-14 sm:h-16 border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
+                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                  <SidebarTrigger className="h-10 w-10 sm:h-11 sm:w-11 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] touch-target relative z-50 flex-shrink-0" />
+                  <h1 className="text-sm sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
                 </div>
-                <div className="flex items-center gap-2">
-                  {/* Dicas & Suporte dropdown */}
+                <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
+                  {/* Mobile: condensed menu with secondary actions */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
+                        className="h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
                         title="Dicas & Suporte"
                       >
-                        <Lightbulb className="h-5 w-5" />
+                        <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
@@ -320,32 +320,57 @@ export default function Index() {
                         <MessageCircle className="w-4 h-4 text-green-600" />
                         Suporte WhatsApp
                       </DropdownMenuItem>
+                      {/* Mobile-only: group secondary actions here */}
+                      <DropdownMenuItem onSelect={() => navigate('/beta')} className="gap-2 cursor-pointer sm:hidden">
+                        <Zap className="w-4 h-4 text-accent" />
+                        Sistema Simplificado
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer sm:hidden">
+                        <HelpCircle className="w-4 h-4" />
+                        Ver Tutorial
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={async () => {
+                        toast.info("🔍 Verificando atualizações...");
+                        try {
+                          if ('serviceWorker' in navigator) {
+                            const registrations = await navigator.serviceWorker.getRegistrations();
+                            for (const reg of registrations) { await reg.unregister(); }
+                          }
+                          const cacheNames = await caches.keys();
+                          await Promise.all(cacheNames.map(name => caches.delete(name)));
+                          toast.success("✅ Cache limpo! Recarregando...");
+                          setTimeout(() => window.location.reload(), 800);
+                        } catch {
+                          toast.info("🔄 Recarregando...");
+                          setTimeout(() => window.location.reload(), 800);
+                        }
+                      }} className="gap-2 cursor-pointer sm:hidden">
+                        <RefreshCw className="w-4 h-4" />
+                        Atualizar Sistema
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
-                  {/* Beta access button */}
+
+                  {/* Desktop-only buttons */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-accent"
+                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-accent"
                     onClick={() => navigate('/beta')}
                     title="Sistema Simplificado"
                   >
                     <Zap className="h-5 w-5" />
                   </Button>
-                  {/* Check for updates button */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
+                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
                     onClick={async () => {
                       toast.info("🔍 Verificando atualizações...");
                       try {
-                        // Unregister all service workers and clear caches
                         if ('serviceWorker' in navigator) {
                           const registrations = await navigator.serviceWorker.getRegistrations();
-                          for (const reg of registrations) {
-                            await reg.unregister();
-                          }
+                          for (const reg of registrations) { await reg.unregister(); }
                         }
                         const cacheNames = await caches.keys();
                         await Promise.all(cacheNames.map(name => caches.delete(name)));
@@ -360,47 +385,47 @@ export default function Index() {
                   >
                     <RefreshCw className="h-5 w-5" />
                   </Button>
-
-                  {/* Help/Onboarding button */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
+                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
                     onClick={handleRestartOnboarding}
                     title="Ver tutorial do sistema"
                   >
                     <HelpCircle className="h-5 w-5" />
                   </Button>
                   
-                  {/* Notification Bell */}
+                  {/* Notification Bell - always visible */}
                   <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`relative h-11 w-11 min-h-[44px] min-w-[44px] transition-all duration-300 ${notificationCount > 0
+                        className={`relative h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] transition-all duration-300 ${notificationCount > 0
                             ? 'text-primary hover:bg-primary/10'
                             : 'hover:bg-muted'
                           }`}
                       >
-                        <Bell className={`h-5 w-5 transition-transform ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
+                        <Bell className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
                           }`} />
                         {notificationCount > 0 && (
                           <>
-                            <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] flex items-center justify-center font-bold shadow-lg">
+                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[9px] sm:text-[10px] flex items-center justify-center font-bold shadow-lg">
                               {notificationCount > 99 ? '99' : notificationCount}
                             </span>
-                            <span className="absolute -top-0.5 -right-0.5 h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-red-500 animate-ping opacity-75" />
                           </>
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-[90vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
+                    <PopoverContent className="w-[92vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
                       <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
                     </PopoverContent>
                   </Popover>
 
-                  <InstallButton />
+                  <div className="hidden sm:block">
+                    <InstallButton />
+                  </div>
                 </div>
               </header>
 
