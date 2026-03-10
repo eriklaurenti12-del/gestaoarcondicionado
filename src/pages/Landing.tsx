@@ -176,6 +176,7 @@ const Landing: React.FC = () => {
     landing_whatsapp_flutuante: 'true', landing_whatsapp_link: 'https://wa.me/5511999999999',
     landing_whatsapp_mensagem: 'Olá! Vim pela landing page e gostaria de saber mais!',
     landing_template: 'persuasao', landing_vsl_url: '', landing_vsl_trava: 'false',
+    landing_vsl_cta_ativo: 'true', landing_vsl_cta_delay: '5', landing_vsl_cta_texto: 'QUERO COMEÇAR AGORA', landing_vsl_cta_link: '',
     landing_faq1_pergunta: 'O sistema é difícil de usar?', landing_faq1_resposta: 'Não! É mais simples que WhatsApp. Em 2 minutos você já está usando.', landing_faq1_ativa: 'true',
     landing_faq2_pergunta: 'Funciona no celular?', landing_faq2_resposta: 'Sim! 100% responsivo, funciona em qualquer celular, tablet ou computador.', landing_faq2_ativa: 'true',
     landing_faq3_pergunta: 'Posso cancelar a qualquer momento?', landing_faq3_resposta: 'Sim! Sem multa, sem burocracia. Cancele quando quiser pelo WhatsApp.', landing_faq3_ativa: 'true',
