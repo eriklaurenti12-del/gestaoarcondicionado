@@ -87,6 +87,7 @@ const TAB_ICONS: Record<string, any> = {
 export default function Members() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { baseUrl: publishedUrl } = useDomainSettings();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
