@@ -260,6 +260,19 @@ export const AdminIntegrationsTab: React.FC = () => {
   const saveAll = async () => {
     setSaving(true);
     try {
+      // Auto-sync: plans with checkout links are automatically visible on landing
+      const autoVisiblePlans = PLANS
+        .filter(p => settings[`checkout_${p.id}`] && settings[`checkout_${p.id}`].startsWith('http'))
+        .map(p => p.id);
+      
+      // Keep manually visible plans that don't have links too, but always include plans with links
+      const currentVisible = (settings.planos_visiveis_landing || '').split(',').filter(Boolean);
+      const mergedVisible = [...new Set([...autoVisiblePlans, ...currentVisible.filter(id => autoVisiblePlans.length === 0 || autoVisiblePlans.includes(id))])];
+      const finalVisible = mergedVisible.length > 0 ? mergedVisible.join(',') : 'mensal';
+      
+      // Update local state with auto-synced visibility
+      setSettings(prev => ({ ...prev, planos_visiveis_landing: finalVisible }));
+
       const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'planos_visiveis_landing',
         'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
         'email_suporte', 'telefone_suporte', 'instagram_suporte',
@@ -270,6 +283,9 @@ export const AdminIntegrationsTab: React.FC = () => {
       PLANS.forEach(p => {
         landingSyncKeys[`landing_preco_${p.id}`] = settings[`preco_${p.id}`]?.replace('.', ',') || p.placeholder.replace('.', ',');
       });
+      
+      // Override planos_visiveis_landing with auto-synced value
+      const settingsToSave = { ...settings, planos_visiveis_landing: finalVisible };
       
       const allUpserts = [
         ...keysToSave.map(key => ({
