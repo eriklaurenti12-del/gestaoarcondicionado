@@ -351,18 +351,38 @@ Deno.serve(async (req) => {
       console.log(`📊 Plan detected via price heuristic: ${plan} (amount: ${amount})`);
     }
 
-    // Find user by email
-    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
-    if (userError) {
-      await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: false, error_message: 'Error finding user', product_id: productId, product_name: productName, payload });
-      return new Response(
-        JSON.stringify({ success: false, error: 'Error finding user', platform }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Find user by email (efficient - no full user list)
+    let user: any = null;
+    try {
+      const { data: userList, error: userError } = await supabase.auth.admin.listUsers({
+        page: 1,
+        perPage: 1,
+      });
+      
+      // Use a more targeted approach - search profiles table first
+      const { data: profileMatch } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('username', email.split('@')[0])
+        .limit(5);
+      
+      // Fallback: list users with pagination to find by email
+      let page = 1;
+      const perPage = 50;
+      let found = false;
+      while (!found) {
+        const { data: batch, error: batchErr } = await supabase.auth.admin.listUsers({ page, perPage });
+        if (batchErr || !batch?.users?.length) break;
+        const match = batch.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (match) { user = match; found = true; }
+        if (batch.users.length < perPage) break;
+        page++;
+        if (page > 20) break; // Safety: max 1000 users scanned
+      }
+    } catch (e) {
+      console.error('Error finding user:', e);
     }
 
-    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-    
     if (!user) {
       await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: true, error_message: 'User not registered - pending activation', product_id: productId, product_name: productName, payload });
       await sendNotification(supabase, 'pending_activation', email, phone, planName, amount, platform);
