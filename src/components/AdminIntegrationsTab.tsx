@@ -1311,6 +1311,102 @@ export const AdminIntegrationsTab: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* ═══════════ NOTIFICAÇÕES DE VENDAS NA LANDING PAGE ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-cyan-400" />
+            <h3 className="text-sm font-bold text-white">Notificações de Vendas na Landing Page</h3>
+          </div>
+
+          <p className="text-xs text-gray-400">
+            As notificações de prova social na landing page puxam automaticamente os planos e preços configurados acima. Apenas planos com link de checkout ativo serão exibidos nas notificações.
+          </p>
+
+          {/* Preview */}
+          {(() => {
+            const activePlans = PLANS.filter(p => {
+              const isVisible = (settings.planos_visiveis_landing || 'mensal,anual').split(',').includes(p.id);
+              const hasLink = !!settings[`checkout_${p.id}`];
+              return isVisible && hasLink;
+            });
+
+            if (activePlans.length === 0) {
+              return (
+                <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20 text-center">
+                  <AlertCircle className="w-6 h-6 text-amber-400 mx-auto mb-2" />
+                  <p className="text-xs text-amber-300 font-medium">Nenhum plano com checkout ativo</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Configure pelo menos 1 link de checkout e ative a visibilidade na landing para ver as notificações.</p>
+                </div>
+              );
+            }
+
+            const previewPlan = activePlans[Math.floor(Math.random() * activePlans.length)] || activePlans[0];
+            const previewPrice = settings[`preco_${previewPlan.id}`] || previewPlan.placeholder;
+            const sampleNames = ['Carolina Melo', 'João Silva', 'Maria Santos', 'Pedro Costa'];
+            const sampleCities = ['Petrolina', 'São Paulo', 'Curitiba', 'Salvador'];
+            const sampleActions = ['acabou de renovar', 'acabou de assinar', 'fez upgrade', 'ativou sua conta'];
+            const previewName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
+            const previewCity = sampleCities[Math.floor(Math.random() * sampleCities.length)];
+            const previewAction = sampleActions[Math.floor(Math.random() * sampleActions.length)];
+
+            return (
+              <div className="space-y-3">
+                <p className="text-xs font-semibold text-gray-300">Preview da notificação:</p>
+                <div className="bg-gradient-to-r from-slate-900/98 to-slate-800/98 border border-green-500/40 rounded-2xl p-4 max-w-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl text-green-400">
+                      <RefreshCw className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white">{previewName}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">de <span className="text-gray-300">{previewCity}</span></p>
+                      <p className="text-sm font-semibold mt-1.5 text-blue-400">{previewAction}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full font-medium">Plano {previewPlan.label}</span>
+                        <span className="text-xs text-green-300 font-bold">R$ {previewPrice}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active plans summary */}
+                <div className="flex flex-wrap gap-1.5">
+                  {activePlans.map(p => (
+                    <Badge key={p.id} className="text-[10px] bg-green-600/20 text-green-400 border-green-600/30">
+                      {p.icon} {p.label} — R$ {settings[`preco_${p.id}`] || p.placeholder}
+                    </Badge>
+                  ))}
+                </div>
+
+                {/* Platforms feeding notifications */}
+                <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+                  <p className="text-[10px] text-cyan-300 font-medium mb-1.5">🔗 Checkouts ativos alimentando notificações:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {activePlans.map(p => {
+                      const link = settings[`checkout_${p.id}`] || '';
+                      const detectedPlatform = PLATFORMS.find(plat => link.toLowerCase().includes(plat.slug) || link.toLowerCase().includes(plat.name.toLowerCase()));
+                      return (
+                        <Badge key={p.id} variant="outline" className="text-[10px] border-[#2a2a3a] text-gray-300">
+                          {detectedPlatform?.icon || '🔗'} {p.label} → {detectedPlatform?.name || 'Checkout'}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 flex items-start gap-2">
+            <Bell className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+            <p className="text-[10px] text-gray-400">
+              As notificações mostram automaticamente nome, cidade, ação, plano selecionado e preço real da integração. Apenas planos com checkout configurado aparecem.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
