@@ -120,6 +120,7 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     deployedAt: string;
   } | null>(null);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
   const [tempProjectUrl, setTempProjectUrl] = useState('');
 
   const baseUrl = primaryDomain || DEFAULT_URL;
