@@ -244,7 +244,40 @@ Deno.serve(async (req) => {
     const productId = payload.data?.product?.id || payload.data?.offer?.id || payload.product_id || null;
     const productName = payload.data?.product?.name || payload.data?.offer?.name || payload.product_name || null;
 
-    console.log(`Processing: platform=${platform}, email=${email}, amount=${amount}, event=${event}, isPaid=${isPaidEvent}, productId=${productId}, productName=${productName}`);
+    console.log(`Processing: platform=${platform}, email=${email}, amount=${amount}, event=${event}, isPaid=${isPaidEvent}, productId=${productId}, productName=${productName}, txId=${transactionId}`);
+
+    // ═══ IDEMPOTENCY: Check if this transaction was already processed ═══
+    if (transactionId && !transactionId.startsWith('wh_')) {
+      const { data: existingLog } = await supabase
+        .from('webhook_logs')
+        .select('id')
+        .eq('platform', platform)
+        .eq('success', true)
+        .eq('email', email || '')
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+        .limit(1);
+      
+      // Check for recent duplicate by same email+platform+amount within 5 minutes
+      if (existingLog && existingLog.length > 0 && isPaidEvent) {
+        const { data: recentDupe } = await supabase
+          .from('webhook_logs')
+          .select('id, created_at')
+          .eq('platform', platform)
+          .eq('email', email || '')
+          .eq('amount', amount)
+          .eq('success', true)
+          .gte('created_at', new Date(Date.now() - 5 * 60 * 1000).toISOString())
+          .limit(1);
+        
+        if (recentDupe && recentDupe.length > 0) {
+          console.log(`⚠️ Duplicate webhook detected: ${email} via ${platform} (within 5min). Skipping.`);
+          return new Response(
+            JSON.stringify({ success: true, message: 'Duplicate webhook - already processed', platform, transaction_id: transactionId }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      }
+    }
 
     // Error event
     if (isErrorEvent && email) {
@@ -318,18 +351,24 @@ Deno.serve(async (req) => {
       console.log(`📊 Plan detected via price heuristic: ${plan} (amount: ${amount})`);
     }
 
-    // Find user by email
-    const { data: users, error: userError } = await supabase.auth.admin.listUsers();
-    if (userError) {
-      await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: false, error_message: 'Error finding user', product_id: productId, product_name: productName, payload });
-      return new Response(
-        JSON.stringify({ success: false, error: 'Error finding user', platform }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Find user by email (paginated to avoid loading all users)
+    let user: any = null;
+    try {
+      let page = 1;
+      const perPage = 50;
+      while (true) {
+        const { data: batch, error: batchErr } = await supabase.auth.admin.listUsers({ page, perPage });
+        if (batchErr || !batch?.users?.length) break;
+        const match = batch.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (match) { user = match; break; }
+        if (batch.users.length < perPage) break;
+        page++;
+        if (page > 20) break; // Safety limit: max 1000 users
+      }
+    } catch (e) {
+      console.error('Error finding user:', e);
     }
 
-    const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-    
     if (!user) {
       await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: true, error_message: 'User not registered - pending activation', product_id: productId, product_name: productName, payload });
       await sendNotification(supabase, 'pending_activation', email, phone, planName, amount, platform);
