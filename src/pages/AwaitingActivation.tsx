@@ -64,6 +64,9 @@ const AwaitingActivation: React.FC = () => {
       if (settings) {
         settings.forEach(s => {
           if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
+          if (s.key === 'email_suporte' && s.value) setEmailSuporte(s.value);
+          if (s.key === 'telefone_suporte' && s.value) setTelefoneSuporte(s.value);
+          if (s.key === 'instagram_suporte' && s.value) setInstagramSuporte(s.value);
           if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
           if (s.key === 'checkout_trimestral' && s.value) setCheckoutTrimestral(s.value);
           if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
