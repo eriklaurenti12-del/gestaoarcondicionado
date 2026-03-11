@@ -289,7 +289,7 @@ export const AdminIntegrationsTab: React.FC = () => {
       
       const allUpserts = [
         ...keysToSave.map(key => ({
-          key, value: settings[key] || '', description: `Config: ${key}`
+          key, value: settingsToSave[key] || '', description: `Config: ${key}`
         })),
         ...Object.entries(landingSyncKeys).map(([key, value]) => ({
           key, value, description: `Sync: ${key}`
@@ -299,7 +299,9 @@ export const AdminIntegrationsTab: React.FC = () => {
       for (const item of allUpserts) {
         await supabase.from('admin_settings').upsert(item, { onConflict: 'key' });
       }
-      toast({ title: "✅ Salvo!", description: "Todas as configurações e links de checkout foram atualizados." });
+      
+      const checkoutsAtivos = autoVisiblePlans.length;
+      toast({ title: "✅ Salvo!", description: `${checkoutsAtivos} checkout(s) ativo(s) sincronizados com a landing page.` });
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
