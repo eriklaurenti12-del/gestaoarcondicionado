@@ -232,7 +232,14 @@ const Landing: React.FC = () => {
     const checkoutUrl = settings[`checkout_${planId}`];
     
     if (checkoutUrl && checkoutUrl.startsWith('http')) {
-      window.open(checkoutUrl, '_blank');
+      // Use link click instead of window.open to avoid popup blockers
+      const link = document.createElement('a');
+      link.href = checkoutUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
       // Scroll to pricing section if no checkout URL
       const el = document.getElementById('precos');
