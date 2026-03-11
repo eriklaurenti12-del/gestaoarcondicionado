@@ -185,14 +185,24 @@ const AdminNotificationsPanel: React.FC = () => {
     setWhatsappMessage('');
   };
 
-  const filteredNotifications = notifications?.filter(n => filterType === 'all' || n.type === filterType) || [];
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  
+  const filteredNotifications = notifications?.filter(n => {
+    const typeMatch = filterType === 'all' || n.type === filterType;
+    const platformMatch = platformFilter === 'all' || n.metadata?.platform === platformFilter;
+    return typeMatch && platformMatch;
+  }) || [];
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
+
+  // Unique platforms from notifications
+  const platforms = [...new Set(notifications?.map(n => n.metadata?.platform).filter(Boolean) || [])];
 
   const stats = {
     newUsers: notifications?.filter(n => n.type === 'new_user').length || 0,
     payments: notifications?.filter(n => n.type === 'payment_success').length || 0,
     access: notifications?.filter(n => n.type === 'access_granted').length || 0,
     errors: notifications?.filter(n => n.type === 'payment_error').length || 0,
+    pending: notifications?.filter(n => n.type === 'pending_activation').length || 0,
   };
 
   if (isLoading) {
