@@ -62,6 +62,8 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'online' | 'offline'>('idle');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ checkouts: number; prices: number; pixels: number; notifications: boolean; webhook: string } | null>(null);
   const [showCode, setShowCode] = useState(false);
   const [integrationKeys, setIntegrationKeys] = useState<Array<{ id: string; name: string; value: string; show: boolean }>>([]);
   const [newKeyName, setNewKeyName] = useState('');
