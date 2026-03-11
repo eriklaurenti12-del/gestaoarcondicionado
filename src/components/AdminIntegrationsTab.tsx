@@ -1342,14 +1342,11 @@ export const AdminIntegrationsTab: React.FC = () => {
               );
             }
 
-            const previewPlan = activePlans[Math.floor(Math.random() * activePlans.length)] || activePlans[0];
+            const previewPlan = activePlans[0];
             const previewPrice = settings[`preco_${previewPlan.id}`] || previewPlan.placeholder;
-            const sampleNames = ['Carolina Melo', 'João Silva', 'Maria Santos', 'Pedro Costa'];
-            const sampleCities = ['Petrolina', 'São Paulo', 'Curitiba', 'Salvador'];
-            const sampleActions = ['acabou de renovar', 'acabou de assinar', 'fez upgrade', 'ativou sua conta'];
-            const previewName = sampleNames[Math.floor(Math.random() * sampleNames.length)];
-            const previewCity = sampleCities[Math.floor(Math.random() * sampleCities.length)];
-            const previewAction = sampleActions[Math.floor(Math.random() * sampleActions.length)];
+            const previewName = 'Carolina Melo';
+            const previewCity = 'Petrolina';
+            const previewAction = 'acabou de renovar';
 
             return (
               <div className="space-y-3">
