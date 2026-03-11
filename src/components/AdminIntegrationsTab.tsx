@@ -824,7 +824,154 @@ export const AdminIntegrationsTab: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* ═══════════ SIMULADOR COMPLETO ═══════════ */}
+      {/* ═══════════ MAPEAMENTO DE PRODUTOS ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Map className="w-4 h-4 text-cyan-400" /> Mapeamento Produto → Plano
+          </h3>
+          <p className="text-[11px] text-gray-500">
+            Mapeie produtos de cada plataforma a um plano específico. O webhook usa isso ANTES da detecção por preço.
+          </p>
+
+          {/* Add new mapping */}
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">Plataforma</label>
+              <Select value={newMapping.platform} onValueChange={v => setNewMapping(p => ({ ...p, platform: v }))}>
+                <SelectTrigger className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORMS.map(p => (
+                    <SelectItem key={p.slug} value={p.slug}>{p.icon} {p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">ID do Produto</label>
+              <Input
+                placeholder="ex: prod_123"
+                value={newMapping.product_id}
+                onChange={e => setNewMapping(p => ({ ...p, product_id: e.target.value }))}
+                className="bg-[#0a0a12] border-[#1e1e2e] text-white text-xs h-9"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">Nome do Produto</label>
+              <Input
+                placeholder="ex: Plano Anual"
+                value={newMapping.product_name}
+                onChange={e => setNewMapping(p => ({ ...p, product_name: e.target.value }))}
+                className="bg-[#0a0a12] border-[#1e1e2e] text-white text-xs h-9"
+              />
+            </div>
+            <div>
+              <label className="text-[10px] text-gray-500 mb-1 block">Plano</label>
+              <Select value={newMapping.plan_name} onValueChange={v => setNewMapping(p => ({ ...p, plan_name: v }))}>
+                <SelectTrigger className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLANS.map(p => (
+                    <SelectItem key={p.id} value={p.id}>{p.icon} {p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button size="sm" onClick={saveMapping} className="bg-cyan-600 hover:bg-cyan-700 text-white text-xs h-9">
+              <Plus className="w-3 h-3 mr-1" /> Adicionar
+            </Button>
+          </div>
+
+          {/* Existing mappings */}
+          {productMappings.length === 0 ? (
+            <p className="text-center text-xs text-gray-500 py-4">Nenhum mapeamento. O webhook usará detecção automática por preço.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {productMappings.map((m) => (
+                <div key={m.id} className="flex items-center gap-2 p-2.5 rounded-lg bg-[#0a0a12] border border-[#1e1e2e]">
+                  <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30 text-[9px] shrink-0">{m.platform}</Badge>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs text-white">
+                      {m.product_id && <span className="text-cyan-300 font-mono">ID: {m.product_id}</span>}
+                      {m.product_id && m.product_name && <span className="text-gray-500 mx-1">|</span>}
+                      {m.product_name && <span className="text-gray-300">{m.product_name}</span>}
+                    </span>
+                  </div>
+                  <Badge className={`text-[9px] shrink-0 ${m.is_lifetime ? 'bg-amber-600/20 text-amber-400 border-amber-600/30' : 'bg-blue-600/20 text-blue-400 border-blue-600/30'}`}>
+                    {m.plan_name} {m.is_lifetime ? '👑' : `(${m.duration_months}m)`}
+                  </Badge>
+                  <Button size="sm" variant="ghost" onClick={() => deleteMapping(m.id)} className="h-7 w-7 p-0 text-gray-400 hover:text-red-400">
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="p-2.5 rounded-lg bg-cyan-500/5 border border-cyan-500/20">
+            <p className="text-[10px] text-cyan-400 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" /> O mapeamento tem prioridade sobre a detecção por preço. Use para garantir 100% de precisão.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ═══════════ WEBHOOK LOGS (HISTÓRICO) ═══════════ */}
+      <Card className="bg-[#0d0d14] border-[#1e1e2e]">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-white flex items-center gap-2">
+              <History className="w-4 h-4 text-amber-400" /> Histórico de Webhooks ({webhookLogs.length})
+            </h3>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={loadWebhookLogs} className="border-[#2a2a3a] text-gray-400 hover:text-white text-[10px] h-7">
+                <RefreshCw className="w-3 h-3 mr-1" /> Atualizar
+              </Button>
+              {webhookLogs.length > 0 && (
+                <Button size="sm" variant="ghost" onClick={clearWebhookLogs} className="text-gray-500 hover:text-red-400 text-[10px] h-7">
+                  <Trash2 className="w-3 h-3 mr-1" /> Limpar
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {webhookLogs.length === 0 ? (
+            <p className="text-center text-xs text-gray-500 py-6">Nenhum webhook recebido ainda. Faça uma simulação ou espere um pagamento real.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-[400px] overflow-y-auto">
+              {webhookLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className={`p-3 rounded-lg border ${
+                    log.success ? 'bg-green-950/10 border-green-800/20' : 'bg-red-950/10 border-red-800/20'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {log.success ? <CheckCircle2 className="w-3.5 h-3.5 text-green-400 shrink-0" /> : <XCircle className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+                    <Badge className="bg-purple-600/20 text-purple-400 border-purple-600/30 text-[9px]">{log.platform}</Badge>
+                    {log.plan_detected && (
+                      <Badge className="bg-blue-600/20 text-blue-400 border-blue-600/30 text-[9px]">{log.plan_detected}</Badge>
+                    )}
+                    {log.email && <span className="text-xs text-gray-300 font-mono">{log.email}</span>}
+                    {log.amount > 0 && <span className="text-xs text-green-400">R$ {Number(log.amount).toFixed(2)}</span>}
+                    <span className="text-[9px] text-gray-500 ml-auto">{new Date(log.created_at).toLocaleString('pt-BR')}</span>
+                  </div>
+                  {log.error_message && (
+                    <p className="text-[10px] text-gray-400 mt-1 ml-5">{log.error_message}</p>
+                  )}
+                  {log.product_id && (
+                    <p className="text-[10px] text-cyan-400 mt-0.5 ml-5 font-mono">Produto: {log.product_id} {log.product_name ? `(${log.product_name})` : ''}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <Card className="bg-[#0d0d14] border-[#1e1e2e]">
         <CardContent className="p-5 space-y-5">
           <div className="flex items-center justify-between">
