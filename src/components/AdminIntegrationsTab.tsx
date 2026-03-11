@@ -126,6 +126,71 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
+  const loadProductMappings = async () => {
+    try {
+      const { data } = await supabase.from('product_plan_mapping').select('*').order('created_at', { ascending: false });
+      if (data) setProductMappings(data);
+    } catch (e) { console.error('Error loading mappings:', e); }
+  };
+
+  const loadWebhookLogs = async () => {
+    try {
+      const { data } = await supabase.from('webhook_logs').select('*').order('created_at', { ascending: false }).limit(50);
+      if (data) setWebhookLogs(data);
+    } catch (e) { console.error('Error loading logs:', e); }
+  };
+
+  const saveMapping = async () => {
+    if (!newMapping.product_id && !newMapping.product_name) {
+      toast({ title: "Preencha o ID ou nome do produto", variant: "destructive" });
+      return;
+    }
+    try {
+      const planDurations: Record<string, { months: number; lifetime: boolean }> = {
+        mensal: { months: 1, lifetime: false },
+        trimestral: { months: 3, lifetime: false },
+        semestral: { months: 6, lifetime: false },
+        anual: { months: 12, lifetime: false },
+        vitalicio: { months: 0, lifetime: true },
+      };
+      const dur = planDurations[newMapping.plan_name] || { months: 1, lifetime: false };
+      const { error } = await supabase.from('product_plan_mapping').insert({
+        platform: newMapping.platform,
+        product_id: newMapping.product_id || null,
+        product_name: newMapping.product_name || null,
+        plan_name: newMapping.plan_name,
+        duration_months: dur.months,
+        is_lifetime: dur.lifetime,
+      });
+      if (error) throw error;
+      toast({ title: "✅ Mapeamento salvo!" });
+      setNewMapping({ platform: 'cakto', product_id: '', product_name: '', plan_name: 'mensal', duration_months: 1, is_lifetime: false });
+      loadProductMappings();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const deleteMapping = async (id: string) => {
+    try {
+      await supabase.from('product_plan_mapping').delete().eq('id', id);
+      setProductMappings(prev => prev.filter(m => m.id !== id));
+      toast({ title: "Mapeamento removido" });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const clearWebhookLogs = async () => {
+    try {
+      await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+      setWebhookLogs([]);
+      toast({ title: "Logs limpos" });
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
   const saveAll = async () => {
     setSaving(true);
     try {
