@@ -163,11 +163,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Github,
       title: 'Deploy via GitHub',
-      desc: 'Conecte ao GitHub e faça deploy automático na Vercel/Netlify',
-      badge: 'COMPLETO',
+      desc: 'Sistema completo na Vercel/Netlify — banco e auth conectados',
+      badge: 'AVANÇADO',
       badgeColor: 'bg-gray-700',
       borderColor: 'border-l-gray-500',
-      features: ['Sistema completo', 'Deploy automático', 'CI/CD integrado'],
+      features: ['Sistema inteiro', 'Webhooks via Lovable', 'CI/CD automático'],
       action: () => {
         toast({
           title: "Como fazer deploy via GitHub 🐙",
@@ -180,11 +180,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Rocket,
       title: 'Exportar para Vercel',
-      desc: 'Baixe pacote completo com todas as páginas do sistema',
-      badge: 'GRATUITO',
+      desc: 'Redirect inteligente — integrações 100% preservadas',
+      badge: 'FÁCIL',
       badgeColor: 'bg-blue-600',
       borderColor: 'border-l-blue-500',
-      features: ['Landing + Login + Cadastro', 'vercel.json incluso', 'CDN global'],
+      features: ['Integrações intactas', 'vercel.json incluso', 'Sem re-deploy'],
       action: () => exportFullPackage('vercel'),
       actionLabel: 'Exportar pacote Vercel',
       actionIcon: Download,
@@ -192,11 +192,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Server,
       title: 'Qualquer Hospedagem',
-      desc: 'HTML puro para cPanel, Hostinger, ou qualquer servidor',
+      desc: 'HTML puro — funciona em qualquer servidor do mundo',
       badge: 'UNIVERSAL',
       badgeColor: 'bg-purple-600',
       borderColor: 'border-l-purple-500',
-      features: ['5 páginas HTML', 'Zero dependências', 'Funciona em tudo'],
+      features: ['Integrações intactas', 'Zero dependências', 'Funciona em tudo'],
       action: () => exportFullPackage('generic'),
       actionLabel: 'Baixar pacote HTML',
       actionIcon: FolderDown,
