@@ -56,33 +56,116 @@ async function sendNotification(supabase: any, type: string, email: string, phon
 }
 
 function detectPlatform(payload: any): string {
-  // Cakto - check FIRST (uses purchase_approved, payment_approved, secret field)
   if (payload.secret || payload.event?.includes?.('purchase_approved') || payload.event?.includes?.('purchase_refused') ||
       payload.event?.startsWith?.('payment_') || payload.transaction_id?.startsWith?.('CK_') ||
       payload.transaction_id?.startsWith?.('CAKTO_') ||
       (payload.data?.product && payload.data?.customer && payload.data?.offer)) return 'Cakto';
-  // Hotmart / Pepper
   if (payload.hottok || payload.event?.startsWith?.('PURCHASE_')) return 'Hotmart';
-  // Kiwify
   if (payload.event?.startsWith?.('order_') || payload.event?.startsWith?.('subscription_')) return 'Kiwify';
-  // Stripe
   if (payload.type?.startsWith?.('checkout.session') || payload.type?.startsWith?.('payment_intent')) return 'Stripe';
-  // Mercado Pago
   if (payload.action?.startsWith?.('payment.') || payload.live_mode !== undefined) return 'Mercado Pago';
-  // Eduzz
   if (payload.trans_cod || payload.eduzz_id) return 'Eduzz';
-  // Monetizze
   if (payload.chave_unica || payload.evento?.includes?.('Finalizada')) return 'Monetizze';
-  // Yampi
   if (payload.event?.startsWith?.('order.') && payload.resource) return 'Yampi';
-  // Braip
   if (payload.transaction_id?.startsWith?.('BR_') || payload.producer) return 'Braip';
-  // GGCheckout (default for Brazilian checkout)
   if (payload.event?.includes?.('pix_') || payload.event?.includes?.('card_')) return 'GGCheckout';
-  // PagSeguro
   if (payload.notificationType || payload.notificationCode) return 'PagSeguro';
   
   return 'Desconhecida';
+}
+
+async function logWebhook(supabase: any, data: {
+  platform: string; event_type?: string; email?: string; amount?: number;
+  plan_detected?: string; product_id?: string; product_name?: string;
+  payload?: any; success: boolean; error_message?: string;
+}) {
+  try {
+    await supabase.from('webhook_logs').insert(data);
+  } catch (e) {
+    console.error('Failed to log webhook:', e);
+  }
+}
+
+async function detectPlanFromMapping(supabase: any, platform: string, payload: any): Promise<{
+  plan: string; planName: string; durationMonths: number; isLifetime: boolean; matched: boolean;
+} | null> {
+  // Extract product identifiers from payload
+  const productId = payload.data?.product?.id || payload.data?.offer?.id || 
+    payload.product_id || payload.data?.id || null;
+  const productName = payload.data?.product?.name || payload.data?.offer?.name || 
+    payload.product_name || payload.data?.purchase?.product?.name || null;
+
+  if (!productId && !productName) return null;
+
+  // Query mapping table
+  const query = supabase
+    .from('product_plan_mapping')
+    .select('*')
+    .eq('is_active', true)
+    .eq('platform', platform.toLowerCase());
+
+  const { data: mappings } = await query;
+  if (!mappings || mappings.length === 0) return null;
+
+  // Try exact product_id match first
+  if (productId) {
+    const match = mappings.find((m: any) => m.product_id === String(productId));
+    if (match) {
+      return {
+        plan: match.plan_name,
+        planName: match.plan_name.charAt(0).toUpperCase() + match.plan_name.slice(1),
+        durationMonths: match.duration_months,
+        isLifetime: match.is_lifetime,
+        matched: true,
+      };
+    }
+  }
+
+  // Try product_name match (case insensitive, partial)
+  if (productName) {
+    const match = mappings.find((m: any) => 
+      m.product_name && productName.toLowerCase().includes(m.product_name.toLowerCase())
+    );
+    if (match) {
+      return {
+        plan: match.plan_name,
+        planName: match.plan_name.charAt(0).toUpperCase() + match.plan_name.slice(1),
+        durationMonths: match.duration_months,
+        isLifetime: match.is_lifetime,
+        matched: true,
+      };
+    }
+  }
+
+  // Try keyword detection from product name
+  if (productName) {
+    const name = productName.toLowerCase();
+    const keywordMap: Record<string, { plan: string; months: number; lifetime: boolean }> = {
+      'vitalicio': { plan: 'vitalicio', months: 0, lifetime: true },
+      'vitalício': { plan: 'vitalicio', months: 0, lifetime: true },
+      'lifetime': { plan: 'vitalicio', months: 0, lifetime: true },
+      'anual': { plan: 'anual', months: 12, lifetime: false },
+      'yearly': { plan: 'anual', months: 12, lifetime: false },
+      'semestral': { plan: 'semestral', months: 6, lifetime: false },
+      'trimestral': { plan: 'trimestral', months: 3, lifetime: false },
+      'quarterly': { plan: 'trimestral', months: 3, lifetime: false },
+      'mensal': { plan: 'mensal', months: 1, lifetime: false },
+      'monthly': { plan: 'mensal', months: 1, lifetime: false },
+    };
+    for (const [keyword, info] of Object.entries(keywordMap)) {
+      if (name.includes(keyword)) {
+        return {
+          plan: info.plan,
+          planName: info.plan.charAt(0).toUpperCase() + info.plan.slice(1),
+          durationMonths: info.months,
+          isLifetime: info.lifetime,
+          matched: true,
+        };
+      }
+    }
+  }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -117,42 +200,36 @@ Deno.serve(async (req) => {
     const platform = detectPlatform(payload);
     console.log(`🔌 Webhook received from: ${platform}`, JSON.stringify(payload, null, 2));
 
-    // Extract event - handle Cakto's nested status
     const event = payload.event || payload.type || payload.data?.status || payload.status || payload.action || '';
     
-    // Paid events detection
     const paidKeywords = ['paid', 'approved', 'completed', 'succeeded', 'finalizada', 'active'];
     const isPaidEvent = paidKeywords.some(k => event.toLowerCase().includes(k)) || 
       payload.paid === true || 
-      payload.data?.status === 'paid'; // Cakto nested status
+      payload.data?.status === 'paid';
 
-    // Error events detection
     const errorKeywords = ['failed', 'declined', 'refused', 'error', 'cancelled', 'canceled', 'refunded', 'chargeback'];
     const isErrorEvent = errorKeywords.some(k => event.toLowerCase().includes(k));
 
-    // Extract email from multiple possible structures (Cakto uses data.customer.email)
     const email = 
       payload.email || payload.customer?.email || payload.buyer?.email || payload.client?.email ||
       payload.data?.customer?.email || payload.data?.email || payload.payer?.email ||
       payload.customer_email || payload.buyer_email ||
-      payload.data?.object?.customer_email || // Stripe
-      payload.data?.buyer?.email || // Hotmart
-      payload.data?.purchase?.buyer?.email || // Hotmart alt
-      payload.data?.subscription?.customer?.email; // Cakto subscription
+      payload.data?.object?.customer_email ||
+      payload.data?.buyer?.email ||
+      payload.data?.purchase?.buyer?.email ||
+      payload.data?.subscription?.customer?.email;
 
-    // Extract phone (Cakto uses data.customer.phone)
     const phone = 
       payload.phone || payload.customer?.phone || payload.buyer?.phone || payload.client?.phone ||
       payload.data?.customer?.phone || payload.data?.phone || payload.customer_phone || payload.buyer_phone ||
       payload.data?.subscription?.customer?.phone || null;
 
-    // Extract amount (Cakto uses data.amount)
     let amount = 
       payload.amount || payload.value || payload.total || payload.price ||
       payload.data?.amount || payload.data?.value ||
-      payload.data?.purchase?.price?.value || // Hotmart
-      payload.data?.object?.amount_total || // Stripe (cents)
-      payload.data?.offer?.price || // Cakto offer price
+      payload.data?.purchase?.price?.value ||
+      payload.data?.object?.amount_total ||
+      payload.data?.offer?.price ||
       payload.transaction?.amount || payload.order?.amount || 0;
 
     if (typeof amount === 'number' && amount > 1000) amount = amount / 100;
@@ -160,13 +237,18 @@ Deno.serve(async (req) => {
 
     const transactionId = 
       payload.transaction_id || payload.id || payload.order_id || payload.data?.id ||
-      payload.data?.refId || // Cakto refId
+      payload.data?.refId ||
       payload.reference || payload.trans_cod || payload.chave_unica || `wh_${Date.now()}`;
 
-    console.log(`Processing: platform=${platform}, email=${email}, amount=${amount}, event=${event}, isPaid=${isPaidEvent}`);
+    // Extract product info for logging
+    const productId = payload.data?.product?.id || payload.data?.offer?.id || payload.product_id || null;
+    const productName = payload.data?.product?.name || payload.data?.offer?.name || payload.product_name || null;
+
+    console.log(`Processing: platform=${platform}, email=${email}, amount=${amount}, event=${event}, isPaid=${isPaidEvent}, productId=${productId}, productName=${productName}`);
 
     // Error event
     if (isErrorEvent && email) {
+      await logWebhook(supabase, { platform, event_type: event, email, amount, success: false, error_message: 'Payment error/refused', product_id: productId, product_name: productName, payload });
       await sendNotification(supabase, 'payment_error', email, phone, '', amount, platform);
       return new Response(
         JSON.stringify({ success: true, message: `Payment error from ${platform} - notification sent`, platform }),
@@ -175,6 +257,7 @@ Deno.serve(async (req) => {
     }
 
     if (!isPaidEvent) {
+      await logWebhook(supabase, { platform, event_type: event, email, amount, success: true, error_message: `Non-payment event: ${event}`, product_id: productId, product_name: productName, payload });
       return new Response(
         JSON.stringify({ success: true, message: `Event "${event}" from ${platform} received but not a payment confirmation`, platform }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -182,47 +265,63 @@ Deno.serve(async (req) => {
     }
 
     if (!email) {
+      await logWebhook(supabase, { platform, event_type: event, amount, success: false, error_message: 'Email not found in payload', product_id: productId, product_name: productName, payload });
       return new Response(
         JSON.stringify({ success: false, error: 'Email not found in payload', platform, received_payload: payload }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Determine plan based on amount - configurable thresholds (moved before user lookup)
-    const { data: precosSettings } = await supabase
-      .from('admin_settings')
-      .select('key, value')
-      .in('key', ['preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
-    
-    const precoMensal = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_mensal')?.value || '50');
-    const precoTrimestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_trimestral')?.value || '120');
-    const precoSemestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_semestral')?.value || '200');
-    const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '300');
-    const precoVitalicio = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_vitalicio')?.value || '997');
-    
-    // Match amount to closest plan (within 20% tolerance)
-    const matchPlan = (value: number, target: number) => Math.abs(value - target) / target <= 0.2;
-    
+    // ═══════════ PLAN DETECTION ═══════════
+    // Step 1: Try product_plan_mapping table first (explicit mapping)
     let plan = 'mensal';
     let planName = 'Mensal';
     let durationMonths = 1;
     let isLifetime = false;
+    let detectionMethod = 'price_heuristic';
+
+    const mappingResult = await detectPlanFromMapping(supabase, platform, payload);
     
-    if (matchPlan(amount, precoVitalicio) || amount >= precoVitalicio * 0.8) {
-      plan = 'vitalicio'; planName = 'Vitalício'; durationMonths = 0; isLifetime = true;
-    } else if (matchPlan(amount, precoAnual) || amount >= precoAnual * 0.8) {
-      plan = 'anual'; planName = 'Anual'; durationMonths = 12;
-    } else if (matchPlan(amount, precoSemestral) || amount >= precoSemestral * 0.8) {
-      plan = 'semestral'; planName = 'Semestral'; durationMonths = 6;
-    } else if (matchPlan(amount, precoTrimestral) || amount >= precoTrimestral * 0.8) {
-      plan = 'trimestral'; planName = 'Trimestral'; durationMonths = 3;
+    if (mappingResult && mappingResult.matched) {
+      plan = mappingResult.plan;
+      planName = mappingResult.planName;
+      durationMonths = mappingResult.durationMonths;
+      isLifetime = mappingResult.isLifetime;
+      detectionMethod = 'product_mapping';
+      console.log(`✅ Plan detected via mapping: ${plan} (product: ${productId || productName})`);
     } else {
-      plan = 'mensal'; planName = 'Mensal'; durationMonths = 1;
+      // Step 2: Fallback to price-based heuristics
+      const { data: precosSettings } = await supabase
+        .from('admin_settings')
+        .select('key, value')
+        .in('key', ['preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
+      
+      const precoMensal = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_mensal')?.value || '50');
+      const precoTrimestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_trimestral')?.value || '120');
+      const precoSemestral = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_semestral')?.value || '200');
+      const precoAnual = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_anual')?.value || '300');
+      const precoVitalicio = parseFloat(precosSettings?.find((s: any) => s.key === 'preco_vitalicio')?.value || '997');
+      
+      const matchPlan = (value: number, target: number) => Math.abs(value - target) / target <= 0.2;
+      
+      if (matchPlan(amount, precoVitalicio) || amount >= precoVitalicio * 0.8) {
+        plan = 'vitalicio'; planName = 'Vitalício'; durationMonths = 0; isLifetime = true;
+      } else if (matchPlan(amount, precoAnual) || amount >= precoAnual * 0.8) {
+        plan = 'anual'; planName = 'Anual'; durationMonths = 12;
+      } else if (matchPlan(amount, precoSemestral) || amount >= precoSemestral * 0.8) {
+        plan = 'semestral'; planName = 'Semestral'; durationMonths = 6;
+      } else if (matchPlan(amount, precoTrimestral) || amount >= precoTrimestral * 0.8) {
+        plan = 'trimestral'; planName = 'Trimestral'; durationMonths = 3;
+      } else {
+        plan = 'mensal'; planName = 'Mensal'; durationMonths = 1;
+      }
+      console.log(`📊 Plan detected via price heuristic: ${plan} (amount: ${amount})`);
     }
 
     // Find user by email
     const { data: users, error: userError } = await supabase.auth.admin.listUsers();
     if (userError) {
+      await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: false, error_message: 'Error finding user', product_id: productId, product_name: productName, payload });
       return new Response(
         JSON.stringify({ success: false, error: 'Error finding user', platform }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -232,9 +331,10 @@ Deno.serve(async (req) => {
     const user = users.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
     
     if (!user) {
+      await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: true, error_message: 'User not registered - pending activation', product_id: productId, product_name: productName, payload });
       await sendNotification(supabase, 'pending_activation', email, phone, planName, amount, platform);
       return new Response(
-        JSON.stringify({ success: true, message: 'Payment recorded. User not registered yet - will auto-activate on signup.', email, platform, plan: planName, hint: 'Quando o usuário criar a conta com este email, o acesso será liberado automaticamente.' }),
+        JSON.stringify({ success: true, message: 'Payment recorded. User not registered yet - will auto-activate on signup.', email, platform, plan: planName, detection_method: detectionMethod, hint: 'Quando o usuário criar a conta com este email, o acesso será liberado automaticamente.' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -266,6 +366,7 @@ Deno.serve(async (req) => {
       .upsert(subscriptionData, { onConflict: 'user_id' });
 
     if (updateError) {
+      await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: false, error_message: `Subscription update error: ${updateError.message}`, product_id: productId, product_name: productName, payload });
       await sendNotification(supabase, 'payment_error', email, userPhone, plan, amount, platform);
       return new Response(
         JSON.stringify({ success: false, error: 'Error updating subscription', platform, details: updateError }),
@@ -273,17 +374,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Log success
+    await logWebhook(supabase, { platform, event_type: event, email, amount, plan_detected: plan, success: true, product_id: productId, product_name: productName, payload });
+
     // Send success + access notifications
     await sendNotification(supabase, 'payment_success', email, userPhone, planName, amount, platform);
     await sendNotification(supabase, 'access_granted', email, userPhone, planName, amount, platform, user.email?.split('@')[0]);
 
-    console.log(`✅ Subscription activated: ${email} via ${platform} - Plan: ${plan}`);
+    console.log(`✅ Subscription activated: ${email} via ${platform} - Plan: ${plan} (detected via: ${detectionMethod})`);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: `Assinatura ${planName} ativada via ${platform}!`,
         platform,
+        detection_method: detectionMethod,
         data: { email, plan, plan_name: planName, amount, duration_months: durationMonths, is_lifetime: isLifetime, start_date: startDate.toISOString(), end_date: endDate?.toISOString() || null, transaction_id: transactionId }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
