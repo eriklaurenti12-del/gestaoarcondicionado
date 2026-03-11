@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Clock, MessageCircle, Snowflake, RefreshCw, 
-  CheckCircle, LogOut, Download, Share, CreditCard, Crown
+  CheckCircle, LogOut, Download, Share, CreditCard, Crown,
+  Mail, Phone, Instagram
 } from "lucide-react";
 import { toast } from 'sonner';
 
