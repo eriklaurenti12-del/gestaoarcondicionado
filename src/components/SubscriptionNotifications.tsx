@@ -36,7 +36,7 @@ const defaultActionTypes = [
   { action: "ativou sua conta", icon: Star, color: "text-purple-400" }
 ];
 
-type PlanInfo = { name: string; price: string; isAnnual: boolean };
+type PlanInfo = { name: string; price: string };
 type ActionType = { action: string; icon: React.ElementType; color: string };
 
 type Notification = {
@@ -71,37 +71,51 @@ const playNotificationSound = (soundUrl?: string) => {
   } catch (error) {}
 };
 
+// Active plan with verified checkout link and real price
+export interface ActivePlanConfig {
+  id: string;
+  label: string;
+  price: string; // formatted price e.g. "29,90" or "29.90"
+  hasCheckout: boolean;
+}
+
 interface SubscriptionNotificationsProps {
   interval?: number;
   soundEnabled?: boolean;
   soundUrl?: string;
-  precoMensal?: string;
-  precoAnual?: string;
-  precoTrimestral?: string;
-  precoSemestral?: string;
-  precoVitalicio?: string;
-  planosVisiveis?: string;
+  activePlans: ActivePlanConfig[]; // Only plans with active checkout + price
   customActions?: string;
   customNames?: string;
   customCities?: string;
 }
 
+const PLAN_LABELS: Record<string, string> = {
+  mensal: 'Plano Mensal',
+  trimestral: 'Plano Trimestral',
+  semestral: 'Plano Semestral',
+  anual: 'Plano Anual',
+  vitalicio: 'Plano Vitalício',
+};
+
+const formatPrice = (raw: string): string => {
+  // Normalize: "29.90" or "29,90" → "29,90"
+  const normalized = raw.replace('.', ',');
+  return normalized.startsWith('R$') ? normalized : `R$ ${normalized}`;
+};
+
 export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps> = ({ 
   interval = 10000, 
   soundEnabled = true,
   soundUrl,
-  precoMensal = '39,90',
-  precoAnual = '370',
-  precoTrimestral,
-  precoSemestral,
-  precoVitalicio,
-  planosVisiveis = 'mensal,anual',
+  activePlans,
   customActions,
   customNames,
   customCities,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const hasInteracted = useRef(false);
+  const plansRef = useRef(activePlans);
+  plansRef.current = activePlans;
 
   const namesList = customNames?.trim() ? customNames.split('\n').filter(Boolean) : defaultNames;
   const citiesList = customCities?.trim() ? customCities.split('\n').filter(Boolean) : defaultCities;
@@ -114,20 +128,6 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
       }))
     : defaultActionTypes;
 
-  // Build plans dynamically based on visible plans
-  const allPlans: Record<string, PlanInfo> = {
-    mensal: { name: "Plano Mensal", price: `R$ ${precoMensal}`, isAnnual: false },
-    trimestral: { name: "Plano Trimestral", price: precoTrimestral ? `R$ ${precoTrimestral}` : '', isAnnual: false },
-    semestral: { name: "Plano Semestral", price: precoSemestral ? `R$ ${precoSemestral}` : '', isAnnual: false },
-    anual: { name: "Plano Anual", price: `R$ ${precoAnual}`, isAnnual: true },
-    vitalicio: { name: "Plano Vitalício", price: precoVitalicio ? `R$ ${precoVitalicio}` : '', isAnnual: false },
-  };
-
-  const visibleIds = planosVisiveis.split(',').filter(Boolean);
-  const plans: PlanInfo[] = visibleIds
-    .map(id => allPlans[id])
-    .filter(p => p && p.price);
-
   useEffect(() => {
     const handleInteraction = () => { hasInteracted.current = true; };
     window.addEventListener('click', handleInteraction);
@@ -139,10 +139,20 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
   }, []);
 
   const createNotification = () => {
+    const currentPlans = plansRef.current;
+    // Only show notifications for plans that have active checkout links
+    const validPlans = currentPlans.filter(p => p.hasCheckout && p.price);
+    if (validPlans.length === 0) return; // Don't show anything if no active checkout
+
     const name = namesList[Math.floor(Math.random() * namesList.length)];
     const city = citiesList[Math.floor(Math.random() * citiesList.length)];
     const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
-    const plan = plans.length > 0 ? plans[Math.floor(Math.random() * plans.length)] : { name: 'Plano Mensal', price: `R$ ${precoMensal}`, isAnnual: false };
+    const selectedPlan = validPlans[Math.floor(Math.random() * validPlans.length)];
+
+    const plan: PlanInfo = {
+      name: PLAN_LABELS[selectedPlan.id] || selectedPlan.label,
+      price: formatPrice(selectedPlan.price),
+    };
 
     const newNotification: Notification = { id: Date.now() + Math.random(), name, city, plan, actionType, visible: true };
     setNotifications(prev => [...prev.slice(-1), newNotification]);
@@ -155,10 +165,13 @@ export const SubscriptionNotifications: React.FC<SubscriptionNotificationsProps>
   };
 
   useEffect(() => {
+    const validPlans = activePlans.filter(p => p.hasCheckout && p.price);
+    if (validPlans.length === 0) return;
+    
     const initialTimeout = setTimeout(createNotification, 5000);
     const timer = setInterval(createNotification, interval);
     return () => { clearTimeout(initialTimeout); clearInterval(timer); };
-  }, [interval, precoMensal, precoAnual, precoTrimestral, precoSemestral, precoVitalicio, planosVisiveis, customActions, customNames, customCities, soundUrl]);
+  }, [interval, activePlans, customActions, customNames, customCities, soundUrl]);
 
   const dismissNotification = (id: number) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, visible: false } : n));
