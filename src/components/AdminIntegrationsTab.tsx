@@ -181,6 +181,72 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
+  const autoCreateMapping = async (planId: string) => {
+    const plan = PLANS.find(p => p.id === planId);
+    if (!plan) return;
+    const planDurations: Record<string, { months: number; lifetime: boolean }> = {
+      mensal: { months: 1, lifetime: false },
+      trimestral: { months: 3, lifetime: false },
+      semestral: { months: 6, lifetime: false },
+      anual: { months: 12, lifetime: false },
+      vitalicio: { months: 0, lifetime: true },
+    };
+    const dur = planDurations[planId] || { months: 1, lifetime: false };
+    const platform = settings.plataforma_ativa || 'cakto';
+    const productName = `Plano ${plan.label}`;
+    try {
+      const { error } = await supabase.from('product_plan_mapping').insert({
+        platform,
+        product_id: null,
+        product_name: productName,
+        plan_name: planId,
+        duration_months: dur.months,
+        is_lifetime: dur.lifetime,
+      });
+      if (error) throw error;
+      toast({ title: `✅ Mapeamento criado: ${productName} → ${plan.label}` });
+      loadProductMappings();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const autoMapAllPlans = async () => {
+    const platform = settings.plataforma_ativa || 'cakto';
+    const planDurations: Record<string, { months: number; lifetime: boolean }> = {
+      mensal: { months: 1, lifetime: false },
+      trimestral: { months: 3, lifetime: false },
+      semestral: { months: 6, lifetime: false },
+      anual: { months: 12, lifetime: false },
+      vitalicio: { months: 0, lifetime: true },
+    };
+    let created = 0;
+    for (const plan of PLANS) {
+      const hasMapping = productMappings.some(m => m.plan_name === plan.id && m.platform === platform);
+      if (hasMapping) continue;
+      const dur = planDurations[plan.id] || { months: 1, lifetime: false };
+      try {
+        await supabase.from('product_plan_mapping').insert({
+          platform,
+          product_id: null,
+          product_name: `Plano ${plan.label}`,
+          plan_name: plan.id,
+          duration_months: dur.months,
+          is_lifetime: dur.lifetime,
+        });
+        created++;
+      } catch (e) {
+        console.error('Error auto-mapping:', e);
+      }
+    }
+    if (created > 0) {
+      toast({ title: `✅ ${created} mapeamento(s) criado(s) automaticamente!` });
+      loadProductMappings();
+    } else {
+      toast({ title: "Todos os planos já estão mapeados", description: `Plataforma: ${platform}` });
+    }
+  };
+
   const clearWebhookLogs = async () => {
     try {
       await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
@@ -659,6 +725,7 @@ export const AdminIntegrationsTab: React.FC = () => {
               const isActive = settings.plano_ativo_checkout === plan.id;
               const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
               const isLandingActive = visiblePlans.includes(plan.id);
+              const hasMapping = productMappings.some(m => m.plan_name === plan.id);
               return (
                 <div
                   key={plan.id}
@@ -702,9 +769,33 @@ export const AdminIntegrationsTab: React.FC = () => {
                     <Globe className="w-3 h-3" />
                     {isLandingActive ? 'Landing ✓' : 'Landing ✗'}
                   </button>
+                  {/* Mapping indicator */}
+                  {hasMapping ? (
+                    <span className="text-[9px] text-cyan-400 shrink-0" title="Mapeamento ativo">🔗</span>
+                  ) : (
+                    <button
+                      onClick={() => autoCreateMapping(plan.id)}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[9px] text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
+                      title="Criar mapeamento automático para este plano"
+                    >
+                      <Map className="w-2.5 h-2.5" /> Mapear
+                    </button>
+                  )}
                 </div>
               );
             })}
+          </div>
+
+          {/* Auto-map all */}
+          <div className="flex items-center justify-between">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={autoMapAllPlans}
+              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs h-8 gap-1.5"
+            >
+              <Zap className="w-3 h-3" /> Mapear todos os planos automaticamente
+            </Button>
           </div>
 
           {/* ── Resumo: Planos visíveis na Landing ── */}
