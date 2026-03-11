@@ -94,6 +94,8 @@ export const AdminIntegrationsTab: React.FC = () => {
   useEffect(() => {
     loadSettings();
     testConnection();
+    loadProductMappings();
+    loadWebhookLogs();
   }, []);
 
   // Update simAmount when simPlan changes
