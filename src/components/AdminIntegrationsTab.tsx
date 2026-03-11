@@ -769,9 +769,19 @@ export const AdminIntegrationsTab: React.FC = () => {
                     <Globe className="w-3 h-3" />
                     {isLandingActive ? 'Landing ✓' : 'Landing ✗'}
                   </button>
-                  {/* Mapping indicator */}
-                  {hasMapping && (
-                    <span className="text-[9px] text-cyan-400 shrink-0" title="Mapeamento ativo">🔗 Mapeado</span>
+                  {/* Auto-map button */}
+                  {!hasMapping ? (
+                    <button
+                      onClick={() => autoCreateMapping(plan.id)}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold border transition-all bg-cyan-600/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20"
+                      title="Criar mapeamento automático para este plano"
+                    >
+                      <Map className="w-3 h-3" /> Mapear
+                    </button>
+                  ) : (
+                    <span className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold bg-cyan-600/10 text-cyan-400 border border-cyan-500/30">
+                      🔗 Mapeado
+                    </span>
                   )}
                 </div>
               );
