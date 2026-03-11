@@ -10,7 +10,7 @@ import {
   Globe, Download, ExternalLink, Rocket, CheckCircle, 
   Link2, LogIn, Calendar, Users, ChevronRight, 
   ShieldCheck, Zap, Package, Settings2, Copy, Send, Eye,
-  Power, PowerOff, RefreshCw, Pencil, Trash2, ExternalLink as LinkIcon
+  Power, PowerOff, RefreshCw, Pencil, Trash2, BookOpen
 } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 import JSZip from 'jszip';
