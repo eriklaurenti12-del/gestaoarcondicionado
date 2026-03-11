@@ -213,18 +213,8 @@ const Landing: React.FC = () => {
 
   const isPreviewMode = searchParams.get('preview') === 'true';
 
-  useEffect(() => {
-    if (isPreviewMode) return; // Skip redirect in preview mode
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) await checkSubscriptionAndRedirect(session.user.id);
-    };
-    checkSession();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) setTimeout(() => checkSubscriptionAndRedirect(session.user.id), 0);
-    });
-    return () => subscription.unsubscribe();
-  }, [navigate, isPreviewMode]);
+  // Don't redirect logged-in users away from the landing/sales page
+  // The landing page IS the sales page - it should always be viewable
 
   const handleCheckout = (planId: string) => {
     trackConversion(planId);

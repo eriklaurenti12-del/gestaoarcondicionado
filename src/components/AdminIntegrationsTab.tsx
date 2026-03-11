@@ -62,6 +62,8 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [copied, setCopied] = useState<string | null>(null);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'online' | 'offline'>('idle');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ checkouts: number; prices: number; pixels: number; notifications: boolean; webhook: string } | null>(null);
   const [showCode, setShowCode] = useState(false);
   const [integrationKeys, setIntegrationKeys] = useState<Array<{ id: string; name: string; value: string; show: boolean }>>([]);
   const [newKeyName, setNewKeyName] = useState('');
@@ -306,6 +308,41 @@ export const AdminIntegrationsTab: React.FC = () => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ═══════════ ATUALIZAR TUDO - SYNC GERAL ═══════════
+  const syncAll = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      await saveAll();
+      await loadSettings();
+      await testConnection();
+      await loadWebhookLogs();
+      await loadProductMappings();
+
+      const checkoutsAtivos = PLANS.filter(p => settings[`checkout_${p.id}`]?.startsWith('http')).length;
+      const precosConfigurados = PLANS.filter(p => settings[`preco_${p.id}`] && parseFloat(settings[`preco_${p.id}`]) > 0).length;
+      const pixelsAtivos = [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok].filter(Boolean).length;
+      const notifAtiva = settings.landing_notif_ativa !== 'false';
+
+      setSyncResult({
+        checkouts: checkoutsAtivos,
+        prices: precosConfigurados,
+        pixels: pixelsAtivos,
+        notifications: notifAtiva,
+        webhook: connectionStatus === 'online' ? '✅ Online' : '❌ Offline',
+      });
+
+      toast({ 
+        title: "🔄 Tudo Atualizado!", 
+        description: `${checkoutsAtivos} checkout(s), ${precosConfigurados} preço(s), ${pixelsAtivos} pixel(s) sincronizados.`
+      });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -580,6 +617,56 @@ export const AdminIntegrationsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+
+      {/* ═══════════ ATUALIZAR TUDO ═══════════ */}
+      <Card className="bg-gradient-to-r from-[#0d0d14] to-[#12121e] border-cyan-500/30">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-500/10">
+                <RefreshCw className="w-5 h-5 text-cyan-400" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Sincronizar Tudo</h3>
+                <p className="text-[11px] text-gray-400">Salva, verifica e sincroniza checkouts, preços, notificações e landing page</p>
+              </div>
+            </div>
+            <Button 
+              onClick={syncAll} 
+              disabled={syncing || saving}
+              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-lg shadow-cyan-500/20"
+            >
+              {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+              {syncing ? 'Sincronizando...' : '🔄 Atualizar Tudo'}
+            </Button>
+          </div>
+          
+          {syncResult && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-5 gap-2">
+              <div className="p-2 rounded-lg bg-[#1a1a2e] border border-[#2a2a3a] text-center">
+                <p className="text-lg font-bold text-cyan-400">{syncResult.checkouts}</p>
+                <p className="text-[10px] text-gray-400">Checkouts</p>
+              </div>
+              <div className="p-2 rounded-lg bg-[#1a1a2e] border border-[#2a2a3a] text-center">
+                <p className="text-lg font-bold text-green-400">{syncResult.prices}</p>
+                <p className="text-[10px] text-gray-400">Preços</p>
+              </div>
+              <div className="p-2 rounded-lg bg-[#1a1a2e] border border-[#2a2a3a] text-center">
+                <p className="text-lg font-bold text-purple-400">{syncResult.pixels}</p>
+                <p className="text-[10px] text-gray-400">Pixels</p>
+              </div>
+              <div className="p-2 rounded-lg bg-[#1a1a2e] border border-[#2a2a3a] text-center">
+                <p className="text-lg font-bold text-amber-400">{syncResult.notifications ? '✅' : '❌'}</p>
+                <p className="text-[10px] text-gray-400">Notificações</p>
+              </div>
+              <div className="p-2 rounded-lg bg-[#1a1a2e] border border-[#2a2a3a] text-center">
+                <p className="text-sm font-bold text-white">{syncResult.webhook}</p>
+                <p className="text-[10px] text-gray-400">Webhook</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* ═══════════ PLATAFORMA ATIVA ═══════════ */}
       <Card className="bg-[#0d0d14] border-[#1e1e2e]">
