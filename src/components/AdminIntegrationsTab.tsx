@@ -181,6 +181,72 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
+  const autoCreateMapping = async (planId: string) => {
+    const plan = PLANS.find(p => p.id === planId);
+    if (!plan) return;
+    const planDurations: Record<string, { months: number; lifetime: boolean }> = {
+      mensal: { months: 1, lifetime: false },
+      trimestral: { months: 3, lifetime: false },
+      semestral: { months: 6, lifetime: false },
+      anual: { months: 12, lifetime: false },
+      vitalicio: { months: 0, lifetime: true },
+    };
+    const dur = planDurations[planId] || { months: 1, lifetime: false };
+    const platform = settings.plataforma_ativa || 'cakto';
+    const productName = `Plano ${plan.label}`;
+    try {
+      const { error } = await supabase.from('product_plan_mapping').insert({
+        platform,
+        product_id: null,
+        product_name: productName,
+        plan_name: planId,
+        duration_months: dur.months,
+        is_lifetime: dur.lifetime,
+      });
+      if (error) throw error;
+      toast({ title: `✅ Mapeamento criado: ${productName} → ${plan.label}` });
+      loadProductMappings();
+    } catch (e: any) {
+      toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const autoMapAllPlans = async () => {
+    const platform = settings.plataforma_ativa || 'cakto';
+    const planDurations: Record<string, { months: number; lifetime: boolean }> = {
+      mensal: { months: 1, lifetime: false },
+      trimestral: { months: 3, lifetime: false },
+      semestral: { months: 6, lifetime: false },
+      anual: { months: 12, lifetime: false },
+      vitalicio: { months: 0, lifetime: true },
+    };
+    let created = 0;
+    for (const plan of PLANS) {
+      const hasMapping = productMappings.some(m => m.plan_name === plan.id && m.platform === platform);
+      if (hasMapping) continue;
+      const dur = planDurations[plan.id] || { months: 1, lifetime: false };
+      try {
+        await supabase.from('product_plan_mapping').insert({
+          platform,
+          product_id: null,
+          product_name: `Plano ${plan.label}`,
+          plan_name: plan.id,
+          duration_months: dur.months,
+          is_lifetime: dur.lifetime,
+        });
+        created++;
+      } catch (e) {
+        console.error('Error auto-mapping:', e);
+      }
+    }
+    if (created > 0) {
+      toast({ title: `✅ ${created} mapeamento(s) criado(s) automaticamente!` });
+      loadProductMappings();
+    } else {
+      toast({ title: "Todos os planos já estão mapeados", description: `Plataforma: ${platform}` });
+    }
+  };
+
   const clearWebhookLogs = async () => {
     try {
       await supabase.from('webhook_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000');
