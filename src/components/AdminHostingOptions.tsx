@@ -1,13 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Globe, Download, ExternalLink, Rocket, CheckCircle, 
   Link2, LogIn, Calendar, Users, ChevronRight, 
-  ShieldCheck, Zap, Package, Settings2, Copy, Send, Eye
+  ShieldCheck, Zap, Package, Settings2, Copy, Send, Eye,
+  Power, PowerOff, RefreshCw, Pencil, Trash2, ExternalLink as LinkIcon
 } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 import JSZip from 'jszip';
@@ -25,56 +28,11 @@ const SYSTEM_PAGES = [
 ];
 
 const PLATFORMS = [
-  {
-    id: 'netlify',
-    name: 'Netlify Drop',
-    desc: 'Mais fácil — Arraste e solte',
-    badge: 'Super Fácil',
-    recommended: true,
-    icon: '🟢',
-    deployUrl: 'https://app.netlify.com/drop',
-    baseDomain: '.netlify.app',
-  },
-  {
-    id: 'tiiny',
-    name: 'Tiiny.host',
-    desc: 'Ultra simples — Upload direto',
-    badge: 'Ultra Fácil',
-    recommended: true,
-    icon: '⚡',
-    deployUrl: 'https://tiiny.host/',
-    baseDomain: '.tiiny.site',
-  },
-  {
-    id: 'vercel',
-    name: 'Vercel',
-    desc: 'Profissional — Domínio grátis + SSL',
-    badge: 'Fácil',
-    recommended: false,
-    icon: '▲',
-    deployUrl: 'https://vercel.com/new',
-    baseDomain: '.vercel.app',
-  },
-  {
-    id: 'cloudflare',
-    name: 'Cloudflare Pages',
-    desc: 'CDN global — Performance máxima',
-    badge: 'Fácil',
-    recommended: false,
-    icon: '🔶',
-    deployUrl: 'https://dash.cloudflare.com/?to=/:account/pages/new/upload',
-    baseDomain: '.pages.dev',
-  },
-  {
-    id: 'github',
-    name: 'GitHub Pages',
-    desc: 'Via repositório GitHub',
-    badge: 'Intermediário',
-    recommended: false,
-    icon: '🐙',
-    deployUrl: 'https://pages.github.com/',
-    baseDomain: '.github.io',
-  },
+  { id: 'netlify', name: 'Netlify Drop', desc: 'Mais fácil — Arraste e solte', badge: 'Super Fácil', recommended: true, icon: '🟢', deployUrl: 'https://app.netlify.com/drop', baseDomain: '.netlify.app' },
+  { id: 'tiiny', name: 'Tiiny.host', desc: 'Ultra simples — Upload direto', badge: 'Ultra Fácil', recommended: true, icon: '⚡', deployUrl: 'https://tiiny.host/', baseDomain: '.tiiny.site' },
+  { id: 'vercel', name: 'Vercel', desc: 'Profissional — Domínio grátis + SSL', badge: 'Fácil', recommended: false, icon: '▲', deployUrl: 'https://vercel.com/new', baseDomain: '.vercel.app' },
+  { id: 'cloudflare', name: 'Cloudflare Pages', desc: 'CDN global — Performance máxima', badge: 'Fácil', recommended: false, icon: '🔶', deployUrl: 'https://dash.cloudflare.com/?to=/:account/pages/new/upload', baseDomain: '.pages.dev' },
+  { id: 'github', name: 'GitHub Pages', desc: 'Via repositório GitHub', badge: 'Intermediário', recommended: false, icon: '🐙', deployUrl: 'https://pages.github.com/', baseDomain: '.github.io' },
 ];
 
 export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primaryDomain }) => {
@@ -86,7 +44,53 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
   const [selectedPages, setSelectedPages] = useState<string[]>(SYSTEM_PAGES.map(p => p.key));
   const [deployedLinks, setDeployedLinks] = useState<{ platform: string; pages: { label: string; path: string }[] } | null>(null);
 
+  // Deploy management state
+  const [deployStatus, setDeployStatus] = useState<{
+    active: boolean;
+    platform: string;
+    projectUrl: string;
+    pages: string[];
+    deployedAt: string;
+  } | null>(null);
+  const [editingUrl, setEditingUrl] = useState(false);
+  const [tempProjectUrl, setTempProjectUrl] = useState('');
+
   const baseUrl = primaryDomain || DEFAULT_URL;
+
+  // Load saved deploy status
+  useEffect(() => {
+    const loadDeployStatus = async () => {
+      try {
+        const { data } = await supabase
+          .from('admin_settings')
+          .select('key, value')
+          .in('key', ['deploy_status']);
+        if (data && data.length > 0) {
+          const status = data.find(r => r.key === 'deploy_status');
+          if (status?.value) {
+            const parsed = JSON.parse(status.value);
+            setDeployStatus(parsed);
+          }
+        }
+      } catch (e) {
+        console.error('Error loading deploy status:', e);
+      }
+    };
+    loadDeployStatus();
+  }, []);
+
+  const saveDeployStatus = async (status: typeof deployStatus) => {
+    try {
+      await supabase.from('admin_settings').upsert({
+        key: 'deploy_status',
+        value: JSON.stringify(status),
+        description: 'Deploy status and configuration',
+      }, { onConflict: 'key' });
+      setDeployStatus(status);
+    } catch (e) {
+      console.error('Error saving deploy status:', e);
+    }
+  };
 
   const togglePage = (key: string) => {
     setSelectedPages(prev => 
@@ -156,12 +160,10 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
       const zip = new JSZip();
       const pagesToDeploy = SYSTEM_PAGES.filter(p => selectedPages.includes(p.key));
 
-      // If landing is selected, use it as index.html
       const landingPage = pagesToDeploy.find(p => p.key === 'landing');
       if (landingPage) {
         zip.file('index.html', generatePageHtml('AC Service Pro', baseUrl + landingPage.path));
       } else {
-        // Create index that lists all deployed pages
         const linksHtml = pagesToDeploy.map(p => 
           `<a href="/${p.key}.html" style="margin:0.5rem;display:inline-block;padding:0.5rem 1.5rem;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:white;text-decoration:none;border-radius:0.5rem;font-size:0.875rem;">${p.label}</a>`
         ).join('\n');
@@ -171,14 +173,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
         ));
       }
 
-      // Sub-pages
       for (const page of pagesToDeploy) {
         if (page.key === 'landing') continue;
         zip.file(`${page.key}.html`, generatePageHtml(page.label, baseUrl + page.path));
       }
 
-      // Platform-specific configs
-      const platformConfig = PLATFORMS.find(p => p.id === platform);
       if (platform === 'netlify') {
         const redirects = pagesToDeploy.map(p => {
           const from = p.key === 'landing' ? '/' : `/${p.key}`;
@@ -193,7 +192,6 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
         zip.file('vercel.json', JSON.stringify({ rewrites }, null, 2));
       }
 
-      // Generate and download ZIP
       const blob = await zip.generateAsync({ type: 'blob' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -204,14 +202,22 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Generate deploy links
       const deployedPages = pagesToDeploy.map(p => ({
         label: p.label,
         path: p.key === 'landing' ? '/' : `/${p.key}.html`,
       }));
       setDeployedLinks({ platform, pages: deployedPages });
 
-      // Open platform
+      // Save deploy status
+      await saveDeployStatus({
+        active: true,
+        platform,
+        projectUrl: '',
+        pages: selectedPages,
+        deployedAt: new Date().toISOString(),
+      });
+
+      const platformConfig = PLATFORMS.find(p => p.id === platform);
       if (platformConfig) {
         setTimeout(() => {
           window.open(platformConfig.deployUrl, '_blank');
@@ -242,8 +248,134 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     }
   };
 
+  const deactivateDeploy = async () => {
+    await saveDeployStatus(null);
+    setDeployedLinks(null);
+    toast({ title: "Deploy desativado", description: "O status do deploy foi removido." });
+  };
+
+  const updateProjectUrl = async () => {
+    if (!deployStatus) return;
+    const updated = { ...deployStatus, projectUrl: tempProjectUrl };
+    await saveDeployStatus(updated);
+    setEditingUrl(false);
+    toast({ title: "✅ URL atualizada!", description: "Os links agora refletem a URL real do seu projeto." });
+  };
+
+  const redeployWithSameConfig = () => {
+    if (deployStatus) {
+      setSelectedPages(deployStatus.pages);
+      generateZipAndDeploy(deployStatus.platform);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      {/* Active Deploy Status Card */}
+      {deployStatus?.active && (
+        <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-emerald-500">
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+                <h3 className="text-sm font-bold text-white">Landing Page Ativa</h3>
+                <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-600/30 text-[9px]">
+                  {PLATFORMS.find(p => p.id === deployStatus.platform)?.name || deployStatus.platform}
+                </Badge>
+              </div>
+              <span className="text-[10px] text-gray-500">
+                {new Date(deployStatus.deployedAt).toLocaleDateString('pt-BR')}
+              </span>
+            </div>
+
+            {/* Project URL */}
+            <div className="space-y-2">
+              {deployStatus.projectUrl ? (
+                <div className="flex items-center gap-2 bg-[#12121a] border border-[#2a2a3a] rounded-lg px-3 py-2">
+                  <Globe className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                  <code className="flex-1 text-cyan-300 text-xs font-mono truncate">{deployStatus.projectUrl}</code>
+                  <button onClick={() => copyLink(deployStatus.projectUrl)} className="p-1 rounded text-gray-500 hover:text-cyan-400 transition-colors" title="Copiar">
+                    <Copy className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => window.open(deployStatus.projectUrl, '_blank')} className="p-1 rounded text-gray-500 hover:text-cyan-400 transition-colors" title="Abrir">
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => { setTempProjectUrl(deployStatus.projectUrl); setEditingUrl(true); }} className="p-1 rounded text-gray-500 hover:text-amber-400 transition-colors" title="Editar">
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : editingUrl ? null : (
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Cole a URL do seu projeto (ex: https://meu-site.netlify.app)"
+                    value={tempProjectUrl}
+                    onChange={e => setTempProjectUrl(e.target.value)}
+                    className="bg-[#12121a] border-[#2a2a3a] text-white text-xs h-8 flex-1"
+                  />
+                  <Button size="sm" onClick={updateProjectUrl} disabled={!tempProjectUrl} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
+                    Salvar URL
+                  </Button>
+                </div>
+              )}
+
+              {editingUrl && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Nova URL do projeto"
+                    value={tempProjectUrl}
+                    onChange={e => setTempProjectUrl(e.target.value)}
+                    className="bg-[#12121a] border-[#2a2a3a] text-white text-xs h-8 flex-1"
+                  />
+                  <Button size="sm" onClick={updateProjectUrl} disabled={!tempProjectUrl} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
+                    Salvar
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingUrl(false)} className="text-gray-400 text-xs h-8">
+                    Cancelar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Active pages */}
+            <div className="flex flex-wrap gap-1.5">
+              {deployStatus.pages.map(pageKey => {
+                const page = SYSTEM_PAGES.find(p => p.key === pageKey);
+                if (!page) return null;
+                const realUrl = deployStatus.projectUrl 
+                  ? `${deployStatus.projectUrl}${pageKey === 'landing' ? '' : `/${pageKey}.html`}`
+                  : null;
+                return (
+                  <button
+                    key={pageKey}
+                    onClick={() => realUrl && window.open(realUrl, '_blank')}
+                    className="flex items-center gap-1.5 text-[11px] text-gray-300 bg-[#12121a] px-2.5 py-1 rounded-md border border-[#2a2a3a] hover:border-cyan-500/30 hover:text-white transition-all"
+                    title={realUrl || 'Configure a URL primeiro'}
+                  >
+                    <page.icon className={`w-3 h-3 ${page.color}`} />
+                    {page.label}
+                    {realUrl && <ExternalLink className="w-2.5 h-2.5 text-gray-500" />}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button size="sm" onClick={redeployWithSameConfig} className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 gap-1.5">
+                <RefreshCw className="w-3 h-3" /> Refazer Deploy
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => { setDeployedLinks(null); }} className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs h-7 gap-1.5">
+                <Pencil className="w-3 h-3" /> Alterar Páginas
+              </Button>
+              <Button size="sm" variant="outline" onClick={deactivateDeploy} className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs h-7 gap-1.5">
+                <PowerOff className="w-3 h-3" /> Desativar
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Deploy Section */}
       <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-blue-500">
         <CardContent className="p-5 space-y-5">
           {/* Header */}
@@ -408,46 +540,52 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
                 </p>
               </div>
               <p className="text-gray-400 text-[11px]">
-                Após arrastar o ZIP na plataforma, seus links ficarão assim (substitua <code className="text-cyan-300">seu-projeto</code> pelo nome do projeto):
+                Após arrastar o ZIP na plataforma, cole a URL do projeto abaixo para gerar links reais:
               </p>
+              
+              {/* Quick URL input */}
+              {!deployStatus?.projectUrl && (
+                <div className="flex items-center gap-2">
+                  <Input
+                    placeholder="Cole a URL do seu projeto (ex: https://meu-site.netlify.app)"
+                    value={tempProjectUrl}
+                    onChange={e => setTempProjectUrl(e.target.value)}
+                    className="bg-[#0a0a14] border-[#2a2a3a] text-white text-xs h-8 flex-1"
+                  />
+                  <Button size="sm" onClick={updateProjectUrl} disabled={!tempProjectUrl} className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8">
+                    Salvar
+                  </Button>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 {deployedLinks.pages.map((page) => {
                   const platformInfo = PLATFORMS.find(p => p.id === deployedLinks.platform);
-                  const exampleLink = `https://seu-projeto${platformInfo?.baseDomain || ''}${page.path}`;
+                  const realUrl = deployStatus?.projectUrl 
+                    ? `${deployStatus.projectUrl}${page.path === '/' ? '' : page.path}`
+                    : `https://seu-projeto${platformInfo?.baseDomain || ''}${page.path}`;
+                  const hasRealUrl = !!deployStatus?.projectUrl;
                   return (
                     <div key={page.label} className="flex items-center gap-2 bg-[#0a0a14] rounded-md px-3 py-2">
                       <span className="text-gray-300 text-xs font-medium min-w-[100px]">{page.label}</span>
-                      <code className="flex-1 text-cyan-300 text-[11px] font-mono truncate">{exampleLink}</code>
+                      <code className={`flex-1 text-[11px] font-mono truncate ${hasRealUrl ? 'text-emerald-300' : 'text-cyan-300'}`}>{realUrl}</code>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          onClick={() => copyLink(exampleLink)}
-                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
-                          title="Copiar link"
-                        >
+                        <button onClick={() => copyLink(realUrl)} className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors" title="Copiar">
                           <Copy className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => shareLink(exampleLink, page.label)}
-                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
-                          title="Enviar link"
-                        >
+                        <button onClick={() => shareLink(realUrl, page.label)} className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors" title="Enviar">
                           <Send className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => window.open(exampleLink, '_blank')}
-                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
-                          title="Abrir"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                        {hasRealUrl && (
+                          <button onClick={() => window.open(realUrl, '_blank')} className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors" title="Abrir">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              <p className="text-gray-500 text-[10px]">
-                💡 Dica: Após o deploy, volte aqui e atualize os links com a URL real do seu projeto para copiar e enviar diretamente.
-              </p>
             </div>
           )}
 
