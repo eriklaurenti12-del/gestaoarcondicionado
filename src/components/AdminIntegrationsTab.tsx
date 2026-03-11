@@ -262,6 +262,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     try {
       const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'planos_visiveis_landing',
         'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
+        'email_suporte', 'telefone_suporte', 'instagram_suporte',
         ...PLANS.flatMap(p => [`checkout_${p.id}`, `preco_${p.id}`])];
       
       // Sync ALL plan prices to landing page settings
