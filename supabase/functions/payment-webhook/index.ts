@@ -351,33 +351,19 @@ Deno.serve(async (req) => {
       console.log(`📊 Plan detected via price heuristic: ${plan} (amount: ${amount})`);
     }
 
-    // Find user by email (efficient - no full user list)
+    // Find user by email (paginated to avoid loading all users)
     let user: any = null;
     try {
-      const { data: userList, error: userError } = await supabase.auth.admin.listUsers({
-        page: 1,
-        perPage: 1,
-      });
-      
-      // Use a more targeted approach - search profiles table first
-      const { data: profileMatch } = await supabase
-        .from('profiles')
-        .select('user_id')
-        .eq('username', email.split('@')[0])
-        .limit(5);
-      
-      // Fallback: list users with pagination to find by email
       let page = 1;
       const perPage = 50;
-      let found = false;
-      while (!found) {
+      while (true) {
         const { data: batch, error: batchErr } = await supabase.auth.admin.listUsers({ page, perPage });
         if (batchErr || !batch?.users?.length) break;
         const match = batch.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
-        if (match) { user = match; found = true; }
+        if (match) { user = match; break; }
         if (batch.users.length < perPage) break;
         page++;
-        if (page > 20) break; // Safety: max 1000 users scanned
+        if (page > 20) break; // Safety limit: max 1000 users
       }
     } catch (e) {
       console.error('Error finding user:', e);
