@@ -360,6 +360,8 @@ export const AdminShareTab: React.FC = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
       {/* Hosting Options */}
       <AdminHostingOptions primaryDomain={primaryDomain} />
     </div>
