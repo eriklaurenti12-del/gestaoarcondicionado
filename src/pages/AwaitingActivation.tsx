@@ -336,7 +336,7 @@ const AwaitingActivation: React.FC = () => {
               </Button>
             )}
           </div>
-
+          <div className="space-y-3">
             <Button 
               onClick={handleCheckSubscription}
               variant="outline"
