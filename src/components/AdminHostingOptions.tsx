@@ -10,7 +10,7 @@ import {
   Globe, Download, ExternalLink, Rocket, CheckCircle, 
   Link2, LogIn, Calendar, Users, ChevronRight, 
   ShieldCheck, Zap, Package, Settings2, Copy, Send, Eye,
-  Power, PowerOff, RefreshCw, Pencil, Trash2, ExternalLink as LinkIcon
+  Power, PowerOff, RefreshCw, Pencil, Trash2, BookOpen
 } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 import JSZip from 'jszip';
@@ -35,6 +35,73 @@ const PLATFORMS = [
   { id: 'github', name: 'GitHub Pages', desc: 'Via repositório GitHub', badge: 'Intermediário', recommended: false, icon: '🐙', deployUrl: 'https://pages.github.com/', baseDomain: '.github.io' },
 ];
 
+const PLATFORM_GUIDES: Record<string, { difficulty: string; free: boolean; summary: string; steps: string[]; warnings?: string[] }> = {
+  netlify: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Arraste e solte o ZIP — sem conta obrigatória',
+    steps: [
+      'Clique em "Deploy" ao lado do Netlify acima para baixar o ZIP',
+      'Acesse app.netlify.com/drop (abre automaticamente)',
+      'Arraste o arquivo ZIP na área indicada',
+      'Aguarde o deploy (30 segundos) — sua URL será gerada',
+      'Copie a URL (ex: random-name.netlify.app) e cole acima em "Salvar URL"',
+      'Pronto! Seus links estarão funcionando',
+    ],
+    warnings: ['A URL gerada será aleatória (ex: jovial-cat-123.netlify.app)', 'Para domínio próprio, crie conta grátis no Netlify'],
+  },
+  tiiny: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Upload direto do ZIP — link gerado em segundos',
+    steps: [
+      'Clique em "Deploy" ao lado do Tiiny.host acima para baixar o ZIP',
+      'Acesse tiiny.host (abre automaticamente)',
+      'Faça upload do arquivo ZIP',
+      'Escolha um nome para o link (ex: meu-sistema)',
+      'Clique em "Launch" — URL gerada como meu-sistema.tiiny.site',
+      'Cole a URL acima para ativar os links',
+    ],
+    warnings: ['Plano grátis tem limite de 7 dias', 'Ideal para testes rápidos e demos'],
+  },
+  vercel: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Deploy profissional com SSL grátis e domínio personalizado',
+    steps: [
+      'Baixe o ZIP clicando em "Deploy" acima',
+      'Extraia o ZIP em uma pasta no computador',
+      'Crie conta grátis em vercel.com (pode usar GitHub)',
+      'Arraste a pasta extraída em vercel.com/new',
+      'Ou use: npx vercel deploy na pasta pelo terminal',
+      'URL gerada automaticamente (ex: meu-site.vercel.app)',
+    ],
+    warnings: ['Precisa de conta Vercel (grátis)', 'Para domínio próprio: Settings > Domains no Vercel'],
+  },
+  cloudflare: {
+    difficulty: 'Fácil', free: true,
+    summary: 'CDN global com performance máxima e SSL automático',
+    steps: [
+      'Baixe o ZIP clicando em "Deploy" acima',
+      'Extraia o ZIP em uma pasta',
+      'Acesse dash.cloudflare.com > Pages > Upload Assets',
+      'Arraste a pasta extraída ou selecione os arquivos',
+      'Escolha um nome para o projeto',
+      'Deploy automático — URL como nome.pages.dev',
+    ],
+    warnings: ['Precisa de conta Cloudflare (grátis)', 'Melhor performance global de todas as opções'],
+  },
+  github: {
+    difficulty: 'Médio', free: true,
+    summary: 'Via repositório GitHub — ideal para desenvolvedores',
+    steps: [
+      'Baixe o ZIP e extraia em uma pasta',
+      'Crie repositório no GitHub e faça push dos arquivos',
+      'Vá em Settings > Pages no repositório',
+      'Selecione "Deploy from a branch" > main',
+      'Aguarde o build — URL como usuario.github.io/repo',
+    ],
+    warnings: ['Requer conhecimento de Git/GitHub', 'Deploy pode levar alguns minutos', 'Repositório precisa ser público no plano grátis'],
+  },
+};
+
 export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primaryDomain }) => {
   const { toast } = useToast();
   const [deploying, setDeploying] = useState<string | null>(null);
@@ -53,6 +120,7 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     deployedAt: string;
   } | null>(null);
   const [editingUrl, setEditingUrl] = useState(false);
+  const [expandedGuide, setExpandedGuide] = useState<string | null>(null);
   const [tempProjectUrl, setTempProjectUrl] = useState('');
 
   const baseUrl = primaryDomain || DEFAULT_URL;
@@ -649,6 +717,131 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ═══════════ GUIA DE INSTRUÇÕES POR PLATAFORMA ═══════════ */}
+      <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-amber-500">
+        <CardContent className="p-5 space-y-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/20">
+              <BookOpen className="w-5 h-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-white">Guia de Deploy por Plataforma</h2>
+              <p className="text-gray-400 text-xs">
+                Instruções passo-a-passo e status de compatibilidade de cada plataforma
+              </p>
+            </div>
+          </div>
+
+          {/* Status geral */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { label: 'Funciona ✅', items: ['Redirect HTML', 'Auth/Login', 'Webhooks', 'Banco de dados'], color: 'emerald' },
+              { label: 'Atenção ⚠️', items: ['SEO limitado', 'URL diferente', 'Cache do navegador'], color: 'amber' },
+              { label: 'Não funciona ❌', items: ['SSR/SEO dinâmico', 'Service Worker ext.'], color: 'red' },
+              { label: 'Dica 💡', items: ['Use domínio próprio', 'Ative HTTPS', 'Teste antes de enviar'], color: 'blue' },
+            ].map((section) => (
+              <div key={section.label} className={`bg-${section.color}-500/5 border border-${section.color}-500/20 rounded-lg p-3`}>
+                <p className={`text-${section.color}-400 text-xs font-bold mb-1.5`}>{section.label}</p>
+                <ul className="space-y-0.5">
+                  {section.items.map((item) => (
+                    <li key={item} className="text-[10px] text-gray-400">• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          {/* Platform guides */}
+          <div className="space-y-2">
+            {PLATFORMS.map((platform) => {
+              const isExpanded = expandedGuide === platform.id;
+              const guide = PLATFORM_GUIDES[platform.id];
+              if (!guide) return null;
+              return (
+                <div key={platform.id} className="bg-[#12121a] border border-[#2a2a3a] rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setExpandedGuide(isExpanded ? null : platform.id)}
+                    className="flex items-center gap-3 w-full px-4 py-3 hover:bg-[#1a1a2e] transition-colors text-left"
+                  >
+                    <span className="text-lg shrink-0">{platform.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-semibold">{platform.name}</span>
+                        <Badge className={`text-[9px] px-1.5 py-0 ${guide.difficulty === 'Fácil' ? 'bg-emerald-600/20 text-emerald-400 border-emerald-600/30' : guide.difficulty === 'Médio' ? 'bg-amber-600/20 text-amber-400 border-amber-600/30' : 'bg-red-600/20 text-red-400 border-red-600/30'}`}>
+                          {guide.difficulty}
+                        </Badge>
+                        {guide.free && <Badge className="bg-cyan-600/20 text-cyan-400 border-cyan-600/30 text-[9px] px-1.5 py-0">Grátis</Badge>}
+                      </div>
+                      <p className="text-gray-500 text-[11px]">{guide.summary}</p>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                  </button>
+
+                  {isExpanded && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-[#2a2a3a] pt-3">
+                      <ol className="space-y-2">
+                        {guide.steps.map((step, i) => (
+                          <li key={i} className="flex items-start gap-2">
+                            <span className="bg-cyan-500/20 text-cyan-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            <span className="text-gray-300 text-xs">{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+
+                      {guide.warnings && guide.warnings.length > 0 && (
+                        <div className="bg-amber-500/5 border border-amber-500/20 rounded-md p-2.5">
+                          <p className="text-amber-400 text-[10px] font-bold mb-1">⚠️ Atenção:</p>
+                          {guide.warnings.map((w, i) => (
+                            <p key={i} className="text-amber-300/70 text-[10px]">• {w}</p>
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => generateZipAndDeploy(platform.id)}
+                          disabled={deploying !== null || selectedPages.length === 0}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-7 gap-1"
+                        >
+                          <Rocket className="w-3 h-3" /> Deploy agora
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(platform.deployUrl, '_blank')}
+                          className="border-[#3a3a4a] text-gray-300 text-xs h-7 gap-1"
+                        >
+                          <ExternalLink className="w-3 h-3" /> Abrir {platform.name}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            const text = `📋 Guia de Deploy — ${platform.name}\n\n${guide.steps.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n\n${guide.warnings?.map(w => `⚠️ ${w}`).join('\n') || ''}\n\n🔗 Acesse: ${platform.deployUrl}`;
+                            if (navigator.share) {
+                              navigator.share({ title: `Guia ${platform.name}`, text });
+                            } else {
+                              navigator.clipboard.writeText(text);
+                              toast({ title: "Instruções copiadas! 📋" });
+                            }
+                          }}
+                          className="border-[#3a3a4a] text-gray-300 text-xs h-7 gap-1"
+                        >
+                          <Send className="w-3 h-3" /> Enviar instruções
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </CardContent>
       </Card>
     </div>
