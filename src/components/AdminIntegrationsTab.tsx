@@ -12,7 +12,7 @@ import {
   ExternalLink, RefreshCw, Zap, Globe, Shield,
   CreditCard, Smartphone, Eye, EyeOff, Code, Plug,
   FileJson, Key, Trash2, Settings, ChevronDown,
-  UserPlus, Sparkles, Play, AlertCircle, Map, History, Plus
+  UserPlus, Sparkles, Play, AlertCircle, Map, History, Plus, Bell
 } from "lucide-react";
 
 const WEBHOOK_URL = 'https://gnrinwqmqhfasfojysep.supabase.co/functions/v1/payment-webhook';
