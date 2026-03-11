@@ -262,6 +262,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     try {
       const keysToSave = ['plataforma_ativa', 'plano_ativo_checkout', 'planos_visiveis_landing',
         'notificar_vendas', 'notificar_erros', 'whatsapp_suporte',
+        'email_suporte', 'telefone_suporte', 'instagram_suporte',
         ...PLANS.flatMap(p => [`checkout_${p.id}`, `preco_${p.id}`])];
       
       // Sync ALL plan prices to landing page settings
@@ -832,15 +833,49 @@ export const AdminIntegrationsTab: React.FC = () => {
             </div>
           </div>
 
-          {/* WhatsApp */}
-          <div>
-            <label className="text-[11px] text-gray-500 mb-1 block">WhatsApp Suporte</label>
-            <Input
-              placeholder="https://wa.me/55..."
-              value={settings.whatsapp_suporte}
-              onChange={e => setSettings(prev => ({ ...prev, whatsapp_suporte: e.target.value }))}
-              className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
-            />
+          {/* Suporte */}
+          <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20 space-y-3">
+            <p className="text-xs font-bold text-green-300 flex items-center gap-1.5">
+              <Shield className="w-3.5 h-3.5" /> Canais de Suporte
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">WhatsApp Suporte</label>
+                <Input
+                  placeholder="https://wa.me/55..."
+                  value={settings.whatsapp_suporte}
+                  onChange={e => setSettings(prev => ({ ...prev, whatsapp_suporte: e.target.value }))}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">Email de Suporte</label>
+                <Input
+                  placeholder="suporte@empresa.com"
+                  value={settings.email_suporte || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, email_suporte: e.target.value }))}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">Telefone de Suporte</label>
+                <Input
+                  placeholder="(11) 99999-9999"
+                  value={settings.telefone_suporte || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, telefone_suporte: e.target.value }))}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] text-gray-500 mb-1 block">Instagram</label>
+                <Input
+                  placeholder="@suaempresa"
+                  value={settings.instagram_suporte || ''}
+                  onChange={e => setSettings(prev => ({ ...prev, instagram_suporte: e.target.value }))}
+                  className="bg-[#0a0a12] border-[#1e1e2e] text-white h-9 text-sm"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="flex justify-end">
