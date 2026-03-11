@@ -770,33 +770,14 @@ export const AdminIntegrationsTab: React.FC = () => {
                     {isLandingActive ? 'Landing ✓' : 'Landing ✗'}
                   </button>
                   {/* Mapping indicator */}
-                  {hasMapping ? (
-                    <span className="text-[9px] text-cyan-400 shrink-0" title="Mapeamento ativo">🔗</span>
-                  ) : (
-                    <button
-                      onClick={() => autoCreateMapping(plan.id)}
-                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[9px] text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
-                      title="Criar mapeamento automático para este plano"
-                    >
-                      <Map className="w-2.5 h-2.5" /> Mapear
-                    </button>
+                  {hasMapping && (
+                    <span className="text-[9px] text-cyan-400 shrink-0" title="Mapeamento ativo">🔗 Mapeado</span>
                   )}
                 </div>
               );
             })}
           </div>
 
-          {/* Auto-map all */}
-          <div className="flex items-center justify-between">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={autoMapAllPlans}
-              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs h-8 gap-1.5"
-            >
-              <Zap className="w-3 h-3" /> Mapear todos os planos automaticamente
-            </Button>
-          </div>
 
           {/* ── Resumo: Planos visíveis na Landing ── */}
           <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
@@ -925,7 +906,35 @@ export const AdminIntegrationsTab: React.FC = () => {
             Mapeie produtos de cada plataforma a um plano específico. O webhook usa isso ANTES da detecção por preço.
           </p>
 
-          {/* Add new mapping */}
+          {/* Planos ativos na landing - referência rápida */}
+          <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/20">
+            <p className="text-[10px] font-bold text-green-300 mb-1.5 flex items-center gap-1.5">
+              <Globe className="w-3 h-3" /> Planos ativos na Landing (visíveis para clientes)
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {PLANS.map(plan => {
+                const isVisible = (settings.planos_visiveis_landing || 'mensal,anual').split(',').includes(plan.id);
+                const hasMapping = productMappings.some(m => m.plan_name === plan.id);
+                const price = settings[`preco_${plan.id}`] || plan.placeholder;
+                return (
+                  <Badge
+                    key={plan.id}
+                    className={`text-[10px] ${
+                      isVisible
+                        ? hasMapping
+                          ? 'bg-green-600/20 text-green-400 border-green-600/30'
+                          : 'bg-amber-600/20 text-amber-400 border-amber-600/30'
+                        : 'bg-gray-600/20 text-gray-500 border-gray-600/30'
+                    }`}
+                  >
+                    {plan.icon} {plan.label} — R$ {price}
+                    {isVisible ? (hasMapping ? ' ✓ Mapeado' : ' ⚠ Sem mapeamento') : ' (oculto)'}
+                  </Badge>
+                );
+              })}
+            </div>
+            <p className="text-[9px] text-gray-500 mt-1">Ative/desative planos na seção "Configurar Planos" acima. Adicione mapeamentos abaixo.</p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 items-end">
             <div>
               <label className="text-[10px] text-gray-500 mb-1 block">Plataforma</label>
