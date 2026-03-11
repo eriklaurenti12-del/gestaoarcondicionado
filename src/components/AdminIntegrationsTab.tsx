@@ -809,6 +809,48 @@ export const AdminIntegrationsTab: React.FC = () => {
             })}
           </div>
 
+  // ═══════════ ATUALIZAR TUDO - SYNC GERAL ═══════════
+  const syncAll = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      // 1. Save all settings first
+      await saveAll();
+
+      // 2. Reload settings from DB to confirm
+      await loadSettings();
+
+      // 3. Test webhook connection
+      await testConnection();
+
+      // 4. Reload webhook logs & mappings
+      await loadWebhookLogs();
+      await loadProductMappings();
+
+      // 5. Calculate sync report
+      const checkoutsAtivos = PLANS.filter(p => settings[`checkout_${p.id}`]?.startsWith('http')).length;
+      const precosConfigurados = PLANS.filter(p => settings[`preco_${p.id}`] && parseFloat(settings[`preco_${p.id}`]) > 0).length;
+      const pixelsAtivos = [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok].filter(Boolean).length;
+      const notifAtiva = settings.landing_notif_ativa !== 'false';
+
+      setSyncResult({
+        checkouts: checkoutsAtivos,
+        prices: precosConfigurados,
+        pixels: pixelsAtivos,
+        notifications: notifAtiva,
+        webhook: connectionStatus === 'online' ? '✅ Online' : '❌ Offline',
+      });
+
+      toast({ 
+        title: "🔄 Tudo Atualizado!", 
+        description: `${checkoutsAtivos} checkout(s), ${precosConfigurados} preço(s), ${pixelsAtivos} pixel(s) — tudo sincronizado com a landing page.` 
+      });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
           {/* ── Resumo: Planos visíveis na Landing ── */}
           <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
