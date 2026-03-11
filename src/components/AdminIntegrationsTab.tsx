@@ -659,6 +659,7 @@ export const AdminIntegrationsTab: React.FC = () => {
               const isActive = settings.plano_ativo_checkout === plan.id;
               const visiblePlans = (settings.planos_visiveis_landing || 'mensal,anual').split(',');
               const isLandingActive = visiblePlans.includes(plan.id);
+              const hasMapping = productMappings.some(m => m.plan_name === plan.id);
               return (
                 <div
                   key={plan.id}
@@ -702,9 +703,33 @@ export const AdminIntegrationsTab: React.FC = () => {
                     <Globe className="w-3 h-3" />
                     {isLandingActive ? 'Landing ✓' : 'Landing ✗'}
                   </button>
+                  {/* Mapping indicator */}
+                  {hasMapping ? (
+                    <span className="text-[9px] text-cyan-400 shrink-0" title="Mapeamento ativo">🔗</span>
+                  ) : (
+                    <button
+                      onClick={() => autoCreateMapping(plan.id)}
+                      className="shrink-0 flex items-center gap-1 px-2 py-1 rounded-md text-[9px] text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/10 transition-all"
+                      title="Criar mapeamento automático para este plano"
+                    >
+                      <Map className="w-2.5 h-2.5" /> Mapear
+                    </button>
+                  )}
                 </div>
               );
             })}
+          </div>
+
+          {/* Auto-map all */}
+          <div className="flex items-center justify-between">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={autoMapAllPlans}
+              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs h-8 gap-1.5"
+            >
+              <Zap className="w-3 h-3" /> Mapear todos os planos automaticamente
+            </Button>
           </div>
 
           {/* ── Resumo: Planos visíveis na Landing ── */}
