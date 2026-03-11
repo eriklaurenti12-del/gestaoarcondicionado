@@ -151,11 +151,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Globe,
       title: 'Domínio Próprio no Lovable',
-      desc: 'Conecte meusite.com.br diretamente — zero configuração',
+      desc: 'Conecte meusite.com.br diretamente — tudo funciona, zero risco',
       badge: 'RECOMENDADO',
       badgeColor: 'bg-emerald-600',
       borderColor: 'border-l-emerald-500',
-      features: ['SSL automático', 'Zero deploy', 'Sempre atualizado'],
+      features: ['100% compatível', 'SSL automático', 'Integrações intactas'],
       action: () => window.open('https://docs.lovable.dev/features/custom-domain', '_blank'),
       actionLabel: 'Ver como conectar',
       actionIcon: ExternalLink,
