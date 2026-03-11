@@ -35,6 +35,73 @@ const PLATFORMS = [
   { id: 'github', name: 'GitHub Pages', desc: 'Via repositório GitHub', badge: 'Intermediário', recommended: false, icon: '🐙', deployUrl: 'https://pages.github.com/', baseDomain: '.github.io' },
 ];
 
+const PLATFORM_GUIDES: Record<string, { difficulty: string; free: boolean; summary: string; steps: string[]; warnings?: string[] }> = {
+  netlify: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Arraste e solte o ZIP — sem conta obrigatória',
+    steps: [
+      'Clique em "Deploy" ao lado do Netlify acima para baixar o ZIP',
+      'Acesse app.netlify.com/drop (abre automaticamente)',
+      'Arraste o arquivo ZIP na área indicada',
+      'Aguarde o deploy (30 segundos) — sua URL será gerada',
+      'Copie a URL (ex: random-name.netlify.app) e cole acima em "Salvar URL"',
+      'Pronto! Seus links estarão funcionando',
+    ],
+    warnings: ['A URL gerada será aleatória (ex: jovial-cat-123.netlify.app)', 'Para domínio próprio, crie conta grátis no Netlify'],
+  },
+  tiiny: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Upload direto do ZIP — link gerado em segundos',
+    steps: [
+      'Clique em "Deploy" ao lado do Tiiny.host acima para baixar o ZIP',
+      'Acesse tiiny.host (abre automaticamente)',
+      'Faça upload do arquivo ZIP',
+      'Escolha um nome para o link (ex: meu-sistema)',
+      'Clique em "Launch" — URL gerada como meu-sistema.tiiny.site',
+      'Cole a URL acima para ativar os links',
+    ],
+    warnings: ['Plano grátis tem limite de 7 dias', 'Ideal para testes rápidos e demos'],
+  },
+  vercel: {
+    difficulty: 'Fácil', free: true,
+    summary: 'Deploy profissional com SSL grátis e domínio personalizado',
+    steps: [
+      'Baixe o ZIP clicando em "Deploy" acima',
+      'Extraia o ZIP em uma pasta no computador',
+      'Crie conta grátis em vercel.com (pode usar GitHub)',
+      'Arraste a pasta extraída em vercel.com/new',
+      'Ou use: npx vercel deploy na pasta pelo terminal',
+      'URL gerada automaticamente (ex: meu-site.vercel.app)',
+    ],
+    warnings: ['Precisa de conta Vercel (grátis)', 'Para domínio próprio: Settings > Domains no Vercel'],
+  },
+  cloudflare: {
+    difficulty: 'Fácil', free: true,
+    summary: 'CDN global com performance máxima e SSL automático',
+    steps: [
+      'Baixe o ZIP clicando em "Deploy" acima',
+      'Extraia o ZIP em uma pasta',
+      'Acesse dash.cloudflare.com > Pages > Upload Assets',
+      'Arraste a pasta extraída ou selecione os arquivos',
+      'Escolha um nome para o projeto',
+      'Deploy automático — URL como nome.pages.dev',
+    ],
+    warnings: ['Precisa de conta Cloudflare (grátis)', 'Melhor performance global de todas as opções'],
+  },
+  github: {
+    difficulty: 'Médio', free: true,
+    summary: 'Via repositório GitHub — ideal para desenvolvedores',
+    steps: [
+      'Baixe o ZIP e extraia em uma pasta',
+      'Crie repositório no GitHub e faça push dos arquivos',
+      'Vá em Settings > Pages no repositório',
+      'Selecione "Deploy from a branch" > main',
+      'Aguarde o build — URL como usuario.github.io/repo',
+    ],
+    warnings: ['Requer conhecimento de Git/GitHub', 'Deploy pode levar alguns minutos', 'Repositório precisa ser público no plano grátis'],
+  },
+};
+
 export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primaryDomain }) => {
   const { toast } = useToast();
   const [deploying, setDeploying] = useState<string | null>(null);
