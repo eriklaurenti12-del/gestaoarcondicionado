@@ -311,7 +311,41 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
-  const copyText = (text: string, label: string) => {
+  // ═══════════ ATUALIZAR TUDO - SYNC GERAL ═══════════
+  const syncAll = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      await saveAll();
+      await loadSettings();
+      await testConnection();
+      await loadWebhookLogs();
+      await loadProductMappings();
+
+      const checkoutsAtivos = PLANS.filter(p => settings[`checkout_${p.id}`]?.startsWith('http')).length;
+      const precosConfigurados = PLANS.filter(p => settings[`preco_${p.id}`] && parseFloat(settings[`preco_${p.id}`]) > 0).length;
+      const pixelsAtivos = [settings.landing_pixel_facebook, settings.landing_pixel_google, settings.landing_pixel_tiktok].filter(Boolean).length;
+      const notifAtiva = settings.landing_notif_ativa !== 'false';
+
+      setSyncResult({
+        checkouts: checkoutsAtivos,
+        prices: precosConfigurados,
+        pixels: pixelsAtivos,
+        notifications: notifAtiva,
+        webhook: connectionStatus === 'online' ? '✅ Online' : '❌ Offline',
+      });
+
+      toast({ 
+        title: "🔄 Tudo Atualizado!", 
+        description: `${checkoutsAtivos} checkout(s), ${precosConfigurados} preço(s), ${pixelsAtivos} pixel(s) sincronizados.`
+      });
+    } catch (error: any) {
+      toast({ title: "Erro na sincronização", description: error.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  };
+
     navigator.clipboard.writeText(text);
     setCopied(label);
     toast({ title: "📋 Copiado!", description: `${label} copiado.` });
