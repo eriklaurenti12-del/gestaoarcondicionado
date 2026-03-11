@@ -185,14 +185,24 @@ const AdminNotificationsPanel: React.FC = () => {
     setWhatsappMessage('');
   };
 
-  const filteredNotifications = notifications?.filter(n => filterType === 'all' || n.type === filterType) || [];
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  
+  const filteredNotifications = notifications?.filter(n => {
+    const typeMatch = filterType === 'all' || n.type === filterType;
+    const platformMatch = platformFilter === 'all' || n.metadata?.platform === platformFilter;
+    return typeMatch && platformMatch;
+  }) || [];
   const unreadCount = notifications?.filter(n => !n.is_read).length || 0;
+
+  // Unique platforms from notifications
+  const platforms = [...new Set(notifications?.map(n => n.metadata?.platform).filter(Boolean) || [])];
 
   const stats = {
     newUsers: notifications?.filter(n => n.type === 'new_user').length || 0,
     payments: notifications?.filter(n => n.type === 'payment_success').length || 0,
     access: notifications?.filter(n => n.type === 'access_granted').length || 0,
     errors: notifications?.filter(n => n.type === 'payment_error').length || 0,
+    pending: notifications?.filter(n => n.type === 'pending_activation').length || 0,
   };
 
   if (isLoading) {
@@ -217,16 +227,17 @@ const AdminNotificationsPanel: React.FC = () => {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
         {[
           { key: 'all', label: 'Total', count: notifications?.length || 0, icon: Bell, color: 'purple' },
           { key: 'new_user', label: 'Novos', count: stats.newUsers, icon: UserPlus, color: 'blue' },
           { key: 'payment_success', label: 'Pagamentos', count: stats.payments, icon: DollarSign, color: 'green' },
           { key: 'access_granted', label: 'Acessos', count: stats.access, icon: ShieldCheck, color: 'cyan' },
+          { key: 'pending_activation', label: 'Pendentes', count: stats.pending, icon: Clock, color: 'yellow' },
           { key: 'payment_error', label: 'Erros', count: stats.errors, icon: AlertTriangle, color: 'red' },
         ].map(s => (
           <Card key={s.key} 
-            className={`bg-[#1a1a24] border-[#2a2a3a] cursor-pointer hover:border-${s.color}-500/50 transition-colors ${filterType === s.key ? `border-${s.color}-500/60` : ''}`}
+            className={`bg-[#1a1a24] border-[#2a2a3a] cursor-pointer hover:border-${s.color}-500/50 transition-colors ${filterType === s.key ? `border-${s.color}-500/60 ring-1 ring-${s.color}-500/30` : ''}`}
             onClick={() => setFilterType(s.key)}>
             <CardContent className="p-3 flex items-center gap-2">
               <s.icon className={`w-4 h-4 text-${s.color}-400`} />
@@ -238,6 +249,37 @@ const AdminNotificationsPanel: React.FC = () => {
           </Card>
         ))}
       </div>
+
+      {/* Platform filter */}
+      {platforms.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 items-center">
+          <Filter className="w-3.5 h-3.5 text-gray-500" />
+          <span className="text-[10px] text-gray-500 mr-1">Plataforma:</span>
+          <button
+            onClick={() => setPlatformFilter('all')}
+            className={`px-2 py-1 rounded text-[10px] font-medium border transition-all ${
+              platformFilter === 'all' 
+                ? 'bg-purple-600/20 text-purple-400 border-purple-600/40' 
+                : 'bg-[#1a1a24] text-gray-400 border-[#2a2a3a] hover:border-gray-500'
+            }`}
+          >
+            Todas
+          </button>
+          {platforms.map(p => (
+            <button
+              key={p}
+              onClick={() => setPlatformFilter(p!)}
+              className={`px-2 py-1 rounded text-[10px] font-medium border transition-all ${
+                platformFilter === p
+                  ? 'bg-cyan-600/20 text-cyan-400 border-cyan-600/40'
+                  : 'bg-[#1a1a24] text-gray-400 border-[#2a2a3a] hover:border-gray-500'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
 
       <Card className="bg-[#1a1a24] border-[#2a2a3a]">
         <CardHeader className="pb-3">
