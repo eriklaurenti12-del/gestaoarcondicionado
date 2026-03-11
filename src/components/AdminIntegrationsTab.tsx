@@ -778,17 +778,6 @@ export const AdminIntegrationsTab: React.FC = () => {
             })}
           </div>
 
-          {/* Auto-map all */}
-          <div className="flex items-center justify-between">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={autoMapAllPlans}
-              className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs h-8 gap-1.5"
-            >
-              <Zap className="w-3 h-3" /> Mapear todos os planos automaticamente
-            </Button>
-          </div>
 
           {/* ── Resumo: Planos visíveis na Landing ── */}
           <div className="p-3 rounded-lg bg-purple-500/5 border border-purple-500/20">
