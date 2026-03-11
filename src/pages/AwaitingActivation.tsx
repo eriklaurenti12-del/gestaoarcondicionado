@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Clock, MessageCircle, Snowflake, RefreshCw, 
-  CheckCircle, LogOut, Download, Share, CreditCard, Crown
+  CheckCircle, LogOut, Download, Share, CreditCard, Crown,
+  Mail, Phone, Instagram
 } from "lucide-react";
 import { toast } from 'sonner';
 
@@ -14,6 +15,9 @@ const AwaitingActivation: React.FC = () => {
   const [userEmail, setUserEmail] = useState('');
   const [checking, setChecking] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState('https://wa.me/5511999999999');
+  const [emailSuporte, setEmailSuporte] = useState('');
+  const [telefoneSuporte, setTelefoneSuporte] = useState('');
+  const [instagramSuporte, setInstagramSuporte] = useState('');
   const [checkoutMensal, setCheckoutMensal] = useState('');
   const [checkoutTrimestral, setCheckoutTrimestral] = useState('');
   const [checkoutAnual, setCheckoutAnual] = useState('');
@@ -55,11 +59,14 @@ const AwaitingActivation: React.FC = () => {
       const { data: settings } = await supabase
         .from('admin_settings')
         .select('key, value')
-        .in('key', ['whatsapp_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'planos_visiveis_landing', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
+        .in('key', ['whatsapp_suporte', 'email_suporte', 'telefone_suporte', 'instagram_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'planos_visiveis_landing', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
       
       if (settings) {
         settings.forEach(s => {
           if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
+          if (s.key === 'email_suporte' && s.value) setEmailSuporte(s.value);
+          if (s.key === 'telefone_suporte' && s.value) setTelefoneSuporte(s.value);
+          if (s.key === 'instagram_suporte' && s.value) setInstagramSuporte(s.value);
           if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
           if (s.key === 'checkout_trimestral' && s.value) setCheckoutTrimestral(s.value);
           if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
@@ -275,7 +282,9 @@ const AwaitingActivation: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-gray-400 text-xs text-center font-medium">Precisa de ajuda para ativar?</p>
+            
             <Button 
               onClick={handleContactSupport}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
@@ -284,6 +293,50 @@ const AwaitingActivation: React.FC = () => {
               Falar com Suporte via WhatsApp
             </Button>
 
+            {emailSuporte && (
+              <Button 
+                onClick={() => {
+                  const subject = encodeURIComponent('Ativação de Conta');
+                  const body = encodeURIComponent(`Olá! Criei minha conta com o email: ${userEmail}. Gostaria de ativar minha assinatura!`);
+                  window.open(`mailto:${emailSuporte}?subject=${subject}&body=${body}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Enviar Email para Suporte
+              </Button>
+            )}
+
+            {telefoneSuporte && (
+              <Button 
+                onClick={() => {
+                  const phone = telefoneSuporte.replace(/\D/g, '');
+                  window.open(`tel:+55${phone}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Ligar para Suporte: {telefoneSuporte}
+              </Button>
+            )}
+
+            {instagramSuporte && (
+              <Button 
+                onClick={() => {
+                  const handle = instagramSuporte.replace('@', '');
+                  window.open(`https://instagram.com/${handle}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-pink-500/50 text-pink-400 hover:bg-pink-500/10"
+              >
+                <Instagram className="w-4 h-4 mr-2" />
+                Chamar no Instagram: {instagramSuporte}
+              </Button>
+            )}
+          </div>
+          <div className="space-y-3">
             <Button 
               onClick={handleCheckSubscription}
               variant="outline"
