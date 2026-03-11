@@ -618,27 +618,37 @@ export const AdminIntegrationsTab: React.FC = () => {
   return (
     <div className="space-y-6">
 
-      {/* ═══════════ ATUALIZAR TUDO ═══════════ */}
+      {/* ═══════════ SINCRONIZAÇÃO COMPLETA ═══════════ */}
       <Card className="bg-gradient-to-r from-[#0d0d14] to-[#12121e] border-cyan-500/30">
         <CardContent className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-500/10">
-                <RefreshCw className="w-5 h-5 text-cyan-400" />
+              <div className="p-2.5 rounded-xl bg-cyan-500/10">
+                <RefreshCw className={`w-5 h-5 text-cyan-400 ${syncing ? 'animate-spin' : ''}`} />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Sincronizar Tudo</h3>
-                <p className="text-[11px] text-gray-400">Salva, verifica e sincroniza checkouts, preços, notificações e landing page</p>
+                <h3 className="text-sm font-bold text-white">Sincronização Completa</h3>
+                <p className="text-[11px] text-gray-400">Atualiza links, checkouts, notificações, pixels e mapeamentos no banco de dados e na Landing Page</p>
               </div>
             </div>
-            <Button 
-              onClick={syncAll} 
-              disabled={syncing || saving}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white font-semibold shadow-lg shadow-cyan-500/20"
-            >
-              {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <RefreshCw className="w-4 h-4 mr-2" />}
-              {syncing ? 'Sincronizando...' : '🔄 Atualizar Tudo'}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => window.open('/vendas', '_blank')}
+                className="border-gray-600 text-gray-300 hover:bg-white/5 hover:text-white"
+              >
+                <Eye className="w-4 h-4 mr-1.5" />
+                Ver Landing
+              </Button>
+              <Button 
+                onClick={syncAll} 
+                disabled={syncing || saving}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/20"
+              >
+                {syncing ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Zap className="w-4 h-4 mr-2" />}
+                {syncing ? 'Sincronizando...' : 'Atualizar Tudo'}
+              </Button>
+            </div>
           </div>
           
           {syncResult && (
