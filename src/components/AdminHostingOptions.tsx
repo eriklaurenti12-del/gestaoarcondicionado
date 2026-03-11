@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Download, ExternalLink, Server, Rocket, Copy, Info, CheckCircle, Code2, FolderDown } from "lucide-react";
+import { Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, Code2, FolderDown, Github, Link2, LogIn, Calendar, Users, Copy } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 
 interface AdminHostingOptionsProps {
@@ -15,23 +15,30 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
   const [exporting, setExporting] = useState(false);
 
   const baseUrl = primaryDomain || DEFAULT_URL;
-  const landingUrl = baseUrl + '/vendas';
+
+  const SYSTEM_PAGES = [
+    { key: 'landing', label: 'Landing Page', path: '/vendas', icon: Globe, color: 'text-cyan-400' },
+    { key: 'login', label: 'Login', path: '/?login=true', icon: LogIn, color: 'text-green-400' },
+    { key: 'cadastro', label: 'Cadastro', path: '/?cadastro=true', icon: Link2, color: 'text-purple-400' },
+    { key: 'portal', label: 'Portal Equipe', path: '/portal', icon: Users, color: 'text-blue-400' },
+    { key: 'agendamento', label: 'Agendamento', path: '/agendar', icon: Calendar, color: 'text-amber-400' },
+  ];
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: "Copiado! 📋", description: `${label} copiado.` });
   };
 
-  const generateRedirectPage = () => {
+  const generatePageHtml = (title: string, targetUrl: string) => {
     return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AC Service Pro - Sistema de Gestão para Ar Condicionado</title>
-  <meta name="description" content="Sistema completo de gestão para empresas de ar condicionado. Controle clientes, agendamentos, financeiro e muito mais.">
-  <meta http-equiv="refresh" content="0;url=${landingUrl}">
-  <link rel="canonical" href="${landingUrl}">
+  <title>${title} - AC Service Pro</title>
+  <meta name="description" content="Sistema completo de gestão para empresas de ar condicionado.">
+  <meta http-equiv="refresh" content="0;url=${targetUrl}">
+  <link rel="canonical" href="${targetUrl}">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
@@ -41,45 +48,48 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
       min-height: 100vh; text-align: center;
     }
     .container { max-width: 500px; padding: 2rem; }
-    .logo { font-size: 2.5rem; margin-bottom: 1rem; }
-    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-    p { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.9rem; }
+    .spinner { 
+      width: 28px; height: 28px; border: 3px solid rgba(255,255,255,0.15);
+      border-top-color: #06b6d4; border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 1.5rem;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    p { color: #9ca3af; margin-bottom: 1.5rem; font-size: 0.875rem; }
     a { 
-      display: inline-block; padding: 0.75rem 2rem; background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      display: inline-block; padding: 0.75rem 2rem; 
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
       color: white; text-decoration: none; border-radius: 0.75rem; font-weight: 600;
       transition: transform 0.2s, box-shadow 0.2s;
     }
     a:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(6,182,212,0.3); }
-    .spinner { 
-      width: 24px; height: 24px; border: 3px solid rgba(255,255,255,0.2);
-      border-top-color: #06b6d4; border-radius: 50%; animation: spin 0.8s linear infinite;
-      margin: 0 auto 1rem;
-    }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="spinner"></div>
-    <div class="logo">❄️</div>
-    <h1>AC Service Pro</h1>
-    <p>Redirecionando para o sistema...</p>
-    <a href="${landingUrl}">Acessar agora →</a>
+    <h1>❄️ ${title}</h1>
+    <p>Redirecionando...</p>
+    <a href="${targetUrl}">Acessar agora →</a>
   </div>
-  <script>window.location.href="${landingUrl}";</script>
+  <script>window.location.href="${targetUrl}";</script>
 </body>
 </html>`;
   };
 
   const generateVercelConfig = () => {
-    return JSON.stringify({
-      rewrites: [
-        { source: "/(.*)", destination: landingUrl + "/$1" }
-      ],
-      redirects: [
-        { source: "/", destination: landingUrl, statusCode: 302 }
-      ]
-    }, null, 2);
+    const rewrites = SYSTEM_PAGES.map(p => ({
+      source: p.key === 'landing' ? '/' : `/${p.key}`,
+      destination: baseUrl + p.path,
+    }));
+    return JSON.stringify({ rewrites }, null, 2);
+  };
+
+  const generateNetlifyRedirects = () => {
+    return SYSTEM_PAGES.map(p => {
+      const from = p.key === 'landing' ? '/' : `/${p.key}`;
+      return `${from}    ${baseUrl + p.path}    302`;
+    }).join('\n');
   };
 
   const downloadFile = (content: string, filename: string, type: string) => {
@@ -94,21 +104,41 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     URL.revokeObjectURL(url);
   };
 
-  const exportForVercel = async () => {
+  const exportFullPackage = async (platform: 'vercel' | 'netlify' | 'generic') => {
     setExporting(true);
     try {
-      const indexHtml = generateRedirectPage();
-      const vercelJson = generateVercelConfig();
-      
-      // Download as individual files
-      downloadFile(indexHtml, 'index.html', 'text/html');
-      setTimeout(() => {
-        downloadFile(vercelJson, 'vercel.json', 'application/json');
-      }, 500);
+      // Main landing page
+      downloadFile(
+        generatePageHtml('AC Service Pro', baseUrl + '/vendas'),
+        'index.html', 'text/html'
+      );
 
+      // Sub-pages for each system link
+      let delay = 400;
+      for (const page of SYSTEM_PAGES) {
+        if (page.key === 'landing') continue;
+        setTimeout(() => {
+          downloadFile(
+            generatePageHtml(page.label, baseUrl + page.path),
+            `${page.key}.html`, 'text/html'
+          );
+        }, delay);
+        delay += 300;
+      }
+
+      // Platform config
+      setTimeout(() => {
+        if (platform === 'vercel') {
+          downloadFile(generateVercelConfig(), 'vercel.json', 'application/json');
+        } else if (platform === 'netlify') {
+          downloadFile(generateNetlifyRedirects(), '_redirects', 'text/plain');
+        }
+      }, delay);
+
+      const platformNames = { vercel: 'Vercel', netlify: 'Netlify', generic: 'hospedagem' };
       toast({ 
-        title: "Arquivos exportados! 🚀", 
-        description: "Baixe index.html e vercel.json. Envie para o Vercel/Netlify." 
+        title: "Pacote exportado! 🚀", 
+        description: `${SYSTEM_PAGES.length} páginas + config para ${platformNames[platform]} baixados.` 
       });
     } catch {
       toast({ title: "Erro na exportação", variant: "destructive" });
@@ -117,47 +147,58 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     }
   };
 
-  const exportRedirectOnly = () => {
-    const html = generateRedirectPage();
-    downloadFile(html, 'index.html', 'text/html');
-    toast({ title: "Landing exportada! 📄", description: "Arquivo index.html baixado com sucesso." });
-  };
-
   const HOSTING_OPTIONS = [
     {
       icon: Globe,
       title: 'Domínio Próprio no Lovable',
-      desc: 'Conecte seu domínio diretamente — sem deploy manual',
+      desc: 'Conecte meusite.com.br diretamente — zero configuração',
       badge: 'RECOMENDADO',
       badgeColor: 'bg-emerald-600',
       borderColor: 'border-l-emerald-500',
-      features: ['SSL automático', 'Sem configuração extra', 'Atualizações em tempo real'],
+      features: ['SSL automático', 'Zero deploy', 'Sempre atualizado'],
       action: () => window.open('https://docs.lovable.dev/features/custom-domain', '_blank'),
       actionLabel: 'Ver como conectar',
       actionIcon: ExternalLink,
     },
     {
+      icon: Github,
+      title: 'Deploy via GitHub',
+      desc: 'Conecte ao GitHub e faça deploy automático na Vercel/Netlify',
+      badge: 'COMPLETO',
+      badgeColor: 'bg-gray-700',
+      borderColor: 'border-l-gray-500',
+      features: ['Sistema completo', 'Deploy automático', 'CI/CD integrado'],
+      action: () => {
+        toast({
+          title: "Como fazer deploy via GitHub 🐙",
+          description: "Acesse Settings → GitHub no editor Lovable para conectar seu repositório. Depois vincule na Vercel/Netlify.",
+        });
+      },
+      actionLabel: 'Ver instruções',
+      actionIcon: ExternalLink,
+    },
+    {
       icon: Rocket,
-      title: 'Deploy na Vercel',
-      desc: 'Exporte e hospede na Vercel com domínio gratuito .vercel.app',
+      title: 'Exportar para Vercel',
+      desc: 'Baixe pacote completo com todas as páginas do sistema',
       badge: 'GRATUITO',
       badgeColor: 'bg-blue-600',
       borderColor: 'border-l-blue-500',
-      features: ['Domínio .vercel.app grátis', 'Deploy em 2 minutos', 'CDN global'],
-      action: exportForVercel,
-      actionLabel: 'Exportar para Vercel',
+      features: ['Landing + Login + Cadastro', 'vercel.json incluso', 'CDN global'],
+      action: () => exportFullPackage('vercel'),
+      actionLabel: 'Exportar pacote Vercel',
       actionIcon: Download,
     },
     {
       icon: Server,
       title: 'Qualquer Hospedagem',
-      desc: 'Baixe o HTML e suba em qualquer hospedagem (Hostinger, cPanel, etc)',
+      desc: 'HTML puro para cPanel, Hostinger, ou qualquer servidor',
       badge: 'UNIVERSAL',
       badgeColor: 'bg-purple-600',
       borderColor: 'border-l-purple-500',
-      features: ['Funciona em qualquer servidor', 'Arquivo único HTML', 'Zero dependências'],
-      action: exportRedirectOnly,
-      actionLabel: 'Baixar index.html',
+      features: ['5 páginas HTML', 'Zero dependências', 'Funciona em tudo'],
+      action: () => exportFullPackage('generic'),
+      actionLabel: 'Baixar pacote HTML',
       actionIcon: FolderDown,
     },
   ];
@@ -171,7 +212,20 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
         </div>
         <div>
           <h2 className="text-lg font-bold text-white">Hospedagem & Deploy</h2>
-          <p className="text-gray-400 text-xs">Hospede sua landing page sem o nome "lovable" na URL</p>
+          <p className="text-gray-400 text-xs">Hospede seu sistema com domínio próprio — sem "lovable" na URL</p>
+        </div>
+      </div>
+
+      {/* Pages included info */}
+      <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3">
+        <p className="text-emerald-300 text-xs font-semibold mb-2">📦 Páginas incluídas na exportação:</p>
+        <div className="flex flex-wrap gap-2">
+          {SYSTEM_PAGES.map((p) => (
+            <span key={p.key} className="flex items-center gap-1 text-[11px] text-gray-300 bg-[#12121a] px-2 py-1 rounded-md border border-[#2a2a3a]">
+              <p.icon className={`w-3 h-3 ${p.color}`} />
+              {p.label}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -210,40 +264,105 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
         ))}
       </div>
 
-      {/* Vercel Step-by-Step Guide */}
+      {/* GitHub + Vercel Complete Guide */}
+      <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
+        <CardContent className="p-5 space-y-4">
+          <div className="flex items-center gap-2">
+            <Github className="w-5 h-5 text-white" />
+            <h3 className="text-white font-bold text-sm">Deploy Completo via GitHub + Vercel</h3>
+            <Badge className="bg-amber-600 text-white text-[10px] px-2 py-0">SISTEMA INTEIRO</Badge>
+          </div>
+          <p className="text-gray-400 text-xs">Este método publica o sistema completo (não apenas redirect) com domínio próprio e deploy automático.</p>
+          
+          <ol className="text-xs text-gray-400 space-y-3 ml-1">
+            <li className="flex gap-2">
+              <span className="bg-cyan-500/20 text-cyan-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
+              <div>
+                <strong className="text-white block">Conecte ao GitHub</strong>
+                <span>No editor Lovable, clique no nome do projeto (canto superior esquerdo) → <strong className="text-cyan-300">Settings</strong> → <strong className="text-cyan-300">GitHub</strong> → <strong className="text-cyan-300">Connect project</strong></span>
+              </div>
+            </li>
+            <li className="flex gap-2">
+              <span className="bg-cyan-500/20 text-cyan-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
+              <div>
+                <strong className="text-white block">Crie o repositório</strong>
+                <span>Autorize o Lovable GitHub App e clique em <strong className="text-cyan-300">Create Repository</strong>. Todo seu código será enviado automaticamente.</span>
+              </div>
+            </li>
+            <li className="flex gap-2">
+              <span className="bg-cyan-500/20 text-cyan-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
+              <div>
+                <strong className="text-white block">Vincule na Vercel</strong>
+                <span>Acesse <strong className="text-cyan-300">vercel.com</strong> → New Project → Import Git Repository → selecione o repo criado.</span>
+              </div>
+            </li>
+            <li className="flex gap-2">
+              <span className="bg-cyan-500/20 text-cyan-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">4</span>
+              <div>
+                <strong className="text-white block">Configure as variáveis de ambiente</strong>
+                <span>Na Vercel, vá em Settings → Environment Variables e adicione:</span>
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center gap-2">
+                    <code className="bg-[#12121a] text-amber-300 text-[10px] px-2 py-1 rounded font-mono">VITE_SUPABASE_URL</code>
+                    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(import.meta.env.VITE_SUPABASE_URL || '', 'VITE_SUPABASE_URL')}
+                      className="h-5 w-5 p-0 text-gray-500 hover:text-white"><Copy className="w-3 h-3" /></Button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="bg-[#12121a] text-amber-300 text-[10px] px-2 py-1 rounded font-mono">VITE_SUPABASE_PUBLISHABLE_KEY</code>
+                    <Button size="sm" variant="ghost" onClick={() => copyToClipboard(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '', 'VITE_SUPABASE_PUBLISHABLE_KEY')}
+                      className="h-5 w-5 p-0 text-gray-500 hover:text-white"><Copy className="w-3 h-3" /></Button>
+                  </div>
+                </div>
+              </div>
+            </li>
+            <li className="flex gap-2">
+              <span className="bg-emerald-500/20 text-emerald-400 font-bold w-5 h-5 rounded-full flex items-center justify-center text-[10px] shrink-0 mt-0.5">5</span>
+              <div>
+                <strong className="text-white block">Conecte seu domínio</strong>
+                <span>Na Vercel: Settings → Domains → adicione <strong className="text-emerald-300">meusite.com.br</strong>. SSL é automático!</span>
+              </div>
+            </li>
+          </ol>
+
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-3 flex items-start gap-2">
+            <CheckCircle className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+            <p className="text-emerald-300 text-[11px]">
+              <strong>Resultado:</strong> Seu sistema completo (landing, login, cadastro, dashboard, portal, agendamento) ficará em <strong>meusite.com.br</strong> com deploy automático a cada alteração no Lovable.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Vercel Guide */}
       <Card className="bg-[#1a1a2e] border-[#2a2a3a]">
         <CardContent className="p-5 space-y-3">
           <div className="flex items-center gap-2">
             <Code2 className="w-4 h-4 text-cyan-400" />
-            <h3 className="text-white font-bold text-sm">Guia Rápido: Deploy na Vercel</h3>
+            <h3 className="text-white font-bold text-sm">Deploy Rápido (só redirect)</h3>
           </div>
           <ol className="text-xs text-gray-400 space-y-2 ml-1">
             <li className="flex gap-2">
               <span className="text-cyan-400 font-bold shrink-0">1.</span>
-              <span>Clique em <strong className="text-white">"Exportar para Vercel"</strong> acima para baixar os arquivos</span>
+              <span>Clique em <strong className="text-white">"Exportar pacote Vercel"</strong> acima para baixar os arquivos</span>
             </li>
             <li className="flex gap-2">
               <span className="text-cyan-400 font-bold shrink-0">2.</span>
-              <span>Acesse <strong className="text-cyan-300">vercel.com</strong> e crie uma conta gratuita (pode usar GitHub/Google)</span>
+              <span>Acesse <strong className="text-cyan-300">vercel.com</strong> → New Project → <strong className="text-white">Upload</strong></span>
             </li>
             <li className="flex gap-2">
               <span className="text-cyan-400 font-bold shrink-0">3.</span>
-              <span>Clique em <strong className="text-white">"New Project"</strong> → <strong className="text-white">"Upload"</strong> e arraste a pasta com os arquivos</span>
+              <span>Arraste a pasta com os arquivos e publique</span>
             </li>
             <li className="flex gap-2">
               <span className="text-cyan-400 font-bold shrink-0">4.</span>
-              <span>Pronto! Seu site estará em <strong className="text-emerald-300">seuprojeto.vercel.app</strong> — sem "lovable" na URL</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-cyan-400 font-bold shrink-0">5.</span>
-              <span><strong className="text-amber-300">Opcional:</strong> Na Vercel, vá em Settings → Domains e conecte seu domínio próprio gratuitamente</span>
+              <span>Site pronto em <strong className="text-emerald-300">seuprojeto.vercel.app</strong></span>
             </li>
           </ol>
 
           <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 flex items-start gap-2 mt-2">
             <Info className="w-4 h-4 text-blue-400 mt-0.5 shrink-0" />
             <p className="text-blue-300 text-[11px]">
-              <strong>Dica:</strong> A página exportada redireciona automaticamente para seu sistema. Toda atualização que você fizer aqui será refletida sem precisar re-exportar.
+              <strong>Dica:</strong> As páginas redirecionam automaticamente. Atualizações no sistema são refletidas sem re-exportar.
             </p>
           </div>
         </CardContent>
@@ -254,13 +373,13 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <Globe className="w-4 h-4 text-purple-400" />
-            <h3 className="text-white font-bold text-sm">Outras Opções de Hospedagem</h3>
+            <h3 className="text-white font-bold text-sm">Outras Plataformas</h3>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             {[
+              { name: 'Vercel', url: 'https://vercel.com', tip: 'Import do GitHub automático' },
               { name: 'Netlify', url: 'https://netlify.com', tip: 'Arraste a pasta e publique' },
               { name: 'GitHub Pages', url: 'https://pages.github.com', tip: 'Gratuito com repositório' },
-              { name: 'Hostinger', url: 'https://hostinger.com.br', tip: 'Upload via File Manager' },
               { name: 'Cloudflare Pages', url: 'https://pages.cloudflare.com', tip: 'CDN global gratuito' },
             ].map((host, i) => (
               <button key={i} onClick={() => window.open(host.url, '_blank')}
