@@ -15,6 +15,9 @@ const AwaitingActivation: React.FC = () => {
   const [userEmail, setUserEmail] = useState('');
   const [checking, setChecking] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState('https://wa.me/5511999999999');
+  const [emailSuporte, setEmailSuporte] = useState('');
+  const [telefoneSuporte, setTelefoneSuporte] = useState('');
+  const [instagramSuporte, setInstagramSuporte] = useState('');
   const [checkoutMensal, setCheckoutMensal] = useState('');
   const [checkoutTrimestral, setCheckoutTrimestral] = useState('');
   const [checkoutAnual, setCheckoutAnual] = useState('');
