@@ -282,7 +282,9 @@ const AwaitingActivation: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
+            <p className="text-gray-400 text-xs text-center font-medium">Precisa de ajuda para ativar?</p>
+            
             <Button 
               onClick={handleContactSupport}
               className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
@@ -290,6 +292,50 @@ const AwaitingActivation: React.FC = () => {
               <MessageCircle className="w-4 h-4 mr-2" />
               Falar com Suporte via WhatsApp
             </Button>
+
+            {emailSuporte && (
+              <Button 
+                onClick={() => {
+                  const subject = encodeURIComponent('Ativação de Conta');
+                  const body = encodeURIComponent(`Olá! Criei minha conta com o email: ${userEmail}. Gostaria de ativar minha assinatura!`);
+                  window.open(`mailto:${emailSuporte}?subject=${subject}&body=${body}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                Enviar Email para Suporte
+              </Button>
+            )}
+
+            {telefoneSuporte && (
+              <Button 
+                onClick={() => {
+                  const phone = telefoneSuporte.replace(/\D/g, '');
+                  window.open(`tel:+55${phone}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-amber-500/50 text-amber-400 hover:bg-amber-500/10"
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                Ligar para Suporte: {telefoneSuporte}
+              </Button>
+            )}
+
+            {instagramSuporte && (
+              <Button 
+                onClick={() => {
+                  const handle = instagramSuporte.replace('@', '');
+                  window.open(`https://instagram.com/${handle}`, '_blank');
+                }}
+                variant="outline"
+                className="w-full border-pink-500/50 text-pink-400 hover:bg-pink-500/10"
+              >
+                <Instagram className="w-4 h-4 mr-2" />
+                Chamar no Instagram: {instagramSuporte}
+              </Button>
+            )}
+          </div>
 
             <Button 
               onClick={handleCheckSubscription}
