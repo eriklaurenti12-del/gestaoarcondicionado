@@ -67,6 +67,12 @@ export const AdminIntegrationsTab: React.FC = () => {
   const [newKeyName, setNewKeyName] = useState('');
   const [newKeyValue, setNewKeyValue] = useState('');
 
+  // Product mapping state
+  const [productMappings, setProductMappings] = useState<any[]>([]);
+  const [newMapping, setNewMapping] = useState({ platform: 'cakto', product_id: '', product_name: '', plan_name: 'mensal', duration_months: 1, is_lifetime: false });
+  const [webhookLogs, setWebhookLogs] = useState<any[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
   // Simulator state
   const [simEmail, setSimEmail] = useState(`teste_${Math.floor(Math.random() * 9999)}@simulacao.fake`);
   const [simPlan, setSimPlan] = useState('mensal');
