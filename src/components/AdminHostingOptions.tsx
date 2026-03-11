@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, Code2, FolderDown, Github, Link2, LogIn, Calendar, Users, Copy } from "lucide-react";
+import { Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, Code2, FolderDown, Github, Link2, LogIn, Calendar, Users, Copy, ShieldCheck, AlertTriangle, Zap, Database } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 
 interface AdminHostingOptionsProps {
