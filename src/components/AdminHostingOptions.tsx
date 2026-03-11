@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, Code2, FolderDown, Github, Link2, LogIn, Calendar, Users, Copy } from "lucide-react";
+import { Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, Code2, FolderDown, Github, Link2, LogIn, Calendar, Users, Copy, ShieldCheck, AlertTriangle, Zap, Database } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 
 interface AdminHostingOptionsProps {
@@ -151,11 +151,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Globe,
       title: 'Domínio Próprio no Lovable',
-      desc: 'Conecte meusite.com.br diretamente — zero configuração',
+      desc: 'Conecte meusite.com.br diretamente — tudo funciona, zero risco',
       badge: 'RECOMENDADO',
       badgeColor: 'bg-emerald-600',
       borderColor: 'border-l-emerald-500',
-      features: ['SSL automático', 'Zero deploy', 'Sempre atualizado'],
+      features: ['100% compatível', 'SSL automático', 'Integrações intactas'],
       action: () => window.open('https://docs.lovable.dev/features/custom-domain', '_blank'),
       actionLabel: 'Ver como conectar',
       actionIcon: ExternalLink,
@@ -163,11 +163,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Github,
       title: 'Deploy via GitHub',
-      desc: 'Conecte ao GitHub e faça deploy automático na Vercel/Netlify',
-      badge: 'COMPLETO',
+      desc: 'Sistema completo na Vercel/Netlify — banco e auth conectados',
+      badge: 'AVANÇADO',
       badgeColor: 'bg-gray-700',
       borderColor: 'border-l-gray-500',
-      features: ['Sistema completo', 'Deploy automático', 'CI/CD integrado'],
+      features: ['Sistema inteiro', 'Webhooks via Lovable', 'CI/CD automático'],
       action: () => {
         toast({
           title: "Como fazer deploy via GitHub 🐙",
@@ -180,11 +180,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Rocket,
       title: 'Exportar para Vercel',
-      desc: 'Baixe pacote completo com todas as páginas do sistema',
-      badge: 'GRATUITO',
+      desc: 'Redirect inteligente — integrações 100% preservadas',
+      badge: 'FÁCIL',
       badgeColor: 'bg-blue-600',
       borderColor: 'border-l-blue-500',
-      features: ['Landing + Login + Cadastro', 'vercel.json incluso', 'CDN global'],
+      features: ['Integrações intactas', 'vercel.json incluso', 'Sem re-deploy'],
       action: () => exportFullPackage('vercel'),
       actionLabel: 'Exportar pacote Vercel',
       actionIcon: Download,
@@ -192,11 +192,11 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     {
       icon: Server,
       title: 'Qualquer Hospedagem',
-      desc: 'HTML puro para cPanel, Hostinger, ou qualquer servidor',
+      desc: 'HTML puro — funciona em qualquer servidor do mundo',
       badge: 'UNIVERSAL',
       badgeColor: 'bg-purple-600',
       borderColor: 'border-l-purple-500',
-      features: ['5 páginas HTML', 'Zero dependências', 'Funciona em tudo'],
+      features: ['Integrações intactas', 'Zero dependências', 'Funciona em tudo'],
       action: () => exportFullPackage('generic'),
       actionLabel: 'Baixar pacote HTML',
       actionIcon: FolderDown,
@@ -228,6 +228,80 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
           ))}
         </div>
       </div>
+
+      {/* Integration Compatibility Table */}
+      <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-amber-500">
+        <CardContent className="p-5 space-y-3">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-amber-400" />
+            <h3 className="text-white font-bold text-sm">Compatibilidade das Integrações</h3>
+          </div>
+          <p className="text-gray-400 text-xs">Veja o que funciona em cada método de hospedagem:</p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-[#2a2a3a]">
+                  <th className="text-left text-gray-400 py-2 pr-3 font-medium">Recurso</th>
+                  <th className="text-center text-emerald-400 py-2 px-2 font-medium">Domínio Lovable</th>
+                  <th className="text-center text-gray-300 py-2 px-2 font-medium">GitHub + Vercel</th>
+                  <th className="text-center text-blue-400 py-2 px-2 font-medium">Redirect</th>
+                </tr>
+              </thead>
+              <tbody className="text-gray-300">
+                {[
+                  { feature: 'Landing Page', lovable: true, github: true, redirect: true },
+                  { feature: 'Login / Cadastro', lovable: true, github: true, redirect: true },
+                  { feature: 'Dashboard completo', lovable: true, github: true, redirect: true },
+                  { feature: 'Banco de dados', lovable: true, github: true, redirect: true },
+                  { feature: 'Autenticação (Google)', lovable: true, github: true, redirect: true },
+                  { feature: 'Webhooks (Cakto)', lovable: true, github: 'parcial', redirect: true },
+                  { feature: 'Edge Functions', lovable: true, github: 'parcial', redirect: true },
+                  { feature: 'Deploy automático', lovable: true, github: true, redirect: false },
+                  { feature: 'Sem "lovable" na URL', lovable: true, github: true, redirect: true },
+                ].map((row, i) => (
+                  <tr key={i} className="border-b border-[#1a1a2a]">
+                    <td className="py-1.5 pr-3 text-gray-300">{row.feature}</td>
+                    <td className="py-1.5 px-2 text-center">
+                      {row.lovable ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mx-auto" /> : <span className="text-red-400">✕</span>}
+                    </td>
+                    <td className="py-1.5 px-2 text-center">
+                      {row.github === true ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mx-auto" /> : 
+                       row.github === 'parcial' ? <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mx-auto" /> : 
+                       <span className="text-red-400">✕</span>}
+                    </td>
+                    <td className="py-1.5 px-2 text-center">
+                      {row.redirect ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mx-auto" /> : <span className="text-red-400">✕</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Explanations */}
+          <div className="space-y-2 pt-1">
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-lg p-2.5 flex items-start gap-2">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400 mt-0.5 shrink-0" />
+              <p className="text-emerald-300 text-[11px]">
+                <strong>Redirect (Vercel/Netlify/HTML):</strong> Seu domínio apenas redireciona para o sistema. Todas as integrações continuam funcionando normalmente porque o sistema roda no Lovable Cloud.
+              </p>
+            </div>
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 flex items-start gap-2">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-400 mt-0.5 shrink-0" />
+              <p className="text-amber-300 text-[11px]">
+                <strong>GitHub + Vercel (deploy completo):</strong> O frontend roda na Vercel, mas as Edge Functions e webhooks continuam apontando para o Lovable Cloud. Funciona, mas webhooks da Cakto precisam manter a URL original do Lovable.
+              </p>
+            </div>
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5 flex items-start gap-2">
+              <Database className="w-3.5 h-3.5 text-blue-400 mt-0.5 shrink-0" />
+              <p className="text-blue-300 text-[11px]">
+                <strong>Banco de dados:</strong> Em TODOS os métodos, o banco de dados é o mesmo. Seus clientes, agendamentos, financeiro e configurações ficam seguros e acessíveis de qualquer lugar.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Hosting Options */}
       <div className="grid gap-4">
