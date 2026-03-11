@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Globe, Download, ExternalLink, Server, Rocket, Info, CheckCircle, 
-  Code2, Github, Link2, LogIn, Calendar, Users, ChevronRight, 
-  ShieldCheck, Zap, Upload, Package, Settings2
+  Globe, Download, ExternalLink, Rocket, CheckCircle, 
+  Link2, LogIn, Calendar, Users, ChevronRight, 
+  ShieldCheck, Zap, Package, Settings2, Copy, Send, Eye
 } from "lucide-react";
 import { DEFAULT_URL } from "@/hooks/useDomainSettings";
 import JSZip from 'jszip';
@@ -15,22 +16,86 @@ interface AdminHostingOptionsProps {
   primaryDomain: string;
 }
 
+const SYSTEM_PAGES = [
+  { key: 'landing', label: 'Landing Page', path: '/vendas', icon: Globe, color: 'text-cyan-400' },
+  { key: 'login', label: 'Login', path: '/?login=true', icon: LogIn, color: 'text-green-400' },
+  { key: 'cadastro', label: 'Cadastro', path: '/?cadastro=true', icon: Link2, color: 'text-purple-400' },
+  { key: 'portal', label: 'Portal Equipe', path: '/portal', icon: Users, color: 'text-blue-400' },
+  { key: 'agendamento', label: 'Agendamento', path: '/agendar', icon: Calendar, color: 'text-amber-400' },
+];
+
+const PLATFORMS = [
+  {
+    id: 'netlify',
+    name: 'Netlify Drop',
+    desc: 'Mais fácil — Arraste e solte',
+    badge: 'Super Fácil',
+    recommended: true,
+    icon: '🟢',
+    deployUrl: 'https://app.netlify.com/drop',
+    baseDomain: '.netlify.app',
+  },
+  {
+    id: 'tiiny',
+    name: 'Tiiny.host',
+    desc: 'Ultra simples — Upload direto',
+    badge: 'Ultra Fácil',
+    recommended: true,
+    icon: '⚡',
+    deployUrl: 'https://tiiny.host/',
+    baseDomain: '.tiiny.site',
+  },
+  {
+    id: 'vercel',
+    name: 'Vercel',
+    desc: 'Profissional — Domínio grátis + SSL',
+    badge: 'Fácil',
+    recommended: false,
+    icon: '▲',
+    deployUrl: 'https://vercel.com/new',
+    baseDomain: '.vercel.app',
+  },
+  {
+    id: 'cloudflare',
+    name: 'Cloudflare Pages',
+    desc: 'CDN global — Performance máxima',
+    badge: 'Fácil',
+    recommended: false,
+    icon: '🔶',
+    deployUrl: 'https://dash.cloudflare.com/?to=/:account/pages/new/upload',
+    baseDomain: '.pages.dev',
+  },
+  {
+    id: 'github',
+    name: 'GitHub Pages',
+    desc: 'Via repositório GitHub',
+    badge: 'Intermediário',
+    recommended: false,
+    icon: '🐙',
+    deployUrl: 'https://pages.github.com/',
+    baseDomain: '.github.io',
+  },
+];
+
 export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primaryDomain }) => {
   const { toast } = useToast();
   const [deploying, setDeploying] = useState<string | null>(null);
   const [showUrlConfig, setShowUrlConfig] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [showIntegrations, setShowIntegrations] = useState(false);
+  const [selectedPages, setSelectedPages] = useState<string[]>(SYSTEM_PAGES.map(p => p.key));
+  const [deployedLinks, setDeployedLinks] = useState<{ platform: string; pages: { label: string; path: string }[] } | null>(null);
 
   const baseUrl = primaryDomain || DEFAULT_URL;
 
-  const SYSTEM_PAGES = [
-    { key: 'landing', label: 'Landing Page', path: '/vendas', icon: Globe, color: 'text-cyan-400' },
-    { key: 'login', label: 'Login', path: '/?login=true', icon: LogIn, color: 'text-green-400' },
-    { key: 'cadastro', label: 'Cadastro', path: '/?cadastro=true', icon: Link2, color: 'text-purple-400' },
-    { key: 'portal', label: 'Portal Equipe', path: '/portal', icon: Users, color: 'text-blue-400' },
-    { key: 'agendamento', label: 'Agendamento', path: '/agendar', icon: Calendar, color: 'text-amber-400' },
-  ];
+  const togglePage = (key: string) => {
+    setSelectedPages(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+
+  const selectAll = () => setSelectedPages(SYSTEM_PAGES.map(p => p.key));
+  const selectNone = () => setSelectedPages([]);
 
   const generatePageHtml = (title: string, targetUrl: string) => {
     return `<!DOCTYPE html>
@@ -81,28 +146,47 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
   };
 
   const generateZipAndDeploy = async (platform: string) => {
+    if (selectedPages.length === 0) {
+      toast({ title: "Selecione pelo menos uma página", variant: "destructive" });
+      return;
+    }
+
     setDeploying(platform);
     try {
       const zip = new JSZip();
+      const pagesToDeploy = SYSTEM_PAGES.filter(p => selectedPages.includes(p.key));
 
-      // index.html (landing)
-      zip.file('index.html', generatePageHtml('AC Service Pro', baseUrl + '/vendas'));
+      // If landing is selected, use it as index.html
+      const landingPage = pagesToDeploy.find(p => p.key === 'landing');
+      if (landingPage) {
+        zip.file('index.html', generatePageHtml('AC Service Pro', baseUrl + landingPage.path));
+      } else {
+        // Create index that lists all deployed pages
+        const linksHtml = pagesToDeploy.map(p => 
+          `<a href="/${p.key}.html" style="margin:0.5rem;display:inline-block;padding:0.5rem 1.5rem;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:white;text-decoration:none;border-radius:0.5rem;font-size:0.875rem;">${p.label}</a>`
+        ).join('\n');
+        zip.file('index.html', generatePageHtml('AC Service Pro', '').replace(
+          '<a href="">Acessar agora →</a>',
+          linksHtml
+        ));
+      }
 
       // Sub-pages
-      for (const page of SYSTEM_PAGES) {
+      for (const page of pagesToDeploy) {
         if (page.key === 'landing') continue;
         zip.file(`${page.key}.html`, generatePageHtml(page.label, baseUrl + page.path));
       }
 
       // Platform-specific configs
+      const platformConfig = PLATFORMS.find(p => p.id === platform);
       if (platform === 'netlify') {
-        const redirects = SYSTEM_PAGES.map(p => {
+        const redirects = pagesToDeploy.map(p => {
           const from = p.key === 'landing' ? '/' : `/${p.key}`;
           return `${from}    ${baseUrl + p.path}    302`;
         }).join('\n');
         zip.file('_redirects', redirects);
       } else if (platform === 'vercel') {
-        const rewrites = SYSTEM_PAGES.map(p => ({
+        const rewrites = pagesToDeploy.map(p => ({
           source: p.key === 'landing' ? '/' : `/${p.key}`,
           destination: baseUrl + p.path,
         }));
@@ -120,24 +204,23 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
-      // Open platform automatically
-      const platformUrls: Record<string, string> = {
-        netlify: 'https://app.netlify.com/drop',
-        tiiny: 'https://tiiny.host/',
-        vercel: 'https://vercel.com/new',
-        cloudflare: 'https://dash.cloudflare.com/?to=/:account/pages/new/upload',
-        github: 'https://pages.github.com/',
-      };
+      // Generate deploy links
+      const deployedPages = pagesToDeploy.map(p => ({
+        label: p.label,
+        path: p.key === 'landing' ? '/' : `/${p.key}.html`,
+      }));
+      setDeployedLinks({ platform, pages: deployedPages });
 
-      setTimeout(() => {
-        if (platformUrls[platform]) {
-          window.open(platformUrls[platform], '_blank');
-        }
-      }, 800);
+      // Open platform
+      if (platformConfig) {
+        setTimeout(() => {
+          window.open(platformConfig.deployUrl, '_blank');
+        }, 800);
+      }
 
       toast({
         title: "ZIP baixado! 🚀",
-        description: `Arraste o ZIP na plataforma que abriu e seu site estará online em segundos.`,
+        description: `${pagesToDeploy.length} página(s) selecionada(s). Arraste o ZIP na plataforma.`,
       });
     } catch {
       toast({ title: "Erro ao gerar ZIP", variant: "destructive" });
@@ -146,57 +229,21 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
     }
   };
 
-  const PLATFORMS = [
-    {
-      id: 'netlify',
-      name: 'Netlify Drop',
-      desc: 'Mais fácil — Arraste e solte',
-      badge: 'Super Fácil',
-      recommended: true,
-      icon: '🟢',
-      iconColor: 'text-green-400',
-    },
-    {
-      id: 'tiiny',
-      name: 'Tiiny.host',
-      desc: 'Ultra simples — Upload direto',
-      badge: 'Ultra Fácil',
-      recommended: true,
-      icon: '⚡',
-      iconColor: 'text-pink-400',
-    },
-    {
-      id: 'vercel',
-      name: 'Vercel',
-      desc: 'Profissional — Domínio grátis + SSL',
-      badge: 'Fácil',
-      recommended: false,
-      icon: '▲',
-      iconColor: 'text-white',
-    },
-    {
-      id: 'cloudflare',
-      name: 'Cloudflare Pages',
-      desc: 'CDN global — Performance máxima',
-      badge: 'Fácil',
-      recommended: false,
-      icon: '🔶',
-      iconColor: 'text-orange-400',
-    },
-    {
-      id: 'github',
-      name: 'GitHub Pages',
-      desc: 'Via repositório GitHub',
-      badge: 'Intermediário',
-      recommended: false,
-      icon: '🐙',
-      iconColor: 'text-purple-400',
-    },
-  ];
+  const copyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    toast({ title: "Link copiado! 📋" });
+  };
+
+  const shareLink = async (link: string, label: string) => {
+    if (navigator.share) {
+      await navigator.share({ title: label, url: link });
+    } else {
+      copyLink(link);
+    }
+  };
 
   return (
     <div className="space-y-4">
-      {/* Main Section */}
       <Card className="bg-[#1a1a2e] border-[#2a2a3a] border-l-4 border-l-blue-500">
         <CardContent className="p-5 space-y-5">
           {/* Header */}
@@ -210,12 +257,12 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
                 <Badge className="bg-emerald-600 text-white text-[10px] px-2 py-0">1 CLIQUE</Badge>
               </div>
               <p className="text-gray-400 text-xs">
-                Publique sua landing page <strong className="text-gray-300">sem token, sem código, sem complicação</strong> — escolha a plataforma e clique
+                Publique sua landing page <strong className="text-gray-300">sem token, sem código, sem complicação</strong> — escolha as páginas e a plataforma
               </p>
             </div>
           </div>
 
-          {/* How it works (3 steps) */}
+          {/* How it works */}
           <div>
             <p className="text-gray-400 text-xs font-semibold mb-2 flex items-center gap-1.5">
               <Settings2 className="w-3.5 h-3.5" />
@@ -223,9 +270,9 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
             </p>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { step: 1, icon: '🚀', title: 'Clique em Deploy', desc: 'Escolha a plataforma abaixo' },
-                { step: 2, icon: '📦', title: 'ZIP baixa sozinho', desc: '+ a plataforma abre automaticamente' },
-                { step: 3, icon: '🎉', title: 'Arraste e solte', desc: 'Seu site fica online em segundos' },
+                { step: 1, icon: '✅', title: 'Selecione páginas', desc: 'Escolha quais páginas publicar' },
+                { step: 2, icon: '🚀', title: 'Clique em Deploy', desc: 'ZIP baixa + plataforma abre' },
+                { step: 3, icon: '🔗', title: 'Copie os links', desc: 'Links gerados para compartilhar' },
               ].map((s) => (
                 <div key={s.step} className="bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3">
                   <div className="flex items-center gap-2 mb-1">
@@ -239,6 +286,53 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Page Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-gray-400 text-xs font-semibold flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                Selecione as páginas para deploy
+              </p>
+              <div className="flex gap-2">
+                <button onClick={selectAll} className="text-[10px] text-cyan-400 hover:text-cyan-300 transition-colors">
+                  Todas
+                </button>
+                <span className="text-gray-600 text-[10px]">|</span>
+                <button onClick={selectNone} className="text-[10px] text-gray-400 hover:text-gray-300 transition-colors">
+                  Nenhuma
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {SYSTEM_PAGES.map((page) => {
+                const isSelected = selectedPages.includes(page.key);
+                return (
+                  <button
+                    key={page.key}
+                    onClick={() => togglePage(page.key)}
+                    className={`flex items-center gap-2 p-2.5 rounded-lg border transition-all text-left ${
+                      isSelected 
+                        ? 'bg-cyan-500/10 border-cyan-500/40 ring-1 ring-cyan-500/20' 
+                        : 'bg-[#12121a] border-[#2a2a3a] hover:border-[#3a3a4a]'
+                    }`}
+                  >
+                    <Checkbox 
+                      checked={isSelected} 
+                      className="pointer-events-none data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                    />
+                    <page.icon className={`w-3.5 h-3.5 ${isSelected ? page.color : 'text-gray-500'}`} />
+                    <span className={`text-xs font-medium ${isSelected ? 'text-white' : 'text-gray-500'}`}>
+                      {page.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-gray-500 text-[10px] mt-1.5">
+              {selectedPages.length} de {SYSTEM_PAGES.length} páginas selecionadas
+            </p>
           </div>
 
           {/* URL Config (collapsible) */}
@@ -267,7 +361,7 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
           <div>
             <p className="text-gray-400 text-xs font-semibold mb-3 flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-amber-400" />
-              Escolha onde publicar (1 clique!)
+              Escolha onde publicar ({selectedPages.length} página{selectedPages.length !== 1 ? 's' : ''})
             </p>
             <div className="space-y-2">
               {PLATFORMS.map((platform) => (
@@ -290,37 +384,72 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
                     </div>
                     <p className="text-gray-500 text-[11px]">{platform.desc}</p>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      onClick={() => {
-                        const urls: Record<string, string> = {
-                          netlify: 'https://app.netlify.com/drop',
-                          tiiny: 'https://tiiny.host/',
-                          vercel: 'https://vercel.com/new',
-                          cloudflare: 'https://dash.cloudflare.com/?to=/:account/pages/new/upload',
-                          github: 'https://pages.github.com/',
-                        };
-                        window.open(urls[platform.id], '_blank');
-                      }}
-                      className="p-1.5 rounded-md text-gray-500 hover:text-gray-300 hover:bg-[#2a2a3a] transition-colors"
-                      title="Abrir plataforma"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    <Button
-                      onClick={() => generateZipAndDeploy(platform.id)}
-                      disabled={deploying !== null}
-                      className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-4 gap-1.5"
-                      size="sm"
-                    >
-                      <Rocket className="w-3.5 h-3.5" />
-                      {deploying === platform.id ? 'Gerando...' : 'Deploy'}
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={() => generateZipAndDeploy(platform.id)}
+                    disabled={deploying !== null || selectedPages.length === 0}
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs h-8 px-4 gap-1.5"
+                    size="sm"
+                  >
+                    <Rocket className="w-3.5 h-3.5" />
+                    {deploying === platform.id ? 'Gerando...' : 'Deploy'}
+                  </Button>
                 </div>
               ))}
             </div>
           </div>
+
+          {/* Deploy Links (shown after deploy) */}
+          {deployedLinks && (
+            <div className="bg-emerald-500/5 border border-emerald-500/30 rounded-lg p-4 space-y-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <p className="text-emerald-300 text-sm font-semibold">
+                  Deploy gerado! Links das páginas:
+                </p>
+              </div>
+              <p className="text-gray-400 text-[11px]">
+                Após arrastar o ZIP na plataforma, seus links ficarão assim (substitua <code className="text-cyan-300">seu-projeto</code> pelo nome do projeto):
+              </p>
+              <div className="space-y-1.5">
+                {deployedLinks.pages.map((page) => {
+                  const platformInfo = PLATFORMS.find(p => p.id === deployedLinks.platform);
+                  const exampleLink = `https://seu-projeto${platformInfo?.baseDomain || ''}${page.path}`;
+                  return (
+                    <div key={page.label} className="flex items-center gap-2 bg-[#0a0a14] rounded-md px-3 py-2">
+                      <span className="text-gray-300 text-xs font-medium min-w-[100px]">{page.label}</span>
+                      <code className="flex-1 text-cyan-300 text-[11px] font-mono truncate">{exampleLink}</code>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => copyLink(exampleLink)}
+                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
+                          title="Copiar link"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => shareLink(exampleLink, page.label)}
+                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
+                          title="Enviar link"
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => window.open(exampleLink, '_blank')}
+                          className="p-1 rounded text-gray-500 hover:text-cyan-400 hover:bg-[#1a1a2e] transition-colors"
+                          title="Abrir"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-gray-500 text-[10px]">
+                💡 Dica: Após o deploy, volte aqui e atualize os links com a URL real do seu projeto para copiar e enviar diretamente.
+              </p>
+            </div>
+          )}
 
           {/* Advanced Export (collapsible) */}
           <button
@@ -336,7 +465,7 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
             <div className="bg-[#12121a] border border-[#2a2a3a] rounded-lg p-3 space-y-3">
               <p className="text-gray-400 text-[11px]">Baixe os arquivos HTML individuais para hospedagem manual:</p>
               <div className="flex flex-wrap gap-2">
-                {SYSTEM_PAGES.map((page) => (
+                {SYSTEM_PAGES.filter(p => selectedPages.includes(p.key)).map((page) => (
                   <span key={page.key} className="flex items-center gap-1 text-[11px] text-gray-300 bg-[#0a0a14] px-2 py-1 rounded-md border border-[#2a2a3a]">
                     <page.icon className={`w-3 h-3 ${page.color}`} />
                     {page.label}
@@ -345,7 +474,7 @@ export const AdminHostingOptions: React.FC<AdminHostingOptionsProps> = ({ primar
               </div>
               <Button
                 onClick={() => generateZipAndDeploy('generic')}
-                disabled={deploying !== null}
+                disabled={deploying !== null || selectedPages.length === 0}
                 variant="outline"
                 className="text-xs h-8 border-[#3a3a4a] text-gray-300 hover:bg-[#2a2a3a]"
                 size="sm"
