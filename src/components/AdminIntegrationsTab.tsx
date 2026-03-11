@@ -346,6 +346,7 @@ export const AdminIntegrationsTab: React.FC = () => {
     }
   };
 
+  const copyText = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopied(label);
     toast({ title: "📋 Copiado!", description: `${label} copiado.` });
