@@ -572,6 +572,48 @@ export type Database = {
         }
         Relationships: []
       }
+      product_plan_mapping: {
+        Row: {
+          created_at: string
+          duration_months: number
+          id: string
+          is_active: boolean
+          is_lifetime: boolean
+          notes: string | null
+          plan_name: string
+          platform: string
+          product_id: string | null
+          product_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          duration_months?: number
+          id?: string
+          is_active?: boolean
+          is_lifetime?: boolean
+          notes?: string | null
+          plan_name?: string
+          platform?: string
+          product_id?: string | null
+          product_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          duration_months?: number
+          id?: string
+          is_active?: boolean
+          is_lifetime?: boolean
+          notes?: string | null
+          plan_name?: string
+          platform?: string
+          product_id?: string | null
+          product_name?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null
@@ -1318,6 +1360,51 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      webhook_logs: {
+        Row: {
+          amount: number | null
+          created_at: string
+          email: string | null
+          error_message: string | null
+          event_type: string | null
+          id: string
+          payload: Json | null
+          plan_detected: string | null
+          platform: string
+          product_id: string | null
+          product_name: string | null
+          success: boolean
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          email?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          plan_detected?: string | null
+          platform: string
+          product_id?: string | null
+          product_name?: string | null
+          success?: boolean
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          email?: string | null
+          error_message?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json | null
+          plan_detected?: string | null
+          platform?: string
+          product_id?: string | null
+          product_name?: string | null
+          success?: boolean
         }
         Relationships: []
       }
