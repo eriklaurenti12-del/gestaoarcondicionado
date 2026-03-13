@@ -1142,30 +1142,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-stagger">
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Wrench className="w-5 h-5 text-primary" /></div>Serviços Cadastrados</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{servicesCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold animate-count-up">{servicesCount}</div>
             <p className="text-sm text-muted-foreground">{lowStockProducts.length} peça(s) com estoque baixo</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />Total de Clientes</CardTitle></CardHeader>
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Users className="w-5 h-5 text-primary" /></div>Total de Clientes</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{clientsCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold animate-count-up">{clientsCount}</div>
             <p className="text-sm text-muted-foreground">Clientes cadastrados</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento do Mês</CardTitle></CardHeader>
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-green-500/10"><TrendingUp className="w-5 h-5 text-green-600" /></div>Faturamento do Mês</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">R$ {salesReport.totalSales.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços este mês</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Lucro do Mês</span>
-                    <span className="font-bold text-blue-600">R$ {salesReport.totalProfit.toFixed(2)}</span>
+                    <span className="font-bold gradient-text">R$ {salesReport.totalProfit.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Margem de Lucro</span>
@@ -1177,7 +1177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Variação</span>
-                    <span className={`font-bold ${(salesReport.monthVariation || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-bold ${(salesReport.monthVariation || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                       {(salesReport.monthVariation || 0) >= 0 ? '+' : ''}{(salesReport.monthVariation || 0).toFixed(1)}%
                     </span>
                 </div>
@@ -1196,15 +1196,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </Card>
         
         {/* Today's Fixed Expenses */}
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200 dark:border-red-800">
+        <Card className="stat-card bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200/50 dark:border-red-800/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
-              <Fuel className="w-5 h-5" />
+              <div className="icon-container p-1.5 rounded-lg bg-red-500/10"><Fuel className="w-5 h-5" /></div>
               Gastos do Dia
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-red-600">R$ {todayExpensesTotal.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-red-600 animate-count-up">R$ {todayExpensesTotal.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Hoje ({todayExpenses.length} lançamento{todayExpenses.length !== 1 ? 's' : ''})</p>
             {Object.keys(expensesByCategory).length > 0 && (
               <div className="mt-3 space-y-1">
