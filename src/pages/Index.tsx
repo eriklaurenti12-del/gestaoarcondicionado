@@ -379,11 +379,19 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={async () => {
                   toast.info("🔍 Verificando atualizações...");
                   try {
-                    if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.unregister(); }
-                    await Promise.all((await caches.keys()).map(n => caches.delete(n)));
-                    toast.success("✅ Cache limpo!"); setTimeout(() => window.location.reload(), 800);
+                    if ('serviceWorker' in navigator) {
+                      const regs = await navigator.serviceWorker.getRegistrations();
+                      for (const r of regs) {
+                        if (r.active) r.active.postMessage({ type: 'FORCE_UPDATE' });
+                        await r.unregister();
+                      }
+                    }
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(n => caches.delete(n)));
+                    toast.success("✅ Atualização aplicada!");
+                    setTimeout(() => { window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now(); }, 1000);
                   } catch { toast.info("🔄 Recarregando..."); setTimeout(() => window.location.reload(), 800); }
-                }} title="Atualizar">
+                }} title="Atualizar Sistema">
                   <RefreshCw className="h-4 w-4" />
                 </Button>
 
