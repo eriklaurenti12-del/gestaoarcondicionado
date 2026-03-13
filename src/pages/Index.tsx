@@ -407,12 +407,11 @@ export default function Index() {
 
                 <div className="h-5 w-px bg-border flex-shrink-0" />
 
-                  {/* User Profile */}
-                  <UserProfileDropdown
-                    onSignOut={handleSignOut}
-                    onNavigateCompany={() => setActiveTab('company')}
-                  />
-                </div>
+                {/* User Profile */}
+                <UserProfileDropdown
+                  onSignOut={handleSignOut}
+                  onNavigateCompany={() => setActiveTab('company')}
+                />
               </header>
 
               {/* Main Content */}
