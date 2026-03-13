@@ -1,6 +1,5 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, HelpCircle, Download } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +63,8 @@ const defaultSections = [
 ];
 
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onNavigateMembers, onSignOut }: AppSidebarProps) {
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
+  const navigate = useNavigate();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { systemName, systemSubtitle, systemLogoUrl } = useSystemBranding();
@@ -214,6 +214,16 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
         {/* Footer actions */}
         <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => navigate('/beta')}
+              tooltip="Sistema Simplificado"
+              className="h-9 rounded-lg text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Zap className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-medium">Simplificado</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
