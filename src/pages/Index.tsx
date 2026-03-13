@@ -26,10 +26,12 @@ import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
 import InstallButton from "@/components/InstallButton";
+import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Zap } from "lucide-react";
+import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Zap, Moon, Sun } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useTheme } from "@/contexts/ThemeContext";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
@@ -69,6 +71,7 @@ const fetchNotificationCount = async () => {
 
 export default function Index() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -423,9 +426,22 @@ export default function Index() {
                     </PopoverContent>
                   </Popover>
 
-                  <div className="hidden sm:block">
-                    <InstallButton />
-                  </div>
+                  {/* Theme toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden sm:inline-flex h-9 w-9 hover:bg-muted"
+                    onClick={toggleTheme}
+                    title="Alternar tema"
+                  >
+                    {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                  </Button>
+
+                  {/* User Profile */}
+                  <UserProfileDropdown
+                    onSignOut={handleSignOut}
+                    onNavigateCompany={() => setActiveTab('company')}
+                  />
                 </div>
               </header>
 

@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, HelpCircle, Download } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
@@ -17,6 +17,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 interface AppSidebarProps {
   activeTab: string;
@@ -27,7 +28,6 @@ interface AppSidebarProps {
   onSignOut: () => void;
 }
 
-// Menu items with icons mapping
 const iconMap: Record<string, any> = {
   dashboard: BarChart3, cadastros: Users, appointments: CalendarDays,
   "online-bookings": Globe, documents: FileText, services: Snowflake,
@@ -37,25 +37,25 @@ const iconMap: Record<string, any> = {
 };
 
 const defaultSections = [
-  { label: "Principal", icon: "Snowflake", items: [
+  { label: "MENU", icon: "Snowflake", items: [
     { id: "dashboard", title: "Painel" },
     { id: "cadastros", title: "Cadastros" },
     { id: "appointments", title: "Agenda" },
     { id: "online-bookings", title: "Agendamento Online" },
   ]},
-  { label: "Gestão", icon: "ClipboardList", items: [
+  { label: "GESTÃO", icon: "ClipboardList", items: [
     { id: "documents", title: "Orçamentos & O.S." },
     { id: "services", title: "Manutenções" },
     { id: "btu-calculator", title: "Medição BTUs" },
   ]},
-  { label: "Vendas", icon: "ShoppingCart", items: [
+  { label: "VENDAS", icon: "ShoppingCart", items: [
     { id: "pdv", title: "PDV / Vendas" },
   ]},
-  { label: "Financeiro", icon: "Wallet", items: [
+  { label: "FINANCEIRO", icon: "Wallet", items: [
     { id: "financeiro", title: "Financeiro" },
     { id: "impostos", title: "Impostos" },
   ]},
-  { label: "Configurações", icon: "Settings", items: [
+  { label: "GERAL", icon: "Settings", items: [
     { id: "company", title: "Minha Empresa" },
     { id: "notifications-settings", title: "Notificações" },
     { id: "backup", title: "Backup" },
@@ -73,7 +73,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
-  // Fetch company data for branding
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
     queryFn: async () => {
@@ -84,7 +83,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch custom sidebar config from admin_settings (super admin can customize)
   const { data: sidebarConfig } = useQuery({
     queryKey: ['sidebar-config'],
     queryFn: async () => {
@@ -99,20 +97,14 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     staleTime: 30 * 1000,
   });
 
-  // Filter sections based on team role
   const filterSectionsByRole = (sections: any[]) => {
-    // No role = regular owner user, super_admin = owner, sistema = full access team member
     if (!userRole || userRole === 'super_admin' || userRole === 'sistema') return sections;
-    
-    // Role-specific tab access
     const roleTabAccess: Record<string, string[]> = {
       painel: ['dashboard'],
       suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents'],
     };
-    
     const allowedTabs = roleTabAccess[userRole];
     if (!allowedTabs) return sections;
-    
     return sections
       .map((section: any) => ({
         ...section,
@@ -123,26 +115,27 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   const allSections = sidebarConfig?.sections || defaultSections;
   const sections = filterSectionsByRole(allSections);
-  const companyName = companyData?.company_name || 'Minha Empresa';
+  const companyName = companyData?.company_name || 'AC Service Pro';
 
   const renderMenuItems = (items: { id: string; title: string }[]) => (
     <SidebarMenu>
       {items.map((item) => {
         const Icon = iconMap[item.id] || Wrench;
+        const isActive = activeTab === item.id;
         return (
           <SidebarMenuItem key={item.id}>
             <SidebarMenuButton
               onClick={() => onTabChange(item.id)}
-              isActive={activeTab === item.id}
+              isActive={isActive}
               tooltip={item.title}
-              className={`transition-all duration-200 ease-out ${
-                activeTab === item.id 
-                  ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" 
-                  : "hover:bg-muted hover:translate-x-1"
+              className={`h-10 rounded-lg transition-all duration-200 ${
+                isActive
+                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
-              <Icon className={`w-4 h-4 transition-transform duration-200 ${activeTab === item.id ? 'scale-110' : ''}`} />
-              <span className="transition-all duration-300">{item.title}</span>
+              <Icon className="w-[18px] h-[18px]" />
+              <span className="text-[13px]">{item.title}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         );
@@ -152,13 +145,14 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-border">
-      <SidebarHeader className="p-4 border-b border-border transition-all duration-300">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 transition-transform duration-300 hover:scale-105">
-            <Wind className="w-5 h-5 text-primary" />
+      {/* Logo Header */}
+      <SidebarHeader className="p-4 pb-3 border-b border-border">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-xl bg-primary shadow-sm">
+            <Wind className="w-5 h-5 text-primary-foreground" />
           </div>
           <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
-            <span className="font-bold text-sm bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent whitespace-nowrap truncate max-w-[150px]">
+            <span className="font-bold text-sm text-foreground whitespace-nowrap truncate max-w-[150px]">
               {companyName}
             </span>
             <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão de Ar Condicionado</span>
@@ -166,28 +160,22 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-2">
-        {sections.map((section: any, idx: number) => {
-          const SectionIcon = sectionIconMap[section.icon] || Settings;
-          return (
-            <SidebarGroup key={idx}>
-              <SidebarGroupLabel className={`transition-all duration-300 flex items-center gap-2 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-                <SectionIcon className="w-3 h-3" />
-                {section.label}
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                {renderMenuItems(section.items)}
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
+      <SidebarContent className="px-2 py-1.5">
+        {sections.map((section: any, idx: number) => (
+          <SidebarGroup key={idx} className="py-1">
+            <SidebarGroupLabel className={`text-[10px] font-semibold tracking-wider text-muted-foreground/70 uppercase px-3 mb-0.5 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+              {section.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              {renderMenuItems(section.items)}
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
-        {/* Super Admin */}
         {isSuperAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel className={`transition-all duration-300 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
-              <Shield className="w-3 h-3 mr-1" />
-              Super Admin
+          <SidebarGroup className="py-1">
+            <SidebarGroupLabel className={`text-[10px] font-semibold tracking-wider text-muted-foreground/70 uppercase px-3 mb-0.5 ${isCollapsed ? "opacity-0 h-0 overflow-hidden" : "opacity-100"}`}>
+              ADMIN
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
@@ -195,10 +183,10 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
                   <SidebarMenuButton
                     onClick={onNavigateMembers}
                     tooltip="Gerenciar Usuários"
-                    className="hover:bg-muted hover:translate-x-1 transition-all duration-200"
+                    className="h-10 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200"
                   >
-                    <UserCog className="w-4 h-4" />
-                    <span>Gerenciar Usuários</span>
+                    <UserCog className="w-[18px] h-[18px]" />
+                    <span className="text-[13px]">Gerenciar Usuários</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
@@ -207,40 +195,57 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
         )}
       </SidebarContent>
 
-      <SidebarFooter className="p-2 border-t border-border">
+      <SidebarFooter className="p-3 border-t border-border space-y-2">
+        {/* App download card */}
+        <div className={`rounded-xl bg-muted/50 border border-border p-3 ${isCollapsed ? 'hidden' : ''}`}>
+          <div className="flex items-center gap-2 mb-1.5">
+            <Download className="w-4 h-4 text-muted-foreground" />
+            <span className="text-xs font-semibold">Baixe nosso App</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground mb-2">Gerencie de qualquer lugar</p>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-full h-8 text-xs"
+            onClick={() => {
+              const event = new Event('beforeinstallprompt');
+              window.dispatchEvent(event);
+            }}
+          >
+            <Download className="w-3 h-3 mr-1" /> Instalar
+          </Button>
+        </div>
+
+        {/* Footer actions */}
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => { toggleBeta(); betaNavigate('/beta'); }}
-              tooltip="Acessar Sistema Simplificado"
-              className="hover:bg-accent/10 text-accent transition-all duration-200 hover:translate-x-1"
-            >
-              <Zap className="w-4 h-4 transition-transform duration-300 hover:scale-110" />
-              <span>Simplificado</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={toggleTheme}
               tooltip={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
-              className="hover:bg-muted transition-all duration-200 hover:translate-x-1"
+              className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
             >
-              {theme === 'light' ? (
-                <Moon className="w-4 h-4 transition-transform duration-300 hover:rotate-12" />
-              ) : (
-                <Sun className="w-4 h-4 transition-transform duration-300 hover:rotate-45" />
-              )}
-              <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+              {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+              <span className="text-xs">{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
+              tooltip="Falar com suporte"
+              className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-xs">Falar com suporte</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={onSignOut}
               tooltip="Sair"
-              className="hover:bg-destructive/10 text-destructive hover:text-destructive transition-all duration-200 hover:translate-x-1"
+              className="h-9 rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10"
             >
-              <LogOut className="w-4 h-4 transition-transform duration-200 hover:scale-110" />
-              <span>Sair</span>
+              <LogOut className="w-4 h-4" />
+              <span className="text-xs">Sair</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
