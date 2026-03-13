@@ -395,7 +395,7 @@ export default function Index() {
                         Dicas AC
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+e+preciso+de+suporte", '_blank')} className="gap-2 cursor-pointer">
-                        <MessageCircle className="w-4 h-4 text-green-600" />
+                        <MessageCircle className="w-4 h-4 text-primary" />
                         Suporte WhatsApp
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => navigate('/beta')} className="gap-2 cursor-pointer">
