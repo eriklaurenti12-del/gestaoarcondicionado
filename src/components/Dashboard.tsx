@@ -994,47 +994,55 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       )}
 
       {/* Appointment Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-stagger">
+        <Card className="stat-card bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50 dark:border-blue-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays className="w-4 h-4 text-blue-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-blue-500/10">
+                <CalendarDays className="w-4 h-4 text-blue-600" />
+              </div>
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-blue-600">{appointmentStats.today}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600 animate-count-up">{appointmentStats.today}</div>
             <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+        <Card className="stat-card bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 dark:border-purple-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarCheck className="w-4 h-4 text-purple-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-purple-500/10">
+                <CalendarCheck className="w-4 h-4 text-purple-600" />
+              </div>
               <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-purple-600">{appointmentStats.week}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600 animate-count-up">{appointmentStats.week}</div>
             <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
+        <Card className="stat-card bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50 dark:border-green-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-green-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-green-500/10">
+                <Clock className="w-4 h-4 text-green-600" />
+              </div>
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Confirmados</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-green-600">{appointmentStats.confirmedToday}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">{appointmentStats.confirmedToday}</div>
             <p className="text-xs text-muted-foreground mt-1">para hoje</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200 dark:border-amber-800">
+        <Card className="stat-card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200/50 dark:border-amber-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays className="w-4 h-4 text-amber-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-amber-500/10">
+                <CalendarDays className="w-4 h-4 text-amber-600" />
+              </div>
               <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-amber-600">{appointmentStats.scheduledToday}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-600 animate-count-up">{appointmentStats.scheduledToday}</div>
             <p className="text-xs text-muted-foreground mt-1">aguardando</p>
           </CardContent>
         </Card>
