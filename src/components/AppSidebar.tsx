@@ -4,6 +4,7 @@ import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemBranding } from "@/hooks/useSystemBranding";
 import {
   Sidebar,
   SidebarContent,
