@@ -9,7 +9,16 @@ createRoot(document.getElementById("root")!).render(<App />);
 registerSW({
   immediate: true,
   onNeedRefresh() {
-    // Auto-reload when new version is available
     window.location.reload();
   },
 });
+
+// Periodically check for SW updates (important when installed as PWA)
+if ('serviceWorker' in navigator) {
+  setInterval(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (registration) {
+      await registration.update();
+    }
+  }, 60 * 1000);
+}

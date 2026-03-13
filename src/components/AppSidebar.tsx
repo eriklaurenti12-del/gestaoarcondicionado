@@ -1,4 +1,6 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones, Share, CheckCircle } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +29,72 @@ interface AppSidebarProps {
   onNavigateMembers: () => void;
   onSignOut: () => void;
 }
+
+// Sidebar PWA Install Card with real install prompt
+const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent));
+
+  useEffect(() => {
+    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true;
+    setIsInstalled(standalone);
+
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => setIsInstalled(true));
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstall = useCallback(async () => {
+    if (isIOS) {
+      toast.info('Para instalar: toque em 📤 (compartilhar) → "Adicionar à Tela de Início"', { duration: 6000 });
+      return;
+    }
+    if (deferredPrompt) {
+      try {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          toast.success('App instalado com sucesso!');
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+        }
+      } catch {
+        toast.error('Erro ao instalar. Tente pelo menu do navegador.');
+      }
+    } else {
+      toast.info('Abra no Chrome → Menu (⋮) → "Instalar aplicativo"', { duration: 5000 });
+    }
+  }, [deferredPrompt, isIOS]);
+
+  if (isInstalled || isCollapsed) return null;
+
+  return (
+    <div className="rounded-xl bg-muted/40 border border-border p-3">
+      <div className="flex items-center gap-2 mb-1">
+        <Download className="w-4 h-4 text-primary flex-shrink-0" />
+        <span className="text-xs font-semibold text-foreground">Baixe nosso App</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground mb-2">Gerencie de qualquer lugar</p>
+      <Button
+        size="sm"
+        variant="outline"
+        className="w-full h-8 text-xs rounded-lg"
+        onClick={handleInstall}
+      >
+        {isIOS ? <Share className="w-3 h-3 mr-1" /> : <Download className="w-3 h-3 mr-1" />}
+        Instalar App
+      </Button>
+    </div>
+  );
+};
 
 const iconMap: Record<string, any> = {
   dashboard: BarChart3, cadastros: Users, appointments: CalendarDays,
@@ -212,24 +280,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
       <SidebarFooter className="p-3 border-t border-border space-y-2">
         {/* App download card */}
-        <div className={`rounded-xl bg-muted/40 border border-border p-3 ${isCollapsed ? 'hidden' : ''}`}>
-          <div className="flex items-center gap-2 mb-1">
-            <Download className="w-4 h-4 text-primary flex-shrink-0" />
-            <span className="text-xs font-semibold text-foreground">Baixe nosso App</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground mb-2">Gerencie de qualquer lugar</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full h-8 text-xs rounded-lg"
-            onClick={() => {
-              const event = new Event('beforeinstallprompt');
-              window.dispatchEvent(event);
-            }}
-          >
-            <Download className="w-3 h-3 mr-1" /> Instalar
-          </Button>
-        </div>
+        <SidebarInstallCard isCollapsed={isCollapsed} />
 
         {/* Footer actions */}
         <SidebarMenu>
