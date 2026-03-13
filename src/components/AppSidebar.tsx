@@ -216,6 +216,16 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
+              onClick={() => navigate('/beta')}
+              tooltip="Sistema Simplificado"
+              className="h-9 rounded-lg text-primary hover:text-primary hover:bg-primary/10 transition-colors"
+            >
+              <Zap className="w-4 h-4 flex-shrink-0" />
+              <span className="text-xs font-medium">Simplificado</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
               onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
               tooltip="Falar com suporte"
               className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
