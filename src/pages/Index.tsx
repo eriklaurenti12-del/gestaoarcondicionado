@@ -432,7 +432,13 @@ export default function Index() {
                   </Button>
                   
                   {/* Notification Bell - always visible */}
-                  <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                  <Popover open={notificationsOpen} onOpenChange={(open) => {
+                    setNotificationsOpen(open);
+                    // Request push notification permission on first bell click
+                    if (open && 'Notification' in window && Notification.permission === 'default') {
+                      Notification.requestPermission();
+                    }
+                  }}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="ghost"
