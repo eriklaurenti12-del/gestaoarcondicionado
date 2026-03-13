@@ -33,22 +33,37 @@ interface AppSidebarProps {
 // Sidebar PWA Install Card with real install prompt
 const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    // Check standalone mode OR localStorage flag
+    return window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone === true ||
+      localStorage.getItem('pwa-installed') === 'true';
+  });
   const [isIOS] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent));
 
   useEffect(() => {
+    // Re-check on mount
     const standalone = window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as any).standalone === true;
-    setIsInstalled(standalone);
+    if (standalone) {
+      setIsInstalled(true);
+      localStorage.setItem('pwa-installed', 'true');
+    }
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
+    const installedHandler = () => {
+      setIsInstalled(true);
+      localStorage.setItem('pwa-installed', 'true');
+    };
     window.addEventListener('beforeinstallprompt', handler);
-    window.addEventListener('appinstalled', () => setIsInstalled(true));
+    window.addEventListener('appinstalled', installedHandler);
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
     };
   }, []);
 
@@ -62,9 +77,10 @@ const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
-          toast.success('App instalado com sucesso!');
+          toast.success('🎉 App instalado com sucesso! Acesse pela tela inicial.');
           setIsInstalled(true);
           setDeferredPrompt(null);
+          localStorage.setItem('pwa-installed', 'true');
         }
       } catch {
         toast.error('Erro ao instalar. Tente pelo menu do navegador.');

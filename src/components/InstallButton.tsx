@@ -18,7 +18,8 @@ const InstallButton: React.FC = () => {
 
     // Verificar se já está instalado como PWA
     const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       (window.navigator as any).standalone === true;
+                       (window.navigator as any).standalone === true ||
+                       localStorage.getItem('pwa-installed') === 'true';
     setIsStandalone(standalone);
 
     if (standalone) {
@@ -85,10 +86,12 @@ const InstallButton: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        toast.success('App instalado com sucesso! Acesse pela sua tela inicial.');
+        toast.success('🎉 App instalado com sucesso! Acesse pela sua tela inicial.');
         setDeferredPrompt(null);
         setShowInstall(false);
         setShowBanner(false);
+        setIsStandalone(true);
+        localStorage.setItem('pwa-installed', 'true');
         localStorage.setItem('pwa-banner-dismissed', 'true');
       }
     } catch (error) {
