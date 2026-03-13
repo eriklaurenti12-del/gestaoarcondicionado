@@ -1,6 +1,5 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, Moon, Sun, LogOut, Wallet, Database, FolderOpen, Settings, Wind, Shield, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, HelpCircle, Download } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
