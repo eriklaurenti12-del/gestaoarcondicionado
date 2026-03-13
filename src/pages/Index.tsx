@@ -324,44 +324,85 @@ export default function Index() {
 
             <div className="flex-1 flex flex-col min-w-0">
               {/* Header */}
-              <header className="h-14 sm:h-16 border-b border-border flex items-center justify-between px-2 sm:px-4 bg-card/80 backdrop-blur-sm sticky top-0 z-20">
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                  <SidebarTrigger className="h-10 w-10 sm:h-11 sm:w-11 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] touch-target relative z-50 flex-shrink-0" />
-                  <h1 className="text-sm sm:text-lg font-semibold truncate">{getPageTitle()}</h1>
+              <header className="h-14 border-b border-border flex items-center justify-between px-3 sm:px-5 bg-card/90 backdrop-blur-md sticky top-0 z-20">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <SidebarTrigger className="h-9 w-9 min-h-[36px] min-w-[36px] flex-shrink-0 rounded-lg hover:bg-muted transition-colors" />
+                  <div className="hidden sm:block h-5 w-px bg-border" />
+                  <h1 className="text-sm sm:text-base font-semibold truncate text-foreground">{getPageTitle()}</h1>
                 </div>
-                <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
-                  {/* Mobile: condensed menu with secondary actions */}
+
+                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                  {/* Action buttons - consistent 36px on all screens */}
+                  <div className="hidden sm:flex items-center gap-1 mr-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      onClick={() => navigate('/beta')}
+                      title="Sistema Simplificado"
+                    >
+                      <Zap className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      onClick={handleRestartOnboarding}
+                      title="Ver tutorial"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                      onClick={async () => {
+                        toast.info("🔍 Verificando atualizações...");
+                        try {
+                          if ('serviceWorker' in navigator) {
+                            const registrations = await navigator.serviceWorker.getRegistrations();
+                            for (const reg of registrations) { await reg.unregister(); }
+                          }
+                          const cacheNames = await caches.keys();
+                          await Promise.all(cacheNames.map(name => caches.delete(name)));
+                          toast.success("✅ Cache limpo! Recarregando...");
+                          setTimeout(() => window.location.reload(), 800);
+                        } catch {
+                          toast.info("🔄 Recarregando...");
+                          setTimeout(() => window.location.reload(), 800);
+                        }
+                      }}
+                      title="Atualizar Sistema"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Mobile menu for secondary actions */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] hover:bg-accent/10 text-muted-foreground hover:text-primary"
-                        title="Dicas & Suporte"
+                        className="sm:hidden h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
                       >
-                        <Lightbulb className="h-4 w-4 sm:h-5 sm:w-5" />
+                        <Lightbulb className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuContent align="end" className="w-52">
                       <DropdownMenuItem onSelect={() => setTimeout(() => setShowTipsDialog(true), 100)} className="gap-2 cursor-pointer">
                         <Lightbulb className="w-4 h-4 text-primary" />
                         Dicas AC
                       </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onClick={() => {
-                          window.open("https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+Gestão+de+Negócios+e+preciso+de+suporte", '_blank', 'noopener,noreferrer');
-                        }} 
-                        className="gap-2 cursor-pointer"
-                      >
-                        <MessageCircle className="w-4 h-4 text-green-600" />
+                      <DropdownMenuItem onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+e+preciso+de+suporte", '_blank')} className="gap-2 cursor-pointer">
+                        <MessageCircle className="w-4 h-4 text-primary" />
                         Suporte WhatsApp
                       </DropdownMenuItem>
-                      {/* Mobile-only: group secondary actions here */}
-                      <DropdownMenuItem onSelect={() => navigate('/beta')} className="gap-2 cursor-pointer sm:hidden">
-                        <Zap className="w-4 h-4 text-accent" />
+                      <DropdownMenuItem onSelect={() => navigate('/beta')} className="gap-2 cursor-pointer">
+                        <Zap className="w-4 h-4 text-primary" />
                         Sistema Simplificado
                       </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer sm:hidden">
+                      <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
                         <HelpCircle className="w-4 h-4" />
                         Ver Tutorial
                       </DropdownMenuItem>
@@ -380,61 +421,30 @@ export default function Index() {
                           toast.info("🔄 Recarregando...");
                           setTimeout(() => window.location.reload(), 800);
                         }
-                      }} className="gap-2 cursor-pointer sm:hidden">
+                      }} className="gap-2 cursor-pointer">
                         <RefreshCw className="w-4 h-4" />
                         Atualizar Sistema
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  {/* Desktop-only buttons */}
+                  {/* Divider */}
+                  <div className="hidden sm:block h-5 w-px bg-border" />
+
+                  {/* Dicas desktop */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-accent/10 text-accent"
-                    onClick={() => navigate('/beta')}
-                    title="Sistema Simplificado"
+                    className="hidden sm:inline-flex h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                    onClick={() => setShowTipsDialog(true)}
+                    title="Dicas AC"
                   >
-                    <Zap className="h-5 w-5" />
+                    <Lightbulb className="h-4 w-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
-                    onClick={async () => {
-                      toast.info("🔍 Verificando atualizações...");
-                      try {
-                        if ('serviceWorker' in navigator) {
-                          const registrations = await navigator.serviceWorker.getRegistrations();
-                          for (const reg of registrations) { await reg.unregister(); }
-                        }
-                        const cacheNames = await caches.keys();
-                        await Promise.all(cacheNames.map(name => caches.delete(name)));
-                        toast.success("✅ Cache limpo! Recarregando...");
-                        setTimeout(() => window.location.reload(), 800);
-                      } catch {
-                        toast.info("🔄 Recarregando...");
-                        setTimeout(() => window.location.reload(), 800);
-                      }
-                    }}
-                    title="Procurar atualização"
-                  >
-                    <RefreshCw className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden sm:inline-flex h-11 w-11 min-h-[44px] min-w-[44px] hover:bg-muted"
-                    onClick={handleRestartOnboarding}
-                    title="Ver tutorial do sistema"
-                  >
-                    <HelpCircle className="h-5 w-5" />
-                  </Button>
-                  
-                  {/* Notification Bell - always visible */}
+
+                  {/* Notification Bell */}
                   <Popover open={notificationsOpen} onOpenChange={(open) => {
                     setNotificationsOpen(open);
-                    // Request push notification permission on first bell click
                     if (open && 'Notification' in window && Notification.permission === 'default') {
                       Notification.requestPermission();
                     }
@@ -443,19 +453,19 @@ export default function Index() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`relative h-9 w-9 sm:h-11 sm:w-11 min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] transition-all duration-300 ${notificationCount > 0
+                        className={`relative h-9 w-9 rounded-lg transition-all duration-200 ${
+                          notificationCount > 0
                             ? 'text-primary hover:bg-primary/10'
-                            : 'hover:bg-muted'
-                          }`}
+                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                        }`}
                       >
-                        <Bell className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''
-                          }`} />
+                        <Bell className={`h-4 w-4 ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
                         {notificationCount > 0 && (
                           <>
-                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-gradient-to-r from-red-500 to-pink-500 text-white text-[9px] sm:text-[10px] flex items-center justify-center font-bold shadow-lg">
+                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold shadow-sm">
                               {notificationCount > 99 ? '99' : notificationCount}
                             </span>
-                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 sm:h-5 sm:w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive animate-ping opacity-60" />
                           </>
                         )}
                       </Button>
@@ -469,12 +479,15 @@ export default function Index() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="hidden sm:inline-flex h-9 w-9 hover:bg-muted"
+                    className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                     onClick={toggleTheme}
-                    title="Alternar tema"
+                    title={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
                   >
                     {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                   </Button>
+
+                  {/* Divider before profile */}
+                  <div className="h-5 w-px bg-border" />
 
                   {/* User Profile */}
                   <UserProfileDropdown
