@@ -212,24 +212,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
       <SidebarFooter className="p-3 border-t border-border space-y-2">
         {/* App download card */}
-        <div className={`rounded-xl bg-muted/40 border border-border p-3 ${isCollapsed ? 'hidden' : ''}`}>
-          <div className="flex items-center gap-2 mb-1">
-            <Download className="w-4 h-4 text-primary flex-shrink-0" />
-            <span className="text-xs font-semibold text-foreground">Baixe nosso App</span>
-          </div>
-          <p className="text-[10px] text-muted-foreground mb-2">Gerencie de qualquer lugar</p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="w-full h-8 text-xs rounded-lg"
-            onClick={() => {
-              const event = new Event('beforeinstallprompt');
-              window.dispatchEvent(event);
-            }}
-          >
-            <Download className="w-3 h-3 mr-1" /> Instalar
-          </Button>
-        </div>
+        <SidebarInstallCard isCollapsed={isCollapsed} />
 
         {/* Footer actions */}
         <SidebarMenu>
