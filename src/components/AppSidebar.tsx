@@ -74,7 +74,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { systemName, systemSubtitle, systemLogoUrl } = useSystemBranding();
-  const isCollapsed = state === "collapsed";
 
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
