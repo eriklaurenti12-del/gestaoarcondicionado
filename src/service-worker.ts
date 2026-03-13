@@ -81,7 +81,7 @@ self.addEventListener('message', (event) => {
   if (event.data?.type === 'FORCE_UPDATE') {
     caches.keys().then((names) => Promise.all(names.map(n => caches.delete(n))))
       .then(() => self.clients.matchAll())
-      .then((clients) => clients.forEach(c => c.navigate(c.url)));
+      .then((clients) => clients.forEach(c => (c as WindowClient).navigate(c.url)));
   }
 });
 
