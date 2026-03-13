@@ -12,7 +12,7 @@ const updateSW = registerSW({
     // Auto-reload when new version is available
     updateSW(true);
   },
-  onRegisteredSW(swUrl, registration) {
+  onRegistered(registration) {
     // Check for updates every 60 seconds (especially important when installed as PWA)
     if (registration) {
       setInterval(() => {
