@@ -30,6 +30,7 @@ import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
 import { AdminShareTab } from "@/components/AdminShareTab";
 import AdminBrandingTab from "@/components/AdminBrandingTab";
+import AdminSupportContactsTab from "@/components/AdminSupportContactsTab";
 import { Switch } from "@/components/ui/switch";
 
 type Member = {
