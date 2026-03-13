@@ -431,14 +431,10 @@ export default function Index() {
                     variant="ghost"
                     size="icon"
                     className="hidden sm:inline-flex h-9 w-9 hover:bg-muted"
-                    onClick={() => {
-                      const { toggleTheme } = useThemeRef.current;
-                      toggleTheme();
-                    }}
+                    onClick={toggleTheme}
                     title="Alternar tema"
                   >
-                    <Moon className="h-4 w-4 dark:hidden" />
-                    <Sun className="h-4 w-4 hidden dark:block" />
+                    {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                   </Button>
 
                   {/* User Profile */}
