@@ -71,6 +71,7 @@ const fetchNotificationCount = async () => {
 
 export default function Index() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
