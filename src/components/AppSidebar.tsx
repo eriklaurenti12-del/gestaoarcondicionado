@@ -65,6 +65,7 @@ const defaultSections = [
 export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onNavigateMembers, onSignOut }: AppSidebarProps) {
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
   const { systemName, systemSubtitle, systemLogoUrl } = useSystemBranding();
 
