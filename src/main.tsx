@@ -6,10 +6,18 @@ import { registerSW } from 'virtual:pwa-register'
 createRoot(document.getElementById("root")!).render(<App />);
 
 // Register service worker for PWA with auto-update
-registerSW({
+const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
     // Auto-reload when new version is available
-    window.location.reload();
+    updateSW(true);
+  },
+  onRegisteredSW(swUrl, registration) {
+    // Check for updates every 60 seconds (especially important when installed as PWA)
+    if (registration) {
+      setInterval(() => {
+        registration.update();
+      }, 60 * 1000);
+    }
   },
 });
