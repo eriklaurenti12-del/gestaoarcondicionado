@@ -425,9 +425,26 @@ export default function Index() {
                     </PopoverContent>
                   </Popover>
 
-                  <div className="hidden sm:block">
-                    <InstallButton />
-                  </div>
+                  {/* Theme toggle */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="hidden sm:inline-flex h-9 w-9 hover:bg-muted"
+                    onClick={() => {
+                      const { toggleTheme } = useThemeRef.current;
+                      toggleTheme();
+                    }}
+                    title="Alternar tema"
+                  >
+                    <Moon className="h-4 w-4 dark:hidden" />
+                    <Sun className="h-4 w-4 hidden dark:block" />
+                  </Button>
+
+                  {/* User Profile */}
+                  <UserProfileDropdown
+                    onSignOut={handleSignOut}
+                    onNavigateCompany={() => setActiveTab('company')}
+                  />
                 </div>
               </header>
 
