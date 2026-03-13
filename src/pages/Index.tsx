@@ -324,170 +324,88 @@ export default function Index() {
 
             <div className="flex-1 flex flex-col min-w-0">
               {/* Header */}
-              <header className="h-14 border-b border-border flex items-center justify-between px-3 sm:px-5 bg-card/90 backdrop-blur-md sticky top-0 z-20">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <SidebarTrigger className="h-9 w-9 min-h-[36px] min-w-[36px] flex-shrink-0 rounded-lg hover:bg-muted transition-colors" />
-                  <div className="hidden sm:block h-5 w-px bg-border" />
-                  <h1 className="text-sm sm:text-base font-semibold truncate text-foreground">{getPageTitle()}</h1>
-                </div>
+              <header className="h-14 border-b border-border flex items-center px-3 sm:px-5 bg-card/90 backdrop-blur-md sticky top-0 z-20 gap-2">
+                {/* Left: trigger + title */}
+                <SidebarTrigger className="h-9 w-9 flex-shrink-0 rounded-lg hover:bg-muted transition-colors" />
+                <div className="hidden sm:block h-5 w-px bg-border flex-shrink-0" />
+                <h1 className="text-sm font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis mr-auto">{getPageTitle()}</h1>
 
-                <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
-                  {/* Action buttons - consistent 36px on all screens */}
-                  <div className="hidden sm:flex items-center gap-1 mr-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                      onClick={() => navigate('/beta')}
-                      title="Sistema Simplificado"
-                    >
-                      <Zap className="h-4 w-4" />
+                {/* Right: icon buttons */}
+                {/* Mobile-only dropdown */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10">
+                      <Lightbulb className="h-4 w-4" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      onClick={handleRestartOnboarding}
-                      title="Ver tutorial"
-                    >
-                      <HelpCircle className="h-4 w-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-52">
+                    <DropdownMenuItem onSelect={() => setTimeout(() => setShowTipsDialog(true), 100)} className="gap-2 cursor-pointer">
+                      <Lightbulb className="w-4 h-4 text-primary" /> Dicas AC
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')} className="gap-2 cursor-pointer">
+                      <MessageCircle className="w-4 h-4 text-primary" /> Suporte WhatsApp
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
+                      <HelpCircle className="w-4 h-4" /> Ver Tutorial
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={async () => {
+                      toast.info("🔍 Verificando atualizações...");
+                      try {
+                        if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.unregister(); }
+                        await Promise.all((await caches.keys()).map(n => caches.delete(n)));
+                        toast.success("✅ Cache limpo!"); setTimeout(() => window.location.reload(), 800);
+                      } catch { toast.info("🔄 Recarregando..."); setTimeout(() => window.location.reload(), 800); }
+                    }} className="gap-2 cursor-pointer">
+                      <RefreshCw className="w-4 h-4" /> Atualizar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Desktop action buttons */}
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => setShowTipsDialog(true)} title="Dicas AC">
+                  <Lightbulb className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
+                  <HelpCircle className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={async () => {
+                  toast.info("🔍 Verificando atualizações...");
+                  try {
+                    if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.unregister(); }
+                    await Promise.all((await caches.keys()).map(n => caches.delete(n)));
+                    toast.success("✅ Cache limpo!"); setTimeout(() => window.location.reload(), 800);
+                  } catch { toast.info("🔄 Recarregando..."); setTimeout(() => window.location.reload(), 800); }
+                }} title="Atualizar">
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+
+                {/* Notification Bell */}
+                <Popover open={notificationsOpen} onOpenChange={(open) => {
+                  setNotificationsOpen(open);
+                  if (open && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
+                }}>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="icon" className={`relative h-9 w-9 flex-shrink-0 rounded-lg transition-colors ${notificationCount > 0 ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
+                      <Bell className={`h-4 w-4 ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
+                      {notificationCount > 0 && (
+                        <>
+                          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold shadow-sm">{notificationCount > 99 ? '99' : notificationCount}</span>
+                          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive animate-ping opacity-60" />
+                        </>
+                      )}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                      onClick={async () => {
-                        toast.info("🔍 Verificando atualizações...");
-                        try {
-                          if ('serviceWorker' in navigator) {
-                            const registrations = await navigator.serviceWorker.getRegistrations();
-                            for (const reg of registrations) { await reg.unregister(); }
-                          }
-                          const cacheNames = await caches.keys();
-                          await Promise.all(cacheNames.map(name => caches.delete(name)));
-                          toast.success("✅ Cache limpo! Recarregando...");
-                          setTimeout(() => window.location.reload(), 800);
-                        } catch {
-                          toast.info("🔄 Recarregando...");
-                          setTimeout(() => window.location.reload(), 800);
-                        }
-                      }}
-                      title="Atualizar Sistema"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[92vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
+                    <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
+                  </PopoverContent>
+                </Popover>
 
-                  {/* Mobile menu for secondary actions */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="sm:hidden h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
-                      >
-                        <Lightbulb className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-52">
-                      <DropdownMenuItem onSelect={() => setTimeout(() => setShowTipsDialog(true), 100)} className="gap-2 cursor-pointer">
-                        <Lightbulb className="w-4 h-4 text-primary" />
-                        Dicas AC
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+vim+do+sistema+e+preciso+de+suporte", '_blank')} className="gap-2 cursor-pointer">
-                        <MessageCircle className="w-4 h-4 text-primary" />
-                        Suporte WhatsApp
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => navigate('/beta')} className="gap-2 cursor-pointer">
-                        <Zap className="w-4 h-4 text-primary" />
-                        Sistema Simplificado
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
-                        <HelpCircle className="w-4 h-4" />
-                        Ver Tutorial
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={async () => {
-                        toast.info("🔍 Verificando atualizações...");
-                        try {
-                          if ('serviceWorker' in navigator) {
-                            const registrations = await navigator.serviceWorker.getRegistrations();
-                            for (const reg of registrations) { await reg.unregister(); }
-                          }
-                          const cacheNames = await caches.keys();
-                          await Promise.all(cacheNames.map(name => caches.delete(name)));
-                          toast.success("✅ Cache limpo! Recarregando...");
-                          setTimeout(() => window.location.reload(), 800);
-                        } catch {
-                          toast.info("🔄 Recarregando...");
-                          setTimeout(() => window.location.reload(), 800);
-                        }
-                      }} className="gap-2 cursor-pointer">
-                        <RefreshCw className="w-4 h-4" />
-                        Atualizar Sistema
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                {/* Theme toggle */}
+                <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={toggleTheme} title={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}>
+                  {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                </Button>
 
-                  {/* Divider */}
-                  <div className="hidden sm:block h-5 w-px bg-border" />
-
-                  {/* Dicas desktop */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="hidden sm:inline-flex h-9 w-9 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
-                    onClick={() => setShowTipsDialog(true)}
-                    title="Dicas AC"
-                  >
-                    <Lightbulb className="h-4 w-4" />
-                  </Button>
-
-                  {/* Notification Bell */}
-                  <Popover open={notificationsOpen} onOpenChange={(open) => {
-                    setNotificationsOpen(open);
-                    if (open && 'Notification' in window && Notification.permission === 'default') {
-                      Notification.requestPermission();
-                    }
-                  }}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`relative h-9 w-9 rounded-lg transition-all duration-200 ${
-                          notificationCount > 0
-                            ? 'text-primary hover:bg-primary/10'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                        }`}
-                      >
-                        <Bell className={`h-4 w-4 ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
-                        {notificationCount > 0 && (
-                          <>
-                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold shadow-sm">
-                              {notificationCount > 99 ? '99' : notificationCount}
-                            </span>
-                            <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive animate-ping opacity-60" />
-                          </>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[92vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
-                      <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
-                    </PopoverContent>
-                  </Popover>
-
-                  {/* Theme toggle */}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    onClick={toggleTheme}
-                    title={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}
-                  >
-                    {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-                  </Button>
-
-                  {/* Divider before profile */}
-                  <div className="h-5 w-px bg-border" />
+                <div className="h-5 w-px bg-border flex-shrink-0" />
 
                   {/* User Profile */}
                   <UserProfileDropdown
