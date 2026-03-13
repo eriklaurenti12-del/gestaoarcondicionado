@@ -4,6 +4,7 @@ import { useBetaMode } from "@/contexts/BetaModeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemBranding } from "@/hooks/useSystemBranding";
 import {
   Sidebar,
   SidebarContent,
@@ -72,6 +73,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const betaNavigate = useNavigate();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
+  const { systemName, systemSubtitle, systemLogoUrl } = useSystemBranding();
 
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
@@ -115,7 +117,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   const allSections = sidebarConfig?.sections || defaultSections;
   const sections = filterSectionsByRole(allSections);
-  const companyName = companyData?.company_name || 'AC Service Pro';
+  const companyName = companyData?.company_name || systemName;
 
   const renderMenuItems = (items: { id: string; title: string }[]) => (
     <SidebarMenu>
@@ -148,14 +150,18 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
       {/* Logo Header */}
       <SidebarHeader className="p-4 pb-3 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-primary shadow-sm">
-            <Wind className="w-5 h-5 text-primary-foreground" />
-          </div>
+          {systemLogoUrl ? (
+            <img src={systemLogoUrl} alt={companyName} className="w-9 h-9 rounded-xl object-contain" />
+          ) : (
+            <div className="p-2 rounded-xl bg-primary shadow-sm">
+              <Wind className="w-5 h-5 text-primary-foreground" />
+            </div>
+          )}
           <div className={`flex flex-col transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'}`}>
             <span className="font-bold text-sm text-foreground whitespace-nowrap truncate max-w-[150px]">
               {companyName}
             </span>
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap">Gestão de Ar Condicionado</span>
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap">{systemSubtitle}</span>
           </div>
         </div>
       </SidebarHeader>

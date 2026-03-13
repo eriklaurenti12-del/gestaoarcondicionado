@@ -87,6 +87,39 @@ export default function Index() {
     refetchInterval: 60000
   });
 
+  // Browser push notifications for appointments
+  useEffect(() => {
+    if (!('Notification' in window)) return;
+    
+    const checkAndNotify = async () => {
+      if (Notification.permission !== 'granted') return;
+      
+      const today = new Date();
+      const { data: todayAppointments } = await supabase
+        .from('appointments')
+        .select('*, clients(name), products(name)')
+        .gte('appointment_date', today.toISOString().split('T')[0])
+        .lte('appointment_date', today.toISOString().split('T')[0] + 'T23:59:59')
+        .in('status', ['agendado', 'confirmado']);
+      
+      if (todayAppointments && todayAppointments.length > 0) {
+        const lastNotifKey = `push_notif_${today.toISOString().split('T')[0]}`;
+        if (!localStorage.getItem(lastNotifKey)) {
+          new Notification('📅 Agendamentos de Hoje', {
+            body: `Você tem ${todayAppointments.length} agendamento(s) hoje!`,
+            icon: '/icon-192x192.png',
+            tag: 'appointments-today'
+          });
+          localStorage.setItem(lastNotifKey, 'true');
+        }
+      }
+    };
+    
+    checkAndNotify();
+    const interval = setInterval(checkAndNotify, 5 * 60 * 1000); // Check every 5 min
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     // Check for recovery tokens in URL FIRST - redirect to reset-password
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -399,7 +432,13 @@ export default function Index() {
                   </Button>
                   
                   {/* Notification Bell - always visible */}
-                  <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
+                  <Popover open={notificationsOpen} onOpenChange={(open) => {
+                    setNotificationsOpen(open);
+                    // Request push notification permission on first bell click
+                    if (open && 'Notification' in window && Notification.permission === 'default') {
+                      Notification.requestPermission();
+                    }
+                  }}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="ghost"

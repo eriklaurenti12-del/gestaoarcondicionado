@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy, GripVertical, Palette } from "lucide-react";
+import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy, GripVertical, Palette, Wind } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
@@ -29,6 +29,7 @@ import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
 import { AdminShareTab } from "@/components/AdminShareTab";
+import AdminBrandingTab from "@/components/AdminBrandingTab";
 import { Switch } from "@/components/ui/switch";
 
 type Member = {
@@ -71,6 +72,7 @@ const DEFAULT_TABS = [
   { id: 'users', label: 'Usuários', icon: 'UserPlus' },
   { id: 'notifications', label: 'Notificações', icon: 'Bell' },
   { id: 'integrations', label: 'Integrações', icon: 'Zap' },
+  { id: 'branding', label: 'Identidade', icon: 'Wind' },
   { id: 'n8n', label: 'n8n', icon: 'Webhook' },
   { id: 'landing', label: 'Landing', icon: 'Megaphone' },
   { id: 'theme', label: 'Tema', icon: 'Palette' },
@@ -82,7 +84,7 @@ const DEFAULT_TABS = [
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind
 };
 
 export default function Members() {
@@ -805,6 +807,7 @@ export default function Members() {
           <TabsContent value="landing" className="mt-6"><AdminLandingTab /></TabsContent>
           <TabsContent value="raffle" className="mt-6"><AdminRaffleTab /></TabsContent>
           <TabsContent value="theme" className="mt-6"><AdminThemeTab /></TabsContent>
+          <TabsContent value="branding" className="mt-6"><AdminBrandingTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
           <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
           <TabsContent value="links" className="mt-6">
