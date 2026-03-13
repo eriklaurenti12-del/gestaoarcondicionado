@@ -807,6 +807,7 @@ export default function Members() {
           <TabsContent value="landing" className="mt-6"><AdminLandingTab /></TabsContent>
           <TabsContent value="raffle" className="mt-6"><AdminRaffleTab /></TabsContent>
           <TabsContent value="theme" className="mt-6"><AdminThemeTab /></TabsContent>
+          <TabsContent value="branding" className="mt-6"><AdminBrandingTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
           <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
           <TabsContent value="links" className="mt-6">
