@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel } from "lucide-react";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw } from "lucide-react";
+import { format, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -39,11 +39,13 @@ interface Sale {
 
 export default function FinanceiroTab() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
+  const [refreshing, setRefreshing] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
@@ -54,8 +56,7 @@ export default function FinanceiroTab() {
     category: "",
   });
 
-  // Fetch sales for the month
-  const { data: sales } = useQuery({
+  const { data: sales, refetch: refetchSales } = useQuery({
     queryKey: ["sales-financial", selectedMonth],
     queryFn: async () => {
       const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
@@ -73,8 +74,7 @@ export default function FinanceiroTab() {
     }
   });
 
-  // Fetch fixed expenses for the month
-  const { data: fixedExpenses } = useQuery({
+  const { data: fixedExpenses, refetch: refetchExpenses } = useQuery({
     queryKey: ["fixed-expenses-summary", selectedMonth],
     queryFn: async () => {
       const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
@@ -121,6 +121,21 @@ export default function FinanceiroTab() {
       setRecords((data as FinancialRecord[]) || []);
     }
     setLoading(false);
+  };
+
+  const handleRefreshAll = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        fetchRecords(),
+        refetchSales(),
+        refetchExpenses(),
+      ]);
+      toast({ title: "✅ Dados atualizados!", description: "Todos os dados financeiros foram recarregados." });
+    } catch {
+      toast({ title: "Erro ao atualizar", variant: "destructive" });
+    }
+    setRefreshing(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -173,13 +188,13 @@ export default function FinanceiroTab() {
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
   
-  // Sales data
   const totalVendas = sales?.reduce((acc, s) => acc + Number(s.sale_price) * s.qty, 0) || 0;
   const lucroServicos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
   
-  // Combined totals
   const totalGeral = totalEntradas + totalVendas;
   const saldoDisponivel = totalGeral - totalSaques - totalReservas;
+
+  const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -199,32 +214,27 @@ export default function FinanceiroTab() {
     }
   };
 
-  // Export beautiful bank statement PDF
   const exportStatementPDF = () => {
     const doc = new jsPDF();
     const [yr, mo] = selectedMonth.split('-').map(Number);
     const monthName = format(new Date(yr, mo - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
     
-    // Header with gradient effect (simulated with rectangles)
     doc.setFillColor(147, 51, 234);
     doc.rect(0, 0, 220, 45, 'F');
     doc.setFillColor(219, 39, 119);
     doc.rect(0, 35, 220, 10, 'F');
     
-    // Logo/Title
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(24);
     doc.setFont("helvetica", "bold");
     doc.text("EXTRATO FINANCEIRO", 105, 20, { align: "center" });
     doc.setFontSize(12);
     doc.setFont("helvetica", "normal");
-    doc.text(`Salão de Beleza - ${monthName}`, 105, 30, { align: "center" });
+    doc.text(`Período: ${monthName}`, 105, 30, { align: "center" });
     
-    // Summary boxes
     doc.setTextColor(0, 0, 0);
     let yPos = 55;
     
-    // Summary Cards
     const summaryData = [
       { label: "Total Entradas", value: totalGeral, color: [34, 197, 94] },
       { label: "Total Saques", value: totalSaques, color: [239, 68, 68] },
@@ -244,10 +254,9 @@ export default function FinanceiroTab() {
       doc.text(item.label, x + cardWidth/2, yPos + 7, { align: "center" });
       doc.setFontSize(11);
       doc.setFont("helvetica", "bold");
-      doc.text(`R$ ${item.value.toFixed(2)}`, x + cardWidth/2, yPos + 15, { align: "center" });
+      doc.text(formatCurrency(item.value), x + cardWidth/2, yPos + 15, { align: "center" });
     });
     
-    // Lucro section
     yPos += 30;
     doc.setFillColor(34, 197, 94);
     doc.roundedRect(14, yPos, 182, 15, 3, 3, 'F');
@@ -257,19 +266,16 @@ export default function FinanceiroTab() {
     doc.text("LUCRO LÍQUIDO DOS SERVIÇOS", 20, yPos + 6);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text(`R$ ${lucroServicos.toFixed(2)}`, 186, yPos + 10, { align: "right" });
+    doc.text(formatCurrency(lucroServicos), 186, yPos + 10, { align: "right" });
     
-    // Transactions section
     yPos += 25;
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.text("MOVIMENTAÇÕES", 14, yPos);
     
-    // Combine all transactions
     const allTransactions: any[] = [];
     
-    // Add financial records
     records.forEach(r => {
       allTransactions.push({
         date: r.record_date,
@@ -281,7 +287,6 @@ export default function FinanceiroTab() {
       });
     });
     
-    // Add sales
     sales?.forEach(s => {
       allTransactions.push({
         date: s.sale_date,
@@ -294,7 +299,6 @@ export default function FinanceiroTab() {
       });
     });
     
-    // Sort by date
     allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const tableData = allTransactions.map(t => [
@@ -302,7 +306,7 @@ export default function FinanceiroTab() {
       t.description,
       t.method || "-",
       t.type === "venda" ? "Serviço" : t.type.charAt(0).toUpperCase() + t.type.slice(1),
-      t.isEntry ? `+ R$ ${t.amount.toFixed(2)}` : `- R$ ${t.amount.toFixed(2)}`
+      t.isEntry ? `+ ${formatCurrency(t.amount)}` : `- ${formatCurrency(t.amount)}`
     ]);
     
     autoTable(doc, {
@@ -310,12 +314,7 @@ export default function FinanceiroTab() {
       head: [["Data", "Descrição", "Forma Pgto", "Tipo", "Valor"]],
       body: tableData,
       theme: "striped",
-      headStyles: { 
-        fillColor: [147, 51, 234],
-        textColor: 255,
-        fontStyle: "bold",
-        fontSize: 9
-      },
+      headStyles: { fillColor: [147, 51, 234], textColor: 255, fontStyle: "bold", fontSize: 9 },
       bodyStyles: { fontSize: 8 },
       alternateRowStyles: { fillColor: [250, 245, 255] },
       columnStyles: {
@@ -337,49 +336,49 @@ export default function FinanceiroTab() {
       }
     });
     
-    // Footer
     const pageHeight = doc.internal.pageSize.height;
     doc.setFillColor(147, 51, 234);
     doc.rect(0, pageHeight - 20, 220, 20, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
     doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, pageHeight - 10);
-    doc.text("Salão de Beleza - Sistema de Gestão", 196, pageHeight - 10, { align: "right" });
+    doc.text("Sistema de Gestão", 196, pageHeight - 10, { align: "right" });
     
     doc.save(`extrato-financeiro-${selectedMonth}.pdf`);
     toast({ title: "Extrato exportado!", description: "PDF salvo com sucesso." });
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <h2 className="text-2xl font-bold">Controle Financeiro</h2>
-          <p className="text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
+          <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input
             type="month"
             value={selectedMonth}
             onChange={(e) => setSelectedMonth(e.target.value)}
-            className="w-auto"
+            className="w-auto min-w-[140px]"
           />
-          <Button onClick={() => { fetchRecords(); }} variant="outline" size="sm" title="Atualizar dados">
-            <Loader2 className={`h-4 w-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
-            Atualizar
+          <Button onClick={handleRefreshAll} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]">
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-1">Atualizar</span>
           </Button>
-          <Button onClick={exportStatementPDF} variant="outline" size="sm">
-            <FileDown className="h-4 w-4 mr-2" />
-            Extrato PDF
+          <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
+            <FileDown className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Extrato PDF</span>
           </Button>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-primary to-accent">
-                <Plus className="h-4 w-4 mr-2" /> Novo Registro
+              <Button className="bg-gradient-to-r from-primary to-accent min-w-[44px]">
+                <Plus className="h-4 w-4" />
+                <span className="ml-1">Novo</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-[95vw] sm:max-w-md mx-auto">
               <DialogHeader>
                 <DialogTitle>Adicionar Registro Financeiro</DialogTitle>
               </DialogHeader>
@@ -470,102 +469,90 @@ export default function FinanceiroTab() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      {/* Summary Cards - responsive grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3">
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Receipt className="h-3 w-3 text-green-500" />
-              Vendas/Serviços
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Receipt className="h-3 w-3 text-green-500 flex-shrink-0" />
+              <span className="truncate">Vendas/Serviços</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-green-500">
-              R$ {totalVendas.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-green-500 truncate">{formatCurrency(totalVendas)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Target className="h-3 w-3 text-emerald-500" />
-              Lucro Serviços
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Target className="h-3 w-3 text-emerald-500 flex-shrink-0" />
+              <span className="truncate">Lucro Serviços</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-emerald-500">
-              R$ {lucroServicos.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-emerald-500 truncate">{formatCurrency(lucroServicos)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border-teal-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-teal-500" />
-              Outras Entradas
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <TrendingUp className="h-3 w-3 text-teal-500 flex-shrink-0" />
+              <span className="truncate">Outras Entradas</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-teal-500">
-              R$ {totalEntradas.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-teal-500 truncate">{formatCurrency(totalEntradas)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Fuel className="h-3 w-3 text-orange-500" />
-              Gastos Fixos
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Fuel className="h-3 w-3 text-orange-500 flex-shrink-0" />
+              <span className="truncate">Gastos Fixos</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-orange-500">
-              R$ {totalGastosFixos.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-orange-500 truncate">{formatCurrency(totalGastosFixos)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <TrendingDown className="h-3 w-3 text-red-500" />
-              Saques
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <TrendingDown className="h-3 w-3 text-red-500 flex-shrink-0" />
+              <span className="truncate">Saques</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-red-500">
-              R$ {totalSaques.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-red-500 truncate">{formatCurrency(totalSaques)}</p>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Wallet className="h-3 w-3 text-blue-500" />
-              Reservas
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Wallet className="h-3 w-3 text-blue-500 flex-shrink-0" />
+              <span className="truncate">Reservas</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className="text-lg sm:text-xl font-bold text-blue-500">
-              R$ {totalReservas.toFixed(2)}
-            </p>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-blue-500 truncate">{formatCurrency(totalReservas)}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <DollarSign className="h-3 w-3 text-primary" />
-              Saldo Disponível
+        <Card className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 col-span-2 sm:col-span-1">
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <DollarSign className="h-3 w-3 text-primary flex-shrink-0" />
+              <span className="truncate">Saldo Disponível</span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <p className={`text-lg sm:text-xl font-bold ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
-              R$ {saldoDisponivel.toFixed(2)}
+          <CardContent className="p-3 pt-0">
+            <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
+              {formatCurrency(saldoDisponivel)}
             </p>
           </CardContent>
         </Card>
@@ -574,42 +561,42 @@ export default function FinanceiroTab() {
       {/* Sales from services */}
       {sales && sales.length > 0 && (
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5 text-green-500" />
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
               Vendas de Serviços - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Data</TableHead>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Serviço</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="text-right">Lucro</TableHead>
+                    <TableHead className="text-xs">Data</TableHead>
+                    <TableHead className="text-xs">Cliente</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Serviço</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs text-right">Lucro</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sales.map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell>{format(new Date(sale.sale_date), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
-                      <TableCell className="font-medium">{sale.clients?.name || "-"}</TableCell>
-                      <TableCell>{sale.products?.name || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="text-xs sm:text-sm py-2">{format(new Date(sale.sale_date), "dd/MM", { locale: ptBR })}</TableCell>
+                      <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || "-"}</TableCell>
+                      <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[120px] truncate">{sale.products?.name || "-"}</TableCell>
+                      <TableCell className="text-xs sm:text-sm py-2 hidden md:table-cell">
+                        <div className="flex items-center gap-1">
                           {getPaymentIcon(sale.payment_method)}
-                          {sale.payment_method}
+                          <span className="hidden lg:inline">{sale.payment_method}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right font-medium text-green-500">
-                        R$ {(Number(sale.sale_price) * sale.qty).toFixed(2)}
+                      <TableCell className="text-xs sm:text-sm text-right font-medium text-green-500 py-2">
+                        {formatCurrency(Number(sale.sale_price) * sale.qty)}
                       </TableCell>
-                      <TableCell className="text-right font-medium text-emerald-500">
-                        R$ {Number(sale.total_profit).toFixed(2)}
+                      <TableCell className="text-xs sm:text-sm text-right font-medium text-emerald-500 py-2">
+                        {formatCurrency(Number(sale.total_profit))}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -622,67 +609,74 @@ export default function FinanceiroTab() {
 
       {/* Manual Records Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Registros Manuais - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm sm:text-base">
+              Registros Manuais - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+            </CardTitle>
+            <Button variant="ghost" size="icon" onClick={fetchRecords} className="h-8 w-8">
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0">
           {loading ? (
             <div className="flex justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : records.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <Wallet className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Nenhum registro manual encontrado para este mês</p>
+              <Wallet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">Nenhum registro manual encontrado para este mês</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead>Parcelas</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead></TableHead>
+                    <TableHead className="text-xs">Tipo</TableHead>
+                    <TableHead className="text-xs">Descrição</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Pagamento</TableHead>
+                    <TableHead className="text-xs hidden md:table-cell">Parcelas</TableHead>
+                    <TableHead className="text-xs text-right">Valor</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Data</TableHead>
+                    <TableHead className="text-xs w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {records.map((record) => (
                     <TableRow key={record.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="py-2">
+                        <div className="flex items-center gap-1">
                           {getTypeIcon(record.type)}
-                          <span className="capitalize">{record.type}</span>
+                          <span className="capitalize text-xs sm:text-sm">{record.type}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{record.description || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
+                      <TableCell className="text-xs sm:text-sm py-2 max-w-[100px] sm:max-w-[200px] truncate">{record.description || "-"}</TableCell>
+                      <TableCell className="py-2 hidden sm:table-cell">
+                        <div className="flex items-center gap-1">
                           {getPaymentIcon(record.payment_method)}
-                          {record.payment_method || "-"}
+                          <span className="text-xs hidden lg:inline">{record.payment_method || "-"}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs py-2 hidden md:table-cell">
                         {record.installments && record.installments > 1 ? `${record.installments}x` : "-"}
                       </TableCell>
-                      <TableCell className={`text-right font-medium ${
+                      <TableCell className={`text-xs sm:text-sm text-right font-medium py-2 ${
                         record.type === "entrada" ? "text-green-500" : 
                         record.type === "saque" ? "text-red-500" : "text-blue-500"
                       }`}>
-                        R$ {Number(record.amount).toFixed(2)}
+                        {formatCurrency(Number(record.amount))}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-xs py-2 hidden sm:table-cell">
                         {format(new Date(record.record_date), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-2">
                         <Button
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(record.id)}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-8 w-8"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
