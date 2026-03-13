@@ -351,12 +351,20 @@ export default function Index() {
                     <DropdownMenuItem onSelect={async () => {
                       toast.info("🔍 Verificando atualizações...");
                       try {
-                        if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); for (const r of regs) await r.unregister(); }
-                        await Promise.all((await caches.keys()).map(n => caches.delete(n)));
-                        toast.success("✅ Cache limpo!"); setTimeout(() => window.location.reload(), 800);
+                        if ('serviceWorker' in navigator) {
+                          const regs = await navigator.serviceWorker.getRegistrations();
+                          for (const r of regs) {
+                            if (r.active) r.active.postMessage({ type: 'FORCE_UPDATE' });
+                            await r.unregister();
+                          }
+                        }
+                        const keys = await caches.keys();
+                        await Promise.all(keys.map(n => caches.delete(n)));
+                        toast.success("✅ Atualização aplicada!");
+                        setTimeout(() => { window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now(); }, 1000);
                       } catch { toast.info("🔄 Recarregando..."); setTimeout(() => window.location.reload(), 800); }
                     }} className="gap-2 cursor-pointer">
-                      <RefreshCw className="w-4 h-4" /> Atualizar
+                      <RefreshCw className="w-4 h-4" /> Atualizar Sistema
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
