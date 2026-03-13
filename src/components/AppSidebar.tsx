@@ -117,7 +117,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   const allSections = sidebarConfig?.sections || defaultSections;
   const sections = filterSectionsByRole(allSections);
-  const companyName = companyData?.company_name || 'AC Service Pro';
+  const companyName = companyData?.company_name || systemName;
 
   const renderMenuItems = (items: { id: string; title: string }[]) => (
     <SidebarMenu>
