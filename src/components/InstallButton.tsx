@@ -86,10 +86,12 @@ const InstallButton: React.FC = () => {
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        toast.success('App instalado com sucesso! Acesse pela sua tela inicial.');
+        toast.success('🎉 App instalado com sucesso! Acesse pela sua tela inicial.');
         setDeferredPrompt(null);
         setShowInstall(false);
         setShowBanner(false);
+        setIsStandalone(true);
+        localStorage.setItem('pwa-installed', 'true');
         localStorage.setItem('pwa-banner-dismissed', 'true');
       }
     } catch (error) {
