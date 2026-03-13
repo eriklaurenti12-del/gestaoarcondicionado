@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -91,6 +91,25 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
       return data?.value ? JSON.parse(data.value) : null;
     },
     staleTime: 30 * 1000,
+  });
+
+  const { data: supportContacts } = useQuery({
+    queryKey: ['support-contacts'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'support_contacts')
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          return parsed.filter((c: any) => c.available && c.name && c.phone);
+        } catch { return []; }
+      }
+      return [];
+    },
+    staleTime: 60 * 1000,
   });
 
   const filterSectionsByRole = (sections: any[]) => {
@@ -224,16 +243,32 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
               <span className="text-xs font-medium">Simplificado</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
-              tooltip="Falar com suporte"
-              className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs">Falar com suporte</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {/* Dynamic support contacts */}
+          {supportContacts && supportContacts.length > 0 ? (
+            supportContacts.map((contact: any) => (
+              <SidebarMenuItem key={contact.id}>
+                <SidebarMenuButton
+                  onClick={() => window.open(`https://wa.me/${contact.phone}?text=Olá%2C+preciso+de+suporte`, '_blank')}
+                  tooltip={`${contact.name} - ${contact.role || 'Suporte'}`}
+                  className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  <Headphones className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs truncate">{contact.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))
+          ) : (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
+                tooltip="Falar com suporte"
+                className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs">Falar com suporte</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={onSignOut}

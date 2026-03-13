@@ -150,7 +150,7 @@ const steps: OnboardingStep[] = [
   {
     title: "⚙️ Configurações",
     description: "Personalize o sistema com os dados da sua empresa.",
-    icon: <Settings className="w-12 h-12 text-gray-500" />,
+    icon: <Settings className="w-12 h-12 text-muted-foreground" />,
     features: [
       "Dados da empresa para documentos",
       "Logo e informações de contato",
@@ -161,9 +161,22 @@ const steps: OnboardingStep[] = [
     tip: "Preencha os dados da empresa para aparecerem nas O.S. e orçamentos!"
   },
   {
+    title: "📱 Instale o App!",
+    description: "Instale o sistema no seu celular ou computador para acesso rápido sem abrir o navegador.",
+    icon: <Star className="w-12 h-12 text-primary" />,
+    features: [
+      "Funciona offline para consultas rápidas",
+      "Ícone direto na tela inicial",
+      "Notificações de agendamentos no celular",
+      "Atualizações automáticas",
+      "Clique em 'Baixe nosso App' na barra lateral"
+    ],
+    tip: "No Android: Menu do navegador > 'Instalar app'. No iPhone: Compartilhar > 'Adicionar à Tela Inicial'."
+  },
+  {
     title: "🚀 Pronto para Começar!",
     description: "Você completou o tour! Agora é só começar a usar o sistema.",
-    icon: <Target className="w-12 h-12 text-cyan-500" />,
+    icon: <Target className="w-12 h-12 text-primary" />,
     features: [
       "✅ Cadastre seus primeiros clientes",
       "✅ Adicione seus serviços e produtos",

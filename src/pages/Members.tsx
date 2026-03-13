@@ -30,6 +30,7 @@ import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
 import { AdminShareTab } from "@/components/AdminShareTab";
 import AdminBrandingTab from "@/components/AdminBrandingTab";
+import AdminSupportContactsTab from "@/components/AdminSupportContactsTab";
 import { Switch } from "@/components/ui/switch";
 
 type Member = {
@@ -71,6 +72,7 @@ const DEFAULT_TABS = [
   { id: 'team', label: 'Equipe', icon: 'Users' },
   { id: 'users', label: 'Usuários', icon: 'UserPlus' },
   { id: 'notifications', label: 'Notificações', icon: 'Bell' },
+  { id: 'support-contacts', label: 'Suportes', icon: 'Headphones' },
   { id: 'integrations', label: 'Integrações', icon: 'Zap' },
   { id: 'branding', label: 'Identidade', icon: 'Wind' },
   { id: 'n8n', label: 'n8n', icon: 'Webhook' },
@@ -84,7 +86,7 @@ const DEFAULT_TABS = [
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind, Headphones
 };
 
 export default function Members() {
@@ -809,6 +811,7 @@ export default function Members() {
           <TabsContent value="theme" className="mt-6"><AdminThemeTab /></TabsContent>
           <TabsContent value="branding" className="mt-6"><AdminBrandingTab /></TabsContent>
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
+          <TabsContent value="support-contacts" className="mt-6"><AdminSupportContactsTab /></TabsContent>
           <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
           <TabsContent value="links" className="mt-6">
             <AdminShareTab />
