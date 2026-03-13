@@ -531,12 +531,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     });
 
     if (isLoading || !data) return (
-      <div className="space-y-6">
-        <Skeleton className="h-16 w-full" />
+      <div className="space-y-6 animate-blur-in">
+        <Skeleton className="h-16 w-full rounded-xl shimmer" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
         </div>
       </div>
     );
@@ -624,14 +624,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       : null;
 
     return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-blur-in">
       {/* Welcome Header */}
-      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 neon-border overflow-hidden animate-slide-down">
+        <CardContent className="p-4 sm:p-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.03] via-transparent to-accent/[0.03] pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 relative">
             <div>
               {companyName && (
-                <p className="text-xs font-semibold text-primary mb-1">🏢 {companyName}</p>
+                <p className="text-xs font-semibold gradient-text mb-1">🏢 {companyName}</p>
               )}
               <h2 className="text-xl sm:text-2xl font-bold">
                 👋 Seja bem-vindo, {userName || 'Profissional'}!
@@ -993,47 +994,55 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       )}
 
       {/* Appointment Statistics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200 dark:border-blue-800">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-stagger">
+        <Card className="stat-card bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50 dark:border-blue-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays className="w-4 h-4 text-blue-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-blue-500/10">
+                <CalendarDays className="w-4 h-4 text-blue-600" />
+              </div>
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-blue-600">{appointmentStats.today}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-blue-600 animate-count-up">{appointmentStats.today}</div>
             <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200 dark:border-purple-800">
+        <Card className="stat-card bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 dark:border-purple-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarCheck className="w-4 h-4 text-purple-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-purple-500/10">
+                <CalendarCheck className="w-4 h-4 text-purple-600" />
+              </div>
               <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-purple-600">{appointmentStats.week}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-purple-600 animate-count-up">{appointmentStats.week}</div>
             <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200 dark:border-green-800">
+        <Card className="stat-card bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50 dark:border-green-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Clock className="w-4 h-4 text-green-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-green-500/10">
+                <Clock className="w-4 h-4 text-green-600" />
+              </div>
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Confirmados</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-green-600">{appointmentStats.confirmedToday}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">{appointmentStats.confirmedToday}</div>
             <p className="text-xs text-muted-foreground mt-1">para hoje</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200 dark:border-amber-800">
+        <Card className="stat-card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200/50 dark:border-amber-800/50">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
-              <CalendarDays className="w-4 h-4 text-amber-600" />
+              <div className="icon-container p-1.5 rounded-lg bg-amber-500/10">
+                <CalendarDays className="w-4 h-4 text-amber-600" />
+              </div>
               <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold text-amber-600">{appointmentStats.scheduledToday}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-amber-600 animate-count-up">{appointmentStats.scheduledToday}</div>
             <p className="text-xs text-muted-foreground mt-1">aguardando</p>
           </CardContent>
         </Card>
@@ -1133,30 +1142,30 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="w-5 h-5" />Serviços Cadastrados</CardTitle></CardHeader>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-stagger">
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Wrench className="w-5 h-5 text-primary" /></div>Serviços Cadastrados</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{servicesCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold animate-count-up">{servicesCount}</div>
             <p className="text-sm text-muted-foreground">{lowStockProducts.length} peça(s) com estoque baixo</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><Users className="w-5 h-5" />Total de Clientes</CardTitle></CardHeader>
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Users className="w-5 h-5 text-primary" /></div>Total de Clientes</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold">{clientsCount}</div>
+            <div className="text-2xl sm:text-3xl font-bold animate-count-up">{clientsCount}</div>
             <p className="text-sm text-muted-foreground">Clientes cadastrados</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><TrendingUp className="w-5 h-5" />Faturamento do Mês</CardTitle></CardHeader>
+        <Card className="stat-card neon-border">
+          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-green-500/10"><TrendingUp className="w-5 h-5 text-green-600" /></div>Faturamento do Mês</CardTitle></CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-green-600">R$ {salesReport.totalSales.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">R$ {salesReport.totalSales.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços este mês</p>
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Lucro do Mês</span>
-                    <span className="font-bold text-blue-600">R$ {salesReport.totalProfit.toFixed(2)}</span>
+                    <span className="font-bold gradient-text">R$ {salesReport.totalProfit.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Margem de Lucro</span>
@@ -1168,7 +1177,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Variação</span>
-                    <span className={`font-bold ${(salesReport.monthVariation || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-bold ${(salesReport.monthVariation || 0) >= 0 ? 'text-green-600' : 'text-destructive'}`}>
                       {(salesReport.monthVariation || 0) >= 0 ? '+' : ''}{(salesReport.monthVariation || 0).toFixed(1)}%
                     </span>
                 </div>
@@ -1187,15 +1196,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </Card>
         
         {/* Today's Fixed Expenses */}
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200 dark:border-red-800">
+        <Card className="stat-card bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-200/50 dark:border-red-800/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-red-700 dark:text-red-300">
-              <Fuel className="w-5 h-5" />
+              <div className="icon-container p-1.5 rounded-lg bg-red-500/10"><Fuel className="w-5 h-5" /></div>
               Gastos do Dia
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl sm:text-3xl font-bold text-red-600">R$ {todayExpensesTotal.toFixed(2)}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-red-600 animate-count-up">R$ {todayExpensesTotal.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Hoje ({todayExpenses.length} lançamento{todayExpenses.length !== 1 ? 's' : ''})</p>
             {Object.keys(expensesByCategory).length > 0 && (
               <div className="mt-3 space-y-1">
