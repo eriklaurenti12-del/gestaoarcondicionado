@@ -624,14 +624,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       : null;
 
     return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-blur-in">
       {/* Welcome Header */}
-      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
-        <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 neon-border overflow-hidden animate-slide-down">
+        <CardContent className="p-4 sm:p-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/[0.03] via-transparent to-accent/[0.03] pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 relative">
             <div>
               {companyName && (
-                <p className="text-xs font-semibold text-primary mb-1">🏢 {companyName}</p>
+                <p className="text-xs font-semibold gradient-text mb-1">🏢 {companyName}</p>
               )}
               <h2 className="text-xl sm:text-2xl font-bold">
                 👋 Seja bem-vindo, {userName || 'Profissional'}!
