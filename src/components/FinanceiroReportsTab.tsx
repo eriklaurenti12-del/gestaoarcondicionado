@@ -3,12 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from '@/components/ui/skeleton';
-import { FileDown, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Wrench, Package, Calendar } from "lucide-react";
+import { FileDown, TrendingUp, TrendingDown, DollarSign, ShoppingCart, Wrench, Calendar, RefreshCw } from "lucide-react";
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -17,59 +16,61 @@ import autoTable from 'jspdf-autotable';
 const FinanceiroReportsTab: React.FC = () => {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
 
-  const { data: salesData, isLoading: isLoadingSales } = useQuery({
+  const { data: salesData, isLoading: isLoadingSales, refetch: refetchSales } = useQuery({
     queryKey: ['report-sales', selectedMonth],
     queryFn: async () => {
       const startDate = startOfMonth(parseISO(selectedMonth + '-01'));
       const endDate = endOfMonth(startDate);
-      
       const { data, error } = await supabase
         .from('sales')
         .select('*, clients(name), products(name, type, cost_price)')
         .gte('sale_date', startDate.toISOString())
         .lte('sale_date', endDate.toISOString())
         .order('sale_date', { ascending: false });
-      
       if (error) throw error;
       return data || [];
     }
   });
 
-  const { data: appointmentsData, isLoading: isLoadingAppointments } = useQuery({
+  const { data: appointmentsData, isLoading: isLoadingAppointments, refetch: refetchAppointments } = useQuery({
     queryKey: ['report-appointments', selectedMonth],
     queryFn: async () => {
       const startDate = startOfMonth(parseISO(selectedMonth + '-01'));
       const endDate = endOfMonth(startDate);
-      
       const { data, error } = await supabase
         .from('appointments')
         .select('*, clients(name), products:service_id(name, price, cost_price)')
         .gte('appointment_date', startDate.toISOString())
         .lte('appointment_date', endDate.toISOString())
         .order('appointment_date', { ascending: false });
-      
       if (error) throw error;
       return data || [];
     }
   });
 
-  const { data: expensesData, isLoading: isLoadingExpenses } = useQuery({
+  const { data: expensesData, isLoading: isLoadingExpenses, refetch: refetchExpenses } = useQuery({
     queryKey: ['report-expenses', selectedMonth],
     queryFn: async () => {
       const startDate = startOfMonth(parseISO(selectedMonth + '-01'));
       const endDate = endOfMonth(startDate);
-      
       const { data, error } = await supabase
         .from('fixed_expenses')
         .select('*')
         .gte('expense_date', startDate.toISOString().split('T')[0])
         .lte('expense_date', endDate.toISOString().split('T')[0])
         .order('expense_date', { ascending: false });
-      
       if (error) throw error;
       return data || [];
     }
   });
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchSales(), refetchAppointments(), refetchExpenses()]);
+    setRefreshing(false);
+  };
 
   const stats = useMemo(() => {
     const salesTotal = (salesData || []).reduce((sum, s) => sum + Number(s.sale_price) * s.qty, 0);
@@ -85,7 +86,6 @@ const FinanceiroReportsTab: React.FC = () => {
     const totalRevenue = salesTotal + servicesTotal;
     const netProfit = totalRevenue - expensesTotal;
 
-    // Payment method breakdown
     const paymentBreakdown: Record<string, number> = {};
     (salesData || []).forEach(s => {
       const method = s.payment_method || 'Outro';
@@ -103,9 +103,7 @@ const FinanceiroReportsTab: React.FC = () => {
     };
   }, [salesData, appointmentsData, expensesData]);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  };
+  const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
   const monthLabel = format(parseISO(selectedMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
 
@@ -118,7 +116,6 @@ const FinanceiroReportsTab: React.FC = () => {
     doc.setFontSize(10);
     doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR')}`, 14, 28);
 
-    // Summary
     doc.setFontSize(12);
     doc.text('Resumo Financeiro', 14, 40);
     autoTable(doc, {
@@ -137,7 +134,6 @@ const FinanceiroReportsTab: React.FC = () => {
 
     let currentY = (doc as any).lastAutoTable.finalY + 10;
 
-    // Payment breakdown
     if (Object.keys(stats.paymentBreakdown).length > 0) {
       doc.text('Formas de Pagamento', 14, currentY);
       autoTable(doc, {
@@ -149,7 +145,6 @@ const FinanceiroReportsTab: React.FC = () => {
       currentY = (doc as any).lastAutoTable.finalY + 10;
     }
 
-    // Sales detail
     if (salesData && salesData.length > 0) {
       if (currentY > 240) { doc.addPage(); currentY = 20; }
       doc.text('Detalhamento de Vendas (PDV)', 14, currentY);
@@ -170,7 +165,6 @@ const FinanceiroReportsTab: React.FC = () => {
       currentY = (doc as any).lastAutoTable.finalY + 10;
     }
 
-    // Expenses detail
     if (expensesData && expensesData.length > 0) {
       if (currentY > 240) { doc.addPage(); currentY = 20; }
       doc.text('Detalhamento de Despesas', 14, currentY);
@@ -221,7 +215,6 @@ const FinanceiroReportsTab: React.FC = () => {
 
   const isLoading = isLoadingSales || isLoadingAppointments || isLoadingExpenses;
 
-  // Generate month options (last 12 months)
   const monthOptions = useMemo(() => {
     const options = [];
     for (let i = 0; i < 12; i++) {
@@ -238,15 +231,15 @@ const FinanceiroReportsTab: React.FC = () => {
     <div className="space-y-4">
       {/* Month selector */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-primary" />
+        <CardHeader className="p-3 sm:p-6 pb-3">
+          <div className="flex flex-col gap-3">
+            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-primary" />
               Relatório Financeiro
             </CardTitle>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -255,13 +248,17 @@ const FinanceiroReportsTab: React.FC = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={exportFullReport} size="sm" variant="outline">
-                <FileDown className="w-4 h-4 mr-2" />
-                Relatório PDF
+              <Button onClick={handleRefreshAll} size="sm" variant="outline" disabled={refreshing} className="min-w-[44px]">
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline ml-1">Atualizar</span>
               </Button>
-              <Button onClick={exportPDVHistory} size="sm" variant="outline" disabled={!salesData?.length}>
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                PDV PDF
+              <Button onClick={exportFullReport} size="sm" variant="outline" className="min-w-[44px]">
+                <FileDown className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">Relatório</span>
+              </Button>
+              <Button onClick={exportPDVHistory} size="sm" variant="outline" disabled={!salesData?.length} className="min-w-[44px]">
+                <ShoppingCart className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">PDV</span>
               </Button>
             </div>
           </div>
@@ -269,38 +266,38 @@ const FinanceiroReportsTab: React.FC = () => {
       </Card>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <Card>
-          <CardContent className="p-4 text-center">
-            <DollarSign className="w-6 h-6 mx-auto mb-1 text-primary" />
-            <p className="text-xs text-muted-foreground">Receita Total</p>
-            <p className="text-lg font-bold">{isLoading ? <Skeleton className="h-6 w-20 mx-auto" /> : formatCurrency(stats.totalRevenue)}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-primary" />
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Receita Total</p>
+            <p className="text-sm sm:text-lg font-bold">{isLoading ? <Skeleton className="h-5 w-16 mx-auto" /> : formatCurrency(stats.totalRevenue)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <ShoppingCart className="w-6 h-6 mx-auto mb-1 text-blue-500" />
-            <p className="text-xs text-muted-foreground">Vendas PDV ({stats.salesCount})</p>
-            <p className="text-lg font-bold">{isLoading ? <Skeleton className="h-6 w-20 mx-auto" /> : formatCurrency(stats.salesTotal)}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <ShoppingCart className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-blue-500" />
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Vendas ({stats.salesCount})</p>
+            <p className="text-sm sm:text-lg font-bold">{isLoading ? <Skeleton className="h-5 w-16 mx-auto" /> : formatCurrency(stats.salesTotal)}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <Wrench className="w-6 h-6 mx-auto mb-1 text-cyan-500" />
-            <p className="text-xs text-muted-foreground">Serviços ({stats.servicesCount})</p>
-            <p className="text-lg font-bold">{isLoading ? <Skeleton className="h-6 w-20 mx-auto" /> : formatCurrency(stats.servicesTotal)}</p>
+          <CardContent className="p-3 sm:p-4 text-center">
+            <Wrench className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-cyan-500" />
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Serviços ({stats.servicesCount})</p>
+            <p className="text-sm sm:text-lg font-bold">{isLoading ? <Skeleton className="h-5 w-16 mx-auto" /> : formatCurrency(stats.servicesTotal)}</p>
           </CardContent>
         </Card>
         <Card className={stats.netProfit >= 0 ? '' : 'border-destructive/50'}>
-          <CardContent className="p-4 text-center">
+          <CardContent className="p-3 sm:p-4 text-center">
             {stats.netProfit >= 0 ? (
-              <TrendingUp className="w-6 h-6 mx-auto mb-1 text-green-500" />
+              <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-green-500" />
             ) : (
-              <TrendingDown className="w-6 h-6 mx-auto mb-1 text-destructive" />
+              <TrendingDown className="w-5 h-5 sm:w-6 sm:h-6 mx-auto mb-1 text-destructive" />
             )}
-            <p className="text-xs text-muted-foreground">Lucro Líquido</p>
-            <p className={`text-lg font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
-              {isLoading ? <Skeleton className="h-6 w-20 mx-auto" /> : formatCurrency(stats.netProfit)}
+            <p className="text-[10px] sm:text-xs text-muted-foreground">Lucro Líquido</p>
+            <p className={`text-sm sm:text-lg font-bold ${stats.netProfit >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+              {isLoading ? <Skeleton className="h-5 w-16 mx-auto" /> : formatCurrency(stats.netProfit)}
             </p>
           </CardContent>
         </Card>
@@ -309,15 +306,15 @@ const FinanceiroReportsTab: React.FC = () => {
       {/* Payment Breakdown */}
       {Object.keys(stats.paymentBreakdown).length > 0 && (
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Formas de Pagamento</CardTitle>
+          <CardHeader className="p-3 sm:p-6 pb-2">
+            <CardTitle className="text-xs sm:text-sm">Formas de Pagamento</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {Object.entries(stats.paymentBreakdown).map(([method, value]) => (
                 <div key={method} className="p-2 rounded-lg bg-muted/50 text-center">
-                  <p className="text-xs text-muted-foreground">{method}</p>
-                  <p className="font-semibold text-sm">{formatCurrency(value)}</p>
+                  <p className="text-[10px] sm:text-xs text-muted-foreground">{method}</p>
+                  <p className="font-semibold text-xs sm:text-sm">{formatCurrency(value)}</p>
                 </div>
               ))}
             </div>
@@ -327,24 +324,24 @@ const FinanceiroReportsTab: React.FC = () => {
 
       {/* Sales Table */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
+        <CardHeader className="p-3 sm:p-6 pb-2">
+          <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
             <ShoppingCart className="w-4 h-4" />
             Vendas do Mês ({stats.salesCount})
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="overflow-x-auto -mx-3 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Produto/Serviço</TableHead>
-                  <TableHead className="text-center">Qtd</TableHead>
-                  <TableHead>Pagamento</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="text-right">Lucro</TableHead>
+                  <TableHead className="text-xs">Data</TableHead>
+                  <TableHead className="text-xs">Cliente</TableHead>
+                  <TableHead className="text-xs hidden sm:table-cell">Produto</TableHead>
+                  <TableHead className="text-xs text-center hidden md:table-cell">Qtd</TableHead>
+                  <TableHead className="text-xs hidden lg:table-cell">Pagamento</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
+                  <TableHead className="text-xs text-right hidden sm:table-cell">Lucro</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -353,18 +350,18 @@ const FinanceiroReportsTab: React.FC = () => {
                     <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                   ))
                 ) : !salesData?.length ? (
-                  <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground">Nenhuma venda neste mês</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">Nenhuma venda neste mês</TableCell></TableRow>
                 ) : salesData.map((sale: any) => (
                   <TableRow key={sale.id}>
-                    <TableCell className="text-sm">{format(new Date(sale.sale_date), 'dd/MM HH:mm')}</TableCell>
-                    <TableCell className="font-medium">{sale.clients?.name || 'Balcão'}</TableCell>
-                    <TableCell>{sale.products?.name || '-'}</TableCell>
-                    <TableCell className="text-center">{sale.qty}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{sale.payment_method}</Badge>
+                    <TableCell className="text-xs sm:text-sm py-2">{format(new Date(sale.sale_date), 'dd/MM HH:mm')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || 'Balcão'}</TableCell>
+                    <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[120px] truncate">{sale.products?.name || '-'}</TableCell>
+                    <TableCell className="text-xs text-center py-2 hidden md:table-cell">{sale.qty}</TableCell>
+                    <TableCell className="py-2 hidden lg:table-cell">
+                      <Badge variant="outline" className="text-[10px]">{sale.payment_method}</Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">{formatCurrency(Number(sale.sale_price) * sale.qty)}</TableCell>
-                    <TableCell className="text-right text-green-600">{formatCurrency(Number(sale.total_profit))}</TableCell>
+                    <TableCell className="text-xs sm:text-sm text-right font-semibold py-2">{formatCurrency(Number(sale.sale_price) * sale.qty)}</TableCell>
+                    <TableCell className="text-xs sm:text-sm text-right text-green-600 py-2 hidden sm:table-cell">{formatCurrency(Number(sale.total_profit))}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -375,21 +372,21 @@ const FinanceiroReportsTab: React.FC = () => {
 
       {/* Expenses Table */}
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm flex items-center gap-2">
+        <CardHeader className="p-3 sm:p-6 pb-2">
+          <CardTitle className="text-xs sm:text-sm flex items-center gap-2">
             <TrendingDown className="w-4 h-4" />
-            Despesas do Mês ({expensesData?.length || 0}) - Total: {formatCurrency(stats.expensesTotal)}
+            <span className="truncate">Despesas ({expensesData?.length || 0}) - {formatCurrency(stats.expensesTotal)}</span>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="overflow-x-auto -mx-3 sm:mx-0">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-xs">Data</TableHead>
+                  <TableHead className="text-xs">Categoria</TableHead>
+                  <TableHead className="text-xs hidden sm:table-cell">Descrição</TableHead>
+                  <TableHead className="text-xs text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -398,13 +395,13 @@ const FinanceiroReportsTab: React.FC = () => {
                     <TableRow key={i}><TableCell colSpan={4}><Skeleton className="h-8 w-full" /></TableCell></TableRow>
                   ))
                 ) : !expensesData?.length ? (
-                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground">Nenhuma despesa neste mês</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhuma despesa neste mês</TableCell></TableRow>
                 ) : expensesData.map((expense: any) => (
                   <TableRow key={expense.id}>
-                    <TableCell className="text-sm">{format(new Date(expense.expense_date), 'dd/MM/yy')}</TableCell>
-                    <TableCell><Badge variant="outline">{expense.category}</Badge></TableCell>
-                    <TableCell>{expense.description || '-'}</TableCell>
-                    <TableCell className="text-right font-semibold text-destructive">{formatCurrency(Number(expense.amount))}</TableCell>
+                    <TableCell className="text-xs sm:text-sm py-2">{format(new Date(expense.expense_date), 'dd/MM/yy')}</TableCell>
+                    <TableCell className="py-2"><Badge variant="outline" className="text-[10px]">{expense.category}</Badge></TableCell>
+                    <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[150px] truncate">{expense.description || '-'}</TableCell>
+                    <TableCell className="text-xs sm:text-sm text-right font-semibold text-destructive py-2">{formatCurrency(Number(expense.amount))}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
