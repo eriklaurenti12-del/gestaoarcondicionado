@@ -93,6 +93,25 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     staleTime: 30 * 1000,
   });
 
+  const { data: supportContacts } = useQuery({
+    queryKey: ['support-contacts'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'support_contacts')
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          return parsed.filter((c: any) => c.available && c.name && c.phone);
+        } catch { return []; }
+      }
+      return [];
+    },
+    staleTime: 60 * 1000,
+  });
+
   const filterSectionsByRole = (sections: any[]) => {
     if (!userRole || userRole === 'super_admin' || userRole === 'sistema') return sections;
     const roleTabAccess: Record<string, string[]> = {
