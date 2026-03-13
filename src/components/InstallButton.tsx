@@ -18,7 +18,8 @@ const InstallButton: React.FC = () => {
 
     // Verificar se já está instalado como PWA
     const standalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       (window.navigator as any).standalone === true;
+                       (window.navigator as any).standalone === true ||
+                       localStorage.getItem('pwa-installed') === 'true';
     setIsStandalone(standalone);
 
     if (standalone) {
