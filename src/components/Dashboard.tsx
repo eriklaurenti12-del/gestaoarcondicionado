@@ -531,12 +531,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     });
 
     if (isLoading || !data) return (
-      <div className="space-y-6">
-        <Skeleton className="h-16 w-full" />
+      <div className="space-y-6 animate-blur-in">
+        <Skeleton className="h-16 w-full rounded-xl shimmer" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
-          <Skeleton className="h-32 w-full" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
+          <Skeleton className="h-32 w-full rounded-xl shimmer" />
         </div>
       </div>
     );

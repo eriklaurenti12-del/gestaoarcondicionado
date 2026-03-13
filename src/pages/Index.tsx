@@ -324,10 +324,10 @@ export default function Index() {
 
             <div className="flex-1 flex flex-col min-w-0">
               {/* Header */}
-              <header className="h-14 border-b border-border flex items-center px-3 sm:px-5 bg-card/90 backdrop-blur-md sticky top-0 z-20 gap-2">
+              <header className="h-14 border-b border-border/60 flex items-center px-3 sm:px-5 bg-card/80 backdrop-blur-xl sticky top-0 z-20 gap-2 shadow-[0_1px_3px_hsl(var(--primary)/0.04)]">
                 {/* Left: trigger + title */}
                 <SidebarTrigger className="h-9 w-9 flex-shrink-0 rounded-lg hover:bg-muted transition-colors" />
-                <div className="hidden sm:block h-5 w-px bg-border flex-shrink-0" />
+                <div className="hidden sm:block h-5 w-px bg-border/50 flex-shrink-0" />
                 <h1 className="text-sm font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis mr-auto">{getPageTitle()}</h1>
 
                 {/* Right: icon buttons */}
