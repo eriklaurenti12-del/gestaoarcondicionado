@@ -243,16 +243,32 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
               <span className="text-xs font-medium">Simplificado</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
-              tooltip="Falar com suporte"
-              className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-xs">Falar com suporte</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {/* Dynamic support contacts */}
+          {supportContacts && supportContacts.length > 0 ? (
+            supportContacts.map((contact: any) => (
+              <SidebarMenuItem key={contact.id}>
+                <SidebarMenuButton
+                  onClick={() => window.open(`https://wa.me/${contact.phone}?text=Olá%2C+preciso+de+suporte`, '_blank')}
+                  tooltip={`${contact.name} - ${contact.role || 'Suporte'}`}
+                  className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+                >
+                  <Headphones className="w-4 h-4 flex-shrink-0" />
+                  <span className="text-xs truncate">{contact.name}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))
+          ) : (
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')}
+                tooltip="Falar com suporte"
+                className="h-9 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-xs">Falar com suporte</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )}
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={onSignOut}
