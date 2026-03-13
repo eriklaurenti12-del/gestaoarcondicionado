@@ -72,6 +72,7 @@ const DEFAULT_TABS = [
   { id: 'users', label: 'Usuários', icon: 'UserPlus' },
   { id: 'notifications', label: 'Notificações', icon: 'Bell' },
   { id: 'integrations', label: 'Integrações', icon: 'Zap' },
+  { id: 'branding', label: 'Identidade', icon: 'Wind' },
   { id: 'n8n', label: 'n8n', icon: 'Webhook' },
   { id: 'landing', label: 'Landing', icon: 'Megaphone' },
   { id: 'theme', label: 'Tema', icon: 'Palette' },
@@ -83,7 +84,7 @@ const DEFAULT_TABS = [
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind
 };
 
 export default function Members() {
