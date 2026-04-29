@@ -156,11 +156,18 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('company_data').select('company_name, email').limit(1).single();
+      // CRITICAL: filter by current user_id to avoid showing another user's company name
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) return null;
+      const { data, error } = await supabase
+        .from('company_data')
+        .select('company_name, email, logo_url')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
   });
 
   const { data: sidebarConfig } = useQuery({
