@@ -197,6 +197,7 @@ const CompanyDataTab: React.FC = () => {
         }
         
         queryClient.invalidateQueries({ queryKey: ['company-data'] });
+        queryClient.invalidateQueries({ queryKey: ['company-data-sidebar'] });
       }
       
       toast({ title: "Logo carregado e salvo!" });
