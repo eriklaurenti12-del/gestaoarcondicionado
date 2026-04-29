@@ -225,11 +225,11 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-border">
-      {/* Logo Header */}
+      {/* Logo Header — uses logged-in user's company logo as priority */}
       <SidebarHeader className="p-4 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
-          {systemLogoUrl ? (
-            <img src={systemLogoUrl} alt={companyName} className="w-9 h-9 rounded-xl object-contain flex-shrink-0" />
+          {(companyData?.logo_url || systemLogoUrl) ? (
+            <img src={companyData?.logo_url || systemLogoUrl!} alt={companyName} className="w-9 h-9 rounded-xl object-contain flex-shrink-0" />
           ) : (
             <div className="p-2 rounded-xl bg-primary shadow-sm flex-shrink-0">
               <Wind className="w-5 h-5 text-primary-foreground" />
