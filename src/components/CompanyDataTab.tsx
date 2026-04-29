@@ -119,6 +119,8 @@ const CompanyDataTab: React.FC = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['company-data'] });
+      queryClient.invalidateQueries({ queryKey: ['company-data-sidebar'] });
+      queryClient.invalidateQueries({ queryKey: ['system-branding'] });
       toast({
         title: "Sucesso!",
         description: "Dados da empresa salvos com sucesso."
