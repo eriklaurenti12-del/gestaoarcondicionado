@@ -215,11 +215,12 @@ const FixedExpensesTab: React.FC = () => {
 
   const grandTotal = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoBase64 = localStorage.getItem('company_logo');
-    const companyName = localStorage.getItem('company_name') || '';
+    const branding = await getCurrentCompanyBranding();
+    const logoBase64 = branding.logoBase64;
+    const companyName = branding.companyName;
     
     // Header
     doc.setFillColor(24, 24, 27);
