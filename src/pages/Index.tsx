@@ -232,6 +232,35 @@ export default function Index() {
     setShowOnboarding(true);
   };
 
+  // Check for new SW version. If found → 'pwa:need-refresh' fires and shows banner.
+  // If not → notify user the system is already up to date.
+  const checkForUpdates = async () => {
+    toast.info('🔍 Verificando atualizações...', { id: 'check-update' });
+    try {
+      // Tell main.tsx-registered SW to look for a new build
+      window.dispatchEvent(new CustomEvent('pwa:check-update'));
+
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) {
+          await reg.update();
+          // Wait briefly to see if a new worker shows up
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          if (reg.waiting || reg.installing) {
+            // 'pwa:need-refresh' will fire from main.tsx; UpdateNotification handles it
+            toast.dismiss('check-update');
+            return;
+          }
+        }
+      }
+      toast.success('✅ Você já está na versão mais recente!', { id: 'check-update' });
+    } catch {
+      toast.dismiss('check-update');
+      toast.info('🔄 Recarregando para garantir versão atual...');
+      setTimeout(() => window.location.reload(), 800);
+    }
+  };
+
   const handleSignOut = async () => {
     try {
       // Clear React Query cache so next user doesn't see previous user's data
