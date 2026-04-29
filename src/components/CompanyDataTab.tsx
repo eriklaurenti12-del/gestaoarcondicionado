@@ -57,12 +57,20 @@ const CompanyDataTab: React.FC = () => {
         setEmail((data as any).email || '');
         setAddress((data as any).address || '');
         setInstagram((data as any).instagram || '');
-        // Persist to localStorage for PDF access
-        localStorage.setItem('company_name', (data as any).company_name || '');
-        localStorage.setItem('company_cnpj', (data as any).cnpj_cpf || '');
-        localStorage.setItem('company_email', (data as any).email || '');
-        localStorage.setItem('company_whatsapp', (data as any).whatsapp || '');
-        localStorage.setItem('company_address', (data as any).address || '');
+        // Load logo from DB (cloud) instead of cross-user localStorage
+        if ((data as any).logo_url) {
+          try {
+            const resp = await fetch((data as any).logo_url);
+            const blob = await resp.blob();
+            const reader = new FileReader();
+            reader.onload = (ev) => setLogoBase64(ev.target?.result as string);
+            reader.readAsDataURL(blob);
+          } catch {
+            setLogoBase64('');
+          }
+        } else {
+          setLogoBase64('');
+        }
       }
       
       return data;
