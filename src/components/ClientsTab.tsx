@@ -130,12 +130,12 @@ const ClientsTab: React.FC = () => {
     const tableData = clients?.map(c => {
       const sales = c.sales || [];
       const total = sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-      return [c.name, c.telefone || '-', c.preferences || '-', `${sales.length}`, `R$ ${total.toFixed(2)}`];
+      return [c.name, c.telefone || '-', c.address || '-', c.preferences || '-', `${sales.length}`, `R$ ${total.toFixed(2)}`];
     }) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Cliente', 'WhatsApp', 'Endereço', 'Serviços', 'Total']],
+      head: [['Cliente', 'WhatsApp', 'Endereço', 'Observações', 'Serviços', 'Total']],
       body: tableData,
       headStyles: { fillColor: [0, 128, 192] },
     });
