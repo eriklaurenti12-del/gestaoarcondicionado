@@ -19,13 +19,17 @@ if (!isInIframe && !isPreviewHost) {
     onOfflineReady() {
       window.dispatchEvent(new CustomEvent('pwa:offline-ready'));
     },
-    onRegisteredSW(_swUrl, registration) {
-      // Poll for updates every 60s — important when running as installed PWA
-      if (registration) {
-        setInterval(() => { registration.update().catch(() => {}); }, 60 * 1000);
-      }
-    },
   });
+
+  // Poll registered SW every 60s for updates (works when installed as PWA)
+  if ('serviceWorker' in navigator) {
+    setInterval(async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg) await reg.update();
+      } catch { /* noop */ }
+    }, 60 * 1000);
+  }
 
   // Allow any UI button to force a fresh update check
   window.addEventListener('pwa:check-update', async () => {
