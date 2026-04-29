@@ -216,13 +216,14 @@ const CompanyDataTab: React.FC = () => {
 
   const removeLogo = async () => {
     setLogoBase64('');
-    localStorage.removeItem('company_logo');
     if (fileInputRef.current) fileInputRef.current.value = '';
-    
+
     // Remove from storage and DB
     try {
       await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
       await supabase.from('company_data' as any).update({ logo_url: null }).eq('user_id', userId);
+      queryClient.invalidateQueries({ queryKey: ['company-data'] });
+      queryClient.invalidateQueries({ queryKey: ['company-data-sidebar'] });
     } catch { /* ignore */ }
   };
 
