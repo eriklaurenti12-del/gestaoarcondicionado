@@ -90,6 +90,7 @@ const ClientsTab: React.FC = () => {
     return clients.filter((c) => 
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.telefone?.includes(search) ||
+      c.address?.toLowerCase().includes(search.toLowerCase()) ||
       c.preferences?.toLowerCase().includes(search.toLowerCase()) ||
       c.email?.toLowerCase().includes(search.toLowerCase())
     ).map(c => ({
