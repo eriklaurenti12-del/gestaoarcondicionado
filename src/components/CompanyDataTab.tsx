@@ -164,12 +164,11 @@ const CompanyDataTab: React.FC = () => {
       return;
     }
     
-    // Save to localStorage for PDF access
+    // Read file as base64 for immediate preview + PDF export (in-memory only)
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       setLogoBase64(base64);
-      localStorage.setItem('company_logo', base64);
     };
     reader.readAsDataURL(file);
     
