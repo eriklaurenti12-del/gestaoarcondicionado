@@ -163,6 +163,23 @@ export default function Index() {
         return;
       }
 
+      // CRITICAL: if a different user is now logged in on this browser,
+      // wipe all React Query cache + per-user localStorage to avoid showing
+      // the previous user's company name/logo (e.g. "Excelência" appearing for Erik).
+      const previousUserId = localStorage.getItem('current_user_id');
+      if (previousUserId && previousUserId !== session.user.id) {
+        queryClient.clear();
+        // Wipe per-browser branding leftovers from old account
+        localStorage.removeItem('company_logo');
+        localStorage.removeItem('company_name');
+        localStorage.removeItem('company_cnpj');
+        localStorage.removeItem('company_email');
+        localStorage.removeItem('company_whatsapp');
+        localStorage.removeItem('company_address');
+      }
+      localStorage.setItem('current_user_id', session.user.id);
+      lastUserIdRef.current = session.user.id;
+
       const { data: roles } = await supabase
         .from('user_roles')
         .select('role')
