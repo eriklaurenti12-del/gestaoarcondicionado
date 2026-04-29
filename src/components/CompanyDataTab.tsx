@@ -22,7 +22,7 @@ const CompanyDataTab: React.FC = () => {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [userId, setUserId] = useState<string>('');
-  const [logoBase64, setLogoBase64] = useState<string>(localStorage.getItem('company_logo') || '');
+  const [logoBase64, setLogoBase64] = useState<string>('');
   
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
