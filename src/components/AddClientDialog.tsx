@@ -79,6 +79,30 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
         return;
       }
 
+      // Duplicate detection: same user, same name (case-insensitive) OR same phone (digits only)
+      const phoneDigits = telefone.replace(/\D/g, '');
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, name, telefone')
+        .eq('user_id', session.user.id);
+
+      const duplicate = (existing || []).find(c => {
+        const sameName = c.name?.trim().toLowerCase() === name.trim().toLowerCase();
+        const samePhone = phoneDigits.length >= 8 && c.telefone && c.telefone.replace(/\D/g, '') === phoneDigits;
+        return sameName || samePhone;
+      });
+
+      if (duplicate) {
+        const reason = duplicate.name?.trim().toLowerCase() === name.trim().toLowerCase()
+          ? `Já existe um cliente com o nome "${duplicate.name}".`
+          : `Já existe um cliente com este WhatsApp (${duplicate.telefone}).`;
+        const ok = window.confirm(`${reason}\n\nDeseja cadastrar mesmo assim como um novo cliente?`);
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from('clients').insert({
         name: name.trim(),
         telefone: telefone || null,

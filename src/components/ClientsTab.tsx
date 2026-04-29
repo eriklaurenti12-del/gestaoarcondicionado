@@ -90,6 +90,7 @@ const ClientsTab: React.FC = () => {
     return clients.filter((c) => 
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.telefone?.includes(search) ||
+      c.address?.toLowerCase().includes(search.toLowerCase()) ||
       c.preferences?.toLowerCase().includes(search.toLowerCase()) ||
       c.email?.toLowerCase().includes(search.toLowerCase())
     ).map(c => ({
@@ -129,12 +130,12 @@ const ClientsTab: React.FC = () => {
     const tableData = clients?.map(c => {
       const sales = c.sales || [];
       const total = sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
-      return [c.name, c.telefone || '-', c.preferences || '-', `${sales.length}`, `R$ ${total.toFixed(2)}`];
+      return [c.name, c.telefone || '-', c.address || '-', c.preferences || '-', `${sales.length}`, `R$ ${total.toFixed(2)}`];
     }) || [];
 
     autoTable(doc, {
       startY: 35,
-      head: [['Cliente', 'WhatsApp', 'Endereço', 'Serviços', 'Total']],
+      head: [['Cliente', 'WhatsApp', 'Endereço', 'Observações', 'Serviços', 'Total']],
       body: tableData,
       headStyles: { fillColor: [0, 128, 192] },
     });
@@ -164,7 +165,7 @@ const ClientsTab: React.FC = () => {
         <CardContent className="space-y-4">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Buscar cliente, telefone ou endereço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 transition-all duration-200"/>
+            <Input placeholder="Buscar por nome, WhatsApp, endereço ou observação..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 transition-all duration-200"/>
           </div>
           <div className="overflow-x-auto -mx-4 sm:mx-0">
             <div className="min-w-[600px] px-4 sm:px-0">
@@ -174,13 +175,14 @@ const ClientsTab: React.FC = () => {
                     <TableHead>Cliente</TableHead>
                     <TableHead>WhatsApp</TableHead>
                     <TableHead>Endereço</TableHead>
+                    <TableHead>Obs.</TableHead>
                     <TableHead>Serviços</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={6}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
+                  {isLoadingClients ? Array.from({length: 3}).map((_,i) => <TableRow key={i}><TableCell colSpan={7}><Skeleton className="h-8 w-full"/></TableCell></TableRow>)
                   : filteredClients.map((client) => {
                     const total = client.sales.reduce((sum, p) => sum + Number(p.sale_price) * p.qty, 0);
                     const maintenanceStatus = getClientMaintenanceStatus(client.id);
@@ -218,31 +220,69 @@ const ClientsTab: React.FC = () => {
                           ) : '-'}
                         </TableCell>
                         <TableCell>
-                          {client.preferences ? (
-                            <div className="flex items-center gap-1 max-w-[200px] truncate" title={client.preferences}>
+                          {client.address ? (
+                            <div className="flex items-center gap-1 max-w-[200px] truncate" title={client.address}>
                               <MapPin className="w-3 h-3 text-muted-foreground flex-shrink-0" />
-                              <span className="truncate">{client.preferences}</span>
+                              <span className="truncate">{client.address}</span>
+                            </div>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          {client.preferences ? (
+                            <div className="max-w-[160px] truncate text-xs text-muted-foreground" title={client.preferences}>
+                              {client.preferences}
                             </div>
                           ) : '-'}
                         </TableCell>
                         <TableCell>{client.sales.length}</TableCell>
                         <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
                         <TableCell>
-                          <div className="flex gap-1">
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-cyan-500 hover:text-cyan-600 transition-all duration-200 hover:scale-110" onClick={() => setEquipmentClient(client)} title="Equipamentos">
-                              <Wind className="w-3 h-3" />
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-primary hover:text-primary/80 transition-all duration-200 hover:scale-110" onClick={() => setHistoryClient(client)} title="Ver histórico">
-                              <History className="w-3 h-3" />
-                            </Button>
-                            {client.telefone && (
-                              <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-500 hover:text-green-600 transition-all duration-200 hover:scale-110" onClick={() => sendWhatsAppMessage(client)} title="Enviar WhatsApp">
-                                <MessageCircle className="w-3 h-3" />
-                              </Button>
-                            )}
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110" onClick={() => setEditingClient(client)}><Pencil className="w-3 h-3" /></Button>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110" onClick={() => onDeleteClient(client.id)}><Trash2 className="w-3 h-3" /></Button>
-                          </div>
+                          <TooltipProvider delayDuration={150}>
+                            <div className="flex gap-1">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-cyan-500 hover:text-cyan-600 transition-all duration-200 hover:scale-110" onClick={() => setEquipmentClient(client)}>
+                                    <Wind className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Equipamentos e manutenções</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-primary hover:text-primary/80 transition-all duration-200 hover:scale-110" onClick={() => setHistoryClient(client)}>
+                                    <History className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Histórico de serviços e vendas</TooltipContent>
+                              </Tooltip>
+                              {client.telefone && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-500 hover:text-green-600 transition-all duration-200 hover:scale-110" onClick={() => sendWhatsAppMessage(client)}>
+                                      <MessageCircle className="w-3 h-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Enviar mensagem no WhatsApp</TooltipContent>
+                                </Tooltip>
+                              )}
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110" onClick={() => setEditingClient(client)}>
+                                    <Pencil className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Editar cadastro do cliente</TooltipContent>
+                              </Tooltip>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive hover:text-destructive transition-all duration-200 hover:scale-110" onClick={() => onDeleteClient(client.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Excluir cliente</TooltipContent>
+                              </Tooltip>
+                            </div>
+                          </TooltipProvider>
                         </TableCell>
                       </TableRow>
                     );
