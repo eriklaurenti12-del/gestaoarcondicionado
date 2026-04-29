@@ -234,6 +234,16 @@ export default function Index() {
 
   const handleSignOut = async () => {
     try {
+      // Clear React Query cache so next user doesn't see previous user's data
+      queryClient.clear();
+      // Clear per-browser branding leftovers (logo / company name local cache)
+      localStorage.removeItem('company_logo');
+      localStorage.removeItem('company_name');
+      localStorage.removeItem('company_cnpj');
+      localStorage.removeItem('company_email');
+      localStorage.removeItem('company_whatsapp');
+      localStorage.removeItem('company_address');
+      localStorage.removeItem('current_user_id');
       await supabase.auth.signOut();
       navigate("/");
     } catch (error) {
