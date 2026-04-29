@@ -14,8 +14,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' && componentTagger(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'icon-192x192.png', 'icon-512x512.png'],
+      devOptions: { enabled: false },
       manifest: {
         name: 'AC Service Pro - Gestão de Ar Condicionado',
         short_name: 'AC Service Pro',
@@ -42,8 +43,19 @@ export default defineConfig(({ mode }) => ({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 6 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: false,
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+            },
+          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
