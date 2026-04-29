@@ -71,10 +71,12 @@ const fetchNotificationCount = async () => {
 
 export default function Index() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const lastUserIdRef = useRef<string>('');
   const [userRole, setUserRole] = useState<string>('');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -82,8 +84,9 @@ export default function Index() {
   const [showTipsDialog, setShowTipsDialog] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
-    queryKey: ['notification-count'],
+    queryKey: ['notification-count', currentUserId],
     queryFn: fetchNotificationCount,
+    enabled: !!currentUserId,
     refetchInterval: 60000
   });
 
