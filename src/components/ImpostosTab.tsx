@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from 'sonner';
+import { getCurrentCompanyBranding } from '@/lib/companyBranding';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -278,13 +279,14 @@ const ImpostosTab: React.FC = () => {
   const employeeCosts = formData.employee_salary + formData.employee_inss + formData.employee_fgts;
   const netProfit = formData.total_revenue - totalTaxes - formData.total_expenses - employeeCosts;
 
-  const generatePDFContabilidade = () => {
+  const generatePDFContabilidade = async () => {
     const doc = new jsPDF();
     const monthLabel = monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoBase64 = localStorage.getItem('company_logo');
-    const companyName = localStorage.getItem('company_name') || '';
-    const companyCnpj = localStorage.getItem('company_cnpj') || '';
+    const branding = await getCurrentCompanyBranding();
+    const logoBase64 = branding.logoBase64;
+    const companyName = branding.companyName;
+    const companyCnpj = branding.cnpjCpf;
     
     // Header
     doc.setFillColor(24, 24, 27);

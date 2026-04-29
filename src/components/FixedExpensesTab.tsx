@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentCompanyBranding } from '@/lib/companyBranding';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -215,11 +216,12 @@ const FixedExpensesTab: React.FC = () => {
 
   const grandTotal = filteredExpenses.reduce((sum, exp) => sum + Number(exp.amount), 0);
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const logoBase64 = localStorage.getItem('company_logo');
-    const companyName = localStorage.getItem('company_name') || '';
+    const branding = await getCurrentCompanyBranding();
+    const logoBase64 = branding.logoBase64;
+    const companyName = branding.companyName;
     
     // Header
     doc.setFillColor(24, 24, 27);

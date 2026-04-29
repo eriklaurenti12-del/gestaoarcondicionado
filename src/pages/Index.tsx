@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SupportButton from "@/components/SupportButton";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import Dashboard from "@/components/Dashboard";
@@ -71,10 +71,12 @@ const fetchNotificationCount = async () => {
 
 export default function Index() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
+  const lastUserIdRef = useRef<string>('');
   const [userRole, setUserRole] = useState<string>('');
   const [activeTab, setActiveTab] = useState("dashboard");
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -82,8 +84,9 @@ export default function Index() {
   const [showTipsDialog, setShowTipsDialog] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
-    queryKey: ['notification-count'],
+    queryKey: ['notification-count', currentUserId],
     queryFn: fetchNotificationCount,
+    enabled: !!currentUserId,
     refetchInterval: 60000
   });
 
@@ -160,6 +163,23 @@ export default function Index() {
         return;
       }
 
+      // CRITICAL: if a different user is now logged in on this browser,
+      // wipe all React Query cache + per-user localStorage to avoid showing
+      // the previous user's company name/logo (e.g. "Excelência" appearing for Erik).
+      const previousUserId = localStorage.getItem('current_user_id');
+      if (previousUserId && previousUserId !== session.user.id) {
+        queryClient.clear();
+        // Wipe per-browser branding leftovers from old account
+        localStorage.removeItem('company_logo');
+        localStorage.removeItem('company_name');
+        localStorage.removeItem('company_cnpj');
+        localStorage.removeItem('company_email');
+        localStorage.removeItem('company_whatsapp');
+        localStorage.removeItem('company_address');
+      }
+      localStorage.setItem('current_user_id', session.user.id);
+      lastUserIdRef.current = session.user.id;
+
       const { data: roles } = await supabase
         .from('user_roles')
         .select('role')
@@ -214,6 +234,16 @@ export default function Index() {
 
   const handleSignOut = async () => {
     try {
+      // Clear React Query cache so next user doesn't see previous user's data
+      queryClient.clear();
+      // Clear per-browser branding leftovers (logo / company name local cache)
+      localStorage.removeItem('company_logo');
+      localStorage.removeItem('company_name');
+      localStorage.removeItem('company_cnpj');
+      localStorage.removeItem('company_email');
+      localStorage.removeItem('company_whatsapp');
+      localStorage.removeItem('company_address');
+      localStorage.removeItem('current_user_id');
       await supabase.auth.signOut();
       navigate("/");
     } catch (error) {

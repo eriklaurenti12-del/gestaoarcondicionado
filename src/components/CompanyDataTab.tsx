@@ -22,7 +22,7 @@ const CompanyDataTab: React.FC = () => {
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [userId, setUserId] = useState<string>('');
-  const [logoBase64, setLogoBase64] = useState<string>(localStorage.getItem('company_logo') || '');
+  const [logoBase64, setLogoBase64] = useState<string>('');
   
   const [phone, setPhone] = useState('');
   const [instagram, setInstagram] = useState('');
@@ -57,12 +57,20 @@ const CompanyDataTab: React.FC = () => {
         setEmail((data as any).email || '');
         setAddress((data as any).address || '');
         setInstagram((data as any).instagram || '');
-        // Persist to localStorage for PDF access
-        localStorage.setItem('company_name', (data as any).company_name || '');
-        localStorage.setItem('company_cnpj', (data as any).cnpj_cpf || '');
-        localStorage.setItem('company_email', (data as any).email || '');
-        localStorage.setItem('company_whatsapp', (data as any).whatsapp || '');
-        localStorage.setItem('company_address', (data as any).address || '');
+        // Load logo from DB (cloud) instead of cross-user localStorage
+        if ((data as any).logo_url) {
+          try {
+            const resp = await fetch((data as any).logo_url);
+            const blob = await resp.blob();
+            const reader = new FileReader();
+            reader.onload = (ev) => setLogoBase64(ev.target?.result as string);
+            reader.readAsDataURL(blob);
+          } catch {
+            setLogoBase64('');
+          }
+        } else {
+          setLogoBase64('');
+        }
       }
       
       return data;
@@ -156,12 +164,11 @@ const CompanyDataTab: React.FC = () => {
       return;
     }
     
-    // Save to localStorage for PDF access
+    // Read file as base64 for immediate preview + PDF export (in-memory only)
     const reader = new FileReader();
     reader.onload = (event) => {
       const base64 = event.target?.result as string;
       setLogoBase64(base64);
-      localStorage.setItem('company_logo', base64);
     };
     reader.readAsDataURL(file);
     
@@ -209,13 +216,14 @@ const CompanyDataTab: React.FC = () => {
 
   const removeLogo = async () => {
     setLogoBase64('');
-    localStorage.removeItem('company_logo');
     if (fileInputRef.current) fileInputRef.current.value = '';
-    
+
     // Remove from storage and DB
     try {
       await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
       await supabase.from('company_data' as any).update({ logo_url: null }).eq('user_id', userId);
+      queryClient.invalidateQueries({ queryKey: ['company-data'] });
+      queryClient.invalidateQueries({ queryKey: ['company-data-sidebar'] });
     } catch { /* ignore */ }
   };
 
