@@ -13,6 +13,8 @@ import AppointmentsTab from "@/components/AppointmentsTab";
 import FinanceiroUnifiedTab from "@/components/FinanceiroUnifiedTab";
 import DocumentsUnifiedTab from "@/components/DocumentsUnifiedTab";
 import ServicesUnifiedTab from "@/components/ServicesUnifiedTab";
+import ServiceProvidersTab from "@/components/ServiceProvidersTab";
+import HistoricoGeralTab from "@/components/HistoricoGeralTab";
 import PDVTab from "@/components/PDVTab";
 import ImpostosTab from "@/components/ImpostosTab";
 import BtuCalculator from "@/components/BtuCalculator";
@@ -294,10 +296,10 @@ export default function Index() {
 
   const allowedTabsByRole: Record<string, string[]> = {
     painel: ['dashboard'],
-    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents', 'lembretes'],
-    sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
-    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
-    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company'],
+    suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents', 'prestadores', 'historico', 'lembretes'],
+    sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
+    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
+    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
   };
 
   const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['']).includes(tab);
@@ -336,6 +338,10 @@ export default function Index() {
         return <DataBackup />;
       case "company":
         return <CompanyDataTab />;
+      case "prestadores":
+        return <ServiceProvidersTab />;
+      case "historico":
+        return <HistoricoGeralTab />;
       default:
         return <Dashboard onNavigateToTab={setActiveTab} />;
     }
@@ -347,7 +353,7 @@ export default function Index() {
       appointments: "Agenda de Atendimentos",
       "online-bookings": "Agendamento Online",
       cadastros: "Clientes & Serviços",
-      documents: "Orçamentos & Ordens de Serviço",
+      documents: "Orçamentos",
       financeiro: "Gestão Financeira",
       services: "Manutenções & Contratos",
       "btu-calculator": "Calculadora de BTUs",
@@ -355,6 +361,8 @@ export default function Index() {
       impostos: "Gestão de Impostos",
       "notifications-settings": "Configurações de Notificações",
       lembretes: "Lembretes & Mensagens",
+      prestadores: "Equipe de Prestadores",
+      historico: "Histórico Geral",
       backup: "Backup dos Dados",
       company: "Dados da Empresa"
     };
@@ -420,8 +428,9 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
                   <HelpCircle className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={checkForUpdates} title="Buscar atualizações">
-                  <RefreshCw className="h-4 w-4" />
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50 shrink-0 font-medium ml-1 mr-1" onClick={checkForUpdates} title="Buscar atualizações">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar Sistema
                 </Button>
 
                 {/* Notification Bell */}

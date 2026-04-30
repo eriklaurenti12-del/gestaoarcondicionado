@@ -135,7 +135,7 @@ const ClientsTab: React.FC = () => {
 
     autoTable(doc, {
       startY: 35,
-      head: [['Cliente', 'WhatsApp', 'Endereço', 'Observações', 'Serviços', 'Total']],
+      head: [['Cliente', 'WhatsApp', 'Endereço', 'Observações', 'Serviços', 'Total', 'Status Higienização']],
       body: tableData,
       headStyles: { fillColor: [0, 128, 192] },
     });
@@ -177,6 +177,7 @@ const ClientsTab: React.FC = () => {
                     <TableHead>Endereço</TableHead>
                     <TableHead>Obs.</TableHead>
                     <TableHead>Serviços</TableHead>
+                    <TableHead>Vencimento</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Ações</TableHead>
                   </TableRow>
@@ -235,6 +236,15 @@ const ClientsTab: React.FC = () => {
                           ) : '-'}
                         </TableCell>
                         <TableCell>{client.sales.length}</TableCell>
+                        <TableCell>
+                          {maintenanceStatus ? (
+                            <span className={`text-xs font-semibold ${maintenanceStatus.color}`}>
+                              {maintenanceStatus.status === 'overdue' ? 'Atrasado' : maintenanceStatus.status === 'upcoming' ? 'Vence em breve' : 'Em dia'}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
                         <TableCell>
                           <TooltipProvider delayDuration={150}>

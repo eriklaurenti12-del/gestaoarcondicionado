@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Clock, Scissors, Save, Sparkles, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Wind, Save, Sparkles, AlertCircle } from "lucide-react";
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from "@/components/ui/use-toast";
@@ -168,7 +168,7 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
                             <div className="flex items-center gap-2">
-                              <Scissors className="w-4 h-4 text-primary" />
+                              <Wind className="w-4 h-4 text-primary" />
                               <span className="font-medium">{apt.products?.name || 'Serviço não especificado'}</span>
                             </div>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -278,14 +278,14 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                 </Label>
                 <Textarea
                   id="preferences"
-                  placeholder="Ex: Prefere corte mais curto nas laterais, alergia a amônia, cor favorita: loiro mel..."
+                  placeholder="Ex: Equipamento LG 9000 BTUs Inverter (quarto), acesso difícil no telhado, precisa de escada grande..."
                   value={preferences}
                   onChange={(e) => setPreferences(e.target.value)}
                   rows={6}
                   className="resize-none"
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  Registre preferências, alergias, cores favoritas, tipo de corte preferido, etc.
+                  Registre informações importantes sobre os equipamentos, acessibilidade do local, voltagem, etc.
                 </p>
               </div>
             </div>

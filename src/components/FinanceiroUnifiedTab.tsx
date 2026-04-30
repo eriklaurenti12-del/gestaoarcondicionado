@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, BarChart3, Wallet } from "lucide-react";
+import { TrendingUp, BarChart3, Wallet, Fuel } from "lucide-react";
 import ChartsMetrics from './ChartsMetrics';
 import FinanceiroReportsTab from './FinanceiroReportsTab';
 import FinanceiroTab from './FinanceiroTab';
+import FixedExpensesTab from './FixedExpensesTab';
 import TabGuideCards from './TabGuideCards';
 
 const FinanceiroUnifiedTab: React.FC = () => {
@@ -37,14 +38,23 @@ const FinanceiroUnifiedTab: React.FC = () => {
       onClick: () => setActiveSubTab('graficos'),
       isActive: activeSubTab === 'graficos',
     },
+    {
+      icon: Fuel,
+      title: 'Gastos de Rota',
+      badge: 'Despesas',
+      badgeColor: 'amber',
+      description: <>Controle <strong>combustível, alimentação e ajudantes</strong> por prestador e por mês.</>,
+      onClick: () => setActiveSubTab('gastos-rota'),
+      isActive: activeSubTab === 'gastos-rota',
+    },
   ];
 
   return (
     <div className="space-y-4">
-      <TabGuideCards cards={guideCards} />
+      <TabGuideCards cards={guideCards} columns={4} />
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
           <TabsTrigger value="controle" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
             <Wallet className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Controle</span>
@@ -56,6 +66,10 @@ const FinanceiroUnifiedTab: React.FC = () => {
           <TabsTrigger value="graficos" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
             <TrendingUp className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Gráficos</span>
+          </TabsTrigger>
+          <TabsTrigger value="gastos-rota" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
+            <Fuel className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">Gastos</span>
           </TabsTrigger>
         </TabsList>
 
@@ -69,6 +83,10 @@ const FinanceiroUnifiedTab: React.FC = () => {
 
         <TabsContent value="graficos" className="mt-4">
           <ChartsMetrics />
+        </TabsContent>
+
+        <TabsContent value="gastos-rota" className="mt-4">
+          <FixedExpensesTab />
         </TabsContent>
       </Tabs>
     </div>

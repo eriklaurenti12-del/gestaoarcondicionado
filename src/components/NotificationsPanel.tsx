@@ -72,7 +72,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         setNotificationsEnabled(true);
         toast.success('Notificações ativadas!');
         
-        new Notification('Salão de Beleza', {
+        new Notification('Sistema AC', {
           body: 'Notificações ativadas com sucesso! Você receberá alertas importantes.',
           icon: '/icon-192x192.png',
           badge: '/icon-192x192.png'

@@ -144,6 +144,9 @@ const AppointmentsTab: React.FC = () => {
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
+  
+  // Provider selection
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -163,6 +166,23 @@ const AppointmentsTab: React.FC = () => {
   const { data: services } = useQuery({ queryKey: ['services-list'], queryFn: fetchServices });
   const { data: pendingQuotes } = useQuery({ queryKey: ['pending-quotes'], queryFn: fetchPendingQuotes });
   const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
+  
+  // Fetch providers from admin_settings
+  const { data: providers = [] } = useQuery({
+    queryKey: ['service-providers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'service_providers')
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') return [];
+      if (data?.value) {
+        try { return JSON.parse(data.value); } catch { return []; }
+      }
+      return [];
+    },
+  });
 
   const addAppointmentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -295,6 +315,7 @@ const AppointmentsTab: React.FC = () => {
     setSourceType('quote');
     setSelectedQuoteId("");
     setSelectedOrderId("");
+    setSelectedProvider("");
   };
   
   // Create new client mutation
@@ -416,6 +437,11 @@ const AppointmentsTab: React.FC = () => {
       return;
     }
     
+    // Add provider tag to notes
+    if (selectedProvider && selectedProvider !== '_none') {
+      fullNotes = `[PRESTADOR:${selectedProvider}]\n${fullNotes}`.trim();
+    }
+
     const installmentAmount = selectedTotal / installments;
     
     addAppointmentMutation.mutate({
@@ -751,6 +777,88 @@ const AppointmentsTab: React.FC = () => {
     toast({ title: "PDF exportado!", description: "Agenda de atendimentos salva." });
   };
 
+  // Export Route PDF - grouped by provider for today or selected date
+  const exportRoutePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const today = format(new Date(), 'yyyy-MM-dd');
+    
+    const todayAppts = appointments?.filter(a => {
+      const d = a.appointment_date.split('T')[0];
+      return d === today && a.status !== 'cancelado' && a.status !== 'concluido';
+    }).sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime()) || [];
+
+    // Header
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rota do Dia', 14, 18);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }), 14, 28);
+    doc.setFontSize(9);
+    doc.text(`${todayAppts.length} atendimento(s)`, 14, 35);
+
+    if (todayAppts.length === 0) {
+      doc.setTextColor(100);
+      doc.setFontSize(14);
+      doc.text('Nenhum atendimento agendado para hoje.', pageWidth / 2, 60, { align: 'center' });
+      doc.save(`rota-${today}.pdf`);
+      toast({ title: "PDF da rota exportado!" });
+      return;
+    }
+
+    // Group by provider
+    const byProvider: Record<string, typeof todayAppts> = {};
+    todayAppts.forEach(a => {
+      const match = a.notes?.match(/\[PRESTADOR:(.+?)\]/);
+      const prov = match?.[1] || 'Sem Prestador';
+      if (!byProvider[prov]) byProvider[prov] = [];
+      byProvider[prov].push(a);
+    });
+
+    let y = 48;
+    Object.entries(byProvider).forEach(([provName, appts]) => {
+      if (y > 250) { doc.addPage(); y = 20; }
+      
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(59, 130, 246);
+      doc.text(`📍 ${provName}`, 14, y);
+      y += 2;
+
+      const tableData = appts.map((a, i) => [
+        `${i + 1}`,
+        format(new Date(a.appointment_date), 'HH:mm'),
+        a.clients?.name || '-',
+        a.clients?.telefone || '-',
+        a.clients?.address || 'Sem endereço',
+        a.products?.name || 'Serviço',
+      ]);
+
+      autoTable(doc, {
+        startY: y,
+        head: [['#', 'Hora', 'Cliente', 'Telefone', 'Endereço', 'Serviço']],
+        body: tableData,
+        headStyles: { fillColor: [59, 130, 246] },
+        styles: { fontSize: 8 },
+        columnStyles: { 4: { cellWidth: 50 } },
+      });
+
+      y = (doc as any).lastAutoTable.finalY + 10;
+    });
+
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth / 2, 285, { align: 'center' });
+
+    doc.save(`rota-${today}.pdf`);
+    toast({ title: "PDF da rota exportado!", description: "Rota do dia salva com sucesso." });
+  };
+
+
   return (
     <div className="space-y-4 sm:space-y-6 animate-fade-in">
       <TabGuideCards cards={[
@@ -809,6 +917,11 @@ const AppointmentsTab: React.FC = () => {
             <FileDown className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Exportar PDF</span>
             <span className="sm:hidden">PDF</span>
+          </Button>
+          <Button onClick={exportRoutePDF} variant="outline" className="min-h-[44px] text-blue-600 border-blue-300 hover:bg-blue-50">
+            <Navigation className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Rota do Dia</span>
+            <span className="sm:hidden">Rota</span>
           </Button>
         </div>
       </div>
@@ -1289,6 +1402,27 @@ const AppointmentsTab: React.FC = () => {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            {/* Provider Selection */}
+            <div className="space-y-2">
+              <Label>Prestador (opcional)</Label>
+              <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecione o prestador..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhum</SelectItem>
+                  {(providers as any[]).filter((p: any) => p.active).map((p: any) => (
+                    <SelectItem key={p.id} value={p.name}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color }} />
+                        {p.name} — {p.specialty}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Notes */}

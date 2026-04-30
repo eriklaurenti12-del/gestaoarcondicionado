@@ -20,7 +20,7 @@ import {
   Plus, Search, FileText, Trash2, Download, Phone, RefreshCw,
   DollarSign, Users, Calendar, AlertTriangle, CheckCircle, Clock,
   Paperclip, Upload, XCircle, Info, Eye, ChevronLeft, ChevronRight,
-  ScrollText, Building2, Snowflake, TrendingUp, BarChart3
+  ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit
 } from 'lucide-react';
 import TabGuideCards from './TabGuideCards';
 
@@ -88,6 +88,8 @@ const ServicesUnifiedTab: React.FC = () => {
   const [attachContract, setAttachContract] = useState<Contract | null>(null);
   const [attachType, setAttachType] = useState<'signed' | 'cancellation'>('signed');
   const [attachFile, setAttachFile] = useState<File | null>(null);
+  const [isEditingContract, setIsEditingContract] = useState(false);
+  const [editingContractId, setEditingContractId] = useState<string | null>(null);
 
   // Form state
   const [contractFormData, setContractFormData] = useState({
@@ -160,6 +162,39 @@ const ServicesUnifiedTab: React.FC = () => {
     onError: (error: any) => toast.error(error.message)
   });
 
+  const updateContractMutation = useMutation({
+    mutationFn: async (data: typeof contractFormData) => {
+      if (!editingContractId) throw new Error('ID do contrato ausente');
+      const extraData = {
+        responsibleName: data.responsibleName, responsibleCpf: data.responsibleCpf,
+        responsiblePhone: data.responsiblePhone, responsibleRg: data.responsibleRg,
+        equipmentBrand: data.equipmentBrand, equipmentModel: data.equipmentModel,
+        equipmentBtus: data.equipmentBtus, equipmentLocation: data.equipmentLocation,
+        serviceAddress: data.serviceAddress, paymentMethod: data.paymentMethod,
+        contractType: data.contractType, equipmentCount: data.equipmentCount,
+        serviceType: data.serviceType,
+      };
+      const enrichedNotes = JSON.stringify({ userNotes: data.notes || '', ...extraData });
+      const { error } = await supabase.from('maintenance_contracts').update({
+        client_id: parseInt(data.clientId),
+        title: data.title, description: data.description || null,
+        start_date: data.startDate, end_date: data.endDate || null,
+        cleaning_interval_months: parseInt(data.intervalMonths),
+        monthly_value: parseFloat(data.monthlyValue) || 0,
+        notes: enrichedNotes
+      }).eq('id', editingContractId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+      toast.success('Contrato atualizado com sucesso!');
+      setContractDialogOpen(false);
+      resetContractForm();
+    },
+    onError: (error: any) => toast.error(error.message)
+  });
+
   const deleteContractMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('maintenance_contracts').delete().eq('id', id);
@@ -197,6 +232,47 @@ const ServicesUnifiedTab: React.FC = () => {
       equipmentBrand: '', equipmentModel: '', equipmentBtus: '', equipmentLocation: '',
       serviceAddress: '', paymentMethod: 'mensal', contractType: 'residencial',
     });
+    setIsEditingContract(false);
+    setEditingContractId(null);
+  };
+
+  const handleEditContract = (contract: Contract) => {
+    let extraData: any = {};
+    let parsedNotes = contract.notes || '';
+    if (contract.notes && contract.notes.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(contract.notes);
+        parsedNotes = parsed.userNotes || '';
+        extraData = parsed;
+      } catch (e) { }
+    }
+
+    setContractFormData({
+      clientId: String(contract.client.id),
+      title: contract.title,
+      description: contract.description || '',
+      startDate: contract.start_date.split('T')[0],
+      endDate: contract.end_date ? contract.end_date.split('T')[0] : '',
+      intervalMonths: String(contract.cleaning_interval_months),
+      monthlyValue: String(contract.monthly_value),
+      notes: parsedNotes,
+      serviceType: extraData.serviceType || 'preventiva',
+      equipmentCount: extraData.equipmentCount || '1',
+      responsibleName: extraData.responsibleName || '',
+      responsibleCpf: extraData.responsibleCpf || '',
+      responsiblePhone: extraData.responsiblePhone || '',
+      responsibleRg: extraData.responsibleRg || '',
+      equipmentBrand: extraData.equipmentBrand || '',
+      equipmentModel: extraData.equipmentModel || '',
+      equipmentBtus: extraData.equipmentBtus || '',
+      equipmentLocation: extraData.equipmentLocation || '',
+      serviceAddress: extraData.serviceAddress || '',
+      paymentMethod: extraData.paymentMethod || 'mensal',
+      contractType: extraData.contractType || 'residencial',
+    });
+    setEditingContractId(contract.id);
+    setIsEditingContract(true);
+    setContractDialogOpen(true);
   };
 
   const formatPhoneForWhatsApp = (phone: string) => {
@@ -646,6 +722,9 @@ const ServicesUnifiedTab: React.FC = () => {
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setViewContractDialog(contract)} title="Visualizar">
                           <Eye className="w-3.5 h-3.5" />
                         </Button>
+                        <Button size="sm" variant="outline" className="h-8 text-xs text-blue-500" onClick={() => handleEditContract(contract)} title="Editar">
+                          <Edit className="w-3.5 h-3.5" />
+                        </Button>
                         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => generateContractPDF(contract)} title="PDF">
                           <Download className="w-3.5 h-3.5" />
                         </Button>
@@ -785,7 +864,7 @@ const ServicesUnifiedTab: React.FC = () => {
       {/* Create Contract Dialog */}
       <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Novo Contrato de Manutenção</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{isEditingContract ? 'Editar Contrato' : 'Novo Contrato de Manutenção'}</DialogTitle></DialogHeader>
           <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
             <div>
               <Label>Cliente *</Label>
@@ -900,8 +979,8 @@ const ServicesUnifiedTab: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setContractDialogOpen(false); resetContractForm(); }}>Cancelar</Button>
-            <Button onClick={() => createContractMutation.mutate(contractFormData)} disabled={!contractFormData.clientId || !contractFormData.title || createContractMutation.isPending}>
-              {createContractMutation.isPending ? 'Salvando...' : 'Criar Contrato'}
+            <Button onClick={() => isEditingContract ? updateContractMutation.mutate(contractFormData) : createContractMutation.mutate(contractFormData)} disabled={!contractFormData.clientId || !contractFormData.title || createContractMutation.isPending || updateContractMutation.isPending}>
+              {createContractMutation.isPending || updateContractMutation.isPending ? 'Salvando...' : isEditingContract ? 'Atualizar Contrato' : 'Criar Contrato'}
             </Button>
           </DialogFooter>
         </DialogContent>

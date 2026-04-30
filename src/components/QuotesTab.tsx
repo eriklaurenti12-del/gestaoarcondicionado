@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, FileText, Send, Calendar, Printer, Eye } from "lucide-react";
+import { Plus, Trash2, FileText, Send, Calendar, Printer, Eye, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -55,6 +55,10 @@ export default function QuotesTab() {
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
+  
+  // Edit state
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingQuoteId, setEditingQuoteId] = useState<string | null>(null);
   
   const [formData, setFormData] = useState({
     client_id: "",
@@ -152,6 +156,43 @@ export default function QuotesTab() {
     },
   });
 
+  // Edit quote mutation
+  const updateQuote = useMutation({
+    mutationFn: async () => {
+      if (!editingQuoteId) throw new Error("ID do orçamento não encontrado");
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) throw new Error("Não autenticado");
+
+      const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+      const discountValue = (subtotal * formData.discount_percentage) / 100;
+      const total = subtotal - discountValue;
+
+      const { error } = await supabase.from("quotes").update({
+        client_id: formData.client_id ? parseInt(formData.client_id) : null,
+        title: formData.title,
+        description: formData.description || null,
+        items: JSON.parse(JSON.stringify(items)),
+        subtotal,
+        discount_percentage: formData.discount_percentage,
+        discount_value: discountValue,
+        total,
+        validity_days: formData.validity_days,
+        notes: formData.notes || null,
+      }).eq("id", editingQuoteId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quotes"] });
+      toast.success("Orçamento atualizado!");
+      resetForm();
+      setIsDialogOpen(false);
+    },
+    onError: (error) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
   // Update quote status
   const updateStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
@@ -227,6 +268,23 @@ export default function QuotesTab() {
     setNewClientName("");
     setNewClientPhone("");
     setNewClientAddress("");
+    setIsEditing(false);
+    setEditingQuoteId(null);
+  };
+  
+  const handleEditClick = (quote: Quote) => {
+    setFormData({
+      client_id: quote.client_id ? String(quote.client_id) : "",
+      title: quote.title,
+      description: quote.description || "",
+      validity_days: quote.validity_days,
+      notes: quote.notes || "",
+      discount_percentage: quote.discount_percentage || 0,
+    });
+    setItems(quote.items as QuoteItem[]);
+    setIsEditing(true);
+    setEditingQuoteId(quote.id);
+    setIsDialogOpen(true);
   };
   
   // Create new client mutation
@@ -465,7 +523,7 @@ export default function QuotesTab() {
             </DialogTrigger>
             <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Orçamento</DialogTitle>
+                <DialogTitle>{isEditing ? "Editar Orçamento" : "Novo Orçamento"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {/* Client Section with New Client Option */}
@@ -648,10 +706,11 @@ export default function QuotesTab() {
                 </div>
 
                 <Button 
-                  onClick={() => createQuote.mutate()} 
-                  disabled={!formData.title || items.every(i => !i.description)}
+                  onClick={() => isEditing ? updateQuote.mutate() : createQuote.mutate()} 
+                  disabled={!formData.title || items.every(i => !i.description) || createQuote.isPending || updateQuote.isPending}
                   className="w-full min-h-[44px]"
                 >
+                  {isEditing ? "Atualizar Orçamento" : "Salvar Orçamento"}
                   Criar Orçamento
                 </Button>
               </div>
@@ -712,6 +771,14 @@ export default function QuotesTab() {
                             title="Visualizar"
                           >
                             <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(quote)}
+                            title="Editar"
+                          >
+                            <Edit className="w-4 h-4 text-blue-500" />
                           </Button>
                           <Button
                             variant="ghost"

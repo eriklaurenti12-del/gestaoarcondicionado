@@ -135,7 +135,7 @@ const DataBackup: React.FC<DataBackupProps> = ({ className }) => {
       const exportData: Record<string, any> = {
         exportDate: new Date().toISOString(),
         version: '2.0',
-        appName: 'Salao de Beleza',
+        appName: 'Sistema AC',
         period: selectedMonth,
         data: {}
       };

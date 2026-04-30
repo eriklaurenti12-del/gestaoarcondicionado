@@ -117,7 +117,8 @@ const iconMap: Record<string, any> = {
   "online-bookings": Globe, documents: FileText, services: Snowflake,
   "btu-calculator": Thermometer, pdv: ShoppingCart, financeiro: Wallet,
   impostos: TrendingUp, company: Briefcase, "notifications-settings": Bell,
-  lembretes: MessageCircle, backup: Database,
+  lembretes: MessageCircle, backup: Database, prestadores: Users,
+  historico: ClipboardList,
 };
 
 const defaultSections = [
@@ -125,11 +126,13 @@ const defaultSections = [
     { id: "dashboard", title: "Painel" },
     { id: "cadastros", title: "Cadastros" },
     { id: "appointments", title: "Agenda" },
+    { id: "prestadores", title: "Prestadores" },
     { id: "online-bookings", title: "Agendamento Online" },
   ]},
   { label: "GESTÃO", icon: "ClipboardList", items: [
-    { id: "documents", title: "Orçamentos & O.S." },
+    { id: "documents", title: "Orçamentos" },
     { id: "services", title: "Manutenções" },
+    { id: "historico", title: "Histórico Geral" },
     { id: "btu-calculator", title: "Medição BTUs" },
   ]},
   { label: "VENDAS", icon: "ShoppingCart", items: [
@@ -170,19 +173,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     staleTime: 30 * 1000,
   });
 
-  const { data: sidebarConfig } = useQuery({
-    queryKey: ['sidebar-config'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('admin_settings')
-        .select('value')
-        .eq('key', 'sidebar_config')
-        .maybeSingle();
-      if (error) return null;
-      return data?.value ? JSON.parse(data.value) : null;
-    },
-    staleTime: 30 * 1000,
-  });
+
 
   const { data: supportContacts } = useQuery({
     queryKey: ['support-contacts'],
@@ -219,8 +210,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
       .filter((section: any) => section.items.length > 0);
   };
 
-  const allSections = sidebarConfig?.sections || defaultSections;
-  const sections = filterSectionsByRole(allSections);
+  const sections = filterSectionsByRole(defaultSections);
   const companyName = companyData?.company_name || systemName;
 
   return (

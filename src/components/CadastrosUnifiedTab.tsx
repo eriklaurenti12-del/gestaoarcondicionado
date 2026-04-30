@@ -60,13 +60,13 @@ const CadastrosUnifiedTab: React.FC = () => {
             <Users className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Clientes</span>
           </TabsTrigger>
-          <TabsTrigger value="products" className="flex items-center gap-1 px-2">
-            <Snowflake className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Catálogo</span>
-          </TabsTrigger>
           <TabsTrigger value="register" className="flex items-center gap-1 px-2">
             <PlusCircle className="w-4 h-4 flex-shrink-0" />
             <span className="hidden sm:inline truncate">Cadastrar</span>
+          </TabsTrigger>
+          <TabsTrigger value="products" className="flex items-center gap-1 px-2">
+            <Snowflake className="w-4 h-4 flex-shrink-0" />
+            <span className="hidden sm:inline truncate">Catálogo</span>
           </TabsTrigger>
           <TabsTrigger value="estoque" className="flex items-center gap-1 px-2">
             <Package className="w-4 h-4 flex-shrink-0" />
