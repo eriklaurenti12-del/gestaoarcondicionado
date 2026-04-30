@@ -10,12 +10,16 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TabGuideCards from './TabGuideCards';
+import ProviderScheduleDialog from './ProviderScheduleDialog';
+import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
+import RouteAllocationTab from './RouteAllocationTab';
 
 export interface ServiceProvider {
   id: string;
@@ -25,6 +29,8 @@ export interface ServiceProvider {
   cost_per_hour: number;
   color: string;
   active: boolean;
+  food_allowance?: number;
+  fuel_allowance?: number;
   created_at: string;
 }
 
@@ -84,9 +90,12 @@ export default function ServiceProvidersTab() {
   const [editingProvider, setEditingProvider] = useState<ServiceProvider | null>(null);
   const [search, setSearch] = useState('');
   const [historyProvider, setHistoryProvider] = useState<ServiceProvider | null>(null);
+  const [scheduleProvider, setScheduleProvider] = useState<ServiceProvider | null>(null);
+  const [routeProvider, setRouteProvider] = useState<ServiceProvider | null>(null);
 
   const [formData, setFormData] = useState({
-    name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6'
+    name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
+    food_allowance: '', fuel_allowance: ''
   });
 
   const { data: providers = [], isLoading } = useQuery({
@@ -128,7 +137,7 @@ export default function ServiceProvidersTab() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6' });
+    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '' });
     setEditingProvider(null);
   };
 
@@ -141,6 +150,8 @@ export default function ServiceProvidersTab() {
       phone: formData.phone,
       specialty: formData.specialty,
       cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
+      food_allowance: parseFloat(formData.food_allowance) || 0,
+      fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
       color: formData.color,
       active: true,
       created_at: editingProvider?.created_at || new Date().toISOString(),
@@ -174,6 +185,8 @@ export default function ServiceProvidersTab() {
       phone: provider.phone,
       specialty: provider.specialty,
       cost_per_hour: String(provider.cost_per_hour),
+      food_allowance: String(provider.food_allowance || ''),
+      fuel_allowance: String(provider.fuel_allowance || ''),
       color: provider.color,
     });
     setDialogOpen(true);
@@ -250,8 +263,21 @@ export default function ServiceProvidersTab() {
         },
       ]} />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <Tabs defaultValue="cadastro" className="space-y-4">
+        <TabsList className="bg-muted/50 p-1">
+          <TabsTrigger value="cadastro" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <Users className="w-4 h-4 mr-2" />
+            Cadastro de Prestadores
+          </TabsTrigger>
+          <TabsTrigger value="separar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <MapPin className="w-4 h-4 mr-2" />
+            Separar Rota
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="cadastro" className="space-y-4 m-0">
+          {/* Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
           <CardContent className="p-3">
             <div className="flex items-center gap-2 mb-1">
@@ -353,6 +379,12 @@ export default function ServiceProvidersTab() {
                         R$ {provider.cost_per_hour.toFixed(2)}/h
                       </Badge>
                     </div>
+                    {(provider.food_allowance || provider.fuel_allowance) ? (
+                      <div className="flex gap-2 mt-2">
+                        {provider.food_allowance ? <Badge variant="outline" className="text-[10px] bg-amber-50">🍔 R$ {provider.food_allowance.toFixed(2)}</Badge> : null}
+                        {provider.fuel_allowance ? <Badge variant="outline" className="text-[10px] bg-gray-50">⛽ R$ {provider.fuel_allowance.toFixed(2)}</Badge> : null}
+                      </div>
+                    ) : null}
                     <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
                       <span>{provAppts.length} serviço(s)</span>
                       <span className="text-red-500">R$ {totalExpenses.toFixed(2)} gastos</span>
@@ -370,6 +402,12 @@ export default function ServiceProvidersTab() {
                           <Send className="w-3 h-3" />
                         </Button>
                       )}
+                      <Button size="sm" variant="outline" className="h-8 text-xs flex-1 text-primary border-primary/30" onClick={() => setScheduleProvider(provider)}>
+                        <Plus className="w-3 h-3 mr-1" /> Agendar
+                      </Button>
+                      <Button size="sm" variant="outline" className="h-8 text-xs flex-1 text-orange-600 border-orange-300" onClick={() => setRouteProvider(provider)}>
+                        <Car className="w-3 h-3 mr-1" /> Rota Hoje
+                      </Button>
                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleEdit(provider)}>
                         <Edit2 className="w-3 h-3" />
                       </Button>
@@ -416,6 +454,20 @@ export default function ServiceProvidersTab() {
               <Input type="number" step="0.01" value={formData.cost_per_hour}
                 onChange={e => setFormData({ ...formData, cost_per_hour: e.target.value })}
                 placeholder="0.00" className="min-h-[44px]" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label>Alimentação Fixa (R$)</Label>
+                <Input type="number" step="0.01" value={formData.food_allowance}
+                  onChange={e => setFormData({ ...formData, food_allowance: e.target.value })}
+                  placeholder="0.00" className="min-h-[44px]" />
+              </div>
+              <div>
+                <Label>Combustível Fixo (R$)</Label>
+                <Input type="number" step="0.01" value={formData.fuel_allowance}
+                  onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })}
+                  placeholder="0.00" className="min-h-[44px]" />
+              </div>
             </div>
             <div>
               <Label>Cor de Identificação</Label>
@@ -509,11 +561,30 @@ export default function ServiceProvidersTab() {
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })()}
-        </DialogContent>
-      </Dialog>
+                </div>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
+
+        <ProviderScheduleDialog
+          isOpen={!!scheduleProvider}
+          onOpenChange={(open) => !open && setScheduleProvider(null)}
+          providerName={scheduleProvider?.name || ''}
+        />
+
+        <ProviderDailyRouteDialog
+          isOpen={!!routeProvider}
+          onOpenChange={(open) => !open && setRouteProvider(null)}
+          provider={routeProvider}
+          allAppointments={appointments || []}
+        />
+      </TabsContent>
+
+      <TabsContent value="separar" className="m-0">
+        <RouteAllocationTab providers={providers} />
+      </TabsContent>
+    </Tabs>
     </div>
   );
 }

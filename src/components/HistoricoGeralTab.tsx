@@ -14,11 +14,13 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import TabGuideCards from './TabGuideCards';
+import ClientHistoryDialog from './ClientHistoryDialog';
 
 interface HistoryItem {
   id: string;
   date: string;
   client: string;
+  clientObj?: any;
   type: 'agendamento' | 'venda' | 'orcamento';
   description: string;
   value: number;
@@ -30,12 +32,13 @@ export default function HistoricoGeralTab() {
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedClientHistory, setSelectedClientHistory] = useState<any>(null);
 
   const { data: appointments, isLoading: loadAppts } = useQuery({
     queryKey: ['hist-appointments'],
     queryFn: async () => {
       const { data, error } = await supabase.from('appointments')
-        .select('*, clients(name)').order('appointment_date', { ascending: false });
+        .select('*, clients(id, name, telefone, preferences)').order('appointment_date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -45,7 +48,7 @@ export default function HistoricoGeralTab() {
     queryKey: ['hist-sales'],
     queryFn: async () => {
       const { data, error } = await supabase.from('sales')
-        .select('*, clients(name)').order('sale_date', { ascending: false });
+        .select('*, clients(id, name, telefone, preferences)').order('sale_date', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -55,7 +58,7 @@ export default function HistoricoGeralTab() {
     queryKey: ['hist-quotes'],
     queryFn: async () => {
       const { data, error } = await supabase.from('quotes')
-        .select('*, clients(name)').order('created_at', { ascending: false });
+        .select('*, clients(id, name, telefone, preferences)').order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
@@ -91,6 +94,7 @@ export default function HistoricoGeralTab() {
         id: `a-${a.id}`,
         date: a.appointment_date,
         client: a.clients?.name || 'Cliente removido',
+        clientObj: a.clients,
         type: 'agendamento',
         description: productMap[a.service_id] || 'Serviço',
         value: 0,
@@ -104,6 +108,7 @@ export default function HistoricoGeralTab() {
         id: `s-${s.id}`,
         date: s.sale_date || s.created_at,
         client: s.clients?.name || s.client_name || 'Consumidor',
+        clientObj: s.clients,
         type: 'venda',
         description: `Venda #${s.id}`,
         value: Number(s.total || 0),
@@ -116,6 +121,7 @@ export default function HistoricoGeralTab() {
         id: `q-${q.id}`,
         date: q.created_at,
         client: q.clients?.name || 'Cliente removido',
+        clientObj: q.clients,
         type: 'orcamento',
         description: q.title || 'Orçamento',
         value: Number(q.total || 0),
@@ -301,10 +307,13 @@ export default function HistoricoGeralTab() {
               <p className="text-sm mt-1">Ajuste os filtros ou selecione outro mês</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 pb-16">
               {filtered.map(item => (
                 <div key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border hover:bg-muted/30 transition-colors">
+                  onClick={() => {
+                    if (item.clientObj?.id) setSelectedClientHistory(item.clientObj);
+                  }}
+                  className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border transition-colors ${item.clientObj?.id ? 'cursor-pointer hover:bg-primary/5 hover:border-primary/30' : 'hover:bg-muted/30'}`}>
                   <div className="flex items-center gap-3 min-w-0">
                     {getTypeBadge(item.type)}
                     <div className="min-w-0">
@@ -334,6 +343,12 @@ export default function HistoricoGeralTab() {
           )}
         </CardContent>
       </Card>
+
+      <ClientHistoryDialog 
+        isOpen={!!selectedClientHistory}
+        onOpenChange={(open) => !open && setSelectedClientHistory(null)}
+        client={selectedClientHistory}
+      />
     </div>
   );
 }

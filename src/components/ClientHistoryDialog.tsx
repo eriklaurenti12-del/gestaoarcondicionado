@@ -9,11 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Calendar, Clock, Wind, Save, Sparkles, AlertCircle } from "lucide-react";
-import { format, parseISO } from 'date-fns';
+import { Calendar, Clock, Wind, Save, Sparkles, AlertCircle, Phone, Bell, Plus, CalendarRange, CheckCircle } from "lucide-react";
+import { format, parseISO, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ClientHistoryDialogProps {
   client: {
@@ -52,13 +54,29 @@ const fetchClientHistory = async (clientId: number) => {
 
   if (soError) throw soError;
 
-  return { appointments: appointments || [], sales: sales || [], serviceOrders: serviceOrders || [] };
+  const { data: maintenance, error: maintError } = await supabase
+    .from('scheduled_maintenance')
+    .select('*')
+    .eq('client_id', clientId)
+    .order('scheduled_date', { ascending: true });
+
+  if (maintError) throw maintError;
+
+  return { 
+    appointments: appointments || [], 
+    sales: sales || [], 
+    serviceOrders: serviceOrders || [],
+    maintenance: maintenance || []
+  };
 };
 
 const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpen, onOpenChange }) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [preferences, setPreferences] = useState(client?.preferences || '');
+  const [maintType, setMaintType] = useState('Higienização');
+  const [maintInterval, setMaintInterval] = useState('6');
+  const [maintDate, setMaintDate] = useState('');
 
   React.useEffect(() => {
     if (client) {
@@ -100,6 +118,48 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
     return <Badge variant={config.variant} className="text-xs">{config.label}</Badge>;
   };
 
+  const scheduleMaintenanceMutation = useMutation({
+    mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Usuário não autenticado');
+      
+      const nextDate = maintDate || format(addMonths(new Date(), parseInt(maintInterval)), 'yyyy-MM-dd');
+      
+      const { error } = await supabase.from('scheduled_maintenance').insert({
+        user_id: session.user.id,
+        client_id: client!.id,
+        maintenance_type: maintType,
+        interval_months: parseInt(maintInterval),
+        scheduled_date: nextDate,
+        is_completed: false
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-history', client?.id] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({ title: "Agendado!", description: "Vencimento programado com sucesso." });
+      setMaintDate('');
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro", description: error.message });
+    }
+  });
+
+  const markMaintenanceCompleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('scheduled_maintenance')
+        .update({ is_completed: true, completed_date: new Date().toISOString() })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-history', client?.id] });
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast({ title: "Concluído", description: "Manutenção marcada como feita." });
+    }
+  });
+
   if (!client) return null;
 
   const totalSpent = history?.sales?.reduce((sum, s) => sum + Number(s.sale_price) * s.qty, 0) || 0;
@@ -111,8 +171,23 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
-            Histórico de {client.name}
+            <div className="flex-1 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary" />
+              Histórico de {client.name}
+            </div>
+            {client.telefone && (
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100 hover:text-green-700"
+                onClick={() => {
+                  const phone = client.telefone?.replace(/\D/g, '');
+                  window.open(`https://wa.me/55${phone}`, '_blank');
+                }}
+              >
+                <Phone className="w-4 h-4 mr-1" /> WhatsApp
+              </Button>
+            )}
           </DialogTitle>
           <DialogDescription>
             Visualize o histórico completo e gerencie as preferências do cliente
@@ -142,10 +217,11 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
         </div>
 
         <Tabs defaultValue="history" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5 h-10">
             <TabsTrigger value="history">Agenda</TabsTrigger>
             <TabsTrigger value="sales">Vendas</TabsTrigger>
             <TabsTrigger value="orders">O.S.</TabsTrigger>
+            <TabsTrigger value="maintenance">Vencimentos</TabsTrigger>
             <TabsTrigger value="preferences">Notas</TabsTrigger>
           </TabsList>
 
@@ -267,6 +343,90 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                 </div>
               )}
             </ScrollArea>
+          </TabsContent>
+
+          <TabsContent value="maintenance" className="mt-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[300px]">
+              {/* List */}
+              <ScrollArea className="pr-4 border-r">
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-500" /> Vencimentos Programados
+                </h3>
+                {history?.maintenance?.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <CalendarRange className="w-8 h-8 mb-2 opacity-30" />
+                    <p className="text-sm">Nenhum vencimento</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {history?.maintenance?.map((m: any) => (
+                      <Card key={m.id} className={`transition-all ${m.is_completed ? 'opacity-50' : 'hover:shadow-sm border-amber-200'}`}>
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium text-sm flex items-center gap-1">
+                                {m.maintenance_type}
+                                {m.is_completed && <CheckCircle className="w-3 h-3 text-green-500 ml-1" />}
+                              </p>
+                              <p className={`text-xs ${m.is_completed ? 'text-muted-foreground' : 'text-amber-600 font-semibold'}`}>
+                                Data: {format(parseISO(m.scheduled_date), "dd/MM/yyyy")}
+                              </p>
+                            </div>
+                            {!m.is_completed && (
+                              <Button size="sm" variant="outline" className="h-7 text-[10px] px-2" onClick={() => markMaintenanceCompleteMutation.mutate(m.id)}>
+                                Feito
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+              
+              {/* Form */}
+              <div className="pl-2 space-y-4">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <Plus className="w-4 h-4 text-primary" /> Novo Vencimento
+                </h3>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Serviço</Label>
+                    <Select value={maintType} onValueChange={setMaintType}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Higienização">Higienização</SelectItem>
+                        <SelectItem value="Manutenção Preventiva">Manutenção Preventiva</SelectItem>
+                        <SelectItem value="Limpeza">Limpeza</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Intervalo Automático</Label>
+                    <Select value={maintInterval} onValueChange={setMaintInterval}>
+                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">Daqui 3 meses</SelectItem>
+                        <SelectItem value="6">Daqui 6 meses</SelectItem>
+                        <SelectItem value="12">Daqui 1 ano</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Ou Escolha Data Específica</Label>
+                    <Input type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                  <Button 
+                    className="w-full h-8 text-xs mt-2" 
+                    onClick={() => scheduleMaintenanceMutation.mutate()}
+                    disabled={scheduleMaintenanceMutation.isPending}
+                  >
+                    Salvar Vencimento
+                  </Button>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="preferences" className="mt-4">

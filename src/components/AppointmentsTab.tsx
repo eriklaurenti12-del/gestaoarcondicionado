@@ -19,6 +19,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CalendarAgenda from './CalendarAgenda';
 import ScheduleBoard from './ScheduleBoard';
+import RouteExpensesDialog from './RouteExpensesDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Appointment = {
@@ -127,6 +128,8 @@ const AppointmentsTab: React.FC = () => {
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'board'>('list');
+  const [expensesDialogOpen, setExpensesDialogOpen] = useState(false);
+  const [selectedExpenseAppointment, setSelectedExpenseAppointment] = useState<{id: string, provider: string}>({id: '', provider: ''});
   const [clientSearch, setClientSearch] = useState('');
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   // Payment fields
@@ -1141,6 +1144,22 @@ const AppointmentsTab: React.FC = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline" 
+                                className="h-10 w-10 p-0 touch-target text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
+                                onClick={() => {
+                                  const providerMatch = appointment.notes?.match(/\[PRESTADOR:(.*?)\]/);
+                                  setSelectedExpenseAppointment({
+                                    id: appointment.id,
+                                    provider: providerMatch ? providerMatch[1] : ''
+                                  });
+                                  setExpensesDialogOpen(true);
+                                }}
+                                title="Lançar Gastos da Rota"
+                              >
+                                <Receipt className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
                                 className="h-10 w-10 p-0 touch-target text-primary hover:bg-primary/10"
                                 onClick={() => generateServiceReceiptPDF(appointment)}
                                 title="Gerar PDF do comprovante"
@@ -1517,6 +1536,13 @@ const AppointmentsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <RouteExpensesDialog
+        isOpen={expensesDialogOpen}
+        onOpenChange={setExpensesDialogOpen}
+        appointmentId={selectedExpenseAppointment.id}
+        providerName={selectedExpenseAppointment.provider}
+      />
     </div>
   );
 };
