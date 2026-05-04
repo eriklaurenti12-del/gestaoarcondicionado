@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { BetaModeProvider } from "@/contexts/BetaModeContext";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
@@ -21,9 +22,17 @@ import { toast } from "sonner";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 2,
+      retry: 1,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       staleTime: 30000,
+      gcTime: 5 * 60 * 1000, // Cache data for 5 minutes
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: 'stale',
+      refetchInterval: false,
+    },
+    mutations: {
+      retry: 1,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     },
   },
 });
@@ -51,33 +60,35 @@ const GlobalErrorHandler = () => {
 };
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider>
-      <BetaModeProvider>
-        <TooltipProvider>
-          <GlobalErrorHandler />
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Auth />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/vendas" element={<Landing />} />
-              <Route path="/dashboard" element={<Index />} />
-              <Route path="/beta" element={<BetaDashboard />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/members" element={<Members />} />
-              <Route path="/agendar" element={<PublicBooking />} />
-              <Route path="/awaiting-activation" element={<AwaitingActivation />} />
-              <Route path="/portal" element={<TeamPortalLogin />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </BetaModeProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <BetaModeProvider>
+          <TooltipProvider>
+            <GlobalErrorHandler />
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Auth />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/vendas" element={<Landing />} />
+                <Route path="/dashboard" element={<Index />} />
+                <Route path="/beta" element={<BetaDashboard />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/members" element={<Members />} />
+                <Route path="/agendar" element={<PublicBooking />} />
+                <Route path="/awaiting-activation" element={<AwaitingActivation />} />
+                <Route path="/portal" element={<TeamPortalLogin />} />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </BetaModeProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
