@@ -40,6 +40,7 @@ const RegisterProductTab: React.FC = () => {
   // Combo
   const [isCombo, setIsCombo] = useState(false);
   const [comboSelectedServices, setComboSelectedServices] = useState<number[]>([]);
+  const [comboDiscount, setComboDiscount] = useState("");
 
   // Expenses
   const [showExpenses, setShowExpenses] = useState(false);
@@ -183,6 +184,15 @@ const RegisterProductTab: React.FC = () => {
     }
 
     try {
+      if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          setUserId(session.user.id);
+        } else {
+          toast.error('Sessão expirada. Por favor, entre novamente.');
+          return;
+        }
+      }
       setUploading(true);
       let imageUrl: string | null = null;
       if (imageFile) imageUrl = await uploadImage();
@@ -203,6 +213,9 @@ const RegisterProductTab: React.FC = () => {
         service_duration: isService ? serviceDuration : null,
         type: isService ? 'service' : 'piece',
         image_url: imageUrl,
+        supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
+        min_stock: isService ? 0 : minStock,
+        warranty_months: 12,
         storage_location: storageLocation.trim() || null,
         storage_shelf: storageShelf.trim() || null,
         storage_section: storageSection.trim() || null,

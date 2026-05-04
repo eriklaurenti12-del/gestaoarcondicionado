@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones, Share, CheckCircle } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones, Share, CheckCircle, Shield } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -92,12 +92,6 @@ const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
     }
   }, [deferredPrompt, isIOS]);
 
-  const getUrgencyColor = (date: string) => {
-    const aptDate = new Date(date);
-    if (isToday(aptDate)) return 'text-red-500 font-bold animate-pulse';
-    return 'text-muted-foreground';
-  };
-
   if (isInstalled || isCollapsed) return null;
 
   return (
@@ -118,7 +112,6 @@ const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
         {isIOS ? 'ADICIONAR À TELA' : 'INSTALAR AGORA'}
       </Button>
       
-      {/* Indicador de Performance & Sincronização - Garante escalabilidade visual */}
       <div className="mt-3 pt-2 border-t border-primary/10">
         <div className="flex items-center justify-between text-[8px] font-bold text-primary/60 uppercase tracking-tighter mb-1">
           <span className="flex items-center gap-1"><Shield className="w-2 h-2" /> RLS Ativo</span>
@@ -129,7 +122,7 @@ const SidebarInstallCard = ({ isCollapsed }: { isCollapsed: boolean }) => {
         </div>
         <div className="flex items-center justify-between text-[7px] text-muted-foreground/60 font-medium">
           <span>Sincronização Realtime</span>
-          <span>Latência < 50ms</span>
+          <span>Latência &lt; 50ms</span>
         </div>
       </div>
     </div>
@@ -183,7 +176,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
     queryFn: async () => {
-      // CRITICAL: filter by current user_id to avoid showing another user's company name
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
@@ -196,8 +188,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     },
     staleTime: 30 * 1000,
   });
-
-
 
   const { data: supportContacts } = useQuery({
     queryKey: ['support-contacts'],
@@ -239,7 +229,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
 
   return (
     <Sidebar collapsible="offcanvas" className="border-r border-border">
-      {/* Logo Header — uses logged-in user's company logo as priority */}
       <SidebarHeader className="p-4 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
           {(companyData?.logo_url || systemLogoUrl) ? (
@@ -300,7 +289,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
                         tooltip={item.title}
                         className={`h-11 rounded-xl transition-all duration-300 relative group overflow-hidden ${
                           isActive
-                            ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25"
+                            ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/25 glow-active"
                             : "text-muted-foreground hover:text-foreground hover:bg-muted/80"
                         }`}
                       >
@@ -345,10 +334,8 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
       </SidebarContent>
 
       <SidebarFooter className="p-3 border-t border-border space-y-2">
-        {/* App download card */}
         <SidebarInstallCard isCollapsed={isCollapsed} />
 
-        {/* Footer actions */}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -360,7 +347,6 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
               <span className="text-xs font-medium">Simplificado</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          {/* Dynamic support contacts */}
           {supportContacts && supportContacts.length > 0 ? (
             supportContacts.map((contact: any) => (
               <SidebarMenuItem key={contact.id}>

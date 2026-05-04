@@ -340,7 +340,7 @@ export default function Index() {
       case "notifications-settings":
         return <NotificationSettings />;
       case "lembretes":
-        return <NotificationSettings />;
+        return <LembretesTab />;
       case "backup":
         return <DataBackup />;
       case "company":

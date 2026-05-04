@@ -159,6 +159,8 @@ const AppointmentsTab: React.FC = () => {
   const [editNotes, setEditNotes] = useState("");
   const [editProvider, setEditProvider] = useState("");
   const [editReason, setEditReason] = useState("");
+  const [editClientId, setEditClientId] = useState("");
+  const [editServiceId, setEditServiceId] = useState("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -261,25 +263,39 @@ const AppointmentsTab: React.FC = () => {
           const actualCostPrice = productData?.cost_price || 0;
           const profit = salePrice - Number(actualCostPrice);
           
-          await supabase.from('sales').insert({
-            user_id: session.user.id,
-            client_id: appointment.client_id,
-            product_id: appointment.service_id,
-            qty: 1,
-            sale_price: salePrice,
-            total_profit: profit,
-            payment_method: 'Dinheiro' as const,
-          });
+          // Check if sale already exists for this appointment (avoid duplicates)
+          const { data: existingSale } = await supabase
+            .from('sales')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('client_id', appointment.client_id)
+            .eq('product_id', appointment.service_id)
+            .eq('sale_date', appointment.appointment_date)
+            .maybeSingle();
 
-          // Create financial record
-          await supabase.from('financial_records').insert({
-            user_id: session.user.id,
-            type: 'entrada',
-            amount: salePrice,
-            description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
-            payment_method: 'Dinheiro',
-            category: 'Serviço Agenda',
-          });
+          if (!existingSale) {
+            await supabase.from('sales').insert({
+              user_id: session.user.id,
+              client_id: appointment.client_id,
+              product_id: appointment.service_id,
+              qty: 1,
+              sale_price: salePrice,
+              total_profit: profit,
+              payment_method: 'Dinheiro' as const,
+              sale_date: appointment.appointment_date // Keep consistent with appointment date
+            });
+
+            // Create financial record
+            await supabase.from('financial_records').insert({
+              user_id: session.user.id,
+              type: 'entrada',
+              amount: salePrice,
+              description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+              payment_method: 'Dinheiro',
+              category: 'Serviço Agenda',
+              record_date: new Date().toISOString()
+            });
+          }
         }
       }
     },
@@ -312,12 +328,14 @@ const AppointmentsTab: React.FC = () => {
   });
 
   const updateAppointmentMutation = useMutation({
-    mutationFn: async (data: { id: string; appointment_date: string; notes: string }) => {
+    mutationFn: async (data: { id: string; appointment_date: string; notes: string; client_id?: number; service_id?: number }) => {
       const { error } = await supabase
         .from('appointments')
         .update({ 
           appointment_date: data.appointment_date,
-          notes: data.notes
+          notes: data.notes,
+          client_id: data.client_id,
+          service_id: data.service_id
         })
         .eq('id', data.id);
       if (error) throw error;
@@ -1182,6 +1200,8 @@ const AppointmentsTab: React.FC = () => {
                               setEditingAppointment(appointment);
                               setEditDate(appointment.appointment_date.split('T')[0]);
                               setEditTime(format(new Date(appointment.appointment_date), 'HH:mm'));
+                              setEditClientId(String(appointment.client_id || ""));
+                              setEditServiceId(String(appointment.service_id || ""));
                               
                               // Extract provider from notes if possible
                               const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
@@ -1643,14 +1663,55 @@ const AppointmentsTab: React.FC = () => {
           </DialogHeader>
           
           <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Cliente</Label>
+              <Select value={editClientId} onValueChange={setEditClientId}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecione o cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients?.map((client) => (
+                    <SelectItem key={client.id} value={String(client.id)}>
+                      {client.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Serviço</Label>
+              <Select value={editServiceId} onValueChange={setEditServiceId}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecione o serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services?.map((service) => (
+                    <SelectItem key={service.id} value={String(service.id)}>
+                      {service.name} - R$ {Number(service.price).toFixed(2)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nova Data</Label>
-                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
               </div>
               <div className="space-y-2">
                 <Label>Novo Horário</Label>
-                <Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                <Select value={editTime} onValueChange={setEditTime}>
+                  <SelectTrigger className="min-h-[44px]">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {timeSlots.map((slot) => (
+                      <SelectItem key={slot} value={slot}>{slot}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -1715,7 +1776,9 @@ const AppointmentsTab: React.FC = () => {
                 updateAppointmentMutation.mutate({
                   id: editingAppointment.id,
                   appointment_date: newDateTime,
-                  notes: newNotes
+                  notes: newNotes,
+                  client_id: editClientId ? parseInt(editClientId) : undefined,
+                  service_id: editServiceId ? parseInt(editServiceId) : undefined
                 });
               }}
             >

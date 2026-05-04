@@ -273,6 +273,16 @@ const ProductsTab: React.FC = () => {
       return;
     }
 
+    if (!userId) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      } else {
+        toast({ variant: "destructive", title: "Erro de sessão", description: "Por favor, entre novamente." });
+        return;
+      }
+    }
+
     let imageUrl: string | null = null;
     if (productImage) imageUrl = await uploadProductImage();
 

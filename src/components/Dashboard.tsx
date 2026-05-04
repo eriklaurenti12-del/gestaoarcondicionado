@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSubscription } from './SubscriptionGate';
+import DummyDataSeeder from './DummyDataSeeder';
 
 // Brazilian holidays for the current year
 const getBrazilianHolidays = (year: number) => {
@@ -87,6 +88,11 @@ const fetchDashboardData = async () => {
     const quotesList = quotes || [];
     const serviceOrdersList = serviceOrders || [];
     const lowStockProducts = productsList.filter(p => p.qty <= (p.min_stock || 0) && p.qty < 999);
+
+    // Expected revenue from scheduled/confirmed appointments (not yet concluded)
+    const expectedRevenue = appointmentsList
+      .filter(a => (a.status === 'agendado' || a.status === 'confirmado') && a.products?.price)
+      .reduce((sum, a) => sum + (Number(a.products?.price) || 0), 0);
     // Filter sales for CURRENT MONTH only
     const now = new Date();
     const currentMonthPrefix = format(now, 'yyyy-MM');
@@ -495,9 +501,58 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
     };
 
     const updateAppointmentStatus = useMutation({
-      mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      mutationFn: async ({ id, status, appointment }: { id: string; status: string; appointment?: any }) => {
         const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
         if (error) throw error;
+
+        // Financial integration logic (matches AppointmentsTab)
+        if (status === 'concluido' && appointment?.service_id && appointment?.client_id && appointment?.products) {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            const salePrice = Number(appointment.products.price);
+            const { data: productData } = await supabase
+              .from('products')
+              .select('cost_price')
+              .eq('id', appointment.service_id)
+              .maybeSingle();
+            
+            const actualCostPrice = productData?.cost_price || 0;
+            const profit = salePrice - Number(actualCostPrice);
+            
+            // Check if sale already exists
+            const { data: existingSale } = await supabase
+              .from('sales')
+              .select('id')
+              .eq('user_id', session.user.id)
+              .eq('client_id', appointment.client_id)
+              .eq('product_id', appointment.service_id)
+              .eq('sale_date', appointment.appointment_date)
+              .maybeSingle();
+
+            if (!existingSale) {
+              await supabase.from('sales').insert({
+                user_id: session.user.id,
+                client_id: appointment.client_id,
+                product_id: appointment.service_id,
+                qty: 1,
+                sale_price: salePrice,
+                total_profit: profit,
+                payment_method: 'Dinheiro',
+                sale_date: appointment.appointment_date
+              });
+
+              await supabase.from('financial_records').insert({
+                user_id: session.user.id,
+                type: 'entrada',
+                amount: salePrice,
+                description: `Serviço concluído (Dash): ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+                payment_method: 'Dinheiro',
+                category: 'Serviço Agenda',
+                record_date: new Date().toISOString()
+              });
+            }
+          }
+        }
       },
       onSuccess: (_, { status }) => {
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
@@ -655,6 +710,9 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Simulation & Reset Tool */}
+      <DummyDataSeeder />
       
       {/* Central de Comandos Rápidos */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-slide-up">
@@ -986,6 +1044,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </Alert>
       )}
 
+      {overdueMaintenances.length > 0 && (
+        <Alert className="border-red-400 bg-red-50 dark:border-red-900 dark:bg-red-950/40 animate-pulse-subtle">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertTitle className="text-red-800 dark:text-red-200">⚠️ Manutenções Vencidas!</AlertTitle>
+          <AlertDescription className="text-red-700 dark:text-red-300 flex justify-between items-center">
+            <span>Você tem {overdueMaintenances.length} cliente(s) com manutenção em atraso.</span>
+            <Button size="sm" variant="outline" className="h-7 text-xs bg-white/50" onClick={() => onNavigateToTab?.('historico')}>
+              Ver Clientes
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {lowStockProducts.length > 0 && (
         <Alert className="border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
@@ -1031,11 +1102,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
 
       {/* Appointment Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-stagger">
-        <Card className="stat-card bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-200/50 dark:border-blue-800/50">
+        <Card className="stat-card premium-card border-blue-500/30 card-gradient-blue animate-slide-up group">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-blue-500/10">
-                <CalendarDays className="w-4 h-4 text-blue-600" />
+                <CalendarDays className="w-4 h-4 text-blue-600 animate-float" />
               </div>
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
             </div>
@@ -1044,11 +1115,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </CardContent>
         </Card>
 
-        <Card className="stat-card bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-200/50 dark:border-purple-800/50">
+        <Card className="stat-card premium-card border-purple-500/30 card-gradient-purple animate-slide-up group [animation-delay:100ms]">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-purple-500/10">
-                <CalendarCheck className="w-4 h-4 text-purple-600" />
+                <CalendarCheck className="w-4 h-4 text-purple-600 animate-float" />
               </div>
               <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
             </div>
@@ -1057,11 +1128,11 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </CardContent>
         </Card>
 
-        <Card className="stat-card bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-200/50 dark:border-green-800/50">
+        <Card className="stat-card premium-card border-green-500/30 card-gradient-green animate-slide-up group [animation-delay:200ms]">
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-green-500/10">
-                <Clock className="w-4 h-4 text-green-600" />
+                <Clock className="w-4 h-4 text-green-600 animate-float" />
               </div>
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Confirmados</span>
             </div>
@@ -1070,16 +1141,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </CardContent>
         </Card>
 
-        <Card className="stat-card bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-200/50 dark:border-amber-800/50">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="icon-container p-1.5 rounded-lg bg-amber-500/10">
-                <CalendarDays className="w-4 h-4 text-amber-600" />
-              </div>
-              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Pendentes</span>
-            </div>
             <div className="text-2xl sm:text-3xl font-bold text-amber-600 animate-count-up">{appointmentStats.scheduledToday}</div>
             <p className="text-xs text-muted-foreground mt-1">aguardando</p>
+          </CardContent>
+        </Card>
+
+        <Card className="premium-card border-blue-500/30 card-gradient-blue animate-slide-up group [animation-delay:400ms] cursor-pointer hover:scale-[1.02] transition-transform"
+          onClick={() => onNavigateToTab?.('equipe')}>
+          <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center h-full text-center">
+            <MapPin className="w-8 h-8 text-blue-600 mb-2 animate-bounce-subtle" />
+            <span className="text-sm font-bold text-blue-700">Separar Rotas</span>
+            <p className="text-[10px] text-muted-foreground mt-1">Organizar equipes</p>
           </CardContent>
         </Card>
       </div>
@@ -1198,6 +1270,18 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">R$ {salesReport.totalSales.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços este mês</p>
+            
+            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg animate-pulse-subtle">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-600" />
+                  <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Receita Prevista</span>
+                </div>
+                <span className="font-bold text-amber-700 dark:text-amber-300">R$ {expectedRevenue.toFixed(2)}</span>
+              </div>
+              <p className="text-[10px] text-amber-600 mt-1">Serviços confirmados aguardando conclusão</p>
+            </div>
+
              <div className="mt-4 space-y-2">
                 <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Lucro do Mês</span>
@@ -1318,7 +1402,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                               variant="outline"
                               className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                               onClick={() => {
-                                updateAppointmentStatus.mutate({ id: apt.id, status: 'confirmado' });
+                                updateAppointmentStatus.mutate({ id: apt.id, status: 'confirmado', appointment: apt });
                               }}
                             >
                               <Play className="w-3 h-3 mr-1" /> Confirmar
@@ -1327,9 +1411,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                           <Button
                             size="sm"
                             variant="outline"
+                            className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                            onClick={() => {
+                              if (onNavigateToTab) onNavigateToTab('agenda');
+                              // This will depend on how the child tab is handled, but at least we navigate there
+                            }}
+                          >
+                            <FileText className="w-3 h-3 mr-1" /> Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
                             onClick={() => {
-                              updateAppointmentStatus.mutate({ id: apt.id, status: 'concluido' });
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'concluido', appointment: apt });
                             }}
                           >
                             <CheckCircle className="w-3 h-3 mr-1" /> Concluir
@@ -1339,7 +1434,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                             variant="outline"
                             className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                             onClick={() => {
-                              updateAppointmentStatus.mutate({ id: apt.id, status: 'cancelado' });
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'cancelado', appointment: apt });
                             }}
                           >
                             <X className="w-3 h-3 mr-1" /> Cancelar
@@ -1353,7 +1448,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                             variant="ghost"
                             className="text-xs h-7 flex-1"
                             onClick={() => {
-                              updateAppointmentStatus.mutate({ id: apt.id, status: 'agendado' });
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'agendado', appointment: apt });
                             }}
                           >
                             ↩️ Reabrir

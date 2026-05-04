@@ -44,6 +44,39 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
     return apt.appointment_date.startsWith(filterDate);
   });
 
+  // Get ALL assigned appointments for monitoring
+  const { data: assignedAppointments } = useQuery({
+    queryKey: ['assigned-appointments', filterDate],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, clients(name, telefone, address), products(name)')
+        .in('status', ['agendado', 'confirmado', 'concluido'])
+        .order('appointment_date', { ascending: true });
+      if (error) throw error;
+      
+      // Filter for those that HAVE a provider and match the date
+      return (data || []).filter(a => {
+        const hasProvider = a.notes?.includes('[PRESTADOR:');
+        if (!hasProvider) return false;
+        if (!filterDate) return true;
+        return a.appointment_date.startsWith(filterDate);
+      });
+    }
+  });
+
+  const routesByProvider = useMemo(() => {
+    if (!assignedAppointments) return {};
+    const grouped: Record<string, any[]> = {};
+    assignedAppointments.forEach(a => {
+      const match = a.notes?.match(/\[PRESTADOR:(.+?)\]/);
+      const provName = match?.[1] || 'Outros';
+      if (!grouped[provName]) grouped[provName] = [];
+      grouped[provName].push(a);
+    });
+    return grouped;
+  }, [assignedAppointments]);
+
   const groupedAppointments = useMemo(() => {
     if (!unassignedAppointments) return {};
     return unassignedAppointments.reduce((acc: any, apt) => {
@@ -294,6 +327,54 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
               <Send className="w-4 h-4 mr-2" />
               {allocateRouteMutation.isPending ? 'Separando...' : 'Confirmar e Separar Rota'}
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Visualização de Rotas Atuais */}
+      <div className="lg:col-span-3 mt-6">
+        <Card className="border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Car className="w-5 h-5 text-primary" />
+              Monitoramento de Equipes {filterDate ? `- ${format(parseISO(filterDate), 'dd/MM')}` : '(Hoje/Geral)'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {Object.keys(routesByProvider).length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                Nenhuma rota atribuída para este período.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Object.entries(routesByProvider).map(([provName, appts]) => (
+                  <Card key={provName} className="border-l-4 overflow-hidden" style={{ borderLeftColor: providers.find(p => p.name === provName)?.color || '#ccc' }}>
+                    <CardHeader className="p-3 bg-muted/30">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold">{provName}</span>
+                        <Badge variant="outline" className="bg-background">{appts.length} serviços</Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="p-3 space-y-2">
+                      {appts.map(a => (
+                        <div key={a.id} className="text-xs p-2 rounded bg-muted/50 border flex flex-col gap-1">
+                          <div className="flex justify-between">
+                            <span className="font-medium truncate">{a.clients?.name}</span>
+                            <span className="text-primary font-mono">{format(parseISO(a.appointment_date), 'HH:mm')}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-muted-foreground truncate">{a.products?.name}</span>
+                            <Badge variant={a.status === 'concluido' ? 'default' : 'outline'} className="text-[9px] h-4">
+                              {a.status}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
