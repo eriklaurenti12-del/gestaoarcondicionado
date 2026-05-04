@@ -67,15 +67,15 @@ const getAppointmentPrice = (apt: any) => {
 
 const fetchDashboardData = async () => {
   try {
-    const productsPromise = supabase.from('products').select('*');
-    const clientsPromise = supabase.from('clients').select('*');
-    const salesPromise = supabase.from('sales').select('*, clients(name), products(name)');
-    const appointmentsPromise = supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, cost_price)');
-    const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date');
-    const fixedExpensesPromise = supabase.from('fixed_expenses').select('*');
-    const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']);
-    const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'agendado']);
-    const scheduledMaintenancePromise = supabase.from('scheduled_maintenance').select('*, clients(name, telefone)').eq('is_completed', false);
+    const productsPromise = supabase.from('products').select('*').limit(1000);
+    const clientsPromise = supabase.from('clients').select('*').limit(1000);
+    const salesPromise = supabase.from('sales').select('*, clients(name), products(name)').order('sale_date', { ascending: false }).limit(500);
+    const appointmentsPromise = supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, cost_price)').order('appointment_date', { ascending: false }).limit(500);
+    const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date').limit(200);
+    const fixedExpensesPromise = supabase.from('fixed_expenses').select('*').order('expense_date', { ascending: false }).limit(500);
+    const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']).order('created_at', { ascending: false }).limit(200);
+    const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'agendado']).order('created_at', { ascending: false }).limit(200);
+    const scheduledMaintenancePromise = supabase.from('scheduled_maintenance').select('*, clients(name, telefone)').eq('is_completed', false).order('created_at', { ascending: false }).limit(100);
 
     const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }, { data: scheduledMaintenance, error: smError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise, scheduledMaintenancePromise]);
 
