@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone } from 'lucide-react';
+import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone, Fuel } from 'lucide-react';
 import { format, parseISO, addMonths, isPast, isBefore, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -75,9 +75,6 @@ export default function HistoricoGeralTab() {
         .select('*, clients(id, name, telefone, preferences)').order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
-    },
-  });
-
     },
   });
 

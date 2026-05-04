@@ -329,7 +329,7 @@ const fetchDashboardData = async () => {
         servicesCount: productsList.length,
         clientsCount: clientsList.length,
         lowStockProducts,
-        salesReport: { totalSales, totalItems, totalProfit, profitMargin, monthVariation, prevMonthTotal, bestMonth },
+        salesReport: { totalSales, totalItems, totalProfit, profitMargin, monthVariation, prevMonthTotal, bestMonth, expectedRevenue },
         appointmentStats: {
             today: todayAppointments.length,
             week: weekAppointments.length,
@@ -650,7 +650,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       servicesCount = 0, 
       clientsCount = 0, 
       lowStockProducts = [], 
-      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0, monthVariation: 0, prevMonthTotal: 0, bestMonth: null as any }, 
+      salesReport = { totalSales: 0, totalItems: 0, totalProfit: 0, profitMargin: 0, monthVariation: 0, prevMonthTotal: 0, bestMonth: null as any, expectedRevenue: 0 }, 
       appointmentStats = { today: 0, week: 0, confirmedToday: 0, scheduledToday: 0, completedToday: 0, todayAppointments: [], weekAppointments: [] }, 
       pendingInstallments = [],
       totalPendingAmount = 0,
@@ -1170,17 +1170,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </CardContent>
         </Card>
 
+        <Card className="stat-card premium-card border-amber-500/30 card-gradient-amber animate-slide-up group [animation-delay:300ms]">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="icon-container p-1.5 rounded-lg bg-amber-500/10">
+                <Clock className="w-4 h-4 text-amber-600 animate-float" />
+              </div>
+              <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Aguardando</span>
+            </div>
             <div className="text-2xl sm:text-3xl font-bold text-amber-600 animate-count-up">{appointmentStats.scheduledToday}</div>
             <p className="text-xs text-muted-foreground mt-1">aguardando</p>
-          </CardContent>
-        </Card>
-
-        <Card className="premium-card border-blue-500/30 card-gradient-blue animate-slide-up group [animation-delay:400ms] cursor-pointer hover:scale-[1.02] transition-transform"
-          onClick={() => onNavigateToTab?.('equipe')}>
-          <CardContent className="p-3 sm:p-4 flex flex-col items-center justify-center h-full text-center">
-            <MapPin className="w-8 h-8 text-blue-600 mb-2 animate-bounce-subtle" />
-            <span className="text-sm font-bold text-blue-700">Separar Rotas</span>
-            <p className="text-[10px] text-muted-foreground mt-1">Organizar equipes</p>
           </CardContent>
         </Card>
       </div>
@@ -1306,7 +1305,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                   <Clock className="w-4 h-4 text-amber-600" />
                   <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Receita Prevista</span>
                 </div>
-                <span className="font-bold text-amber-700 dark:text-amber-300">R$ {expectedRevenue.toFixed(2)}</span>
+                <span className="font-bold text-amber-700 dark:text-amber-300">R$ {salesReport.expectedRevenue.toFixed(2)}</span>
               </div>
               <p className="text-[10px] text-amber-600 mt-1">Serviços confirmados aguardando conclusão</p>
             </div>
