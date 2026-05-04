@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -149,7 +149,16 @@ const AppointmentsTab: React.FC = () => {
   const [isCreatingNewClient, setIsCreatingNewClient] = useState(false);
   
   // Provider selection
+  // Provider selection
   const [selectedProvider, setSelectedProvider] = useState<string>("");
+
+  // Edit state
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editProvider, setEditProvider] = useState("");
+  const [editReason, setEditReason] = useState("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -170,9 +179,9 @@ const AppointmentsTab: React.FC = () => {
   const { data: pendingQuotes } = useQuery({ queryKey: ['pending-quotes'], queryFn: fetchPendingQuotes });
   const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
   
-  // Fetch providers from admin_settings
+  // Fetch providers from admin_settings - Unified to avoid redeclaration
   const { data: providers = [] } = useQuery({
-    queryKey: ['service-providers'],
+    queryKey: ['service-providers-unified'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('admin_settings')
@@ -299,6 +308,28 @@ const AppointmentsTab: React.FC = () => {
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Erro", description: error.message });
+    }
+  });
+
+  const updateAppointmentMutation = useMutation({
+    mutationFn: async (data: { id: string; appointment_date: string; notes: string }) => {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          appointment_date: data.appointment_date,
+          notes: data.notes
+        })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast({ title: "Agendamento atualizado!", description: "As alterações foram salvas." });
+      setEditingAppointment(null);
+      setEditReason("");
+    },
+    onError: (error: any) => {
+      toast({ variant: "destructive", title: "Erro ao atualizar", description: error.message });
     }
   });
 
@@ -709,6 +740,42 @@ const AppointmentsTab: React.FC = () => {
     return slotTime <= now;
   };
 
+
+  const sendToProvider = (appointment: Appointment) => {
+    const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
+    const provName = match?.[1];
+    if (!provName) {
+      toast({ title: "Nenhum prestador vinculado", variant: "destructive" });
+      return;
+    }
+
+    const provider = (providers as any[]).find(p => p.name === provName);
+    if (!provider || !provider.phone) {
+      toast({ title: "Telefone do prestador não encontrado", variant: "destructive" });
+      return;
+    }
+
+    let message = `*🔧 NOVO SERVIÇO ATRIBUÍDO*\n\n`;
+    message += `👤 *Cliente:* ${appointment.clients?.name || 'Não informado'}\n`;
+    message += `📅 *Data/Hora:* ${format(new Date(appointment.appointment_date), "dd/MM 'às' HH:mm", { locale: ptBR })}\n`;
+    message += `🛠️ *Serviço:* ${appointment.products?.name || 'Manutenção'}\n`;
+    message += `📍 *Endereço:* ${appointment.clients?.address || 'Verificar cadastro'}\n`;
+    
+    if (appointment.clients?.address) {
+      message += `🗺️ *Navegar:* https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointment.clients.address)}\n`;
+    }
+    
+    if (appointment.notes) {
+      const cleanNotes = appointment.notes.replace(/\[PRESTADOR:.+?\]\n?/, "");
+      if (cleanNotes.trim()) message += `\n📝 *Obs:* ${cleanNotes.trim()}\n`;
+    }
+    
+    message += `\n_Acesse o sistema para mais detalhes._`;
+
+    const phone = provider.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   // Get booked times for a specific date (simple list)
   const getBookedTimes = (date: string) => {
     return getBookedTimesWithDetails(date).map(b => b.time);
@@ -1088,6 +1155,15 @@ const AppointmentsTab: React.FC = () => {
                               <Phone className="w-4 h-4" />
                             </Button>
                           )}
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-10 w-10 p-0 touch-target text-primary hover:bg-primary/10"
+                            onClick={() => sendToProvider(appointment)}
+                            title="Enviar para Prestador (WhatsApp)"
+                          >
+                            <Users className="w-4 h-4" />
+                          </Button>
                           {appointment.status === 'agendado' && (
                             <Button 
                               size="sm" 
@@ -1098,6 +1174,26 @@ const AppointmentsTab: React.FC = () => {
                               <Check className="w-4 h-4" />
                             </Button>
                           )}
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="h-10 w-10 p-0 touch-target"
+                            onClick={() => {
+                              setEditingAppointment(appointment);
+                              setEditDate(appointment.appointment_date.split('T')[0]);
+                              setEditTime(format(new Date(appointment.appointment_date), 'HH:mm'));
+                              
+                              // Extract provider from notes if possible
+                              const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
+                              setEditProvider(match?.[1] || "");
+                              
+                              // Remove provider tag for editing notes
+                              const cleanNotes = appointment.notes?.replace(/\[PRESTADOR:.+?\]\n?/, "") || "";
+                              setEditNotes(cleanNotes);
+                            }}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           {appointment.status === 'confirmado' && (
                             <>
                               {(appointment.clients as any)?.address && (
@@ -1532,6 +1628,98 @@ const AppointmentsTab: React.FC = () => {
             >
               <PlusCircle className="mr-2 h-4 w-4" />
               {addAppointmentMutation.isPending ? "Salvando..." : "Agendar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Edit Appointment Dialog */}
+      <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Agendamento</DialogTitle>
+            <DialogDescription>
+              Altere os detalhes do serviço para {editingAppointment?.clients?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nova Data</Label>
+                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Novo Horário</Label>
+                <Input type="time" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Prestador Responsável</Label>
+              <Select value={editProvider} onValueChange={setEditProvider}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um prestador" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none">Nenhum (Remover)</SelectItem>
+                  {providers.map((p: any) => (
+                    <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Observações do Serviço</Label>
+              <Input 
+                value={editNotes} 
+                onChange={(e) => setEditNotes(e.target.value)} 
+                placeholder="Detalhes técnicos ou pedidos do cliente..." 
+              />
+            </div>
+
+            <div className="space-y-2 border-t pt-3">
+              <Label className="text-amber-600 font-semibold flex items-center gap-1">
+                <History className="w-3.5 h-3.5" /> Motivo da Alteração
+              </Label>
+              <Input 
+                value={editReason} 
+                onChange={(e) => setEditReason(e.target.value)} 
+                placeholder="Ex: Cliente pediu para remarcar, peça em falta..." 
+                className="border-amber-200 bg-amber-50/30"
+              />
+              <p className="text-[10px] text-muted-foreground italic">
+                * Este motivo será registrado no histórico do agendamento.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditingAppointment(null)}>Cancelar</Button>
+            <Button 
+              disabled={updateAppointmentMutation.isPending || !editReason.trim()}
+              onClick={() => {
+                if (!editingAppointment) return;
+                
+                const newDateTime = new Date(`${editDate}T${editTime}`).toISOString();
+                
+                // Construct new notes with provider tag and history entry
+                let newNotes = editNotes.trim();
+                if (editProvider && editProvider !== '_none') {
+                  newNotes = `[PRESTADOR:${editProvider}]\n${newNotes}`.trim();
+                }
+                
+                const historyEntry = `\n[ALTERAÇÃO ${format(new Date(), 'dd/MM HH:mm')}] Motivo: ${editReason} | De: ${format(new Date(editingAppointment.appointment_date), 'dd/MM HH:mm')} Para: ${format(new Date(newDateTime), 'dd/MM HH:mm')}`;
+                newNotes += historyEntry;
+
+                updateAppointmentMutation.mutate({
+                  id: editingAppointment.id,
+                  appointment_date: newDateTime,
+                  notes: newNotes
+                });
+              }}
+            >
+              {updateAppointmentMutation.isPending ? "Salvando..." : "Salvar Alterações"}
             </Button>
           </DialogFooter>
         </DialogContent>

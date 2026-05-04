@@ -27,7 +27,7 @@ import OnboardingTour from "@/components/OnboardingTour";
 import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
-import InstallButton from "@/components/InstallButton";
+import PWAInstallButton from "@/components/PWAInstallButton";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -235,17 +235,24 @@ export default function Index() {
   };
 
   // Check for new SW version. If found → 'pwa:need-refresh' fires and shows banner.
-  // If not → notify user the system is already up to date.
   const checkForUpdates = async () => {
-    toast.info('🔍 Verificando atualizações...', { id: 'check-update' });
+    toast.info('🔍 Otimizando e buscando atualizações...', { id: 'check-update' });
     try {
+      // Data Integrity Check: Ensure we are in an isolated session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id !== currentUserId) {
+        toast.error('⚠️ Sessão inconsistente. Recarregando para segurança dos dados...');
+        setTimeout(() => window.location.reload(), 1000);
+        return;
+      }
+
       // Tell main.tsx-registered SW to look for a new build
       window.dispatchEvent(new CustomEvent('pwa:check-update'));
 
       if ('serviceWorker' in navigator) {
         const reg = await navigator.serviceWorker.getRegistration();
         if (reg) {
-          await reg.update();
+          const updateFound = await reg.update();
           // Wait briefly to see if a new worker shows up
           await new Promise(resolve => setTimeout(resolve, 1500));
           if (reg.waiting || reg.installing) {
@@ -255,10 +262,10 @@ export default function Index() {
           }
         }
       }
-      toast.success('✅ Você já está na versão mais recente!', { id: 'check-update' });
+      toast.success('✅ Sistema otimizado e atualizado!', { id: 'check-update' });
     } catch {
       toast.dismiss('check-update');
-      toast.info('🔄 Recarregando para garantir versão atual...');
+      toast.info('🔄 Sincronizando versão atual...');
       setTimeout(() => window.location.reload(), 800);
     }
   };
@@ -490,6 +497,9 @@ export default function Index() {
             open={showOnboarding} 
             onComplete={handleOnboardingComplete}
           />
+
+          {/* Automatic PWA Install Prompt */}
+          <PWAInstallButton />
         </div>
       </SidebarProvider>
     </SubscriptionGate>

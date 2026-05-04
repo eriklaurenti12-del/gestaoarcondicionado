@@ -40,7 +40,6 @@ const RegisterProductTab: React.FC = () => {
   // Combo
   const [isCombo, setIsCombo] = useState(false);
   const [comboSelectedServices, setComboSelectedServices] = useState<number[]>([]);
-  const [comboDiscount, setComboDiscount] = useState("");
 
   // Expenses
   const [showExpenses, setShowExpenses] = useState(false);
@@ -199,9 +198,6 @@ const RegisterProductTab: React.FC = () => {
         price: parseFloat(price),
         cost_price: totalCost || 0,
         barcode: barcode.trim() || null,
-        supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
-        warranty_months: 12,
-        min_stock: isService ? 0 : minStock,
         date_added: new Date().toISOString().split('T')[0],
         user_id: userId,
         service_duration: isService ? serviceDuration : null,
@@ -416,13 +412,6 @@ const RegisterProductTab: React.FC = () => {
             </div>
           )}
 
-          {/* Service duration */}
-          {registerType === 'service' && (
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Tempo de Serviço (min)</Label>
-              <Input type="number" value={serviceDuration} onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))} min="15" step="15" />
-            </div>
-          )}
 
           {/* Stock (product only) */}
           {registerType === 'piece' && (

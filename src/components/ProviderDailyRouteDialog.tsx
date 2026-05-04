@@ -10,7 +10,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Car, Utensils, CheckCircle, Clock } from 'lucide-react';
+import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { ServiceProvider } from './ServiceProvidersTab';
 
 interface ProviderDailyRouteDialogProps {
@@ -53,6 +55,76 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
     );
   };
 
+  const generateRoutePDF = () => {
+    if (!provider) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    doc.setFillColor(24, 24, 27);
+    doc.rect(0, 0, pageWidth, 40, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Roteiro de Trabalho', 14, 20);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Prestador: ${provider.name} | Data: ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`, 14, 32);
+
+    const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
+    const tableData = selectedAppts.map((a, i) => [
+      i + 1,
+      format(new Date(a.appointment_date), 'HH:mm'),
+      a.clients?.name || 'Cliente',
+      a.clients?.address || 'Não informado',
+      a.clients?.telefone || '-',
+      a.status.toUpperCase()
+    ]);
+
+    autoTable(doc, {
+      startY: 48,
+      head: [['#', 'Hora', 'Cliente', 'Endereço', 'Telefone', 'Status']],
+      body: tableData,
+      headStyles: { fillColor: [24, 24, 27] },
+      styles: { fontSize: 8 },
+    });
+
+    doc.save(`rota_${provider.name.replace(/\s/g, '_')}_${format(new Date(), 'dd_MM')}.pdf`);
+    toast.success('PDF da rota gerado!');
+  };
+
+  const sendWhatsAppRoute = () => {
+    if (!provider?.phone) {
+      toast.error('Prestador sem telefone cadastrado');
+      return;
+    }
+
+    const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
+    if (selectedAppts.length === 0) return;
+
+    let message = `*ROTEIRO DE HOJE - ${format(new Date(), 'dd/MM/yyyy')}*\n`;
+    message += `*Prestador:* ${provider.name}\n\n`;
+    
+    selectedAppts.forEach((a, i) => {
+      const address = a.clients?.address || 'Não informado';
+      const encodedAddress = encodeURIComponent(address);
+      const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+      const wazeUrl = `https://waze.com/ul?q=${encodedAddress}&navigate=yes`;
+      
+      message += `*${i + 1}. ${format(new Date(a.appointment_date), 'HH:mm')} - ${a.clients?.name}*\n`;
+      message += `📍 Endereço: ${address}\n`;
+      if (a.clients?.telefone) message += `📞 Contato: ${a.clients.telefone}\n`;
+      message += `🧭 *NAVEGAR:* \n`;
+      message += `➤ Google Maps: ${googleMapsUrl}\n`;
+      message += `➤ Waze: ${wazeUrl}\n`;
+      message += `\n`;
+    });
+
+    message += `_Tenha um ótimo trabalho!_`;
+
+    const phone = provider.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   const registerDailyExpensesMutation = useMutation({
     mutationFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -87,27 +159,25 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
         });
       }
 
-      if (expensesToInsert.length === 0) return;
+      if (expensesToInsert.length === 0 && selectedAppointments.length === 0) return;
 
-      const { error } = await supabase.from('fixed_expenses').insert(expensesToInsert);
-      if (error) throw error;
+      if (expensesToInsert.length > 0) {
+        const { error } = await supabase.from('fixed_expenses').insert(expensesToInsert);
+        if (error) throw error;
+      }
 
-      // Optional: Update status of selected appointments to 'concluido'
+      // Update status of selected appointments to 'concluido'
       if (selectedAppointments.length > 0) {
         const { error: aptError } = await supabase
           .from('appointments')
           .update({ status: 'concluido' })
-          .in('id', selectedAppointments)
-          .eq('status', 'agendado'); // only update if still 'agendado' or 'confirmado'
+          .in('id', selectedAppointments);
         
         if (aptError) console.error("Erro ao concluir agendamentos", aptError);
       }
     },
     onSuccess: () => {
-      toast.success('Gastos da rota diária registrados!');
-      if (selectedAppointments.length > 0) {
-        toast.success(`${selectedAppointments.length} serviço(s) marcados como concluídos.`);
-      }
+      toast.success('Operação concluída com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['fixed_expenses'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments-for-providers'] });
@@ -163,9 +233,9 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
                     </div>
                   </label>
                 ))}
-                <p className="text-[11px] text-muted-foreground mt-2">
-                  <CheckCircle className="w-3 h-3 inline mr-1" />
-                  Serviços selecionados serão marcados como <strong>Concluídos</strong>.
+                <p className="text-[11px] text-muted-foreground mt-2 text-center bg-muted/30 p-2 rounded">
+                  <CheckCircle className="w-3 h-3 inline mr-1 text-green-500" />
+                  Ao confirmar, os serviços marcados serão dados como <strong>concluídos</strong>.
                 </p>
               </div>
             )}
@@ -197,31 +267,31 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
               </div>
             </div>
             {(provider?.fuel_allowance || provider?.food_allowance) && (
-              <p className="text-[11px] text-muted-foreground">
-                * Os valores foram preenchidos com os valores fixos do prestador.
+              <p className="text-[11px] text-muted-foreground italic">
+                * Preenchido automaticamente com os valores fixos do prestador.
               </p>
             )}
           </div>
         </div>
 
-        <DialogFooter className="mt-4 flex-col sm:flex-row gap-2">
-          <div className="flex gap-2 flex-1">
-            <Button variant="outline" onClick={generateRoutePDF} disabled={selectedAppointments.length === 0} className="w-full sm:w-auto text-blue-600 border-blue-200 hover:bg-blue-50">
+        <DialogFooter className="mt-4 flex-col sm:flex-row gap-3 border-t pt-4">
+          <div className="flex gap-2 flex-1 w-full">
+            <Button variant="outline" onClick={generateRoutePDF} disabled={selectedAppointments.length === 0} className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50">
               <FileDown className="w-4 h-4 mr-2" /> PDF
             </Button>
-            <Button variant="outline" onClick={sendWhatsAppRoute} disabled={selectedAppointments.length === 0} className="w-full sm:w-auto text-green-600 border-green-200 hover:bg-green-50">
+            <Button variant="outline" onClick={sendWhatsAppRoute} disabled={selectedAppointments.length === 0} className="flex-1 text-green-600 border-green-200 hover:bg-green-50">
               <Send className="w-4 h-4 mr-2" /> WhatsApp
             </Button>
           </div>
-          <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button 
               onClick={() => registerDailyExpensesMutation.mutate()}
               disabled={registerDailyExpensesMutation.isPending || (!combustivel && !alimentacao && selectedAppointments.length === 0)}
-              className="bg-primary text-primary-foreground"
+              className="bg-primary text-primary-foreground shadow-lg hover:shadow-primary/20"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
-              {registerDailyExpensesMutation.isPending ? 'Salvando...' : 'Confirmar Rota & Gastos'}
+              {registerDailyExpensesMutation.isPending ? 'Salvando...' : 'Confirmar Tudo'}
             </Button>
           </div>
         </DialogFooter>

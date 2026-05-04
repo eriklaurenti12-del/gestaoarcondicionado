@@ -70,6 +70,8 @@ export default function ServiceOrdersTab() {
     description: "",
     notes: "",
     discount_percentage: 0,
+    vencimento_recorrencia: "nenhum",
+    data_proximo_servico: "",
   });
   
   const [services, setServices] = useState<ServiceItem[]>([
@@ -166,9 +168,22 @@ export default function ServiceOrdersTab() {
         total,
         notes: formData.notes || null,
         status: "pendente",
+        vencimento_recorrencia: formData.vencimento_recorrencia !== 'nenhum' ? formData.vencimento_recorrencia : null,
+        data_proximo_servico: formData.data_proximo_servico || null,
       }]);
 
       if (error) throw error;
+
+      // If there's a next service date, we can also create a 'futura' appointment
+      if (formData.data_proximo_servico && formData.client_id) {
+        await supabase.from("appointments").insert([{
+          user_id: userData.user.id,
+          client_id: parseInt(formData.client_id),
+          appointment_date: formData.data_proximo_servico + 'T09:00:00',
+          status: 'futura',
+          notes: `Lembrete de Manutenção (${formData.vencimento_recorrencia})\nGerado a partir da O.S. de ${formData.title}`
+        }]);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-orders"] });
@@ -235,6 +250,8 @@ export default function ServiceOrdersTab() {
       description: "",
       notes: "",
       discount_percentage: 0,
+      vencimento_recorrencia: "nenhum",
+      data_proximo_servico: "",
     });
     setServices([{ description: "", quantity: 1, unit_price: 0, total: 0 }]);
     setParts([]);
@@ -755,13 +772,6 @@ export default function ServiceOrdersTab() {
 
                 <div>
                   <Label>Descrição</Label>
-                  <Textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Detalhes do serviço..."
-                    rows={2}
-                  />
-                </div>
 
                 {/* Services Section */}
                 <div className="p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">

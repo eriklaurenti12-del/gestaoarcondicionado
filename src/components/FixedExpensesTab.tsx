@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from "@/components/ui/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Fuel, Utensils, Users, MoreHorizontal, Calendar, FileDown, RefreshCw, Copy } from "lucide-react";
+import { Plus, Trash2, Fuel, Utensils, Users, MoreHorizontal, Calendar, FileDown, RefreshCw, Copy, MapPin, Zap, Globe, Megaphone, DollarSign, Wrench } from "lucide-react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -23,6 +23,12 @@ const categories = [
   { value: 'combustivel', label: 'Combustível', icon: Fuel, color: 'text-amber-500' },
   { value: 'alimentacao', label: 'Alimentação', icon: Utensils, color: 'text-green-500' },
   { value: 'ajudante', label: 'Ajudante', icon: Users, color: 'text-blue-500' },
+  { value: 'aluguel', label: 'Aluguel / Escritório', icon: MapPin, color: 'text-red-500' },
+  { value: 'energia', label: 'Energia / Água', icon: Zap, color: 'text-yellow-500' },
+  { value: 'internet', label: 'Internet / Telefone', icon: Globe, color: 'text-cyan-500' },
+  { value: 'marketing', label: 'Marketing / Anúncios', icon: Megaphone, color: 'text-purple-500' },
+  { value: 'pro-labore', label: 'Pró-labore / Salários', icon: DollarSign, color: 'text-emerald-500' },
+  { value: 'manutencao', label: 'Manutenção / Ferramentas', icon: Wrench, color: 'text-orange-500' },
   { value: 'outros', label: 'Outros', icon: MoreHorizontal, color: 'text-gray-500' },
 ];
 
@@ -49,6 +55,7 @@ const FixedExpensesTab: React.FC = () => {
   const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isRecurring, setIsRecurring] = useState(false);
   const [copyToMonth, setCopyToMonth] = useState(format(addMonths(new Date(), 1), 'yyyy-MM'));
+  const [searchProvider, setSearchProvider] = useState('');
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['fixed-expenses'],
@@ -203,7 +210,11 @@ const FixedExpensesTab: React.FC = () => {
     // Parse date-only string as local date to avoid timezone shift
     const parts = exp.expense_date.split('-');
     const expMonth = `${parts[0]}-${parts[1]}`;
-    return expMonth === filterMonth;
+    const monthMatch = expMonth === filterMonth;
+    const providerMatch = !searchProvider || 
+      (exp.helper_name || '').toLowerCase().includes(searchProvider.toLowerCase()) ||
+      (exp.description || '').toLowerCase().includes(searchProvider.toLowerCase());
+    return monthMatch && providerMatch;
   }) || [];
 
   const recurringExpenses = filteredExpenses.filter(exp => (exp as any).is_recurring);
@@ -340,6 +351,15 @@ const FixedExpensesTab: React.FC = () => {
                 onChange={(e) => setFilterMonth(e.target.value)}
                 className="w-[140px]"
               />
+              <div className="relative">
+                <Input
+                  placeholder="Filtrar prestador/desc..."
+                  value={searchProvider}
+                  onChange={(e) => setSearchProvider(e.target.value)}
+                  className="w-[180px] pl-8 text-xs"
+                />
+                <Users className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              </div>
               <Button onClick={() => setIsCopyDialogOpen(true)} size="sm" variant="outline" title="Copiar recorrentes">
                 <Copy className="w-4 h-4" />
               </Button>

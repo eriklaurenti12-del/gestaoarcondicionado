@@ -655,6 +655,42 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Central de Comandos Rápidos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-slide-up">
+        <Button 
+          variant="outline" 
+          onClick={() => onNavigateToTab?.('appointments')}
+          className="h-20 flex flex-col items-center justify-center gap-2 premium-card hover:bg-primary/5 hover:border-primary/50 transition-all border-dashed"
+        >
+          <CalendarDays className="w-6 h-6 text-primary" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Agenda</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => onNavigateToTab?.('pdv')}
+          className="h-20 flex flex-col items-center justify-center gap-2 premium-card hover:bg-emerald-500/5 hover:border-emerald-500/50 transition-all border-dashed"
+        >
+          <CreditCard className="w-6 h-6 text-emerald-500" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Novo PDV</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => onNavigateToTab?.('providers')}
+          className="h-20 flex flex-col items-center justify-center gap-2 premium-card hover:bg-blue-500/5 hover:border-blue-500/50 transition-all border-dashed"
+        >
+          <Navigation className="w-6 h-6 text-blue-500" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Rotas Técnicas</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => onNavigateToTab?.('financeiro')}
+          className="h-20 flex flex-col items-center justify-center gap-2 premium-card hover:bg-amber-500/5 hover:border-amber-500/50 transition-all border-dashed"
+        >
+          <TrendingUp className="w-6 h-6 text-amber-500" />
+          <span className="text-[10px] font-bold uppercase tracking-wider">Financeiro</span>
+        </Button>
+      </div>
 
       {/* License/Subscription Status Card */}
       {subscriptionData && (
@@ -1143,22 +1179,22 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-stagger">
-        <Card className="stat-card neon-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Wrench className="w-5 h-5 text-primary" /></div>Serviços Cadastrados</CardTitle></CardHeader>
+        <Card className="stat-card premium-card border-primary/20">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-primary"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Wrench className="w-5 h-5" /></div>Serviços Cadastrados</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold animate-count-up">{servicesCount}</div>
             <p className="text-sm text-muted-foreground">{lowStockProducts.length} peça(s) com estoque baixo</p>
           </CardContent>
         </Card>
-        <Card className="stat-card neon-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Users className="w-5 h-5 text-primary" /></div>Total de Clientes</CardTitle></CardHeader>
+        <Card className="stat-card premium-card border-primary/20">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-primary"><div className="icon-container p-1.5 rounded-lg bg-primary/10"><Users className="w-5 h-5" /></div>Total de Clientes</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold animate-count-up">{clientsCount}</div>
             <p className="text-sm text-muted-foreground">Clientes cadastrados</p>
           </CardContent>
         </Card>
-        <Card className="stat-card neon-border">
-          <CardHeader><CardTitle className="flex items-center gap-2"><div className="icon-container p-1.5 rounded-lg bg-green-500/10"><TrendingUp className="w-5 h-5 text-green-600" /></div>Faturamento do Mês</CardTitle></CardHeader>
+        <Card className="stat-card premium-card border-green-500/20">
+          <CardHeader><CardTitle className="flex items-center gap-2 text-green-600"><div className="icon-container p-1.5 rounded-lg bg-green-500/10"><TrendingUp className="w-5 h-5" /></div>Faturamento do Mês</CardTitle></CardHeader>
           <CardContent>
             <div className="text-2xl sm:text-3xl font-bold text-green-600 animate-count-up">R$ {salesReport.totalSales.toFixed(2)}</div>
             <p className="text-sm text-muted-foreground">Em {salesReport.totalItems} serviços este mês</p>

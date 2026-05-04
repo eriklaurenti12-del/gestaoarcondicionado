@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Trash2, FileText, Send, Calendar, Printer, Eye, Edit } from "lucide-react";
+import { Plus, Trash2, FileText, Send, Calendar, Printer, Eye, Edit, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -807,6 +807,17 @@ export default function QuotesTab() {
                           >
                             <Send className="w-4 h-4" />
                           </Button>
+                          {quote.clients?.address && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 text-blue-600"
+                              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(quote.clients!.address!)}`, '_blank')}
+                              title="Ver no Mapa"
+                            >
+                              <MapPin className="w-4 h-4" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"

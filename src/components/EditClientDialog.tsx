@@ -62,7 +62,31 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
     return value;
   };
   
-  const onSubmit = (data: ClientFormValues) => {
+  const onSubmit = async (data: ClientFormValues) => {
+    // Duplicate detection for update (excluding self)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const phoneDigits = (data.telefone || '').replace(/\D/g, '');
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id, name, telefone')
+        .eq('user_id', session.user.id)
+        .neq('id', client.id);
+
+      const duplicate = (existing || []).find(c => {
+        const sameName = c.name?.trim().toLowerCase() === data.name.trim().toLowerCase();
+        const samePhone = phoneDigits.length >= 8 && c.telefone && c.telefone.replace(/\D/g, '') === phoneDigits;
+        return sameName || samePhone;
+      });
+
+      if (duplicate) {
+        const reason = duplicate.name?.trim().toLowerCase() === data.name.trim().toLowerCase()
+          ? `Já existe OUTRO cliente com o nome "${duplicate.name}".`
+          : `Já existe OUTRO cliente com este WhatsApp (${duplicate.telefone}).`;
+        if (!window.confirm(`${reason}\n\nDeseja salvar mesmo assim?`)) return;
+      }
+    }
+
     onSave({
       ...data,
       aniversario: data.aniversario || null,

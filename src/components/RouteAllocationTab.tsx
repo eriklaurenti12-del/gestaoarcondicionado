@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { MapPin, Car, Utensils, Send, CheckCircle2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { MapPin, Car, Utensils, Send, CheckCircle2, Calendar } from 'lucide-react';
 import { ServiceProvider } from './ServiceProvidersTab';
+import { Badge } from "@/components/ui/badge";
 
 export default function RouteAllocationTab({ providers }: { providers: ServiceProvider[] }) {
   const queryClient = useQueryClient();
@@ -27,7 +29,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       const { data, error } = await supabase
         .from('appointments')
         .select('*, clients(name, telefone, address), products(name)')
-        .eq('status', 'agendado')
+        .in('status', ['agendado', 'confirmado', 'futura'])
         .order('appointment_date', { ascending: true });
         
       if (error) throw error;
@@ -41,6 +43,16 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
     if (!filterDate) return true;
     return apt.appointment_date.startsWith(filterDate);
   });
+
+  const groupedAppointments = useMemo(() => {
+    if (!unassignedAppointments) return {};
+    return unassignedAppointments.reduce((acc: any, apt) => {
+      const date = apt.appointment_date.split('T')[0];
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(apt);
+      return acc;
+    }, {});
+  }, [unassignedAppointments]);
 
   const toggleAppointment = (id: string) => {
     setSelectedAppointments(prev => 
@@ -160,29 +172,60 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
               <p className="text-sm">Todos os agendamentos já estão atribuídos a um prestador.</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {unassignedAppointments?.map(apt => (
-                <label key={apt.id} className={`flex items-start gap-4 p-4 rounded-xl border cursor-pointer transition-colors ${selectedAppointments.includes(apt.id) ? 'border-primary bg-primary/5 shadow-sm' : 'hover:bg-muted/30'}`}>
-                  <Checkbox 
-                    checked={selectedAppointments.includes(apt.id)}
-                    onCheckedChange={() => toggleAppointment(apt.id)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row justify-between gap-1 sm:items-center mb-1">
-                      <span className="font-semibold text-base">{apt.clients?.name || 'Cliente Sem Nome'}</span>
-                      <span className="text-sm font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                        {format(new Date(apt.appointment_date), 'dd/MM/yyyy HH:mm')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      <strong>Endereço:</strong> {apt.clients?.address || 'Sem endereço cadastrado'}
-                    </p>
-                    <p className="text-sm text-muted-foreground truncate">
-                      <strong>Serviço:</strong> {apt.products?.name || 'Não especificado'}
-                    </p>
+            <div className="space-y-6">
+              {Object.keys(groupedAppointments).sort().map(date => (
+                <div key={date} className="space-y-3">
+                  <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2 px-1">
+                    <Calendar className="w-4 h-4 text-primary" />
+                    {format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  </h3>
+                  <div className="space-y-2">
+                    {groupedAppointments[date].map((apt: any) => (
+                      <div key={apt.id} 
+                        className={`flex items-start gap-4 p-4 rounded-xl border transition-all ${selectedAppointments.includes(apt.id) ? 'border-primary bg-primary/5 shadow-sm' : 'hover:bg-muted/30 hover:border-muted-foreground/20'}`}>
+                        <Checkbox 
+                          checked={selectedAppointments.includes(apt.id)}
+                          onCheckedChange={() => toggleAppointment(apt.id)}
+                          className="mt-1"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row justify-between gap-1 sm:items-center mb-2">
+                            <span className="font-semibold text-base">{apt.clients?.name || 'Cliente Sem Nome'}</span>
+                            <div className="flex items-center gap-2">
+                              {apt.status === 'futura' && <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-200 text-[10px]">Instalação Futura</Badge>}
+                              <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                                {format(new Date(apt.appointment_date), 'HH:mm')}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <p className="text-sm text-muted-foreground flex items-start gap-1.5">
+                                <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-red-500" />
+                                <span className="line-clamp-2">{apt.clients?.address || 'Sem endereço cadastrado'}</span>
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                <strong className="text-foreground/80">Serviço:</strong> {apt.products?.name || 'Não especificado'}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              {apt.clients?.telefone && (
+                                <Button variant="outline" size="sm" className="h-8 text-[10px] shrink-0 border-green-200 text-green-600 hover:bg-green-50" onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}>
+                                  <Send className="w-3 h-3 mr-1" /> WhatsApp
+                                </Button>
+                              )}
+                              {apt.clients?.address && (
+                                <Button variant="outline" size="sm" className="h-8 text-[10px] shrink-0 border-blue-200 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}>
+                                  <MapPin className="w-3 h-3 mr-1" /> Ver Mapa
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </label>
+                </div>
               ))}
             </div>
           )}

@@ -107,6 +107,7 @@ const PDVTab: React.FC = () => {
   const [historySearch, setHistorySearch] = useState("");
   const [historyMonth, setHistoryMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [historyPaymentFilter, setHistoryPaymentFilter] = useState<string>("all");
+  const [selectedProvider, setSelectedProvider] = useState<string>("");
 
   const clientDropdownRef = useRef<HTMLDivElement>(null);
   const productSearchRef = useRef<HTMLInputElement>(null);
@@ -225,6 +226,23 @@ const PDVTab: React.FC = () => {
       if (error && error.code !== 'PGRST116') throw error;
       return data;
     }
+  });
+
+  // Fetch providers from admin_settings
+  const { data: providers = [] } = useQuery({
+    queryKey: ['service-providers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'service_providers')
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') return [];
+      if (data?.value) {
+        try { return JSON.parse(data.value); } catch { return []; }
+      }
+      return [];
+    },
   });
 
   const { data: salesHistory, isLoading: isLoadingSales } = useQuery({
@@ -567,6 +585,11 @@ const PDVTab: React.FC = () => {
             user_id: userId,
           };
 
+          // If provider selected, we'll try to add it to a potential 'notes' or 'provider' field
+          // or just keep it in mind for receipt.
+          // Since we might not have a provider column in 'sales', we store it in a way we can retrieve.
+          // For now, let's assume we might have it or just ignore if not.
+
           const { data: saleResult, error: saleError } = await supabase.from('sales').insert(saleData).select().single();
           if (saleError) throw saleError;
           return saleResult;
@@ -615,6 +638,17 @@ const PDVTab: React.FC = () => {
             });
           }
         }
+
+        // Create financial record for the sale
+        const providerText = selectedProvider && selectedProvider !== '_none' ? ` [Prestador: ${selectedProvider}]` : '';
+        await supabase.from('financial_records').insert({
+          user_id: userId,
+          type: 'entrada',
+          amount: Number(item.product.price) * item.quantity,
+          description: `Venda PDV: ${item.product.name} (${item.quantity}x)${providerText}`,
+          payment_method: paymentMethod,
+          category: 'Venda PDV',
+        });
 
         return saleResult;
       });
@@ -1199,6 +1233,25 @@ const PDVTab: React.FC = () => {
                   )}
                 </div>
 
+                {/* Provider Selection */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs flex items-center gap-1.5">
+                    <User className="w-3 h-3 text-primary" />
+                    Atendente / Prestador
+                  </Label>
+                  <Select value={selectedProvider} onValueChange={setSelectedProvider}>
+                    <SelectTrigger className="h-9 border-primary/20 hover:border-primary/40 transition-colors">
+                      <SelectValue placeholder="Selecione quem fez a venda..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {providers.map((p: any) => (
+                        <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 {/* Totals */}
                 <div className="border-t pt-3 space-y-1">
                   <div className="flex justify-between text-sm">
@@ -1414,6 +1467,9 @@ const PDVTab: React.FC = () => {
                     </>
                   )}
                 </>
+              )}
+              {selectedProvider && selectedProvider !== '_none' && (
+                <p className="text-sm"><strong>Prestador:</strong> {selectedProvider}</p>
               )}
               <p className="text-lg font-bold mt-2 text-green-600">Total: R$ {totalWithFee.toFixed(2)}</p>
             </div>

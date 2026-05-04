@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone, Wind, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { Trash2, Search, Pencil, FileDown, MessageCircle, PlusCircle, History, MapPin, Phone, Wind, AlertTriangle, Clock, CheckCircle, Navigation } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
@@ -273,6 +273,21 @@ const ClientsTab: React.FC = () => {
                                     </Button>
                                   </TooltipTrigger>
                                   <TooltipContent>Enviar mensagem no WhatsApp</TooltipContent>
+                                </Tooltip>
+                              )}
+                              {client.address && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 transition-all duration-200 hover:scale-110" 
+                                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address!)}`, '_blank')}
+                                    >
+                                      <MapPin className="w-3 h-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Abrir no Google Maps</TooltipContent>
                                 </Tooltip>
                               )}
                               <Tooltip>

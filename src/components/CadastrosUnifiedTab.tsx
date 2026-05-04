@@ -8,8 +8,20 @@ import EstoqueTab from './EstoqueTab';
 import RegisterProductTab from './RegisterProductTab';
 import TabGuideCards from './TabGuideCards';
 
+import { supabase } from '@/integrations/supabase/client';
+import DummyDataSeeder from './DummyDataSeeder';
+
 const CadastrosUnifiedTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("clients");
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUserEmail(session?.user?.email || null);
+    };
+    checkUser();
+  }, []);
 
   const guideCards = [
     {
@@ -54,6 +66,8 @@ const CadastrosUnifiedTab: React.FC = () => {
     <div className="space-y-4">
       <TabGuideCards cards={guideCards} columns={4} />
 
+      {userEmail === 'eriklaurenti09@gmail.com' && <DummyDataSeeder />}
+      
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl h-auto flex-wrap">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">

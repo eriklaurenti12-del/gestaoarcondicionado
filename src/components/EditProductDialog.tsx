@@ -26,6 +26,7 @@ const productSchema = z.object({
   storage_location: z.string().optional().nullable(),
   storage_shelf: z.string().optional().nullable(),
   storage_section: z.string().optional().nullable(),
+  warranty_months: z.coerce.number().optional().nullable(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -75,6 +76,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
         storage_location: product.storage_location || '',
         storage_shelf: product.storage_shelf || '',
         storage_section: product.storage_section || '',
+        warranty_months: product.warranty_months || 0,
       });
       setImagePreview(product.image_url || null);
       setImageFile(null);
@@ -127,6 +129,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
         storage_location: data.storage_location || null,
         storage_shelf: data.storage_shelf || null,
         storage_section: data.storage_section || null,
+        warranty_months: isService ? (data.warranty_months || 0) : 12,
         image_url: finalImageUrl,
       };
       onSave(update);
@@ -221,13 +224,34 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
 
             {/* Duração (serviço) */}
             {isService && (
-              <FormField control={form.control} name="service_duration" render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Duração (min)</FormLabel>
-                  <FormControl><Input type="number" {...field} value={field.value || 60} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="service_duration" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Duração (min)</FormLabel>
+                    <FormControl><Input type="number" {...field} value={field.value || 60} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+                <FormField control={form.control} name="warranty_months" render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-500" /> Recorrência</FormLabel>
+                    <Select onValueChange={field.onChange} value={String(field.value || '0')}>
+                      <FormControl>
+                        <SelectTrigger className="bg-amber-50/10 border-amber-500/20">
+                          <SelectValue placeholder="Selecione o prazo" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="0">Sem recorrência</SelectItem>
+                        <SelectItem value="3">Trimestral (3 meses)</SelectItem>
+                        <SelectItem value="6">Semestral (6 meses)</SelectItem>
+                        <SelectItem value="12">Anual (1 ano)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )} />
+              </div>
             )}
 
             {/* Estoque (peça) */}
