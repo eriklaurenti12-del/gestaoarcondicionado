@@ -1,4 +1,4 @@
-import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones, Share, CheckCircle, Shield } from "lucide-react";
+import { BarChart3, CalendarDays, Users, Wrench, Building2, TrendingUp, Briefcase, UserCog, LogOut, Wallet, Database, Settings, Wind, FileText, ClipboardList, Snowflake, ShoppingCart, Thermometer, Bell, Globe, Zap, MessageCircle, Download, Headphones, Share, CheckCircle, Shield, RefreshCw } from "lucide-react";
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -383,6 +383,16 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <div className={`flex flex-col gap-1.5 mt-2 px-2 pb-2 ${isCollapsed ? "hidden" : "block"}`}>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground/70">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span>Sistema Online (v2.4.0)</span>
+          </div>
+          <div className="flex items-center gap-2 text-[9px] text-muted-foreground/50">
+            <RefreshCw className="w-2.5 h-2.5" />
+            <span>Sincronizado com servidor</span>
+          </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

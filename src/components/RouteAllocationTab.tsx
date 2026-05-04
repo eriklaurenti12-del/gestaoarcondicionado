@@ -352,8 +352,29 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                     <CardHeader className="p-3 bg-muted/30">
                       <div className="flex justify-between items-center">
                         <span className="font-bold">{provName}</span>
-                        <Badge variant="outline" className="bg-background">{appts.length} serviços</Badge>
+                        <div className="flex flex-col items-end gap-1">
+                          <Badge variant="outline" className="bg-background">{appts.length} serviços</Badge>
+                          <span className="text-[10px] font-bold text-green-600">
+                            Previsto: R$ {appts.reduce((sum, a) => {
+                              const price = a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1] || a.products?.price || 0;
+                              return sum + Number(price);
+                            }, 0).toFixed(2)}
+                          </span>
+                        </div>
                       </div>
+                      <Button 
+                        size="sm" 
+                        variant="secondary" 
+                        className="w-full mt-2 h-7 text-[10px] gap-1"
+                        onClick={() => {
+                          const addresses = appts.map(a => a.clients?.address).filter(Boolean);
+                          if (addresses.length === 0) return;
+                          const url = `https://www.google.com/maps/dir/${addresses.map(addr => encodeURIComponent(addr)).join('/')}`;
+                          window.open(url, '_blank');
+                        }}
+                      >
+                        <MapPin className="w-3 h-3" /> Traçar Rota Completa
+                      </Button>
                     </CardHeader>
                     <CardContent className="p-3 space-y-2">
                       {appts.map(a => (

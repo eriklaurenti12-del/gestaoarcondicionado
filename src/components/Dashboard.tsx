@@ -5,11 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send, Play, X, Navigation, MapPin, User, Trash2 } from "lucide-react";
+import { Wind, Users, TrendingUp, AlertTriangle, CalendarDays, CalendarCheck, Clock, Download, Bell, BellRing, CreditCard, Wrench, Thermometer, DollarSign, Trophy, Star, Package, Fuel, FileText, ClipboardList, Shield, CheckCircle, Gift, Phone, MessageSquare, Send, Play, X, Navigation, MapPin, User, Trash2, Radar } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
-import { format, isToday, startOfWeek, endOfWeek, differenceInDays } from 'date-fns';
+import { format, isToday, startOfWeek, endOfWeek, differenceInDays, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useSubscription } from './SubscriptionGate';
 import DummyDataSeeder from './DummyDataSeeder';
@@ -57,6 +57,14 @@ const getBrazilianHolidays = (year: number) => {
   ];
 };
 
+const getAppointmentPrice = (apt: any) => {
+  if (apt.notes) {
+    const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
+    if (match) return Number(match[1]);
+  }
+  return Number(apt.products?.price) || 0;
+};
+
 const fetchDashboardData = async () => {
   try {
     const productsPromise = supabase.from('products').select('*');
@@ -91,8 +99,8 @@ const fetchDashboardData = async () => {
 
     // Expected revenue from scheduled/confirmed appointments (not yet concluded)
     const expectedRevenue = appointmentsList
-      .filter(a => (a.status === 'agendado' || a.status === 'confirmado') && a.products?.price)
-      .reduce((sum, a) => sum + (Number(a.products?.price) || 0), 0);
+      .filter(a => (a.status === 'agendado' || a.status === 'confirmado'))
+      .reduce((sum, a) => sum + getAppointmentPrice(a), 0);
     // Filter sales for CURRENT MONTH only
     const now = new Date();
     const currentMonthPrefix = format(now, 'yyyy-MM');
@@ -114,8 +122,8 @@ const fetchDashboardData = async () => {
     // Revenue from confirmed appointments without matching sales (legacy bookings)
     const salesProductIds = new Set(currentMonthSales.map(s => s.product_id));
     const appointmentRevenue = confirmedAppointmentsThisMonth
-      .filter((a: any) => a.service_id && !salesProductIds.has(a.service_id))
-      .reduce((sum: number, a: any) => sum + (Number(a.products?.price) || 0), 0);
+      .filter((a: any) => !salesProductIds.has(a.service_id))
+      .reduce((sum: number, a: any) => sum + getAppointmentPrice(a), 0);
     
     const totalSales = salesRevenue + appointmentRevenue;
     const totalProfit = currentMonthSales.reduce((sum, s) => sum + Number(s.total_profit), 0) + 
@@ -290,6 +298,24 @@ const fetchDashboardData = async () => {
       })
       .sort((a: any, b: any) => a.daysUntil - b.daysUntil);
 
+    // Maintenance Radar: Completed services that will need renewal soon
+    const maintenanceRadar = appointmentsList
+      .filter(a => (a.status === 'concluido' || a.status === 'concluído') && a.products?.warranty_months)
+      .map(a => {
+        const doneDate = new Date(a.appointment_date);
+        const nextDate = addMonths(doneDate, a.products.warranty_months);
+        const daysUntil = differenceInDays(nextDate, today);
+        return {
+          ...a,
+          nextDate,
+          daysUntil,
+          isExpired: daysUntil < 0,
+          isUrgent: daysUntil >= 0 && daysUntil <= 15
+        };
+      })
+      .filter(a => a.daysUntil <= 30 && a.daysUntil > -60) // Show from 30 days before until 60 days after
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+
     // Overdue appointments (agendado but past date)
     const overdueAppointments = appointmentsList
       .filter(a => a.status === 'agendado' && new Date(a.appointment_date) < today)
@@ -331,7 +357,8 @@ const fetchDashboardData = async () => {
         birthdayClients,
         upcomingBirthdays,
         clientsList,
-        overdueAppointments
+        overdueAppointments,
+        maintenanceRadar
     };
   } catch (error) {
     console.error('Dashboard fetch error:', error);
@@ -506,15 +533,17 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         if (error) throw error;
 
         // Financial integration logic (matches AppointmentsTab)
-        if (status === 'concluido' && appointment?.service_id && appointment?.client_id && appointment?.products) {
+        if (status === 'concluido' && appointment?.client_id) {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-            const salePrice = Number(appointment.products.price);
-            const { data: productData } = await supabase
+            const salePrice = getAppointmentPrice(appointment);
+            if (salePrice <= 0) return; // Skip if no value found
+
+            const { data: productData } = appointment.service_id ? await supabase
               .from('products')
               .select('cost_price')
               .eq('id', appointment.service_id)
-              .maybeSingle();
+              .maybeSingle() : { data: null };
             
             const actualCostPrice = productData?.cost_price || 0;
             const profit = salePrice - Number(actualCostPrice);
@@ -1469,41 +1498,35 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                       )}
 
                       {/* Navigation + Contact */}
-                      <div className="flex gap-1.5 mt-2">
+                      <div className="flex gap-1 mt-2 pt-2 border-t">
                         {apt.clients?.address && (
-                          <>
+                          <div className="flex gap-1 flex-1">
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-xs h-6 flex-1 text-muted-foreground"
-                              onClick={() => {
-                                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank');
-                              }}
+                              className="text-[10px] h-7 flex-1 text-blue-600 hover:bg-blue-50"
+                              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(apt.clients.address)}`, '_blank')}
                             >
                               <Navigation className="w-3 h-3 mr-1" /> Maps
                             </Button>
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="text-xs h-6 flex-1 text-muted-foreground"
-                              onClick={() => {
-                                window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank');
-                              }}
+                              className="text-[10px] h-7 flex-1 text-orange-600 hover:bg-orange-50"
+                              onClick={() => window.open(`https://waze.com/ul?q=${encodeURIComponent(apt.clients.address)}`, '_blank')}
                             >
                               <MapPin className="w-3 h-3 mr-1" /> Waze
                             </Button>
-                          </>
+                          </div>
                         )}
                         {apt.clients?.telefone && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-xs h-6 text-muted-foreground"
-                            onClick={() => {
-                              window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank');
-                            }}
+                            className="text-[10px] h-7 px-2 text-green-600 hover:bg-green-50"
+                            onClick={() => window.open(`https://wa.me/55${apt.clients.telefone.replace(/\D/g, '')}`, '_blank')}
                           >
-                            <MessageSquare className="w-3 h-3 mr-1" /> WhatsApp
+                            <MessageSquare className="w-3 h-3" />
                           </Button>
                         )}
                       </div>
@@ -1562,6 +1585,53 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Maintenance Radar Card */}
+      {data.maintenanceRadar && data.maintenanceRadar.length > 0 && (
+        <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-cyan-500/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                <Radar className="w-5 h-5 animate-pulse" />
+                Radar de Manutenções (Vencimentos)
+              </CardTitle>
+              <Badge variant="outline" className="border-blue-200 text-blue-700">
+                {data.maintenanceRadar.length} oportunitade(s)
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.maintenanceRadar.slice(0, 5).map((m: any) => (
+              <div key={m.id} className="flex items-center justify-between p-3 rounded-xl bg-white/50 dark:bg-black/20 border border-blue-100 dark:border-blue-900/30 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${m.isExpired ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                    <Clock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">{m.clients?.name}</p>
+                    <p className="text-xs text-muted-foreground">{m.products?.name}</p>
+                    <p className={`text-[10px] font-medium mt-0.5 ${m.isExpired ? 'text-red-500' : 'text-blue-600'}`}>
+                      {m.isExpired ? `VENCIDO HÁ ${Math.abs(m.daysUntil)} DIAS` : `VENCE EM ${m.daysUntil} DIAS (${format(m.nextDate, 'dd/MM')})`}
+                    </p>
+                  </div>
+                </div>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className="h-8 text-[10px] border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => {
+                    const clean = m.clients?.telefone?.replace(/\D/g, '');
+                    const msg = `Olá ${m.clients?.name}! 😊\n\nNotamos que a manutenção do seu equipamento (${m.products?.name}) está ${m.isExpired ? 'vencida' : 'próxima do vencimento'}.\n\nGostaria de agendar uma revisão para garantir o bom funcionamento?\n\nEquipe ${companyName || 'AC Service Pro'}`;
+                    window.open(`https://wa.me/55${clean}?text=${encodeURIComponent(msg)}`, '_blank');
+                  }}
+                >
+                  <Send className="w-3 h-3 mr-1" /> Avisar
+                </Button>
+              </div>
+            ))}
           </CardContent>
         </Card>
       )}

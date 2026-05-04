@@ -91,7 +91,29 @@ export default function FinanceiroTab() {
     }
   });
 
+  const { data: pendingAppointments } = useQuery({
+    queryKey: ["pending-appointments-financial", selectedMonth],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("notes, products(price)")
+        .in("status", ["agendado", "confirmado"])
+        .gte("appointment_date", selectedMonth + "-01");
+      if (error) throw error;
+      return data;
+    }
+  });
+
+  const getAppointmentPrice = (apt: any) => {
+    if (apt.notes) {
+      const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
+      if (match) return Number(match[1]);
+    }
+    return Number(apt.products?.price) || 0;
+  };
+
   const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
+  const receitaPrevista = pendingAppointments?.reduce((acc, a: any) => acc + getAppointmentPrice(a), 0) || 0;
 
   useEffect(() => {
     fetchRecords();
@@ -192,7 +214,7 @@ export default function FinanceiroTab() {
   const lucroServicos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
   
   const totalGeral = totalEntradas + totalVendas;
-  const saldoDisponivel = totalGeral - totalSaques - totalReservas;
+  const saldoDisponivel = totalGeral - totalSaques - totalReservas - totalGastosFixos;
 
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
@@ -554,6 +576,18 @@ export default function FinanceiroTab() {
             <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
               {formatCurrency(saldoDisponivel)}
             </p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20 col-span-2 sm:col-span-1">
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <RefreshCw className="h-3 w-3 text-amber-500 flex-shrink-0" />
+              <span className="truncate">Receita Prevista</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-amber-600 truncate">{formatCurrency(receitaPrevista)}</p>
           </CardContent>
         </Card>
       </div>

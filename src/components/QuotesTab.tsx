@@ -232,7 +232,7 @@ export default function QuotesTab() {
         user_id: userData.user.id,
         client_id: scheduleQuote.client_id,
         appointment_date: scheduleDate,
-        notes: `Orçamento #${scheduleQuote.quote_number}: ${scheduleQuote.title}\n${scheduleNotes}`,
+        notes: `Orçamento #${scheduleQuote.quote_number}: ${scheduleQuote.title}\n[VALOR:${scheduleQuote.total}]\n${scheduleNotes}`,
         status: 'agendado'
       });
 

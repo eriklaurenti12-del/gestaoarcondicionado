@@ -78,6 +78,20 @@ export default function HistoricoGeralTab() {
     },
   });
 
+    },
+  });
+
+  const { data: fixedExpenses, isLoading: loadExpenses } = useQuery({
+    queryKey: ['hist-fixed-expenses'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fixed_expenses')
+        .select('*')
+        .order('expense_date', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   const { data: products } = useQuery({
     queryKey: ['hist-products'],
     queryFn: async () => {
@@ -113,7 +127,7 @@ export default function HistoricoGeralTab() {
     }
   });
 
-  const isLoading = loadAppts || loadSales || loadQuotes;
+  const isLoading = loadAppts || loadSales || loadQuotes || loadExpenses;
   const productMap = useMemo(() => {
     const m: Record<number, string> = {};
     (products || []).forEach((p: any) => { m[p.id] = p.name; });
@@ -176,6 +190,20 @@ export default function HistoricoGeralTab() {
       });
     });
 
+    (fixedExpenses || []).forEach((e: any) => {
+      items.push({
+        id: `e-${e.id}`,
+        dbId: e.id,
+        date: e.expense_date,
+        client: e.helper_name || 'Gasto Geral',
+        type: 'venda', // We'll use a specific badge for expenses
+        description: `⛽ Gasto de Rota: ${e.description || e.category}`,
+        value: -Number(e.amount || 0),
+        status: 'pago',
+        provider: e.helper_name,
+      });
+    });
+
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return items;
   }, [appointments, sales, quotes, productMap]);
@@ -216,6 +244,11 @@ export default function HistoricoGeralTab() {
       case 'orcamento': return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><FileText className="w-3 h-3 mr-1" />Orçamento</Badge>;
       default: return <Badge>{type}</Badge>;
     }
+  };
+
+  const getHistoryItemBadge = (item: HistoryItem) => {
+    if (item.value < 0) return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"><Fuel className="w-3 h-3 mr-1" />Gasto</Badge>;
+    return getTypeBadge(item.type);
   };
 
   const getStatusBadge = (status: string) => {
@@ -378,18 +411,26 @@ export default function HistoricoGeralTab() {
                   <div key={item.id}
                     className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border transition-colors hover:bg-muted/30`}>
                     <div className="flex items-center gap-3 min-w-0">
-                      {getTypeBadge(item.type)}
+                      {getHistoryItemBadge(item)}
                       <div className="min-w-0" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
                         <p className="font-medium text-sm truncate hover:underline cursor-pointer">{item.client}</p>
                         <p className="text-xs text-muted-foreground truncate">{item.description}</p>
                         
                         {expirationDate && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <Clock className={`w-3 h-3 ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`} />
-                            <span className={`text-[10px] font-medium ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`}>
-                              Vencimento: {format(expirationDate, 'dd/MM/yyyy')}
-                              {isExpired ? ' (Vencido)' : isNearing ? ' (Próximo)' : ''}
-                            </span>
+                          <div className="flex flex-col gap-1 mt-1">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar className="w-3 h-3 text-muted-foreground" />
+                              <span className="text-[10px] text-muted-foreground">
+                                Realizado em: {format(new Date(item.date), 'dd/MM/yyyy')}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Clock className={`w-3 h-3 ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`} />
+                              <span className={`text-[10px] font-bold ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`}>
+                                Próxima Manutenção: {format(expirationDate, 'dd/MM/yyyy')}
+                                {isExpired ? ' (VENCIDO)' : isNearing ? ' (Vence em breve)' : ' (Garantia Ativa)'}
+                              </span>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -448,25 +489,50 @@ export default function HistoricoGeralTab() {
                             <MapPin className="w-4 h-4" />
                           </Button>
                         )}
+                        {item.type === 'agendamento' && item.status === 'concluido' && (
+                          <div className="flex gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 gap-1 text-[10px] border-amber-200 bg-amber-50/30 hover:bg-amber-100 text-amber-700"
+                              onClick={() => {
+                                setRenewingItem(item);
+                                if (item.warrantyMonths) {
+                                  setRenewDate(format(addMonths(new Date(item.date), item.warrantyMonths), 'yyyy-MM-dd'));
+                                }
+                              }}
+                            >
+                              <RefreshCw className="w-3 h-3" />
+                              Renovar
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-8 gap-1 text-[10px] border-blue-200 bg-blue-50/30 hover:bg-blue-100 text-blue-700"
+                              onClick={() => {
+                                const doc = new jsPDF();
+                                doc.setFontSize(18);
+                                doc.text("RECIBO DE SERVIÇO", 105, 20, { align: 'center' });
+                                doc.setFontSize(12);
+                                doc.text(`Cliente: ${item.client}`, 20, 40);
+                                doc.text(`Serviço: ${item.description}`, 20, 50);
+                                doc.text(`Data: ${format(new Date(item.date), 'dd/MM/yyyy')}`, 20, 60);
+                                if (expirationDate) {
+                                  doc.text(`Próxima Manutenção: ${format(expirationDate, 'dd/MM/yyyy')}`, 20, 70);
+                                }
+                                doc.text(`Valor: R$ ${item.value.toFixed(2)}`, 20, 80);
+                                doc.line(20, 100, 190, 100);
+                                doc.text("Assinatura do Prestador", 105, 110, { align: 'center' });
+                                doc.save(`recibo-${item.client.replace(/\s/g, '-')}.pdf`);
+                                toast.success("Recibo gerado com sucesso!");
+                              }}
+                            >
+                              <FileDown className="w-3 h-3" />
+                              Recibo
+                            </Button>
+                          </div>
+                        )}
                       </div>
-
-                      {item.type === 'agendamento' && item.status === 'concluido' && (
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="h-8 gap-1 text-xs border-amber-200 bg-amber-50/30 hover:bg-amber-100 text-amber-700"
-                          onClick={() => {
-                            setRenewingItem(item);
-                            // Default next date based on recurrence
-                            if (item.warrantyMonths) {
-                              setRenewDate(format(addMonths(new Date(item.date), item.warrantyMonths), 'yyyy-MM-dd'));
-                            }
-                          }}
-                        >
-                          <RefreshCw className="w-3 h-3" />
-                          Renovar
-                        </Button>
-                      )}
                     </div>
                   </div>
                 );

@@ -238,9 +238,9 @@ const ClientsTab: React.FC = () => {
                         <TableCell>{client.sales.length}</TableCell>
                         <TableCell>
                           {maintenanceStatus ? (
-                            <span className={`text-xs font-semibold ${maintenanceStatus.color}`}>
-                              {maintenanceStatus.status === 'overdue' ? 'Atrasado' : maintenanceStatus.status === 'upcoming' ? 'Vence em breve' : 'Em dia'}
-                            </span>
+                            <Badge variant="outline" className={`${maintenanceStatus.bg} ${maintenanceStatus.color} border-none text-[10px] py-0 px-2`}>
+                              {maintenanceStatus.status === 'overdue' ? 'VENCIDA' : maintenanceStatus.status === 'upcoming' ? 'VENCENDO' : 'EM DIA'}
+                            </Badge>
                           ) : (
                             <span className="text-xs text-muted-foreground">-</span>
                           )}
@@ -248,64 +248,70 @@ const ClientsTab: React.FC = () => {
                         <TableCell className="font-semibold text-green-600">R$ {total.toFixed(2)}</TableCell>
                         <TableCell>
                           <TooltipProvider delayDuration={150}>
-                            <div className="flex gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-cyan-500 hover:text-cyan-600 transition-all duration-200 hover:scale-110" onClick={() => setEquipmentClient(client)}>
-                                    <Wind className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Equipamentos e manutenções</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-primary hover:text-primary/80 transition-all duration-200 hover:scale-110" onClick={() => setHistoryClient(client)}>
-                                    <History className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Histórico de serviços e vendas</TooltipContent>
-                              </Tooltip>
-                              {client.telefone && (
+                            <div className="flex gap-1 bg-muted/30 p-1 rounded-lg border">
+                              {/* Operacional */}
+                              <div className="flex gap-1 border-r pr-1 border-border/50">
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-500 hover:text-green-600 transition-all duration-200 hover:scale-110" onClick={() => sendWhatsAppMessage(client)}>
-                                      <MessageCircle className="w-3 h-3" />
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-cyan-600 hover:bg-cyan-50" onClick={() => setEquipmentClient(client)}>
+                                      <Wind className="w-3.5 h-3.5" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Enviar mensagem no WhatsApp</TooltipContent>
+                                  <TooltipContent>Equipamentos</TooltipContent>
                                 </Tooltip>
-                              )}
-                              {client.address && (
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="h-8 w-8 p-0 text-blue-500 hover:text-blue-600 transition-all duration-200 hover:scale-110" 
-                                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address!)}`, '_blank')}
-                                    >
-                                      <MapPin className="w-3 h-3" />
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-primary hover:bg-primary/5" onClick={() => setHistoryClient(client)}>
+                                      <History className="w-3.5 h-3.5" />
                                     </Button>
                                   </TooltipTrigger>
-                                  <TooltipContent>Abrir no Google Maps</TooltipContent>
+                                  <TooltipContent>Histórico</TooltipContent>
                                 </Tooltip>
-                              )}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 transition-all duration-200 hover:scale-110" onClick={() => setEditingClient(client)}>
-                                    <Pencil className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Editar cadastro do cliente</TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-destructive hover:text-destructive transition-all duration-200 hover:scale-110" onClick={() => onDeleteClient(client.id)}>
-                                    <Trash2 className="w-3 h-3" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Excluir cliente</TooltipContent>
-                              </Tooltip>
+                              </div>
+
+                              {/* Comunicação */}
+                              <div className="flex gap-1 border-r pr-1 border-border/50">
+                                {client.telefone && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-green-600 hover:bg-green-50" onClick={() => sendWhatsAppMessage(client)}>
+                                        <MessageCircle className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>WhatsApp</TooltipContent>
+                                  </Tooltip>
+                                )}
+                                {client.address && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-blue-600 hover:bg-blue-50" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address!)}`, '_blank')}>
+                                        <MapPin className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Maps</TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </div>
+
+                              {/* Admin */}
+                              <div className="flex gap-1 pl-1">
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-muted-foreground hover:bg-muted" onClick={() => setEditingClient(client)}>
+                                      <Pencil className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Editar</TooltipContent>
+                                </Tooltip>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:bg-destructive/5" onClick={() => onDeleteClient(client.id)}>
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>Excluir</TooltipContent>
+                                </Tooltip>
+                              </div>
                             </div>
                           </TooltipProvider>
                         </TableCell>

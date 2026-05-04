@@ -123,6 +123,14 @@ const AppointmentsTab: React.FC = () => {
   const [appointmentTime, setAppointmentTime] = useState("");
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
+
+  const getAppointmentPrice = (apt: any) => {
+    if (apt.notes) {
+      const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
+      if (match) return Number(match[1]);
+    }
+    return Number(apt.products?.price) || 0;
+  };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
@@ -249,16 +257,17 @@ const AppointmentsTab: React.FC = () => {
       if (error) throw error;
       
       // If completing the appointment and has a service, register the sale AND financial record
-      if (status === 'concluido' && appointment?.service_id && appointment?.client_id && appointment?.products) {
+      if (status === 'concluido' && appointment?.client_id) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const salePrice = Number(appointment.products.price);
-          
-          const { data: productData } = await supabase
+          const salePrice = getAppointmentPrice(appointment);
+          if (salePrice <= 0) return; // Skip if no value found
+
+          const { data: productData } = appointment.service_id ? await supabase
             .from('products')
             .select('cost_price')
             .eq('id', appointment.service_id)
-            .maybeSingle();
+            .maybeSingle() : { data: null };
           
           const actualCostPrice = productData?.cost_price || 0;
           const profit = salePrice - Number(actualCostPrice);
@@ -269,7 +278,6 @@ const AppointmentsTab: React.FC = () => {
             .select('id')
             .eq('user_id', session.user.id)
             .eq('client_id', appointment.client_id)
-            .eq('product_id', appointment.service_id)
             .eq('sale_date', appointment.appointment_date)
             .maybeSingle();
 
@@ -277,7 +285,7 @@ const AppointmentsTab: React.FC = () => {
             await supabase.from('sales').insert({
               user_id: session.user.id,
               client_id: appointment.client_id,
-              product_id: appointment.service_id,
+              product_id: appointment.service_id || null, // Can be null now
               qty: 1,
               sale_price: salePrice,
               total_profit: profit,

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Download, Loader2, BookOpen, BarChart3, Users, CalendarDays, 
   Wrench, ShoppingCart, Wallet, Settings, FileCheck, Globe,
-  Thermometer, Database, Bell, Shield, Zap, Share2
+  Thermometer, Database, Bell, Shield, Zap, Share2, Radar, Car, FileText
 } from "lucide-react";
 import jsPDF from 'jspdf';
 import { AdminGuideCards } from "@/components/AdminGuideCards";
@@ -172,12 +172,43 @@ const getSystemSections = (stats: any) => [
     ]
   },
   {
-    title: '16. SISTEMA BETA',
+    title: '16. RADAR DE MANUTENÇÕES',
+    icon: Radar,
+    steps: [
+      'O Radar de Manutenções monitora automaticamente todos os serviços concluídos.',
+      'Ele calcula a data da próxima visita baseada no tempo de garantia cadastrado no serviço.',
+      'Vencimentos próximos (15 dias) e serviços já vencidos são destacados no Dashboard.',
+      'Use o botão "Avisar" para enviar uma mensagem automática via WhatsApp oferecendo a manutenção.',
+    ]
+  },
+  {
+    title: '17. GESTÃO DE EQUIPES E ROTAS',
+    icon: Car,
+    steps: [
+      'Em "Prestadores", você pode organizar as rotas do dia para cada equipe.',
+      'Selecione os serviços pendentes e atribua a um prestador específico.',
+      'Lance gastos previstos (combustível, alimentação) para controlar o lucro da rota.',
+      'Gere o link do Google Maps com todas as paradas do dia para o GPS do técnico.',
+      'Monitore em tempo real quais serviços da rota já foram concluídos.',
+    ]
+  },
+  {
+    title: '18. RECIBOS E DOCUMENTOS',
+    icon: FileText,
+    steps: [
+      'No Histórico Geral, agora você pode gerar um Recibo Profissional de cada serviço.',
+      'O recibo inclui dados do cliente, serviço realizado, valor e data do próximo vencimento.',
+      'Documentos como Orçamentos e O.S. podem ser salvos em PDF ou enviados por WhatsApp.',
+      'Colete assinaturas digitais diretamente na tela do celular para maior segurança jurídica.',
+    ]
+  },
+  {
+    title: '19. SISTEMA SIMPLIFICADO (BETA)',
     icon: Zap,
     steps: [
-      'Acesse o "Sistema Beta" no menu lateral para testar novas funcionalidades.',
-      'O modo beta inclui recursos experimentais que serão incorporados ao sistema principal.',
-      'Relate bugs ou problemas encontrados para melhoria contínua.',
+      'Acesse o "Sistema Simplificado" para uma interface focada em uso móvel.',
+      'Ideal para técnicos de campo que precisam apenas de Agenda, Clientes e Financeiro rápido.',
+      'Alterne entre o modo completo e simplificado no menu lateral a qualquer momento.',
     ]
   },
 ];

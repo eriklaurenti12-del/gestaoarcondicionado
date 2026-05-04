@@ -31,6 +31,7 @@ export interface ServiceProvider {
   active: boolean;
   food_allowance?: number;
   fuel_allowance?: number;
+  technical_notes?: string;
   created_at: string;
 }
 
@@ -95,7 +96,7 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: ''
+    food_allowance: '', fuel_allowance: '', technical_notes: ''
   });
 
   const { data: providers = [], isLoading } = useQuery({
@@ -389,31 +390,38 @@ export default function ServiceProvidersTab() {
                       <span>{provAppts.length} serviço(s)</span>
                       <span className="text-red-500">R$ {totalExpenses.toFixed(2)} gastos</span>
                     </div>
-                    <div className="flex gap-1 mt-3">
-                      <Button size="sm" variant="outline" className="h-8 text-xs flex-1" onClick={() => setHistoryProvider(provider)}>
-                        Histórico
-                      </Button>
-                      {provider.phone && (
-                        <Button size="sm" variant="outline" className="h-8 text-xs text-green-600 border-green-300"
-                          onClick={() => {
-                            const phone = provider.phone.replace(/\D/g, '');
-                            window.open(`https://wa.me/55${phone}`, '_blank');
-                          }}>
-                          <Send className="w-3 h-3" />
+                    <div className="space-y-2 mt-4">
+                      {/* Row 1: Operational */}
+                      <div className="flex gap-2">
+                        <Button size="sm" className="h-9 text-xs flex-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => setScheduleProvider(provider)}>
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Agendar
                         </Button>
-                      )}
-                      <Button size="sm" variant="outline" className="h-8 text-xs flex-1 text-primary border-primary/30" onClick={() => setScheduleProvider(provider)}>
-                        <Plus className="w-3 h-3 mr-1" /> Agendar
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-xs flex-1 text-orange-600 border-orange-300" onClick={() => setRouteProvider(provider)}>
-                        <Car className="w-3 h-3 mr-1" /> Rota Hoje
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => handleEdit(provider)}>
-                        <Edit2 className="w-3 h-3" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-8 text-xs text-destructive" onClick={() => handleDelete(provider.id)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                        <Button size="sm" className="h-9 text-xs flex-1 bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100" onClick={() => setRouteProvider(provider)}>
+                          <Car className="w-3.5 h-3.5 mr-1" /> Rota Hoje
+                        </Button>
+                      </div>
+
+                      {/* Row 2: Admin/Comm */}
+                      <div className="flex gap-1">
+                        <Button size="sm" variant="outline" className="h-8 text-[10px] flex-1" onClick={() => setHistoryProvider(provider)}>
+                          Histórico
+                        </Button>
+                        {provider.phone && (
+                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-600 border-green-200 hover:bg-green-50"
+                            onClick={() => {
+                              const phone = provider.phone.replace(/\D/g, '');
+                              window.open(`https://wa.me/55${phone}`, '_blank');
+                            }}>
+                            <Send className="w-3 h-3" />
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEdit(provider)}>
+                          <Edit2 className="w-3 h-3 text-muted-foreground" />
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/5" onClick={() => handleDelete(provider.id)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -448,6 +456,15 @@ export default function ServiceProvidersTab() {
                   {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <Label>Observações Técnicas</Label>
+              <textarea 
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Ex: Possui ferramental completo, carro próprio, etc."
+                value={formData.technical_notes}
+                onChange={e => setFormData({ ...formData, technical_notes: e.target.value })}
+              />
             </div>
             <div>
               <Label>Custo por Hora (R$)</Label>
