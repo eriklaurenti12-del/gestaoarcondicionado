@@ -138,7 +138,7 @@ export default function ServiceProvidersTab() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '' });
+    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '', technical_notes: '' });
     setEditingProvider(null);
   };
 
