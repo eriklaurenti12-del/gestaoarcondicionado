@@ -123,8 +123,8 @@ const DummyDataSeeder: React.FC = () => {
       await supabase.from('products').delete().eq('user_id', userId);
       await supabase.from('clients').delete().eq('user_id', userId);
       await supabase.from('suppliers').delete().eq('user_id', userId);
-      await supabase.from('equipment').delete().eq('user_id', userId);
-      await supabase.from('maintenance_plans').delete().eq('user_id', userId);
+      await (supabase.from('equipment' as any) as any).delete().eq('user_id', userId);
+      await (supabase.from('maintenance_plans' as any) as any).delete().eq('user_id', userId);
       
       toast.success("Sistema limpo do zero! Conta Erik preservada.");
       queryClient.invalidateQueries();
