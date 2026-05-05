@@ -178,17 +178,17 @@ const CompanyDataTab: React.FC = () => {
       const fileName = `${currentUserId}/logo.${ext}`;
       
       // Remove old logos
-      await supabase.storage.from('product-images').remove([
+      await supabase.storage.from('company-logos').remove([
         `${currentUserId}/logo.png`, `${currentUserId}/logo.jpg`, 
         `${currentUserId}/logo.jpeg`, `${currentUserId}/logo.webp`
       ]);
       
       const { error: uploadError } = await supabase.storage
-        .from('product-images')
+        .from('company-logos')
         .upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
       
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from('company-logos').getPublicUrl(fileName);
       
       if (urlData?.publicUrl) {
         // Add cache buster to URL
@@ -220,7 +220,7 @@ const CompanyDataTab: React.FC = () => {
 
     // Remove from storage and DB
     try {
-      await supabase.storage.from('product-images').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
+      await supabase.storage.from('company-logos').remove([`${userId}/logo.png`, `${userId}/logo.jpg`, `${userId}/logo.jpeg`, `${userId}/logo.webp`]);
       await supabase.from('company_data' as any).update({ logo_url: null }).eq('user_id', userId);
       queryClient.invalidateQueries({ queryKey: ['company-data'] });
       queryClient.invalidateQueries({ queryKey: ['company-data-sidebar'] });
