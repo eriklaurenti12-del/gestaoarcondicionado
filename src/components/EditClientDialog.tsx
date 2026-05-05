@@ -8,6 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tables, TablesUpdate } from '@/integrations/supabase/types';
+import { supabase } from '@/integrations/supabase/client';
 import { User, Phone, Calendar, MapPin, FileText, Mail } from 'lucide-react';
 
 const clientSchema = z.object({
