@@ -303,10 +303,10 @@ const fetchDashboardData = async () => {
 
     // Maintenance Radar: Completed services that will need renewal soon
     const maintenanceRadar = appointmentsList
-      .filter(a => (a.status === 'concluido' || a.status === 'concluído') && a.products?.warranty_months)
+      .filter(a => (a.status === 'concluido' || a.status === 'concluído') && (a.products as any)?.warranty_months)
       .map(a => {
         const doneDate = new Date(a.appointment_date);
-        const nextDate = addMonths(doneDate, a.products.warranty_months);
+        const nextDate = addMonths(doneDate, (a.products as any).warranty_months);
         const daysUntil = differenceInDays(nextDate, today);
         return {
           ...a,

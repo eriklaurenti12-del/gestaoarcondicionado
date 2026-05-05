@@ -236,36 +236,52 @@ export default function Index() {
 
   // Check for new SW version. If found → 'pwa:need-refresh' fires and shows banner.
   const checkForUpdates = async () => {
-    toast.info('🔍 Otimizando e buscando atualizações...', { id: 'check-update' });
+    toast.loading('🔍 Buscando atualizações...', { id: 'check-update' });
+
+    // Detect preview/iframe — SW is not registered there, so just hard-reload to fetch latest from server.
+    const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+    const isPreview = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
+    const hasSW = 'serviceWorker' in navigator;
+
+    if (inIframe || isPreview || !hasSW) {
+      toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
+      setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.set('_v', Date.now().toString());
+        window.location.replace(url.toString());
+      }, 600);
+      return;
+    }
+
     try {
-      // Data Integrity Check: Ensure we are in an isolated session
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id !== currentUserId) {
-        toast.error('⚠️ Sessão inconsistente. Recarregando para segurança dos dados...');
-        setTimeout(() => window.location.reload(), 1000);
+      const reg = await navigator.serviceWorker.getRegistration();
+
+      // No SW registered yet (first visit / not installed as PWA): just hard-reload
+      if (!reg) {
+        toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
+        setTimeout(() => window.location.reload(), 600);
         return;
       }
 
-      // Tell main.tsx-registered SW to look for a new build
+      // Ask main.tsx pipeline to also try
       window.dispatchEvent(new CustomEvent('pwa:check-update'));
+      await reg.update();
+      // Give the browser a moment to discover a waiting worker
+      await new Promise(r => setTimeout(r, 1500));
 
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) {
-          const updateFound = await reg.update();
-          // Wait briefly to see if a new worker shows up
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          if (reg.waiting || reg.installing) {
-            // 'pwa:need-refresh' will fire from main.tsx; UpdateNotification handles it
-            toast.dismiss('check-update');
-            return;
-          }
-        }
+      if (reg.waiting || reg.installing) {
+        toast.success('🎉 Nova versão encontrada! Aplicando...', { id: 'check-update' });
+        // Tell waiting SW to activate immediately, then reload
+        reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
+        setTimeout(() => window.location.reload(), 800);
+        return;
       }
-      toast.success('✅ Sistema otimizado e atualizado!', { id: 'check-update' });
-    } catch {
-      toast.dismiss('check-update');
-      toast.info('🔄 Sincronizando versão atual...');
+
+      // No new SW — but still fetch fresh HTML from network to pick up latest assets
+      toast.success('✅ Você já está na versão mais recente.', { id: 'check-update' });
+    } catch (err) {
+      console.error('checkForUpdates error:', err);
+      toast.error('Não foi possível verificar agora. Recarregando...', { id: 'check-update' });
       setTimeout(() => window.location.reload(), 800);
     }
   };

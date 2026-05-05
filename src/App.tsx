@@ -27,7 +27,7 @@ const queryClient = new QueryClient({
       staleTime: 30000,
       gcTime: 5 * 60 * 1000, // Cache data for 5 minutes
       refetchOnWindowFocus: false,
-      refetchOnReconnect: 'stale',
+      refetchOnReconnect: true,
       refetchInterval: false,
     },
     mutations: {
