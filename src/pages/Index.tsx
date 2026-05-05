@@ -234,55 +234,61 @@ export default function Index() {
     setShowOnboarding(true);
   };
 
-  // Check for new SW version. If found → 'pwa:need-refresh' fires and shows banner.
+  // Aggressive update: clears caches, updates SW, and reloads with cache-bust.
   const checkForUpdates = async () => {
-    toast.loading('🔍 Buscando atualizações...', { id: 'check-update' });
+    toast.loading('🔍 Buscando atualizações e limpando cache...', { id: 'check-update' });
 
-    // Detect preview/iframe — SW is not registered there, so just hard-reload to fetch latest from server.
     const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
     const isPreview = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
-    const hasSW = 'serviceWorker' in navigator;
 
-    if (inIframe || isPreview || !hasSW) {
-      toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
-      setTimeout(() => {
-        const url = new URL(window.location.href);
-        url.searchParams.set('_v', Date.now().toString());
-        window.location.replace(url.toString());
-      }, 600);
-      return;
-    }
+    const hardReload = () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set('_v', Date.now().toString());
+      window.location.replace(url.toString());
+    };
 
     try {
-      const reg = await navigator.serviceWorker.getRegistration();
+      // 1) Wipe all CacheStorage entries (Workbox HTML/asset caches included)
+      if ('caches' in window) {
+        try {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        } catch { /* noop */ }
+      }
 
-      // No SW registered yet (first visit / not installed as PWA): just hard-reload
-      if (!reg) {
-        toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
-        setTimeout(() => window.location.reload(), 600);
+      // 2) In preview/iframe there is no SW — just hard reload with bust
+      if (inIframe || isPreview || !('serviceWorker' in navigator)) {
+        toast.success('🔄 Cache limpo. Recarregando...', { id: 'check-update' });
+        setTimeout(hardReload, 500);
         return;
       }
 
-      // Ask main.tsx pipeline to also try
+      // 3) Try to update the registered SW
+      const reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
+        setTimeout(hardReload, 500);
+        return;
+      }
+
       window.dispatchEvent(new CustomEvent('pwa:check-update'));
       await reg.update();
-      // Give the browser a moment to discover a waiting worker
       await new Promise(r => setTimeout(r, 1500));
 
       if (reg.waiting || reg.installing) {
         toast.success('🎉 Nova versão encontrada! Aplicando...', { id: 'check-update' });
-        // Tell waiting SW to activate immediately, then reload
         reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
-        setTimeout(() => window.location.reload(), 800);
+        setTimeout(hardReload, 700);
         return;
       }
 
-      // No new SW — but still fetch fresh HTML from network to pick up latest assets
-      toast.success('✅ Você já está na versão mais recente.', { id: 'check-update' });
+      // 4) No new SW — still bust caches and reload to guarantee fresh assets
+      toast.success('✅ Sistema sincronizado com a versão mais recente.', { id: 'check-update' });
+      setTimeout(hardReload, 600);
     } catch (err) {
       console.error('checkForUpdates error:', err);
-      toast.error('Não foi possível verificar agora. Recarregando...', { id: 'check-update' });
-      setTimeout(() => window.location.reload(), 800);
+      toast.error('Recarregando para garantir atualização...', { id: 'check-update' });
+      setTimeout(hardReload, 700);
     }
   };
 
