@@ -772,6 +772,13 @@ export default function ServiceOrdersTab() {
 
                 <div>
                   <Label>Descrição</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Detalhes do serviço..."
+                    rows={2}
+                  />
+                </div>
 
                 {/* Services Section */}
                 <div className="p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
