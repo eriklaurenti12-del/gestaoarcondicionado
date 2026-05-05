@@ -176,7 +176,10 @@ const fetchDashboardData = async () => {
 
     const confirmedToday = todayAppointments.filter(a => a.status === 'confirmado').length;
     const scheduledToday = todayAppointments.filter(a => a.status === 'agendado').length;
-    const completedToday = todayAppointments.filter(a => a.status === 'concluído').length;
+    const completedToday = appointmentsList.filter(a => {
+        const status = (a.status || '').toLowerCase();
+        return isToday(new Date(a.appointment_date)) && (status === 'concluido' || status === 'concluído');
+    }).length;
 
     const pendingInstallments = installmentsList.map((inst: any) => {
         const dueDate = new Date(inst.due_date);

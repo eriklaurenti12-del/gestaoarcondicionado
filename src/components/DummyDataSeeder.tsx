@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Database, Trash2, PlusCircle, AlertTriangle, Loader2 } from "lucide-react";
@@ -52,7 +53,7 @@ const DummyDataSeeder: React.FC = () => {
           const apptDate = new Date(now);
           if (i === 0) apptDate.setHours(9, 0, 0, 0); // Today 9am
           else if (i === 1) apptDate.setHours(14, 30, 0, 0); // Today 2:30pm
-          else apptDate.setDate(now.getDate() - 30); // Past (for history/overdue)
+          else apptDate.setDate(now.getDate() - 2); // Past (for history/overdue)
 
           return {
             client_id: c.id,
