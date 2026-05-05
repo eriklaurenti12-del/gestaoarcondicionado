@@ -242,6 +242,7 @@ export default function Index() {
     const isPreview = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
 
     const hardReload = () => {
+      // Use window.location.href to reload but add cache-busting
       const url = new URL(window.location.href);
       url.searchParams.set('_v', Date.now().toString());
       window.location.replace(url.toString());
@@ -256,39 +257,37 @@ export default function Index() {
         } catch { /* noop */ }
       }
 
-      // 2) In preview/iframe there is no SW — just hard reload with bust
-      if (inIframe || isPreview || !('serviceWorker' in navigator)) {
-        toast.success('🔄 Cache limpo. Recarregando...', { id: 'check-update' });
-        setTimeout(hardReload, 500);
-        return;
+      // 2) Clear localStorage safely (keep auth tokens) and sessionStorage
+      try {
+        const keysToKeep = ['current_user_id', 'pwa-installed'];
+        Object.keys(localStorage).forEach(key => {
+          if (!key.startsWith('sb-') && !keysToKeep.includes(key)) {
+             localStorage.removeItem(key);
+          }
+        });
+        sessionStorage.clear();
+      } catch { /* noop */ }
+
+      // 3) Unregister service workers completely to force fresh fetch
+      if ('serviceWorker' in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (let reg of regs) {
+            await reg.unregister();
+          }
+        } catch { /* noop */ }
       }
 
-      // 3) Try to update the registered SW
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (!reg) {
-        toast.success('🔄 Recarregando versão mais recente...', { id: 'check-update' });
-        setTimeout(hardReload, 500);
-        return;
-      }
-
-      window.dispatchEvent(new CustomEvent('pwa:check-update'));
-      await reg.update();
-      await new Promise(r => setTimeout(r, 1500));
-
-      if (reg.waiting || reg.installing) {
-        toast.success('🎉 Nova versão encontrada! Aplicando...', { id: 'check-update' });
-        reg.waiting?.postMessage({ type: 'SKIP_WAITING' });
-        setTimeout(hardReload, 700);
-        return;
-      }
-
-      // 4) No new SW — still bust caches and reload to guarantee fresh assets
-      toast.success('✅ Sistema sincronizado com a versão mais recente.', { id: 'check-update' });
-      setTimeout(hardReload, 600);
+      toast.success('🔄 Cache completamente limpo. Recarregando versão mais recente...', { id: 'check-update' });
+      setTimeout(() => {
+        // Force reload from server, ignoring cache
+        window.location.reload();
+      }, 800);
+      
     } catch (err) {
       console.error('checkForUpdates error:', err);
       toast.error('Recarregando para garantir atualização...', { id: 'check-update' });
-      setTimeout(hardReload, 700);
+      setTimeout(() => window.location.reload(), 800);
     }
   };
 
