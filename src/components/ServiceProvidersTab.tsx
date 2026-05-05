@@ -189,6 +189,7 @@ export default function ServiceProvidersTab() {
       food_allowance: String(provider.food_allowance || ''),
       fuel_allowance: String(provider.fuel_allowance || ''),
       color: provider.color,
+      technical_notes: provider.technical_notes || '',
     });
     setDialogOpen(true);
   };
