@@ -71,14 +71,14 @@ const DummyDataSeeder: React.FC = () => {
         const pastAppt = createdAppts.find(a => a.status === 'concluido');
         if (pastAppt) {
           const service = services.find(s => s.id === pastAppt.service_id);
-          await supabase.from('sales').insert({
+          await (supabase.from('sales') as any).insert({
             user_id: userId,
             client_id: pastAppt.client_id,
             product_id: pastAppt.service_id,
             qty: 1,
             sale_price: service?.price || 0,
             total_profit: (service?.price || 0) - (service?.cost_price || 0),
-            payment_method: 'Cartão',
+            payment_method: 'Crédito',
             sale_date: pastAppt.appointment_date
           });
           await supabase.from('financial_records').insert({
