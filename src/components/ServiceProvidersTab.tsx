@@ -20,6 +20,7 @@ import TabGuideCards from './TabGuideCards';
 import ProviderScheduleDialog from './ProviderScheduleDialog';
 import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
 import RouteAllocationTab from './RouteAllocationTab';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export interface ServiceProvider {
   id: string;
@@ -528,7 +529,7 @@ export default function ServiceProvidersTab() {
             <div className="p-6 border-t bg-muted/30">
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-11">Cancelar</Button>
-                <Button onClick={handleSubmit} className="h-11 px-8 bg-primary hover:bg-primary/90">
+                <Button onClick={handleSave} className="h-11 px-8 bg-primary hover:bg-primary/90">
                   {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
                 </Button>
               </DialogFooter>
