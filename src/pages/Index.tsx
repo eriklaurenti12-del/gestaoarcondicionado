@@ -38,6 +38,8 @@ import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
+declare const __APP_BUILD_ID__: string;
+
 const fetchNotificationCount = async () => {
   try {
     const today = new Date();
@@ -84,6 +86,7 @@ export default function Index() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTipsDialog, setShowTipsDialog] = useState(false);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ['notification-count', currentUserId],
@@ -234,22 +237,27 @@ export default function Index() {
     setShowOnboarding(true);
   };
 
-  // Aggressive update: clears caches, updates SW, and reloads with cache-bust.
+  // Aggressive update: clears app cache/PWA shells and reloads from the published source.
   const checkForUpdates = async () => {
-    toast.loading('🔍 Buscando atualizações e limpando cache...', { id: 'check-update' });
+    setIsCheckingUpdates(true);
+    toast.loading('🔍 Verificando publicação e limpando cache antigo...', { id: 'check-update' });
 
-    const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-    const isPreview = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
+    const currentBuildId = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'local';
 
     const hardReload = () => {
-      // Use window.location.href to reload but add cache-busting
       const url = new URL(window.location.href);
-      url.searchParams.set('_v', Date.now().toString());
+      url.searchParams.set('app_refresh', Date.now().toString());
       window.location.replace(url.toString());
     };
 
     try {
-      // 1) Wipe all CacheStorage entries (Workbox HTML/asset caches included)
+      await fetch(`/version.json?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      }).catch(() => null);
+
+      window.dispatchEvent(new CustomEvent('pwa:check-update'));
+
       if ('caches' in window) {
         try {
           const keys = await caches.keys();
@@ -257,9 +265,8 @@ export default function Index() {
         } catch { /* noop */ }
       }
 
-      // 2) Clear localStorage safely (keep auth tokens) and sessionStorage
       try {
-        const keysToKeep = ['current_user_id', 'pwa-installed'];
+        const keysToKeep = ['current_user_id', 'pwa-installed', 'theme'];
         Object.keys(localStorage).forEach(key => {
           if (!key.startsWith('sb-') && !keysToKeep.includes(key)) {
              localStorage.removeItem(key);
@@ -268,19 +275,18 @@ export default function Index() {
         sessionStorage.clear();
       } catch { /* noop */ }
 
-      // 3) Unregister service workers completely to force fresh fetch
       if ('serviceWorker' in navigator) {
         try {
           const regs = await navigator.serviceWorker.getRegistrations();
           for (let reg of regs) {
+            await reg.update().catch(() => undefined);
             await reg.unregister();
           }
         } catch { /* noop */ }
       }
 
-      toast.success('🔄 Cache completamente limpo. Recarregando versão mais recente...', { id: 'check-update' });
+      toast.success(`✅ Cache limpo. Abrindo versão publicada mais recente (${currentBuildId.slice(0, 10)}).`, { id: 'check-update' });
       setTimeout(() => {
-        // Force reload from server, ignoring cache
         hardReload();
       }, 800);
       
@@ -288,6 +294,8 @@ export default function Index() {
       console.error('checkForUpdates error:', err);
       toast.error('Recarregando para garantir atualização...', { id: 'check-update' });
       setTimeout(() => window.location.reload(), 800);
+    } finally {
+      setTimeout(() => setIsCheckingUpdates(false), 1000);
     }
   };
 
@@ -443,8 +451,8 @@ export default function Index() {
                     <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
                       <HelpCircle className="w-4 h-4" /> Ver Tutorial
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={checkForUpdates} className="gap-2 cursor-pointer">
-                      <RefreshCw className="w-4 h-4" /> Atualizar Sistema
+                    <DropdownMenuItem onSelect={checkForUpdates} disabled={isCheckingUpdates} className="gap-2 cursor-pointer">
+                      <RefreshCw className={`w-4 h-4 ${isCheckingUpdates ? 'animate-spin' : ''}`} /> Sincronizar versão publicada
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -456,9 +464,9 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
                   <HelpCircle className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50 shrink-0 font-medium ml-1 mr-1" onClick={checkForUpdates} title="Buscar atualizações">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Atualizar Sistema
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={checkForUpdates} disabled={isCheckingUpdates} title="Limpar cache e buscar a versão publicada mais recente">
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+                  {isCheckingUpdates ? 'Sincronizando...' : 'Sincronizar App'}
                 </Button>
 
                 {/* Notification Bell */}

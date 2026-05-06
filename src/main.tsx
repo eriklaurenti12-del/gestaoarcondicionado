@@ -10,6 +10,11 @@ const isInIframe = (() => { try { return window.self !== window.top; } catch { r
 const isPreviewHost = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
 
 if (!isInIframe && !isPreviewHost) {
+  const manifestLink = document.createElement('link');
+  manifestLink.rel = 'manifest';
+  manifestLink.href = '/manifest.json';
+  document.head.appendChild(manifestLink);
+
   // Register SW in PROMPT mode: shows banner so user can apply update
   const updateSW = registerSW({
     immediate: true,
