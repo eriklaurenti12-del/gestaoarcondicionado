@@ -192,6 +192,7 @@ export default function ServiceProvidersTab() {
       fuel_allowance: String(provider.fuel_allowance || ''),
       color: provider.color,
       technical_notes: provider.technical_notes || '',
+      is_field_technician: provider.is_field_technician !== false,
     });
     setDialogOpen(true);
   };
