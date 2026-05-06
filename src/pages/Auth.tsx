@@ -105,7 +105,7 @@ export default function Auth() {
         }
         toast({ title: "🎉 Bem-vindo à equipe!", description: `Conta criada: ${memberName}` });
         await supabase.auth.signInWithPassword({ email: uniqueEmail, password: teamPassword });
-        await forceUpdateApp();
+
       }
       setEmail(""); setPassword(""); setMemberName(""); setPin("");
     } catch (error: any) {
@@ -120,7 +120,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast({ title: "Login realizado!", description: "Bem-vindo de volta." });
-      await forceUpdateApp();
+
     } catch (error: any) {
       toast({ title: "Erro no login", description: error.message, variant: "destructive" });
     } finally { setLoading(false); }

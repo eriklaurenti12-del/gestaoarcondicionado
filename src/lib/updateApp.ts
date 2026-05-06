@@ -34,16 +34,35 @@ export const forceUpdateApp = async () => {
       } catch (e) { console.error('Cache clear error:', e); }
     }
 
-    // 3. Clear storage (except critical auth/session keys if needed, but here we wipe non-critical)
+    // 3. Clear storage selectively (prevent loops and preserve critical user state)
     try {
-      const keysToKeep = ['sb-access-token', 'sb-refresh-token', 'current_user_id', 'pwa-installed', 'theme'];
+      const keysToKeep = [
+        'sb-access-token', 
+        'sb-refresh-token', 
+        'current_user_id', 
+        'pwa-installed', 
+        'theme',
+        'last_global_force_update',
+        'last_user_force_update',
+        'app_version'
+      ];
+      
+      const prefixesToKeep = [
+        'sb-', 
+        'ac_onboarding_completed_',
+        'push_notif_'
+      ];
+
       Object.keys(localStorage).forEach(key => {
-        if (!key.startsWith('sb-') && !keysToKeep.includes(key)) {
+        const shouldKeep = keysToKeep.includes(key) || 
+                          prefixesToKeep.some(prefix => key.startsWith(prefix));
+        
+        if (!shouldKeep) {
            localStorage.removeItem(key);
         }
       });
       sessionStorage.clear();
-      console.log('Storage cleared');
+      console.log('Storage cleared selectively');
     } catch (e) { console.error('Storage clear error:', e); }
 
     // 4. Unregister Service Workers
