@@ -734,7 +734,7 @@ const AppointmentsTab: React.FC = () => {
     doc.setFont("helvetica", "bold");
     doc.text("Valor:", 20, y);
     doc.setFont("helvetica", "normal");
-    const price = getAppointmentPrice(appointment);
+    const price = getAppointmentPriceLabel(appointment);
     doc.text(price, 60, y);
     
     y += 12;
