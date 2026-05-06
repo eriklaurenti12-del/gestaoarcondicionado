@@ -935,7 +935,7 @@ export default function BetaDashboard() {
         <h3 className="font-semibold text-sm">Ordens de Serviço ({serviceOrders.length})</h3>
       </div>
       {serviceOrders.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhuma O.S.</CardContent></Card>
+        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum Pedido</CardContent></Card>
       ) : serviceOrders.map(o => (
         <Card key={o.id}>
           <CardContent className="p-3">

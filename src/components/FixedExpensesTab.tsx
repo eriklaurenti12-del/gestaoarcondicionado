@@ -59,12 +59,26 @@ const FixedExpensesTab: React.FC = () => {
   const [providerName, setProviderName] = useState('_none');
 
   const { data: providers = [] } = useQuery({
-    queryKey: ['admin-settings-providers'],
+    queryKey: ['service-providers'], // Use same key as ServiceProvidersTab
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return [];
-      const { data } = await supabase.from('admin_settings').select('settings').eq('type', 'service_providers').eq('user_id', session.user.id).maybeSingle();
-      return (data?.settings as any)?.providers || [];
+      const { data, error } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'service_providers')
+        .maybeSingle();
+      
+      if (error && error.code !== 'PGRST116') throw error;
+      
+      let allProviders: any[] = [];
+      if (data?.value) {
+        try { allProviders = JSON.parse(data.value); } catch { allProviders = []; }
+      }
+      
+      // Filter for specific technical roles as requested
+      return allProviders.filter((p: any) => 
+        p.active && 
+        (p.specialty === 'Técnico de Ar' || p.specialty === 'Auxiliar Técnico' || p.specialty === 'Geral')
+      );
     }
   });
 

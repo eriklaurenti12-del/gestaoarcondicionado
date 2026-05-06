@@ -550,6 +550,21 @@ const AppointmentsTab: React.FC = () => {
     }
     if (sourceType === 'order' && selectedOrderId) {
       await supabase.from('service_orders').update({ status: 'agendado' }).eq('id', selectedOrderId);
+      
+      // Add a financial record for the scheduled order
+      if (selectedOrder) {
+        await supabase.from('financial_records').insert({
+          user_id: userId,
+          type: 'entrada',
+          amount: Number(selectedOrder.total),
+          description: `Pedido Agendado: ${selectedOrder.title}`,
+          payment_method: paymentMethod,
+          category: 'Pedido Agendado',
+          record_date: dateTime.toISOString()
+        });
+        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     }
@@ -602,6 +617,15 @@ const AppointmentsTab: React.FC = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  const getAppointmentPrice = (appointment: any) => {
+    const match = appointment.notes?.match(/\[VALOR:(.+?)\]/);
+    if (match && match[1]) {
+      const val = parseFloat(match[1]);
+      return isNaN(val) ? match[1] : `R$ ${val.toFixed(2)}`;
+    }
+    return appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+  };
+
   const handleWhatsApp = (phone: string | null | undefined, clientName: string, date: string) => {
     if (!phone) {
       toast({ variant: "destructive", title: "Telefone não cadastrado" });
@@ -646,7 +670,7 @@ const AppointmentsTab: React.FC = () => {
     const cleanPhone = phone.replace(/\D/g, '');
     const serviceDate = format(new Date(appointment.appointment_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     const serviceName = appointment.products?.name || 'Serviço';
-    const servicePrice = appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+    const servicePrice = getAppointmentPrice(appointment);
     
     const message = `✅ *COMPROVANTE DE SERVIÇO*\n\n` +
       `📋 *AC Service Pro*\n` +
@@ -714,7 +738,7 @@ const AppointmentsTab: React.FC = () => {
     doc.setFont("helvetica", "bold");
     doc.text("Valor:", 20, y);
     doc.setFont("helvetica", "normal");
-    const price = appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+    const price = getAppointmentPrice(appointment);
     doc.text(price, 60, y);
     
     y += 12;
@@ -1379,10 +1403,14 @@ const AppointmentsTab: React.FC = () => {
           <div className="space-y-4">
             {/* Source Type Selection */}
             <Tabs value={sourceType} onValueChange={(v) => setSourceType(v as 'quote' | 'order' | 'manual')} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="quote" className="flex items-center gap-1">
                   <Receipt className="w-4 h-4" />
                   <span className="hidden sm:inline">Orçamento</span>
+                </TabsTrigger>
+                <TabsTrigger value="order" className="flex items-center gap-1">
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Pedido</span>
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="flex items-center gap-1">
                   <PlusCircle className="w-4 h-4" />
@@ -1417,6 +1445,38 @@ const AppointmentsTab: React.FC = () => {
                       <p className="font-medium">{selectedQuote.title}</p>
                       <p className="text-sm text-muted-foreground">Cliente: {selectedQuote.clients?.name || 'N/A'}</p>
                       <p className="text-sm font-bold text-amber-700 dark:text-amber-400">Total: R$ {Number(selectedQuote.total).toFixed(2)}</p>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="order" className="mt-4">
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                  <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <FileText className="w-4 h-4" />
+                    Selecionar Pedido de Serviço
+                  </Label>
+                  {pendingOrders && pendingOrders.length > 0 ? (
+                    <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione um pedido..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingOrders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            #{order.order_number} - {order.title} ({order.clients?.name || 'Sem cliente'}) - R$ {Number(order.total).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum pedido pendente disponível</p>
+                  )}
+                  {selectedOrder && (
+                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
+                      <p className="font-medium">{selectedOrder.title}</p>
+                      <p className="text-sm text-muted-foreground">Cliente: {selectedOrder.clients?.name || 'N/A'}</p>
+                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Total: R$ {Number(selectedOrder.total).toFixed(2)}</p>
                     </div>
                   )}
                 </div>
@@ -1509,6 +1569,38 @@ const AppointmentsTab: React.FC = () => {
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="order" className="mt-4">
+                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
+                  <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                    <FileText className="w-4 h-4" />
+                    Selecionar Pedido de Serviço
+                  </Label>
+                  {pendingOrders && pendingOrders.length > 0 ? (
+                    <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
+                      <SelectTrigger className="min-h-[44px]">
+                        <SelectValue placeholder="Selecione um pedido..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pendingOrders.map((order) => (
+                          <SelectItem key={order.id} value={order.id}>
+                            #{order.order_number} - {order.title} ({order.clients?.name || 'Sem cliente'}) - R$ {Number(order.total).toFixed(2)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhum pedido pendente disponível</p>
+                  )}
+                  {selectedOrder && (
+                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
+                      <p className="font-medium">{selectedOrder.title}</p>
+                      <p className="text-sm text-muted-foreground">Cliente: {selectedOrder.clients?.name || 'N/A'}</p>
+                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Total: R$ {Number(selectedOrder.total).toFixed(2)}</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
@@ -1733,9 +1825,23 @@ const AppointmentsTab: React.FC = () => {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {timeSlots.map((slot) => (
-                      <SelectItem key={slot} value={slot}>{slot}</SelectItem>
-                    ))}
+                    {timeSlots.filter(slot => !isTimePast(slot, editDate)).map((slot) => {
+                      const isBooked = editDate ? getBookedTimes(editDate).includes(slot) : false;
+                      // Don't mark the current slot as booked if it belongs to the appointment being edited
+                      const isSameAsCurrent = editDate === format(new Date(editingAppointment?.appointment_date || ''), 'yyyy-MM-dd') && 
+                                             slot === format(new Date(editingAppointment?.appointment_date || ''), 'HH:mm');
+                      
+                      return (
+                        <SelectItem 
+                          key={slot} 
+                          value={slot}
+                          disabled={isBooked && !isSameAsCurrent}
+                          className={isBooked && !isSameAsCurrent ? "text-muted-foreground line-through" : ""}
+                        >
+                          {slot} {isBooked && !isSameAsCurrent ? "(ocupado)" : ""}
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
@@ -1788,7 +1894,17 @@ const AppointmentsTab: React.FC = () => {
               onClick={() => {
                 if (!editingAppointment) return;
                 
-                const newDateTime = new Date(`${editDate}T${editTime}`).toISOString();
+                const newDateTimeObj = new Date(`${editDate}T${editTime}`);
+                
+                // ========== PAST DATE/TIME VALIDATION ==========
+                const now = new Date();
+                if (newDateTimeObj <= now) {
+                  toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
+                  return;
+                }
+                // ===============================================
+
+                const newDateTime = newDateTimeObj.toISOString();
                 
                 // Construct new notes with provider tag and history entry
                 let newNotes = editNotes.trim();

@@ -323,7 +323,7 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                       <CardContent className="p-3">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-sm">Serviço #{order.order_number} - {order.title}</p>
+                            <p className="font-medium text-sm">Pedido #{order.order_number} - {order.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <Badge variant={order.status === 'concluido' ? 'outline' : order.status === 'cancelado' ? 'destructive' : 'secondary'} className="text-[10px]">
                                 {order.status}

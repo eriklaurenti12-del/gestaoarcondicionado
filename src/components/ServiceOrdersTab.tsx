@@ -181,13 +181,13 @@ export default function ServiceOrdersTab() {
           client_id: parseInt(formData.client_id),
           appointment_date: formData.data_proximo_servico + 'T09:00:00',
           status: 'futura',
-          notes: `Lembrete de Manutenção (${formData.vencimento_recorrencia})\nGerado a partir da O.S. de ${formData.title}`
+          notes: `Lembrete de Manutenção (${formData.vencimento_recorrencia})\nGerado a partir do Pedido de ${formData.title}`
         }]);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-orders"] });
-      toast.success("O.S. criada!");
+      toast.success("Pedido criado!");
       resetForm();
       setIsDialogOpen(false);
     },
@@ -239,7 +239,7 @@ export default function ServiceOrdersTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-orders"] });
-      toast.success("O.S. excluída!");
+      toast.success("Pedido excluído!");
     },
   });
 
@@ -303,7 +303,7 @@ export default function ServiceOrdersTab() {
     });
   };
   
-  // Schedule appointment from O.S.
+  // Schedule appointment from Pedido
   const createAppointment = useMutation({
     mutationFn: async () => {
       if (!scheduleOrder || !scheduleDate) throw new Error("Dados incompletos");
@@ -311,15 +311,32 @@ export default function ServiceOrdersTab() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Não autenticado");
 
+      const dateTimeObj = new Date(scheduleDate);
+      const now = new Date();
+      if (dateTimeObj <= now) {
+        throw new Error("Não é possível agendar em datas/horários passados. Selecione um horário futuro.");
+      }
+
       const { error } = await supabase.from("appointments").insert({
         user_id: userData.user.id,
         client_id: scheduleOrder.client_id,
         appointment_date: scheduleDate,
-        notes: `O.S. #${scheduleOrder.order_number}: ${scheduleOrder.title}\nTotal: R$ ${scheduleOrder.total.toFixed(2)}\n${scheduleNotes}`,
+        notes: `Pedido #${scheduleOrder.order_number}: ${scheduleOrder.title}\nTotal: R$ ${scheduleOrder.total.toFixed(2)}\n${scheduleNotes}`,
         status: 'agendado'
       });
 
       if (error) throw error;
+
+      // Add a financial record for the scheduled order
+      await supabase.from('financial_records').insert({
+        user_id: userData.user.id,
+        type: 'entrada',
+        amount: Number(scheduleOrder.total),
+        description: `Pedido Agendado #${scheduleOrder.order_number}: ${scheduleOrder.title}`,
+        payment_method: 'Dinheiro', // Default
+        category: 'Pedido Agendado',
+        record_date: dateTimeObj.toISOString()
+      });
 
       // Update order status to em_andamento
       await supabase.from("service_orders").update({ status: 'em_andamento' }).eq("id", scheduleOrder.id);
@@ -487,7 +504,7 @@ export default function ServiceOrdersTab() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.text(`ORDEM DE SERVIÇO Nº ${order.order_number}`, pageWidth - 14, 18, { align: "right" });
+    doc.text(`PEDIDO DE SERVIÇO Nº ${order.order_number}`, pageWidth - 14, 18, { align: "right" });
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text(`Data: ${format(new Date(order.created_at), "dd/MM/yyyy", { locale: ptBR })}`, pageWidth - 14, 26, { align: "right" });
@@ -637,7 +654,7 @@ export default function ServiceOrdersTab() {
     const phone = order.clients.telefone.replace(/\D/g, "");
     const formattedPhone = phone.startsWith('55') ? phone : `55${phone}`;
     
-    const message = `*ORDEM DE SERVIÇO Nº ${order.order_number}*\n` +
+    const message = `*PEDIDO DE SERVIÇO Nº ${order.order_number}*\n` +
       `_${companyData?.company_name || "AC Service Pro"}_\n\n` +
       `*${order.title}*\n` +
       `${order.description || ""}\n\n` +
@@ -675,18 +692,18 @@ export default function ServiceOrdersTab() {
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <FileText className="w-5 h-5" />
-            Ordens de Serviço
+            Pedidos de Serviço
           </CardTitle>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button className="min-h-[44px]">
                 <Plus className="w-4 h-4 mr-2" />
-                Nova O.S.
+                Novo Pedido
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Criar Ordem de Serviço</DialogTitle>
+                <DialogTitle>Criar Pedido de Serviço</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 {/* Client Section with New Client Option */}
@@ -949,7 +966,7 @@ export default function ServiceOrdersTab() {
                   disabled={!formData.title || services.every(s => !s.description)}
                   className="w-full min-h-[44px]"
                 >
-                  Criar O.S.
+                  Criar Pedido
                 </Button>
               </div>
             </DialogContent>
@@ -960,7 +977,7 @@ export default function ServiceOrdersTab() {
             <div className="text-center py-8 text-muted-foreground">Carregando...</div>
           ) : orders?.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              Nenhuma O.S.
+              Nenhum Pedido
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -1051,7 +1068,7 @@ export default function ServiceOrdersTab() {
                             size="icon"
                             className="h-9 w-9 text-destructive"
                             onClick={() => {
-                              if (confirm("Excluir esta O.S.?")) {
+                              if (confirm("Excluir este Pedido?")) {
                                 deleteOrder.mutate(order.id);
                               }
                             }}
@@ -1074,7 +1091,7 @@ export default function ServiceOrdersTab() {
       <Dialog open={!!viewOrder} onOpenChange={() => setViewOrder(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>O.S. #{viewOrder?.order_number}</DialogTitle>
+            <DialogTitle>Pedido #{viewOrder?.order_number}</DialogTitle>
           </DialogHeader>
           {viewOrder && (
             <div className="space-y-4">
@@ -1222,7 +1239,7 @@ export default function ServiceOrdersTab() {
       <Dialog open={!!scheduleOrder} onOpenChange={() => setScheduleOrder(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Agendar O.S. #{scheduleOrder?.order_number}</DialogTitle>
+            <DialogTitle>Agendar Pedido #{scheduleOrder?.order_number}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg">
@@ -1262,7 +1279,7 @@ export default function ServiceOrdersTab() {
       <Dialog open={!!signatureOrder} onOpenChange={() => setSignatureOrder(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Assinatura Digital - O.S. #{signatureOrder?.order_number}</DialogTitle>
+            <DialogTitle>Assinatura Digital - Pedido #{signatureOrder?.order_number}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="p-3 bg-muted rounded-lg text-sm">

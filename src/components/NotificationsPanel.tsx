@@ -274,8 +274,8 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         action: order.clients?.telefone ? () => {
           const phone = order.clients.telefone.replace(/\D/g, '');
           const message = order.status === 'agendado' 
-            ? `Olá ${order.clients.name}! Confirmando a ordem de serviço "${order.title}". Aguardamos você!`
-            : `Olá ${order.clients.name}! Sobre a ordem de serviço "${order.title}", gostaria de agendar a visita. Qual a melhor data?`;
+            ? `Olá ${order.clients.name}! Confirmando o pedido de serviço "${order.title}". Aguardamos você!`
+            : `Olá ${order.clients.name}! Sobre o pedido de serviço "${order.title}", gostaria de agendar a visita. Qual a melhor data?`;
           window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
         } : undefined
       });

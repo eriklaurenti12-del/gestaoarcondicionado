@@ -281,7 +281,7 @@ export default function Index() {
       toast.success('🔄 Cache completamente limpo. Recarregando versão mais recente...', { id: 'check-update' });
       setTimeout(() => {
         // Force reload from server, ignoring cache
-        window.location.reload();
+        hardReload();
       }, 800);
       
     } catch (err) {

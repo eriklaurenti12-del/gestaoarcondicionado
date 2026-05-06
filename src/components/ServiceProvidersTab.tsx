@@ -48,7 +48,8 @@ const COLORS = [
 
 const SPECIALTIES = [
   'Instalação', 'Manutenção Preventiva', 'Manutenção Corretiva',
-  'Limpeza', 'Higienização', 'Carga de Gás', 'Elétrica', 'Geral'
+  'Limpeza', 'Higienização', 'Carga de Gás', 'Elétrica', 'Geral',
+  'Técnico de Ar', 'Auxiliar Técnico'
 ];
 
 const fetchProviders = async (): Promise<ServiceProvider[]> => {
