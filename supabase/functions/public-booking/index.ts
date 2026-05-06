@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
 
     if (req.method === 'PUT') {
       const body = await req.json();
-      const { booking_id, action } = body;
+      const { booking_id, action, service_name, preferred_date, preferred_time } = body;
 
       if (action === 'cancel' && booking_id) {
         const { error } = await supabase
@@ -93,6 +93,35 @@ Deno.serve(async (req) => {
           return new Response(JSON.stringify({ error: error.message }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (action === 'update' && booking_id) {
+        if (!service_name || !preferred_date || !preferred_time) {
+          return new Response(JSON.stringify({ error: 'Campos obrigatórios faltando' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+        
+        const { error } = await supabase
+          .from('online_bookings')
+          .update({ 
+            service_name, 
+            preferred_date, 
+            preferred_time,
+            updated_at: new Date().toISOString() 
+          })
+          .eq('id', booking_id)
+          .eq('user_id', userId);
+
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
 

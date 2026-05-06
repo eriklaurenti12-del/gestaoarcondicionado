@@ -220,7 +220,7 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
           <TabsList className="grid w-full grid-cols-5 h-10">
             <TabsTrigger value="history">Agenda</TabsTrigger>
             <TabsTrigger value="sales">Vendas</TabsTrigger>
-            <TabsTrigger value="orders">O.S.</TabsTrigger>
+            <TabsTrigger value="orders">Serviços</TabsTrigger>
             <TabsTrigger value="maintenance">Vencimentos</TabsTrigger>
             <TabsTrigger value="preferences">Notas</TabsTrigger>
           </TabsList>
@@ -314,7 +314,7 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
               {history?.serviceOrders?.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
                   <AlertCircle className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">Nenhuma O.S. registrada</p>
+                  <p className="text-sm">Nenhum Serviço registrado</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -323,7 +323,7 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                       <CardContent className="p-3">
                         <div className="flex justify-between items-center">
                           <div>
-                            <p className="font-medium text-sm">O.S. #{order.order_number} - {order.title}</p>
+                            <p className="font-medium text-sm">Serviço #{order.order_number} - {order.title}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <Badge variant={order.status === 'concluido' ? 'outline' : order.status === 'cancelado' ? 'destructive' : 'secondary'} className="text-[10px]">
                                 {order.status}

@@ -56,6 +56,17 @@ const FixedExpensesTab: React.FC = () => {
   const [isRecurring, setIsRecurring] = useState(false);
   const [copyToMonth, setCopyToMonth] = useState(format(addMonths(new Date(), 1), 'yyyy-MM'));
   const [searchProvider, setSearchProvider] = useState('');
+  const [providerName, setProviderName] = useState('_none');
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ['admin-settings-providers'],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return [];
+      const { data } = await supabase.from('admin_settings').select('settings').eq('type', 'service_providers').eq('user_id', session.user.id).maybeSingle();
+      return (data?.settings as any)?.providers || [];
+    }
+  });
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['fixed-expenses'],
@@ -161,6 +172,7 @@ const FixedExpensesTab: React.FC = () => {
     setHelpers([]);
     setExpenseDate(new Date().toISOString().split('T')[0]);
     setIsRecurring(false);
+    setProviderName('_none');
     setIsDialogOpen(false);
   };
 
@@ -197,7 +209,8 @@ const FixedExpensesTab: React.FC = () => {
         description,
         amount: parseFloat(amount),
         expense_date: expenseDate,
-        is_recurring: isRecurring
+        is_recurring: isRecurring,
+        helper_name: providerName !== '_none' ? providerName : null
       });
     }
   };
@@ -527,6 +540,20 @@ const FixedExpensesTab: React.FC = () => {
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="0.00"
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Vincular a Prestador (Opcional)</Label>
+                  <Select value={providerName} onValueChange={setProviderName}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Nenhum" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="_none">Nenhum</SelectItem>
+                      {providers.map((p: any) => (
+                        <SelectItem key={p.name} value={p.name}>{p.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </>
             )}

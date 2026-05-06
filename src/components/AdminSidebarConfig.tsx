@@ -17,7 +17,7 @@ const defaultSections = [
     { id: "online-bookings", title: "Agendamento Online" },
   ]},
   { label: "Gestão", icon: "ClipboardList", items: [
-    { id: "documents", title: "Orçamentos & O.S." },
+    { id: "documents", title: "Orçamentos" },
     { id: "services", title: "Manutenções" },
     { id: "btu-calculator", title: "Medição BTUs" },
   ]},

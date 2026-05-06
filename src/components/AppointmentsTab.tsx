@@ -169,6 +169,9 @@ const AppointmentsTab: React.FC = () => {
   const [editReason, setEditReason] = useState("");
   const [editClientId, setEditClientId] = useState("");
   const [editServiceId, setEditServiceId] = useState("");
+  const [editClientName, setEditClientName] = useState("");
+  const [editClientAddress, setEditClientAddress] = useState("");
+  const [editPrice, setEditPrice] = useState("");
 
   React.useEffect(() => {
     const getUserId = async () => {
@@ -336,7 +339,14 @@ const AppointmentsTab: React.FC = () => {
   });
 
   const updateAppointmentMutation = useMutation({
-    mutationFn: async (data: { id: string; appointment_date: string; notes: string; client_id?: number; service_id?: number }) => {
+    mutationFn: async (data: { id: string; appointment_date: string; notes: string; client_id?: number; service_id?: number; client_name?: string; client_address?: string }) => {
+      if (data.client_id && (data.client_name || data.client_address !== undefined)) {
+        await supabase.from('clients').update({
+          name: data.client_name,
+          address: data.client_address
+        }).eq('id', data.client_id);
+      }
+
       const { error } = await supabase
         .from('appointments')
         .update({ 
@@ -429,7 +439,7 @@ const AppointmentsTab: React.FC = () => {
       return;
     }
     if (sourceType === 'order' && !selectedOrderId) {
-      toast({ variant: "destructive", title: "Selecione uma O.S." });
+      toast({ variant: "destructive", title: "Selecione um Pedido" });
       return;
     }
     if (sourceType === 'manual' && !selectedClientId) {
@@ -487,7 +497,7 @@ const AppointmentsTab: React.FC = () => {
       fullNotes = `Orçamento #${selectedQuote.quote_number} - ${selectedQuote.title}\nTotal: R$ ${Number(selectedQuote.total).toFixed(2)}\n${notes || ""}`.trim();
     } else if (sourceType === 'order' && selectedOrder) {
       clientId = selectedOrder.client_id;
-      fullNotes = `O.S. #${selectedOrder.order_number} - ${selectedOrder.title}\nTotal: R$ ${Number(selectedOrder.total).toFixed(2)}\n${notes || ""}`.trim();
+      fullNotes = `Pedido #${selectedOrder.order_number} - ${selectedOrder.title}\nTotal: R$ ${Number(selectedOrder.total).toFixed(2)}\n${notes || ""}`.trim();
     } else if (sourceType === 'manual') {
       clientId = parseInt(selectedClientId);
     }
@@ -520,6 +530,21 @@ const AppointmentsTab: React.FC = () => {
     // Update quote/order status to "agendado"
     if (sourceType === 'quote' && selectedQuoteId) {
       await supabase.from('quotes').update({ status: 'agendado' }).eq('id', selectedQuoteId);
+      
+      // Add a financial record for the scheduled quote
+      if (selectedQuote) {
+        await supabase.from('financial_records').insert({
+          user_id: userId,
+          type: 'entrada',
+          amount: Number(selectedQuote.total),
+          description: `Orçamento Agendado: ${selectedQuote.title}`,
+          payment_method: paymentMethod,
+          category: 'Orçamento Agendado',
+          record_date: dateTime.toISOString()
+        });
+        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
+      }
+      
       queryClient.invalidateQueries({ queryKey: ['pending-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
     }
@@ -963,7 +988,7 @@ const AppointmentsTab: React.FC = () => {
           title: 'Agenda de Serviços',
           badge: 'Organização',
           badgeColor: 'blue',
-          description: <>Agende atendimentos a partir de <strong>orçamentos aprovados ou O.S.</strong> Controle horários e evite conflitos.</>,
+          description: <>Agende atendimentos a partir de <strong>orçamentos aprovados</strong>. Controle horários e evite conflitos.</>,
         },
         {
           icon: ClipboardList,
@@ -1177,6 +1202,7 @@ const AppointmentsTab: React.FC = () => {
                               variant="outline" 
                               className="h-10 w-10 p-0 touch-target"
                               onClick={() => handleWhatsApp(appointment.clients?.telefone, appointment.clients?.name || '', appointment.appointment_date)}
+                              title="Chamar no WhatsApp"
                             >
                               <Phone className="w-4 h-4" />
                             </Button>
@@ -1196,6 +1222,7 @@ const AppointmentsTab: React.FC = () => {
                               variant="outline" 
                               className="h-10 w-10 p-0 touch-target text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado', appointment })}
+                              title="Confirmar Agendamento"
                             >
                               <Check className="w-4 h-4" />
                             </Button>
@@ -1204,19 +1231,26 @@ const AppointmentsTab: React.FC = () => {
                             size="sm" 
                             variant="outline" 
                             className="h-10 w-10 p-0 touch-target"
+                            title="Editar Agendamento"
                             onClick={() => {
                               setEditingAppointment(appointment);
                               setEditDate(appointment.appointment_date.split('T')[0]);
                               setEditTime(format(new Date(appointment.appointment_date), 'HH:mm'));
                               setEditClientId(String(appointment.client_id || ""));
                               setEditServiceId(String(appointment.service_id || ""));
+                              setEditClientName(appointment.clients?.name || "");
+                              setEditClientAddress((appointment.clients as any)?.address || "");
+                              
+                              const priceMatch = appointment.notes?.match(/\[VALOR:([\d.]+)\]/);
+                              setEditPrice(priceMatch ? priceMatch[1] : (appointment.products?.price ? String(appointment.products.price) : ""));
                               
                               // Extract provider from notes if possible
                               const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
                               setEditProvider(match?.[1] || "");
                               
-                              // Remove provider tag for editing notes
-                              const cleanNotes = appointment.notes?.replace(/\[PRESTADOR:.+?\]\n?/, "") || "";
+                              // Remove provider and valor tag for editing notes
+                              let cleanNotes = appointment.notes?.replace(/\[PRESTADOR:.+?\]\n?/, "") || "";
+                              cleanNotes = cleanNotes.replace(/\[VALOR:[\d.]+\]\n?/, "");
                               setEditNotes(cleanNotes);
                             }}
                           >
@@ -1248,6 +1282,7 @@ const AppointmentsTab: React.FC = () => {
                                 size="sm" 
                                 variant="default" 
                                 className="h-10 px-3 text-sm touch-target"
+                                title="Concluir Serviço"
                                 onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
                               >
                                 Concluir
@@ -1298,6 +1333,7 @@ const AppointmentsTab: React.FC = () => {
                               variant="outline" 
                               className="h-10 w-10 p-0 touch-target text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'cancelado', appointment })}
+                              title="Cancelar Agendamento"
                             >
                               <X className="w-4 h-4" />
                             </Button>
@@ -1311,6 +1347,7 @@ const AppointmentsTab: React.FC = () => {
                                 deleteAppointmentMutation.mutate(appointment.id);
                               }
                             }}
+                            title="Excluir Agendamento"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -1342,14 +1379,10 @@ const AppointmentsTab: React.FC = () => {
           <div className="space-y-4">
             {/* Source Type Selection */}
             <Tabs value={sourceType} onValueChange={(v) => setSourceType(v as 'quote' | 'order' | 'manual')} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="quote" className="flex items-center gap-1">
                   <Receipt className="w-4 h-4" />
                   <span className="hidden sm:inline">Orçamento</span>
-                </TabsTrigger>
-                <TabsTrigger value="order" className="flex items-center gap-1">
-                  <ClipboardList className="w-4 h-4" />
-                  <span className="hidden sm:inline">O.S.</span>
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="flex items-center gap-1">
                   <PlusCircle className="w-4 h-4" />
@@ -1389,38 +1422,7 @@ const AppointmentsTab: React.FC = () => {
                 </div>
               </TabsContent>
               
-              <TabsContent value="order" className="mt-4">
-                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-                  <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                    <ClipboardList className="w-4 h-4" />
-                    Selecionar O.S. Pendente
-                  </Label>
-                  {pendingOrders && pendingOrders.length > 0 ? (
-                    <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
-                      <SelectTrigger className="min-h-[44px]">
-                        <SelectValue placeholder="Selecione uma O.S..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pendingOrders.map((order) => (
-                          <SelectItem key={order.id} value={order.id}>
-                            #{order.order_number} - {order.title} ({order.clients?.name || 'Sem cliente'}) - R$ {Number(order.total).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhuma O.S. pendente disponível</p>
-                  )}
-                  {selectedOrder && (
-                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
-                      <p className="font-medium">{selectedOrder.title}</p>
-                      <p className="text-sm text-muted-foreground">Cliente: {selectedOrder.clients?.name || 'N/A'}</p>
-                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Total: R$ {Number(selectedOrder.total).toFixed(2)}</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              
+
               <TabsContent value="manual" className="mt-4">
                 <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
                   <div className="flex items-center justify-between">
@@ -1529,7 +1531,7 @@ const AppointmentsTab: React.FC = () => {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {timeSlots.map((slot) => {
+                    {timeSlots.filter(slot => !isTimePast(slot, appointmentDate)).map((slot) => {
                       const isBooked = appointmentDate ? getBookedTimes(appointmentDate).includes(slot) : false;
                       return (
                         <SelectItem 
@@ -1705,6 +1707,22 @@ const AppointmentsTab: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
+                <Label>Nome do Cliente</Label>
+                <Input value={editClientName} onChange={e => setEditClientName(e.target.value)} className="min-h-[44px]" />
+              </div>
+              <div className="space-y-2">
+                <Label>Endereço</Label>
+                <Input value={editClientAddress} onChange={e => setEditClientAddress(e.target.value)} className="min-h-[44px]" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Preço Customizado (R$)</Label>
+              <Input type="number" step="0.01" value={editPrice} onChange={e => setEditPrice(e.target.value)} placeholder="Opcional. Substitui o valor do serviço." className="min-h-[44px]" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Nova Data</Label>
                 <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
               </div>
@@ -1777,6 +1795,9 @@ const AppointmentsTab: React.FC = () => {
                 if (editProvider && editProvider !== '_none') {
                   newNotes = `[PRESTADOR:${editProvider}]\n${newNotes}`.trim();
                 }
+                if (editPrice) {
+                  newNotes = `[VALOR:${editPrice}]\n${newNotes}`.trim();
+                }
                 
                 const historyEntry = `\n[ALTERAÇÃO ${format(new Date(), 'dd/MM HH:mm')}] Motivo: ${editReason} | De: ${format(new Date(editingAppointment.appointment_date), 'dd/MM HH:mm')} Para: ${format(new Date(newDateTime), 'dd/MM HH:mm')}`;
                 newNotes += historyEntry;
@@ -1786,7 +1807,9 @@ const AppointmentsTab: React.FC = () => {
                   appointment_date: newDateTime,
                   notes: newNotes,
                   client_id: editClientId ? parseInt(editClientId) : undefined,
-                  service_id: editServiceId ? parseInt(editServiceId) : undefined
+                  service_id: editServiceId ? parseInt(editServiceId) : undefined,
+                  client_name: editClientName,
+                  client_address: editClientAddress
                 });
               }}
             >

@@ -26,7 +26,7 @@ import ImpostosTab from '@/components/ImpostosTab';
 import OnlineBookingsTab from '@/components/OnlineBookingsTab';
 import CompanyDataTab from '@/components/CompanyDataTab';
 
-type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
+type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos';
 
 export default function BetaDashboard() {
   const navigate = useNavigate();
@@ -44,7 +44,6 @@ export default function BetaDashboard() {
   const [recentFinancial, setRecentFinancial] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
-  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -109,14 +108,13 @@ export default function BetaDashboard() {
   };
 
   const loadData = async (uid: string) => {
-    const [aptsRes, allAptsRes, clientsRes, finRes, prodsRes, quotesRes, osRes, salesRes, expensesRes] = await Promise.all([
+    const [aptsRes, allAptsRes, clientsRes, finRes, prodsRes, quotesRes, salesRes, expensesRes] = await Promise.all([
       supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, service_duration, cost_price)').eq('user_id', uid).gte('appointment_date', startOfDay(new Date()).toISOString()).order('appointment_date', { ascending: true }).limit(50),
       supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, service_duration, cost_price)').eq('user_id', uid).order('appointment_date', { ascending: false }).limit(500),
       supabase.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(500),
       supabase.from('financial_records').select('*').eq('user_id', uid).order('record_date', { ascending: false }).limit(100),
       supabase.from('products').select('*, suppliers(name)').eq('user_id', uid).order('name').limit(500),
       supabase.from('quotes').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
-      supabase.from('service_orders').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
       supabase.from('sales').select('*, clients(name), products(name)').eq('user_id', uid).order('sale_date', { ascending: false }).limit(100),
       supabase.from('fixed_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }).limit(100),
     ]);
@@ -126,7 +124,6 @@ export default function BetaDashboard() {
     if (finRes.data) setRecentFinancial(finRes.data);
     if (prodsRes.data) setProducts(prodsRes.data);
     if (quotesRes.data) setQuotes(quotesRes.data);
-    if (osRes.data) setServiceOrders(osRes.data);
     if (salesRes.data) setSales(salesRes.data);
     if (expensesRes.data) setFixedExpenses(expensesRes.data);
   };
@@ -263,17 +260,7 @@ export default function BetaDashboard() {
     toast({ title: '📄 PDF exportado!' });
   };
 
-  const exportOSPDF = (order: any) => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text(`O.S. #${String(order.order_number).padStart(4, '0')}`, 14, 20);
-    doc.setFontSize(12); doc.text(order.title, 14, 30);
-    doc.setFontSize(10);
-    doc.text(`Cliente: ${(order.clients as any)?.name || '-'}`, 14, 40);
-    doc.text(`Status: ${order.status}`, 14, 48);
-    doc.setFontSize(14); doc.text(`Total: R$ ${Number(order.total).toFixed(2)}`, 14, 60);
-    doc.save(`os-${order.order_number}.pdf`);
-    toast({ title: '📄 PDF exportado!' });
-  };
+
 
   // Computed values
   const agendaStats = useMemo(() => {

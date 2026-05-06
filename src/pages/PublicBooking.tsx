@@ -7,7 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin, Instagram } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Wind, Calendar, Clock, User, Phone, Mail, CreditCard, CheckCircle, Loader2, Snowflake, ChevronLeft, ChevronRight, Search, Trash2, XCircle, MapPin, Instagram, Edit } from "lucide-react";
 import { format, addDays, isBefore, startOfDay, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -79,6 +80,13 @@ export default function PublicBooking() {
   const [lookupResults, setLookupResults] = useState<BookingResult[]>([]);
   const [lookupLoading, setLookupLoading] = useState(false);
   const [lookupDone, setLookupDone] = useState(false);
+
+  // Edit state
+  const [editingBooking, setEditingBooking] = useState<BookingResult | null>(null);
+  const [editDate, setEditDate] = useState<string>('');
+  const [editTime, setEditTime] = useState<string>('');
+  const [editService, setEditService] = useState<string>('');
+  const [editLoading, setEditLoading] = useState(false);
 
   // Calendar navigation
   const [calendarStart, setCalendarStart] = useState(startOfDay(new Date()));
@@ -232,6 +240,51 @@ export default function PublicBooking() {
       }
     } catch (e: any) {
       toast({ title: "Erro", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleEditBooking = async () => {
+    if (!editingBooking) return;
+    
+    // Time validation for today
+    if (editDate === format(new Date(), 'yyyy-MM-dd')) {
+      const now = new Date();
+      const [h, m] = editTime.split(':').map(Number);
+      if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) {
+        toast({ title: "Horário inválido", description: "Selecione um horário futuro para o dia de hoje.", variant: "destructive" });
+        return;
+      }
+    }
+
+    setEditLoading(true);
+    try {
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/public-booking?user_id=${userId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            booking_id: editingBooking.id, 
+            action: 'update',
+            service_name: editService,
+            preferred_date: editDate,
+            preferred_time: editTime
+          })
+        }
+      );
+      const data = await res.json();
+      if (data.success) {
+        toast({ title: "Agendamento atualizado com sucesso!" });
+        setEditingBooking(null);
+        handleLookup();
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
+    } finally {
+      setEditLoading(false);
     }
   };
 
@@ -421,19 +474,39 @@ export default function PublicBooking() {
                 {/* Action buttons based on status */}
                 <div className="flex flex-col gap-2 pt-2">
                   {(booking.status === 'pendente' || booking.status === 'confirmado') && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Button size="sm" variant="outline" onClick={() => handleCancelBooking(booking.id)}
-                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs flex-1">
+                        className="border-red-500/30 text-red-400 hover:bg-red-500/10 text-xs flex-1 min-w-[100px]">
                         <XCircle className="w-3 h-3 mr-1" /> Desagendar
                       </Button>
-                      {company.whatsapp && (
+                      {booking.status === 'pendente' && (
                         <Button size="sm" variant="outline" onClick={() => {
-                          const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
-                          window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
+                          setEditingBooking(booking);
+                          setEditDate(booking.preferred_date);
+                          setEditTime(booking.preferred_time);
+                          setEditService(booking.service_name);
                         }}
-                          className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs flex-1">
-                          <Phone className="w-3 h-3 mr-1" /> WhatsApp
+                          className="border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 text-xs flex-1 min-w-[100px]">
+                          <Edit className="w-3 h-3 mr-1" /> Editar
                         </Button>
+                      )}
+                      {company.whatsapp && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => {
+                            const msg = `Olá! Gostaria de *remarcar* meu agendamento de ${booking.service_name} do dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}. Qual a disponibilidade?`;
+                            window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
+                          }}
+                            className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs flex-1 min-w-[100px]">
+                            <Calendar className="w-3 h-3 mr-1" /> Remarcar
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => {
+                            const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
+                            window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
+                          }}
+                            className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs flex-1 min-w-[100px]">
+                            <Phone className="w-3 h-3 mr-1" /> WhatsApp
+                          </Button>
+                        </>
                       )}
                     </div>
                   )}
@@ -454,6 +527,56 @@ export default function PublicBooking() {
           })}
         </div>
       )}
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
+        <DialogContent className="max-w-md bg-slate-900 border-slate-700 text-white">
+          <DialogHeader>
+            <DialogTitle>Editar Agendamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="text-slate-300">Serviço</Label>
+              <select 
+                value={editService} 
+                onChange={e => setEditService(e.target.value)}
+                className="w-full bg-slate-800 border-slate-700 rounded-md h-10 px-3 text-white"
+              >
+                {services.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                {!services.find(s => s.name === editService) && <option value={editService}>{editService}</option>}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-slate-300">Data</Label>
+                <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-slate-800 border-slate-700 text-white" />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-slate-300">Horário</Label>
+                <select 
+                  value={editTime} 
+                  onChange={e => setEditTime(e.target.value)}
+                  className="w-full bg-slate-800 border-slate-700 rounded-md h-10 px-3 text-white"
+                >
+                  <option value="">Selecione</option>
+                  {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingBooking(null)} className="border-slate-700 text-white hover:bg-slate-800">Cancelar</Button>
+            <Button 
+              onClick={handleEditBooking} 
+              disabled={editLoading || !editDate || !editTime || !editService}
+              className="bg-cyan-500 hover:bg-cyan-600 text-white"
+            >
+              {editLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+              Salvar Alterações
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Agendar Mode */}
       {mode === 'agendar' && (

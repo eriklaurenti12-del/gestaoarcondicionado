@@ -158,7 +158,7 @@ const steps: OnboardingStep[] = [
       "Tema claro/escuro",
       "Gerenciar assinatura"
     ],
-    tip: "Preencha os dados da empresa para aparecerem nas O.S. e orçamentos!"
+    tip: "Preencha os dados da empresa para aparecerem nos orçamentos!"
   },
   {
     title: "📱 Instale o App!",

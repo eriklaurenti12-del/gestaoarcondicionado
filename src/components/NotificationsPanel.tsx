@@ -267,7 +267,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       notifications.push({
         id: `service-order-${order.id}`,
         type: 'service_order',
-        title: `🔧 O.S. #${order.order_number} ${order.status}`,
+        title: `🔧 Serviço #${order.order_number} ${order.status}`,
         message: `${order.clients?.name || 'Cliente'} - ${order.title} (há ${daysSinceCreated} dia${daysSinceCreated !== 1 ? 's' : ''})`,
         priority,
         data: order,

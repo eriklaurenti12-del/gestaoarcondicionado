@@ -56,16 +56,14 @@ const getSystemSections = (stats: any) => [
     ]
   },
   {
-    title: '5. ORÇAMENTOS E ORDENS DE SERVIÇO',
+    title: '5. ORÇAMENTOS',
     icon: FileCheck,
     steps: [
-      'Em "Orçamentos & O.S.", crie documentos profissionais para seus clientes.',
-      `Você tem ${stats.quotes || 0} orçamentos e ${stats.orders || 0} ordens de serviço registradas.`,
+      'Em "Orçamentos", crie documentos profissionais para seus clientes.',
+      `Você tem ${stats.quotes || 0} orçamentos registrados.`,
       'Orçamento: adicione serviços, peças, quantidades e valores. O total é calculado automaticamente.',
       'Aplique descontos por porcentagem ou valor fixo.',
-      'Converta um orçamento aprovado em Ordem de Serviço com um clique.',
       'Gere PDFs profissionais com dados da sua empresa e envie por WhatsApp.',
-      'Colete assinatura digital do cliente na OS concluída.',
     ]
   },
   {
@@ -127,7 +125,7 @@ const getSystemSections = (stats: any) => [
     steps: [
       'Em "Minha Empresa", cadastre os dados que aparecerão nos documentos.',
       'Preencha: nome da empresa, CNPJ/CPF, endereço, telefone e email.',
-      'Faça upload do logotipo para usar em orçamentos e OS.',
+      'Faça upload do logotipo para usar em orçamentos.',
       'Esses dados são usados automaticamente em todos os PDFs gerados.',
     ]
   },
@@ -198,7 +196,7 @@ const getSystemSections = (stats: any) => [
     steps: [
       'No Histórico Geral, agora você pode gerar um Recibo Profissional de cada serviço.',
       'O recibo inclui dados do cliente, serviço realizado, valor e data do próximo vencimento.',
-      'Documentos como Orçamentos e O.S. podem ser salvos em PDF ou enviados por WhatsApp.',
+      'Documentos como Orçamentos podem ser salvos em PDF ou enviados por WhatsApp.',
       'Colete assinaturas digitais diretamente na tela do celular para maior segurança jurídica.',
     ]
   },
@@ -228,7 +226,6 @@ export const AdminSystemGuideTab: React.FC = () => {
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('appointments').select('id', { count: 'exact', head: true }),
         supabase.from('quotes').select('id', { count: 'exact', head: true }),
-        supabase.from('service_orders').select('id', { count: 'exact', head: true }),
         supabase.from('team_members').select('id', { count: 'exact', head: true }),
       ]);
       setStats({
@@ -236,7 +233,6 @@ export const AdminSystemGuideTab: React.FC = () => {
         products: products.count || 0,
         appointments: appointments.count || 0,
         quotes: quotes.count || 0,
-        orders: orders.count || 0,
         teamMembers: team.count || 0,
       });
     } catch {}
@@ -364,7 +360,6 @@ export const AdminSystemGuideTab: React.FC = () => {
           { label: 'Serviços', value: stats.products },
           { label: 'Agendamentos', value: stats.appointments },
           { label: 'Orçamentos', value: stats.quotes },
-          { label: 'O.S.', value: stats.orders },
           { label: 'Equipe', value: stats.teamMembers },
         ].map(s => (
           <div key={s.label} className="p-2 rounded-lg bg-muted/50 text-center">

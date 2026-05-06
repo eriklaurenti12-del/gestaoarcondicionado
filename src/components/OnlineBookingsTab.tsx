@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus, FileDown, Globe, Link, MessageCircle, CalendarCheck, CalendarClock, List } from "lucide-react";
+import { Bell, Calendar, Check, X, Trash2, Clock, User, Phone, CreditCard, ExternalLink, Copy, Loader2, RefreshCw, CalendarPlus, FileDown, Globe, Link, MessageCircle, CalendarCheck, CalendarClock, List, Edit } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { format, isAfter, isToday, isBefore, startOfDay, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,6 +49,13 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(() => {
     return localStorage.getItem('online-booking-notifications') !== 'false';
   });
+
+  // Edit states
+  const [editingBooking, setEditingBooking] = useState<OnlineBooking | null>(null);
+  const [editDate, setEditDate] = useState('');
+  const [editTime, setEditTime] = useState('');
+  const [editService, setEditService] = useState('');
+  const [editPhone, setEditPhone] = useState('');
 
   const bookingUrl = `${window.location.origin}/agendar?u=${userId}`;
 
@@ -285,6 +295,27 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     }
   };
 
+  const handleEditSubmit = async () => {
+    if (!editingBooking) return;
+    const { error } = await (supabase.from('online_bookings') as any)
+      .update({
+        preferred_date: editDate,
+        preferred_time: editTime,
+        service_name: editService,
+        client_phone: editPhone,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', editingBooking.id);
+      
+    if (error) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "✅ Agendamento alterado com sucesso" });
+      setEditingBooking(null);
+      loadBookings();
+    }
+  };
+
   const copyLink = () => {
     navigator.clipboard.writeText(bookingUrl);
     toast({ title: "Link copiado! 📋", description: "Compartilhe com seus clientes" });
@@ -408,6 +439,16 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                   <Button size="sm" onClick={() => updateStatus(booking.id, 'confirmado', booking)}
                     className="text-xs h-8 bg-green-600 hover:bg-green-700">
                     <Check className="w-3 h-3 mr-1" /> Confirmar
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs h-8 text-amber-600 hover:text-amber-700 border-amber-200"
+                    onClick={() => {
+                      setEditingBooking(booking);
+                      setEditDate(booking.preferred_date);
+                      setEditTime(booking.preferred_time);
+                      setEditService(booking.service_name);
+                      setEditPhone(booking.client_phone);
+                    }}>
+                    <Edit className="w-3 h-3 mr-1" /> Editar
                   </Button>
                   <Button size="sm" onClick={() => updateStatus(booking.id, 'recusado', booking)}
                     variant="destructive" className="text-xs h-8">
@@ -610,6 +651,39 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
           </CardContent>
         </Tabs>
       </Card>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={!!editingBooking} onOpenChange={(open) => !open && setEditingBooking(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Solicitação de Agendamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Serviço / Produto</Label>
+              <Input value={editService} onChange={e => setEditService(e.target.value)} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Data</Label>
+                <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>Horário</Label>
+                <Input type="time" value={editTime} onChange={e => setEditTime(e.target.value)} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Telefone / WhatsApp</Label>
+              <Input value={editPhone} onChange={e => setEditPhone(e.target.value)} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingBooking(null)}>Cancelar</Button>
+            <Button onClick={handleEditSubmit}>Salvar Alterações</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
