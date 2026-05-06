@@ -32,6 +32,7 @@ export interface ServiceProvider {
   food_allowance?: number;
   fuel_allowance?: number;
   technical_notes?: string;
+  is_field_technician?: boolean;
   created_at: string;
 }
 
@@ -97,7 +98,7 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: '', technical_notes: ''
+    food_allowance: '', fuel_allowance: '', technical_notes: '', is_field_technician: true
   });
 
   const { data: providers = [], isLoading } = useQuery({
@@ -139,7 +140,7 @@ export default function ServiceProvidersTab() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '', technical_notes: '' });
+    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '', technical_notes: '', is_field_technician: true });
     setEditingProvider(null);
   };
 
@@ -154,6 +155,8 @@ export default function ServiceProvidersTab() {
       cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
       food_allowance: parseFloat(formData.food_allowance) || 0,
       fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
+      technical_notes: formData.technical_notes,
+      is_field_technician: formData.is_field_technician,
       color: formData.color,
       active: true,
       created_at: editingProvider?.created_at || new Date().toISOString(),
@@ -191,6 +194,7 @@ export default function ServiceProvidersTab() {
       fuel_allowance: String(provider.fuel_allowance || ''),
       color: provider.color,
       technical_notes: provider.technical_notes || '',
+      is_field_technician: provider.is_field_technician !== false,
     });
     setDialogOpen(true);
   };
@@ -458,6 +462,23 @@ export default function ServiceProvidersTab() {
                   {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="flex items-start gap-2 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
+              <input
+                id="is_field_tech"
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={formData.is_field_technician}
+                onChange={e => setFormData({ ...formData, is_field_technician: e.target.checked })}
+              />
+              <div className="flex-1">
+                <Label htmlFor="is_field_tech" className="cursor-pointer font-medium">
+                  🚐 É técnico de campo (aparece em Rotas Técnicas)
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Marque para que o prestador apareça como técnico ao alocar agendamentos em rotas. Desmarque para auxiliares administrativos.
+                </p>
+              </div>
             </div>
             <div>
               <Label>Observações Técnicas</Label>

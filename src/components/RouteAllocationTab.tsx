@@ -284,8 +284,8 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                   <SelectValue placeholder="Selecione o prestador" />
                 </SelectTrigger>
                 <SelectContent>
-                  {providers.filter(p => p.active).map(p => (
-                    <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                  {providers.filter(p => p.active && p.is_field_technician !== false).map(p => (
+                    <SelectItem key={p.id} value={p.id}>🚐 {p.name}{p.specialty ? ` — ${p.specialty}` : ''}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
