@@ -38,6 +38,8 @@ import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 
+declare const __APP_BUILD_ID__: string;
+
 const fetchNotificationCount = async () => {
   try {
     const today = new Date();
