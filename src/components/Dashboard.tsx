@@ -433,9 +433,10 @@ const RaffleWinsBanner: React.FC = () => {
 
 interface DashboardProps {
   onNavigateToTab?: (tab: string) => void;
+  isSuperAdmin?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = false }) => {
     const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
@@ -743,8 +744,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
         </CardContent>
       </Card>
       
-      {/* Simulation & Reset Tool */}
-      <DummyDataSeeder />
+      {/* Simulation & Reset Tool — apenas Super Admin */}
+      {isSuperAdmin && <DummyDataSeeder />}
       
       {/* Central de Comandos Rápidos */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-slide-up">
