@@ -84,6 +84,7 @@ export default function Index() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTipsDialog, setShowTipsDialog] = useState(false);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ['notification-count', currentUserId],
@@ -234,22 +235,27 @@ export default function Index() {
     setShowOnboarding(true);
   };
 
-  // Aggressive update: clears caches, updates SW, and reloads with cache-bust.
+  // Aggressive update: clears app cache/PWA shells and reloads from the published source.
   const checkForUpdates = async () => {
-    toast.loading('🔍 Buscando atualizações e limpando cache...', { id: 'check-update' });
+    setIsCheckingUpdates(true);
+    toast.loading('🔍 Verificando publicação e limpando cache antigo...', { id: 'check-update' });
 
-    const inIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-    const isPreview = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
+    const currentBuildId = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'local';
 
     const hardReload = () => {
-      // Use window.location.href to reload but add cache-busting
       const url = new URL(window.location.href);
-      url.searchParams.set('_v', Date.now().toString());
+      url.searchParams.set('app_refresh', Date.now().toString());
       window.location.replace(url.toString());
     };
 
     try {
-      // 1) Wipe all CacheStorage entries (Workbox HTML/asset caches included)
+      await fetch(`/version.json?refresh=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      }).catch(() => null);
+
+      window.dispatchEvent(new CustomEvent('pwa:check-update'));
+
       if ('caches' in window) {
         try {
           const keys = await caches.keys();
@@ -257,9 +263,8 @@ export default function Index() {
         } catch { /* noop */ }
       }
 
-      // 2) Clear localStorage safely (keep auth tokens) and sessionStorage
       try {
-        const keysToKeep = ['current_user_id', 'pwa-installed'];
+        const keysToKeep = ['current_user_id', 'pwa-installed', 'theme'];
         Object.keys(localStorage).forEach(key => {
           if (!key.startsWith('sb-') && !keysToKeep.includes(key)) {
              localStorage.removeItem(key);
@@ -268,19 +273,18 @@ export default function Index() {
         sessionStorage.clear();
       } catch { /* noop */ }
 
-      // 3) Unregister service workers completely to force fresh fetch
       if ('serviceWorker' in navigator) {
         try {
           const regs = await navigator.serviceWorker.getRegistrations();
           for (let reg of regs) {
+            await reg.update().catch(() => undefined);
             await reg.unregister();
           }
         } catch { /* noop */ }
       }
 
-      toast.success('🔄 Cache completamente limpo. Recarregando versão mais recente...', { id: 'check-update' });
+      toast.success(`✅ Cache limpo. Abrindo versão publicada mais recente (${currentBuildId.slice(0, 10)}).`, { id: 'check-update' });
       setTimeout(() => {
-        // Force reload from server, ignoring cache
         hardReload();
       }, 800);
       
@@ -288,6 +292,8 @@ export default function Index() {
       console.error('checkForUpdates error:', err);
       toast.error('Recarregando para garantir atualização...', { id: 'check-update' });
       setTimeout(() => window.location.reload(), 800);
+    } finally {
+      setTimeout(() => setIsCheckingUpdates(false), 1000);
     }
   };
 
