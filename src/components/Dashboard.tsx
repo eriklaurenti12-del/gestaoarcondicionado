@@ -433,9 +433,10 @@ const RaffleWinsBanner: React.FC = () => {
 
 interface DashboardProps {
   onNavigateToTab?: (tab: string) => void;
+  isSuperAdmin?: boolean;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab }) => {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = false }) => {
     const subscriptionData = useSubscription();
     const queryClient = useQueryClient();
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
