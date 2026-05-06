@@ -20,6 +20,17 @@ import autoTable from 'jspdf-autotable';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch {
+    return '-';
+  }
+};
+
 type Product = Tables<'products'>;
 type Client = Tables<'clients'>;
 type Sale = Tables<'sales'> & { 
@@ -105,7 +116,7 @@ const PDVTab: React.FC = () => {
   
   // Sales history filters
   const [historySearch, setHistorySearch] = useState("");
-  const [historyMonth, setHistoryMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [historyMonth, setHistoryMonth] = useState(safeFormat(new Date(), 'yyyy-MM'));
   const [historyPaymentFilter, setHistoryPaymentFilter] = useState<string>("all");
   const [selectedProvider, setSelectedProvider] = useState<string>("");
 
@@ -272,7 +283,7 @@ const PDVTab: React.FC = () => {
 
       // Convert appointments to sale-like format, but avoid duplicates
       const saleProductClientPairs = new Set(
-        (salesData || []).map(s => `${s.product_id}-${s.client_id}-${format(new Date(s.sale_date), 'yyyy-MM-dd')}`)
+        (salesData || []).map(s => `${s.product_id}-${s.client_id}-${safeFormat(s.sale_date, 'yyyy-MM-dd')}`)
       );
 
       const appointmentSales: Sale[] = (appointmentsData || [])
@@ -1378,9 +1389,7 @@ const PDVTab: React.FC = () => {
                     ) : (
                       filteredSalesHistory.map((sale) => (
                         <TableRow key={sale.id}>
-                          <TableCell className="text-sm">
-                            {format(new Date(sale.sale_date), 'dd/MM/yy HH:mm', { locale: ptBR })}
-                          </TableCell>
+                          <TableCell className="text-xs sm:text-sm py-2">{safeFormat(sale.sale_date, 'dd/MM HH:mm')}</TableCell>
                           <TableCell className="font-medium">{sale.clients?.name || '-'}</TableCell>
                           <TableCell className="max-w-[150px] truncate">{sale.products?.name || '-'}</TableCell>
                           <TableCell className="text-center">{sale.qty}</TableCell>

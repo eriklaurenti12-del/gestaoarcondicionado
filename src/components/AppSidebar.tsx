@@ -23,6 +23,21 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { isToday } from "date-fns";
 
+const checkForUpdates = async () => {
+  try {
+    const response = await fetch('/version.json?' + Date.now(), { cache: 'no-store' });
+    const data = await response.json();
+    const currentVersion = localStorage.getItem('app_version');
+    if (currentVersion && data.version !== currentVersion) {
+       window.dispatchEvent(new CustomEvent('pwa:need-refresh', { detail: { reload: true } }));
+    }
+    localStorage.setItem('app_version', data.version);
+    toast.success("Sistema verificado!", { description: "Você está na versão mais recente." });
+  } catch (e) {
+    console.log('Update check failed', e);
+  }
+};
+
 interface AppSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
@@ -388,10 +403,13 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
             <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
             <span>Sistema Online (v2.4.0)</span>
           </div>
-          <div className="flex items-center gap-2 text-[9px] text-muted-foreground/50">
+          <button 
+            onClick={checkForUpdates}
+            className="flex items-center gap-2 text-[9px] text-muted-foreground/50 hover:text-primary transition-colors text-left"
+          >
             <RefreshCw className="w-2.5 h-2.5" />
-            <span>Sincronizado com servidor</span>
-          </div>
+            <span>Verificar Atualizações</span>
+          </button>
         </div>
       </SidebarFooter>
     </Sidebar>

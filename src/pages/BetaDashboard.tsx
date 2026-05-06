@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { 
   BarChart3, CalendarDays, Users, DollarSign, FileText, 
   Plus, Search, ArrowLeft, Moon, Sun, Zap, Clock, 
@@ -27,6 +28,29 @@ import OnlineBookingsTab from '@/components/OnlineBookingsTab';
 import CompanyDataTab from '@/components/CompanyDataTab';
 
 type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
+
+const safeIsToday = (date: any) => {
+  try {
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    return isToday(d);
+  } catch {
+    return false;
+  }
+};
+
+const safeIsSameDay = (date1: any, date2: any) => {
+  try {
+    if (!date1 || !date2) return false;
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
+    return isSameDay(d1, d2);
+  } catch {
+    return false;
+  }
+};
 
 export default function BetaDashboard() {
   const navigate = useNavigate();
@@ -337,20 +361,23 @@ export default function BetaDashboard() {
   const monthDespesas = recentFinancial.filter(r => r.type === 'saida' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthExpenses = fixedExpenses.filter(e => e.expense_date?.substring(0, 7) === monthPrefix).reduce((s, e) => s + Number(e.amount), 0);
 
-  const todayApts = allAppointments.filter(a => isToday(new Date(a.appointment_date)));
+  const todayApts = allAppointments.filter(a => safeIsToday(a.appointment_date));
   const todayRevenue = todayApts.filter(a => a.status === 'concluído' || a.status === 'concluido').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
 
   // Schedule board time slots
   const timeSlots = ['06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
 
   const boardAppointments = allAppointments.filter(a => 
-    isSameDay(new Date(a.appointment_date), boardDate) && a.status !== 'cancelado'
+    safeIsSameDay(a.appointment_date, boardDate) && a.status !== 'cancelado'
   );
 
   const slotMap = useMemo(() => {
     const map: Record<string, { appointment: any; isBlocked: boolean }> = {};
     boardAppointments.forEach(apt => {
-      const time = safeFormat(apt.appointment_date, 'HH:mm');
+      const aptTime = new Date(apt.appointment_date);
+      if (isNaN(aptTime.getTime())) return;
+      
+      const time = format(aptTime, 'HH:mm');
       const duration = (apt.products as any)?.service_duration || 60;
       const slots = Math.ceil(duration / 30);
       map[time] = { appointment: apt, isBlocked: false };
@@ -521,7 +548,8 @@ export default function BetaDashboard() {
               <div className="space-y-2 max-h-[400px] overflow-y-auto">
                 {filteredAgenda.slice(0, 50).map(apt => {
                   const aptDate = new Date(apt.appointment_date);
-                  const isPast = aptDate < new Date() && apt.status !== 'concluído' && apt.status !== 'concluido' && apt.status !== 'cancelado';
+                  const isValidDate = !isNaN(aptDate.getTime());
+                  const isPast = isValidDate && aptDate < new Date() && apt.status !== 'concluído' && apt.status !== 'concluido' && apt.status !== 'cancelado';
                   return (
                     <div key={apt.id} className={`p-3 rounded-lg border border-border/50 ${isPast ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30'}`}>
                       <div className="flex justify-between items-start">

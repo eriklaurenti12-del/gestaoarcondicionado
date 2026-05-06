@@ -13,6 +13,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = (typeof date === 'string') ? parseISO(date) : new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch {
+    return '-';
+  }
+};
+
 const fetchAppointments = async () => {
   const { data, error } = await supabase
     .from('appointments')
@@ -60,13 +71,10 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     const byDate: { [key: string]: typeof appointments } = {};
     appointments.forEach(apt => {
       if (!apt.appointment_date) return;
-      try {
-        const dateKey = format(parseISO(apt.appointment_date), 'yyyy-MM-dd');
-        if (!byDate[dateKey]) byDate[dateKey] = [];
-        byDate[dateKey].push(apt);
-      } catch (e) {
-        console.warn('Invalid appointment date:', apt.appointment_date);
-      }
+      const dateKey = safeFormat(apt.appointment_date, 'yyyy-MM-dd');
+      if (dateKey === '-') return;
+      if (!byDate[dateKey]) byDate[dateKey] = [];
+      byDate[dateKey].push(apt);
     });
     return byDate;
   }, [appointments]);
@@ -145,14 +153,14 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
   // Custom day render for calendar
   const getDayContent = (day: Date) => {
-    const dateKey = format(day, 'yyyy-MM-dd');
+    const dateKey = safeFormat(day, 'yyyy-MM-dd');
     const dayAppointments = appointmentsByDate[dateKey] || [];
     const hasAppointments = dayAppointments.length > 0;
     const isPastDay = isDayPast(day);
     
     return (
       <div className={`relative w-full h-full flex flex-col items-center justify-center ${isPastDay ? 'opacity-50' : ''}`}>
-        <span className={isPastDay ? 'text-muted-foreground line-through' : ''}>{format(day, 'd')}</span>
+        <span className={isPastDay ? 'text-muted-foreground line-through' : ''}>{safeFormat(day, 'd')}</span>
         {hasAppointments && (
           <div className="absolute bottom-0 flex gap-0.5">
             {dayAppointments.slice(0, 3).map((apt, i) => (
@@ -216,8 +224,8 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               </Button>
               <h3 className="font-semibold text-lg">
                 {viewMode === 'month' 
-                  ? format(currentDate, 'MMMM yyyy', { locale: ptBR })
-                  : `Semana de ${format(startOfWeek(currentDate, { weekStartsOn: 0 }), 'dd/MM')} - ${format(endOfWeek(currentDate, { weekStartsOn: 0 }), 'dd/MM')}`
+                  ? safeFormat(currentDate, 'MMMM yyyy', { locale: ptBR })
+                  : `Semana de ${safeFormat(startOfWeek(currentDate, { weekStartsOn: 0 }), 'dd/MM')} - ${safeFormat(endOfWeek(currentDate, { weekStartsOn: 0 }), 'dd/MM')}`
                 }
               </h3>
               <Button variant="ghost" size="sm" onClick={() => navigate('next')}>
@@ -260,7 +268,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                   </div>
                 ))}
                 {daysInView.map(day => {
-                  const dateKey = format(day, 'yyyy-MM-dd');
+                  const dateKey = safeFormat(day, 'yyyy-MM-dd');
                   const dayAppointments = appointmentsByDate[dateKey] || [];
                   const isSelected = selectedDate && isSameDay(day, selectedDate);
                   const isPastDay = isDayPast(day);
@@ -278,7 +286,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                       `}
                     >
                       <div className={`text-sm font-medium mb-1 flex items-center gap-1 ${isToday(day) ? 'text-primary' : ''} ${isPastDay ? 'text-muted-foreground line-through' : ''}`}>
-                        {format(day, 'd')}
+                        {safeFormat(day, 'd')}
                         {isPastDay && <span className="text-[10px] text-muted-foreground">(passado)</span>}
                       </div>
                       <div className="space-y-1">
@@ -287,7 +295,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             key={apt.id} 
                             className={`text-xs p-1 rounded ${getStatusColor(apt.status)} text-white truncate ${isPastDay ? 'opacity-60' : ''}`}
                           >
-                            {format(parseISO(apt.appointment_date), 'HH:mm')} - {apt.clients?.name?.split(' ')[0]}
+                            {safeFormat(apt.appointment_date, 'HH:mm')} - {apt.clients?.name?.split(' ')[0]}
                           </div>
                         ))}
                         {dayAppointments.length > 2 && (
@@ -332,7 +340,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
-              {selectedDate ? format(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : 'Selecione um dia'}
+              {selectedDate ? safeFormat(selectedDate, "dd 'de' MMMM", { locale: ptBR }) : 'Selecione um dia'}
               {isSelectedDatePast && (
                 <Badge variant="outline" className="text-xs text-amber-500 border-amber-500">
                   <AlertCircle className="w-3 h-3 mr-1" />
@@ -349,7 +357,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               {selectedDayAppointments.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8">
                   <CalendarIcon className="w-12 h-12 mb-2 opacity-50" />
-                  <p className="text-sm">Nenhum agendamento</p>
+                  <p className="text-sm font-medium">Nenhum agendamento</p>
                   <p className="text-xs">neste dia</p>
                   {isSelectedDatePast && (
                     <p className="text-xs text-amber-500 mt-2">Este dia já passou</p>
@@ -370,7 +378,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2 text-primary font-semibold">
                               <Clock className="w-4 h-4" />
-                              {format(parseISO(apt.appointment_date), 'HH:mm')}
+                              {safeFormat(apt.appointment_date, 'HH:mm')}
                             </div>
                             {getStatusBadge(apt.status)}
                           </div>

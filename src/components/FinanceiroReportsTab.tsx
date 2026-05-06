@@ -13,8 +13,19 @@ import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch {
+    return '-';
+  }
+};
+
 const FinanceiroReportsTab: React.FC = () => {
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [selectedMonth, setSelectedMonth] = useState(safeFormat(new Date(), 'yyyy-MM'));
 
   const { data: salesData, isLoading: isLoadingSales, refetch: refetchSales } = useQuery({
     queryKey: ['report-sales', selectedMonth],
@@ -105,7 +116,7 @@ const FinanceiroReportsTab: React.FC = () => {
 
   const formatCurrency = (value: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 
-  const monthLabel = format(parseISO(selectedMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
+  const monthLabel = safeFormat(parseISO(selectedMonth + '-01'), 'MMMM yyyy', { locale: ptBR });
 
   const exportFullReport = () => {
     const doc = new jsPDF();
@@ -152,7 +163,7 @@ const FinanceiroReportsTab: React.FC = () => {
         startY: currentY + 4,
         head: [['Data', 'Cliente', 'Produto', 'Qtd', 'Valor', 'Pagamento']],
         body: salesData.map(s => [
-          format(new Date(s.sale_date), 'dd/MM/yy HH:mm'),
+          safeFormat(s.sale_date, 'dd/MM/yy HH:mm'),
           (s as any).clients?.name || '-',
           (s as any).products?.name || '-',
           s.qty.toString(),
@@ -172,7 +183,7 @@ const FinanceiroReportsTab: React.FC = () => {
         startY: currentY + 4,
         head: [['Data', 'Categoria', 'Descrição', 'Valor']],
         body: expensesData.map(e => [
-          format(new Date(e.expense_date), 'dd/MM/yy'),
+          safeFormat(e.expense_date, 'dd/MM/yy'),
           e.category,
           e.description || '-',
           formatCurrency(Number(e.amount)),
@@ -198,7 +209,7 @@ const FinanceiroReportsTab: React.FC = () => {
       startY: 34,
       head: [['Data', 'Cliente', 'Produto', 'Qtd', 'Valor', 'Lucro', 'Pagamento']],
       body: salesData.map(s => [
-        format(new Date(s.sale_date), 'dd/MM/yy HH:mm'),
+        safeFormat(s.sale_date, 'dd/MM/yy HH:mm'),
         (s as any).clients?.name || 'Balcão',
         (s as any).products?.name || '-',
         s.qty.toString(),
@@ -220,8 +231,8 @@ const FinanceiroReportsTab: React.FC = () => {
     for (let i = 0; i < 12; i++) {
       const date = new Date();
       date.setMonth(date.getMonth() - i);
-      const value = format(date, 'yyyy-MM');
-      const label = format(date, 'MMMM yyyy', { locale: ptBR });
+      const value = safeFormat(date, 'yyyy-MM');
+      const label = safeFormat(date, 'MMMM yyyy', { locale: ptBR });
       options.push({ value, label: label.charAt(0).toUpperCase() + label.slice(1) });
     }
     return options;
@@ -353,7 +364,7 @@ const FinanceiroReportsTab: React.FC = () => {
                   <TableRow><TableCell colSpan={7} className="text-center py-6 text-muted-foreground text-sm">Nenhuma venda neste mês</TableCell></TableRow>
                 ) : salesData.map((sale: any) => (
                   <TableRow key={sale.id}>
-                    <TableCell className="text-xs sm:text-sm py-2">{format(new Date(sale.sale_date), 'dd/MM HH:mm')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm py-2">{safeFormat(sale.sale_date, 'dd/MM HH:mm')}</TableCell>
                     <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || 'Balcão'}</TableCell>
                     <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[120px] truncate">{sale.products?.name || '-'}</TableCell>
                     <TableCell className="text-xs text-center py-2 hidden md:table-cell">{sale.qty}</TableCell>
@@ -398,7 +409,7 @@ const FinanceiroReportsTab: React.FC = () => {
                   <TableRow><TableCell colSpan={4} className="text-center py-6 text-muted-foreground text-sm">Nenhuma despesa neste mês</TableCell></TableRow>
                 ) : expensesData.map((expense: any) => (
                   <TableRow key={expense.id}>
-                    <TableCell className="text-xs sm:text-sm py-2">{format(new Date(expense.expense_date), 'dd/MM/yy')}</TableCell>
+                    <TableCell className="text-xs sm:text-sm py-2">{safeFormat(expense.expense_date, 'dd/MM/yy')}</TableCell>
                     <TableCell className="py-2"><Badge variant="outline" className="text-[10px]">{expense.category}</Badge></TableCell>
                     <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[150px] truncate">{expense.description || '-'}</TableCell>
                     <TableCell className="text-xs sm:text-sm text-right font-semibold text-destructive py-2">{formatCurrency(Number(expense.amount))}</TableCell>

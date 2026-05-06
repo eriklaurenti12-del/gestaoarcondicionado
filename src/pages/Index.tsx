@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SupportButton from "@/components/SupportButton";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import Dashboard from "@/components/Dashboard";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import CadastrosUnifiedTab from "@/components/CadastrosUnifiedTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
@@ -40,6 +41,17 @@ import { ParticleBackground } from "@/components/ParticleBackground";
 
 declare const __APP_BUILD_ID__: string;
 
+const safeIsToday = (date: any) => {
+  try {
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    return isToday(d);
+  } catch {
+    return false;
+  }
+};
+
 const fetchNotificationCount = async () => {
   try {
     const today = new Date();
@@ -61,7 +73,7 @@ const fetchNotificationCount = async () => {
     });
 
     appointments?.forEach((apt: any) => {
-      if (isToday(new Date(apt.appointment_date)) && apt.status !== 'concluído' && apt.status !== 'cancelado') {
+      if (safeIsToday(apt.appointment_date) && apt.status !== 'concluído' && apt.status !== 'cancelado') {
         count++;
       }
     });

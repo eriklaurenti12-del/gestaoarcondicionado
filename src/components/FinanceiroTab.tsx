@@ -15,6 +15,28 @@ import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch {
+    return '-';
+  }
+};
+
+const safeIsToday = (date: any) => {
+  try {
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    return isToday(d);
+  } catch {
+    return false;
+  }
+};
+
 interface FinancialRecord {
   id: string;
   type: "entrada" | "saque" | "reserva";
@@ -44,7 +66,7 @@ export default function FinanceiroTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), "yyyy-MM"));
+  const [selectedMonth, setSelectedMonth] = useState(() => safeFormat(new Date(), "yyyy-MM"));
   const [refreshing, setRefreshing] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -61,8 +83,8 @@ export default function FinanceiroTab() {
     queryFn: async () => {
       const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
       const monthEnd = endOfMonth(monthStart);
-      const startDate = format(monthStart, 'yyyy-MM-dd');
-      const endDateStr = format(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
+      const startDate = safeFormat(monthStart, 'yyyy-MM-dd');
+      const endDateStr = safeFormat(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
       const { data, error } = await supabase
         .from("sales")
         .select("*, clients(name), products(name, price, cost_price)")
@@ -79,8 +101,8 @@ export default function FinanceiroTab() {
     queryFn: async () => {
       const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
       const monthEnd = endOfMonth(monthStart);
-      const startDate = format(monthStart, 'yyyy-MM-dd');
-      const endDate = format(monthEnd, 'yyyy-MM-dd');
+      const startDate = safeFormat(monthStart, 'yyyy-MM-dd');
+      const endDate = safeFormat(monthEnd, 'yyyy-MM-dd');
       const { data, error } = await supabase
         .from("fixed_expenses")
         .select("amount")
@@ -126,8 +148,8 @@ export default function FinanceiroTab() {
 
     const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
     const monthEnd = endOfMonth(monthStart);
-    const startDate = format(monthStart, 'yyyy-MM-dd');
-    const endDateStr = format(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
+    const startDate = safeFormat(monthStart, 'yyyy-MM-dd');
+    const endDateStr = safeFormat(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
 
     const { data, error } = await supabase
       .from("financial_records")
@@ -239,7 +261,7 @@ export default function FinanceiroTab() {
   const exportStatementPDF = () => {
     const doc = new jsPDF();
     const [yr, mo] = selectedMonth.split('-').map(Number);
-    const monthName = format(new Date(yr, mo - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
+    const monthName = safeFormat(new Date(yr, mo - 1, 1), "MMMM 'de' yyyy", { locale: ptBR });
     
     doc.setFillColor(147, 51, 234);
     doc.rect(0, 0, 220, 45, 'F');
@@ -324,7 +346,7 @@ export default function FinanceiroTab() {
     allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     const tableData = allTransactions.map(t => [
-      format(new Date(t.date + (t.date.length === 10 ? 'T12:00:00' : '')), "dd/MM/yyyy"),
+      safeFormat(new Date(t.date + (t.date.length === 10 ? 'T12:00:00' : '')), "dd/MM/yyyy"),
       t.description,
       t.method || "-",
       t.type === "venda" ? "Serviço" : t.type.charAt(0).toUpperCase() + t.type.slice(1),
@@ -363,7 +385,7 @@ export default function FinanceiroTab() {
     doc.rect(0, pageHeight - 20, 220, 20, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(8);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, pageHeight - 10);
+    doc.text(`Gerado em: ${safeFormat(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, pageHeight - 10);
     doc.text("Sistema de Gestão", 196, pageHeight - 10, { align: "right" });
     
     doc.save(`extrato-financeiro-${selectedMonth}.pdf`);
@@ -599,7 +621,7 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Vendas de Serviços - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Vendas de Serviços - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
@@ -618,7 +640,7 @@ export default function FinanceiroTab() {
                 <TableBody>
                   {sales.map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell className="text-xs sm:text-sm py-2">{format(new Date(sale.sale_date), "dd/MM", { locale: ptBR })}</TableCell>
+                      <TableCell className="text-xs sm:text-sm py-2">{safeFormat(sale.sale_date, "dd/MM", { locale: ptBR })}</TableCell>
                       <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || "-"}</TableCell>
                       <TableCell className="text-xs sm:text-sm py-2 hidden sm:table-cell max-w-[120px] truncate">{sale.products?.name || "-"}</TableCell>
                       <TableCell className="text-xs sm:text-sm py-2 hidden md:table-cell">
@@ -647,7 +669,7 @@ export default function FinanceiroTab() {
         <CardHeader className="p-3 sm:p-6">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm sm:text-base">
-              Registros Manuais - {format(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Registros Manuais - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
             <Button variant="ghost" size="icon" onClick={fetchRecords} className="h-8 w-8">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -704,7 +726,7 @@ export default function FinanceiroTab() {
                         {formatCurrency(Number(record.amount))}
                       </TableCell>
                       <TableCell className="text-xs py-2 hidden sm:table-cell">
-                        {format(new Date(record.record_date), "dd/MM/yyyy", { locale: ptBR })}
+                        {safeFormat(record.record_date, "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="py-2">
                         <Button

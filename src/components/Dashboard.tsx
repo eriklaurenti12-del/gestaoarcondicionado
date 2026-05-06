@@ -65,6 +65,40 @@ const getAppointmentPrice = (apt: any) => {
   return Number(apt.products?.price) || 0;
 };
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch {
+    return '-';
+  }
+};
+
+const safeIsToday = (date: any) => {
+  try {
+    if (!date) return false;
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return false;
+    return isToday(d);
+  } catch {
+    return false;
+  }
+};
+
+const safeDifferenceInDays = (date1: any, date2: any) => {
+  try {
+    if (!date1 || !date2) return 0;
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
+    return differenceInDays(d1, d2);
+  } catch {
+    return 0;
+  }
+};
+
 const fetchDashboardData = async () => {
   try {
     const productsPromise = supabase.from('products').select('*').limit(1000);
@@ -103,7 +137,7 @@ const fetchDashboardData = async () => {
       .reduce((sum, a) => sum + getAppointmentPrice(a), 0);
     // Filter sales for CURRENT MONTH only
     const now = new Date();
-    const currentMonthPrefix = format(now, 'yyyy-MM');
+    const currentMonthPrefix = safeFormat(now, 'yyyy-MM');
     const currentMonthSales = salesList.filter(s => {
       try { return s.sale_date?.substring(0, 7) === currentMonthPrefix; } catch { return false; }
     });
@@ -136,7 +170,7 @@ const fetchDashboardData = async () => {
 
     // Previous month for variation
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthPrefix = format(prevMonth, 'yyyy-MM');
+    const prevMonthPrefix = safeFormat(prevMonth, 'yyyy-MM');
     const prevMonthSales = salesList.filter(s => {
       try { return s.sale_date?.startsWith(prevMonthPrefix); } catch { return false; }
     });
@@ -167,7 +201,7 @@ const fetchDashboardData = async () => {
     const todayAppointments = appointmentsList.filter(a => {
       const status = (a.status || '').toLowerCase();
       const isCompleted = status === 'concluido' || status === 'concluído';
-      return isToday(new Date(a.appointment_date)) && !isCompleted;
+      return safeIsToday(a.appointment_date) && !isCompleted;
     });
     const weekAppointments = appointmentsList.filter(a => {
         const date = new Date(a.appointment_date);
@@ -178,12 +212,11 @@ const fetchDashboardData = async () => {
     const scheduledToday = todayAppointments.filter(a => a.status === 'agendado').length;
     const completedToday = appointmentsList.filter(a => {
         const status = (a.status || '').toLowerCase();
-        return isToday(new Date(a.appointment_date)) && (status === 'concluido' || status === 'concluído');
+        return safeIsToday(a.appointment_date) && (status === 'concluido' || status === 'concluído');
     }).length;
 
     const pendingInstallments = installmentsList.map((inst: any) => {
-        const dueDate = new Date(inst.due_date);
-        const daysUntilDue = differenceInDays(dueDate, today);
+        const daysUntilDue = safeDifferenceInDays(inst.due_date, today);
         let status = 'normal';
         if (daysUntilDue < 0) status = 'overdue';
         else if (daysUntilDue <= 3) status = 'urgent';
@@ -194,12 +227,12 @@ const fetchDashboardData = async () => {
     const totalPendingAmount = pendingInstallments.reduce((sum: number, i: any) => sum + Number(i.amount), 0);
 
     // Calculate today's fixed expenses
-    const todayStr = format(today, 'yyyy-MM-dd');
+    const todayStr = safeFormat(today, 'yyyy-MM-dd');
     const todayExpenses = fixedExpensesList.filter(e => e.expense_date === todayStr);
     const todayExpensesTotal = todayExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
     // Calculate monthly expenses
-    const currentMonth = format(today, 'yyyy-MM');
+    const currentMonth = safeFormat(today, 'yyyy-MM');
     const monthlyExpenses = fixedExpensesList.filter(e => e.expense_date.startsWith(currentMonth));
     const monthlyExpensesTotal = monthlyExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
@@ -255,8 +288,7 @@ const fetchDashboardData = async () => {
 
     // Process scheduled maintenances
     const pendingMaintenances = scheduledMaintenanceList.map((m: any) => {
-      const schedDate = new Date(m.scheduled_date);
-      const daysUntil = differenceInDays(schedDate, today);
+      const daysUntil = safeDifferenceInDays(m.scheduled_date, today);
       let status = 'normal';
       if (daysUntil < 0) status = 'overdue';
       else if (daysUntil === 0) status = 'today';
@@ -289,13 +321,13 @@ const fetchDashboardData = async () => {
         if (!c.aniversario) return false;
         const bday = new Date(c.aniversario);
         const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
-        const diff = differenceInDays(thisYearBday, today);
+        const diff = safeDifferenceInDays(thisYearBday, today);
         return diff > 0 && diff <= 7;
       })
       .map((c: any) => {
         const bday = new Date(c.aniversario);
         const thisYearBday = new Date(today.getFullYear(), bday.getMonth(), bday.getDate());
-        const daysUntil = differenceInDays(thisYearBday, today);
+        const daysUntil = safeDifferenceInDays(thisYearBday, today);
         const age = today.getFullYear() - bday.getFullYear();
         return { ...c, daysUntil, age };
       })
@@ -307,7 +339,7 @@ const fetchDashboardData = async () => {
       .map(a => {
         const doneDate = new Date(a.appointment_date);
         const nextDate = addMonths(doneDate, (a.products as any).warranty_months);
-        const daysUntil = differenceInDays(nextDate, today);
+        const daysUntil = safeDifferenceInDays(nextDate, today);
         return {
           ...a,
           nextDate,
@@ -324,7 +356,7 @@ const fetchDashboardData = async () => {
       .filter(a => a.status === 'agendado' && new Date(a.appointment_date) < today)
       .map((a: any) => ({
         ...a,
-        daysOverdue: differenceInDays(today, new Date(a.appointment_date))
+        daysOverdue: safeDifferenceInDays(today, a.appointment_date)
       }))
       .sort((a: any, b: any) => b.daysOverdue - a.daysOverdue);
 
@@ -447,8 +479,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
     const [companyName, setCompanyName] = useState('');
     const [checkoutLinks, setCheckoutLinks] = useState<{ mensal: string; anual: string }>({ mensal: '', anual: '' });
     const today = new Date();
-    const currentMonth = format(today, 'MMMM', { locale: ptBR });
-    const currentDate = format(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    const currentMonth = safeFormat(today, 'MMMM', { locale: ptBR });
+    const currentDate = safeFormat(today, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 
     useEffect(() => {
       const loadUserData = async () => {
@@ -686,7 +718,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
       const sub = subscriptionData.subscription;
       if (sub.plan === 'vitalicio') return null;
       if (sub.end_date) {
-        return Math.max(0, differenceInDays(new Date(sub.end_date), new Date()));
+        return Math.max(0, safeDifferenceInDays(sub.end_date, new Date()));
       }
       return subscriptionData.daysRemaining;
     })();
@@ -695,7 +727,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
       if (!subscriptionData?.subscription) return 365;
       const sub = subscriptionData.subscription;
       if (sub.start_date && sub.end_date) {
-        return Math.max(1, differenceInDays(new Date(sub.end_date), new Date(sub.start_date)));
+        return Math.max(1, safeDifferenceInDays(sub.end_date, sub.start_date));
       }
       if (sub.plan === 'anual') return 365;
       if (sub.plan === 'trimestral') return 90;
@@ -708,7 +740,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
 
     const isExpiringSoon30 = planDaysRemaining !== null && planDaysRemaining <= 30 && planDaysRemaining > 0;
     const formatEndDate = subscriptionData?.subscription?.end_date 
-      ? format(new Date(subscriptionData.subscription.end_date), 'dd/MM/yyyy')
+      ? safeFormat(subscriptionData.subscription.end_date, 'dd/MM/yyyy')
       : null;
 
     return (
@@ -737,7 +769,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
                 {currentMonth}
               </Badge>
               <Badge variant="outline" className="text-xs">
-                {format(today, 'yyyy')}
+                {safeFormat(today, 'yyyy')}
               </Badge>
             </div>
           </div>

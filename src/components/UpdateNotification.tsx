@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, X, Sparkles } from 'lucide-react';
+import { RefreshCw as RefreshIcon, X as XIcon, Sparkles as SparklesIcon, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 
 const UpdateNotification: React.FC = () => {
   const [showUpdate, setShowUpdate] = useState(false);
@@ -14,23 +15,11 @@ const UpdateNotification: React.FC = () => {
       const detail = (e as CustomEvent).detail;
       if (detail?.updateSW) setUpdateFn(() => detail.updateSW);
       setShowUpdate(true);
-      // Also surface as a toast so users see it even if they dismiss the banner
-      toast.success('🎉 Nova versão disponível!', {
-        description: 'Clique em "Atualizar" para aplicar as melhorias.',
-        duration: 8000,
-      });
-    };
-
-    const handleOfflineReady = () => {
-      toast.success('✅ App pronto para uso offline');
     };
 
     window.addEventListener('pwa:need-refresh', handleNeedRefresh);
-    window.addEventListener('pwa:offline-ready', handleOfflineReady);
-
     return () => {
       window.removeEventListener('pwa:need-refresh', handleNeedRefresh);
-      window.removeEventListener('pwa:offline-ready', handleOfflineReady);
     };
   }, []);
 
@@ -38,10 +27,8 @@ const UpdateNotification: React.FC = () => {
     setIsUpdating(true);
     try {
       if (updateFn) {
-        // This activates the new SW and reloads the page
         await updateFn(true);
       } else {
-        // Fallback: hard reload
         window.location.reload();
       }
     } catch {
@@ -49,51 +36,59 @@ const UpdateNotification: React.FC = () => {
     }
   };
 
-  if (!showUpdate) return null;
-
   return (
-    <div className={cn(
-      "fixed top-4 left-1/2 -translate-x-1/2 z-[100] w-[92%] max-w-md",
-      "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground rounded-xl shadow-2xl p-4 border border-primary-foreground/10",
-      "animate-in slide-in-from-top-5 duration-300"
-    )}>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="p-2 bg-white/15 rounded-lg flex-shrink-0">
-            <Sparkles className="w-5 h-5" />
+    <Dialog open={showUpdate} onOpenChange={setShowUpdate}>
+      <DialogContent className="max-w-[90vw] sm:max-w-md bg-slate-900 border-primary/30 text-white p-0 overflow-hidden shadow-2xl">
+        <div className="bg-gradient-to-br from-primary/20 via-slate-900 to-slate-900 p-6">
+          <div className="w-16 h-16 rounded-2xl bg-primary/20 flex items-center justify-center mb-4 mx-auto border border-primary/30">
+            <RefreshIcon className="w-8 h-8 text-primary animate-spin-slow" />
           </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-sm">Nova versão disponível!</p>
-            <p className="text-xs opacity-90 truncate">Atualize para receber as novas melhorias.</p>
+          
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-bold text-white flex items-center justify-center gap-2">
+              <SparklesIcon className="w-6 h-6 text-yellow-400" />
+              Nova Versão Disponível!
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 mt-2 text-base">
+              Uma nova atualização do sistema HVAC foi detectada. Ela contém correções importantes e melhorias de performance.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-6 space-y-3">
+            <Button 
+              className="w-full h-12 text-base font-bold bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 transition-all active:scale-95"
+              onClick={handleUpdate}
+              disabled={isUpdating}
+            >
+              {isUpdating ? (
+                <>
+                  <RefreshIcon className="w-5 h-5 mr-2 animate-spin" />
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  <RefreshIcon className="w-5 h-5 mr-2" />
+                  Atualizar Agora (Foco Total)
+                </>
+              )}
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              className="w-full h-10 text-slate-500 hover:text-slate-300 hover:bg-white/5 text-sm"
+              onClick={() => setShowUpdate(false)}
+            >
+              Fechar e não atualizar
+            </Button>
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest">
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+            Sincronização PWA Ativa
           </div>
         </div>
-        <div className="flex gap-1 flex-shrink-0">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleUpdate}
-            disabled={isUpdating}
-            className="h-8 px-3 text-xs font-semibold"
-          >
-            {isUpdating ? (
-              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 mr-1" />
-                Atualizar
-              </>
-            )}
-          </Button>
-          <button
-            onClick={() => setShowUpdate(false)}
-            className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
-            aria-label="Fechar"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
