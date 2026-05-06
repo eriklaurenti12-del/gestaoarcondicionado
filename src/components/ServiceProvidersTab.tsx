@@ -32,6 +32,7 @@ export interface ServiceProvider {
   food_allowance?: number;
   fuel_allowance?: number;
   technical_notes?: string;
+  is_field_technician?: boolean;
   created_at: string;
 }
 
