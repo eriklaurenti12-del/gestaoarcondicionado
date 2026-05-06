@@ -226,6 +226,7 @@ export const AdminSystemGuideTab: React.FC = () => {
         supabase.from('products').select('id', { count: 'exact', head: true }),
         supabase.from('appointments').select('id', { count: 'exact', head: true }),
         supabase.from('quotes').select('id', { count: 'exact', head: true }),
+        supabase.from('service_orders').select('id', { count: 'exact', head: true }),
         supabase.from('team_members').select('id', { count: 'exact', head: true }),
       ]);
       setStats({
