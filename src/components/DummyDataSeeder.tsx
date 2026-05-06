@@ -38,8 +38,8 @@ const DummyDataSeeder: React.FC = () => {
       // 3. Create Products/Services
       const fakeProducts = [
         { name: "Ar Split 12000 BTU (TESTE)", type: "piece", price: 2500, cost_price: 1800, qty: 10, user_id: userId, storage_location: "Câmara 1", min_stock: 2 },
-        { name: "Limpeza Completa (TESTE)", type: "service", price: 250, cost_price: 50, user_id: userId, service_duration: 90, warranty_months: 6 },
-        { name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12 },
+        { name: "Limpeza Completa (TESTE)", type: "service", price: 250, cost_price: 50, user_id: userId, service_duration: 90, warranty_months: 6, qty: 0 },
+        { name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12, qty: 0 },
       ];
       const { data: createdProducts, error: productErr } = await supabase.from('products').insert(fakeProducts).select();
       if (productErr) throw productErr;
