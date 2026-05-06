@@ -24,6 +24,7 @@ import AdminLandingTab from "@/components/AdminLandingTab";
 import AdminRaffleTab from "@/components/AdminRaffleTab";
 import AdminSidebarConfig from "@/components/AdminSidebarConfig";
 import { AdminGuideCards } from "@/components/AdminGuideCards";
+import DummyDataSeeder from "@/components/DummyDataSeeder";
 
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import AdminThemeTab from "@/components/AdminThemeTab";
@@ -95,6 +96,7 @@ export default function Members() {
   const { toast } = useToast();
   const { baseUrl: publishedUrl } = useDomainSettings();
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<Member[]>([]);
   const [search, setSearch] = useState("");
@@ -145,10 +147,8 @@ export default function Members() {
   const checkSuperAdmin = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/"); return; }
-    const { data: roleData, error } = await supabase
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', user.id);
+    setCurrentUserEmail(user.email || null);
+    const { data: roleData, error } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
     if (error || !roleData?.length) { navigate("/"); return; }
     const hasSuperAdmin = roleData.some((r: any) => r.role === 'super_admin');
     if (!hasSuperAdmin) { navigate("/"); return; }
@@ -943,6 +943,10 @@ export default function Members() {
                 <p className="text-muted-foreground text-sm">Controle de atualizações e cache global dos usuários</p>
               </div>
             </div>
+
+            {['eriklaurenti09@gmail.com', 'leonardoleal372@gmail.com'].includes(currentUserEmail || '') && (
+              <DummyDataSeeder />
+            )}
 
             <Card className="border-amber-500/30 bg-amber-500/5">
               <CardHeader>

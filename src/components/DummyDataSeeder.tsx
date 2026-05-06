@@ -87,8 +87,8 @@ const DummyDataSeeder: React.FC = () => {
             amount: service?.price || 0,
             category: 'Serviço',
             description: `Recebimento: ${service?.name} - ${pastAppt.client_id}`,
-            date: pastAppt.appointment_date,
-            payment_method: 'Cartão'
+            record_date: pastAppt.appointment_date,
+            payment_method: 'PIX'
           });
         }
       }
@@ -119,12 +119,11 @@ const DummyDataSeeder: React.FC = () => {
       await supabase.from('fixed_expenses').delete().eq('user_id', userId);
       await supabase.from('appointments').delete().eq('user_id', userId);
       await supabase.from('quotes').delete().eq('user_id', userId);
-      await supabase.from('service_orders').delete().eq('user_id', userId);
       await supabase.from('products').delete().eq('user_id', userId);
       await supabase.from('clients').delete().eq('user_id', userId);
       await supabase.from('suppliers').delete().eq('user_id', userId);
-      await (supabase.from('equipment' as any) as any).delete().eq('user_id', userId);
-      await (supabase.from('maintenance_plans' as any) as any).delete().eq('user_id', userId);
+      await supabase.from('client_equipment').delete().eq('user_id', userId);
+      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       
       toast.success("Sistema limpo do zero! Conta Erik preservada.");
       queryClient.invalidateQueries();
