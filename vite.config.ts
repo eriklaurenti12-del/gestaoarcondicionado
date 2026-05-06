@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => ({
     mode === 'development' && componentTagger(),
     {
       name: 'ac-service-build-version',
-      generateBundle() {
+      generateBundle(this: { emitFile: (asset: { type: 'asset'; fileName: string; source: string }) => void }) {
         this.emitFile({
           type: 'asset',
           fileName: 'version.json',
