@@ -26,7 +26,7 @@ import ImpostosTab from '@/components/ImpostosTab';
 import OnlineBookingsTab from '@/components/OnlineBookingsTab';
 import CompanyDataTab from '@/components/CompanyDataTab';
 
-type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos';
+type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
 export default function BetaDashboard() {
   const navigate = useNavigate();
