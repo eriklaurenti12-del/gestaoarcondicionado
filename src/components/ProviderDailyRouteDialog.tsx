@@ -167,13 +167,53 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       }
 
       // Update status of selected appointments to 'concluido'
+      let totalRevenue = 0;
       if (selectedAppointments.length > 0) {
+        const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
+        
+        for (const apt of selectedAppts) {
+          let price = 0;
+          if (apt.notes) {
+            const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
+            if (match) price = Number(match[1]);
+          }
+          if (price === 0) price = Number(apt.products?.price) || 0;
+          totalRevenue += price;
+        }
+
         const { error: aptError } = await supabase
           .from('appointments')
           .update({ status: 'concluido' })
           .in('id', selectedAppointments);
         
         if (aptError) console.error("Erro ao concluir agendamentos", aptError);
+
+        // Insert Revenue into financial_records
+        if (totalRevenue > 0) {
+          await supabase.from('financial_records').insert({
+            user_id: session.user.id,
+            type: 'entrada',
+            amount: totalRevenue,
+            category: 'Serviços',
+            description: `Receita de Rota: ${selectedAppts.length} serviços - ${provider.name}`,
+            record_date: today,
+            payment_method: 'Dinheiro' // Default
+          });
+        }
+
+        // Insert Labor Cost into financial_records (if provider has cost_per_hour)
+        const laborCost = (provider.cost_per_hour || 0) * selectedAppts.length * 1.5; // Estimating 1.5h per service
+        if (laborCost > 0) {
+           await supabase.from('financial_records').insert({
+            user_id: session.user.id,
+            type: 'saque',
+            amount: laborCost,
+            category: 'Mão de Obra',
+            description: `Pagamento Prestador: ${provider.name} (${selectedAppts.length} serviços)`,
+            record_date: today,
+            payment_method: 'Dinheiro'
+          });
+        }
       }
     },
     onSuccess: () => {

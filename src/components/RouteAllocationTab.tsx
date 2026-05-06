@@ -13,6 +13,8 @@ import { ptBR } from 'date-fns/locale';
 import { MapPin, Car, Utensils, Send, CheckCircle2, Calendar } from 'lucide-react';
 import { ServiceProvider } from './ServiceProvidersTab';
 import { Badge } from "@/components/ui/badge";
+import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
+import { FileDown, RefreshCw, Trash2 } from 'lucide-react';
 
 export default function RouteAllocationTab({ providers }: { providers: ServiceProvider[] }) {
   const queryClient = useQueryClient();
@@ -21,6 +23,8 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
   const [combustivel, setCombustivel] = useState('');
   const [alimentacao, setAlimentacao] = useState('');
   const [filterDate, setFilterDate] = useState<string>(''); // empty means 'all'
+  const [moveToToday, setMoveToToday] = useState(true);
+  const [routeProvider, setRouteProvider] = useState<ServiceProvider | null>(null);
 
   // Get all unassigned appointments
   const { data: unassignedAppointmentsRaw, isLoading } = useQuery({
@@ -109,9 +113,21 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
           ? `${apt.notes}\n[PRESTADOR:${provider.name}]` 
           : `[PRESTADOR:${provider.name}]`;
           
+        const today = new Date();
+        const aptDate = new Date(apt.appointment_date);
+        
+        let updateData: any = { notes: newNotes };
+        
+        if (moveToToday) {
+          // Keep the original time, but change the date to today
+          const todayDate = new Date();
+          todayDate.setHours(aptDate.getHours(), aptDate.getMinutes(), 0, 0);
+          updateData.appointment_date = todayDate.toISOString();
+        }
+
         const { error } = await supabase
           .from('appointments')
-          .update({ notes: newNotes })
+          .update(updateData)
           .eq('id', apt.id);
           
         if (error) throw error;
@@ -291,7 +307,18 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
               </Select>
             </div>
 
-            <div className="space-y-4 pt-4 border-t">
+            <div className="flex items-center space-x-2 py-2">
+              <Checkbox 
+                id="move_to_today" 
+                checked={moveToToday} 
+                onCheckedChange={(checked) => setMoveToToday(!!checked)}
+              />
+              <Label htmlFor="move_to_today" className="text-sm font-medium cursor-pointer">
+                Adiantar para hoje (Mudar data para {format(new Date(), 'dd/MM')})
+              </Label>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t">
               <Label className="text-sm text-muted-foreground font-medium">Lançar Gastos da Rota (Opcional)</Label>
               
               <div className="space-y-2">
@@ -362,18 +389,45 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                           </span>
                         </div>
                       </div>
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="h-7 text-[10px] gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+                          onClick={() => setRouteProvider(providers.find(p => p.name === provName) || null)}
+                        >
+                          <CheckCircle2 className="w-3 h-3" /> Confirmar Rota
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="secondary" 
+                          className="h-7 text-[10px] gap-1"
+                          onClick={() => {
+                            const addresses = appts.map(a => a.clients?.address).filter(Boolean);
+                            if (addresses.length === 0) return;
+                            const url = `https://www.google.com/maps/dir/${addresses.map(addr => encodeURIComponent(addr)).join('/')}`;
+                            window.open(url, '_blank');
+                          }}
+                        >
+                          <MapPin className="w-3 h-3" /> Ver Mapa
+                        </Button>
+                      </div>
                       <Button 
                         size="sm" 
-                        variant="secondary" 
-                        className="w-full mt-2 h-7 text-[10px] gap-1"
-                        onClick={() => {
-                          const addresses = appts.map(a => a.clients?.address).filter(Boolean);
-                          if (addresses.length === 0) return;
-                          const url = `https://www.google.com/maps/dir/${addresses.map(addr => encodeURIComponent(addr)).join('/')}`;
-                          window.open(url, '_blank');
+                        variant="ghost" 
+                        className="w-full mt-1 h-6 text-[9px] gap-1 text-muted-foreground hover:text-destructive"
+                        onClick={async () => {
+                          if (!confirm(`Remover todos os serviços da rota de ${provName}?`)) return;
+                          for (const apt of appts) {
+                            const cleanNotes = apt.notes?.replace(new RegExp(`\\[PRESTADOR:${provName}\\]`, 'g'), '').trim();
+                            await supabase.from('appointments').update({ notes: cleanNotes }).eq('id', apt.id);
+                          }
+                          toast.success('Rota removida');
+                          queryClient.invalidateQueries({ queryKey: ['assigned-appointments'] });
+                          queryClient.invalidateQueries({ queryKey: ['unassigned-appointments'] });
                         }}
                       >
-                        <MapPin className="w-3 h-3" /> Traçar Rota Completa
+                        <Trash2 className="w-2.5 h-2.5" /> Limpar Rota
                       </Button>
                     </CardHeader>
                     <CardContent className="p-3 space-y-2">
@@ -399,6 +453,13 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
           </CardContent>
         </Card>
       </div>
+
+      <ProviderDailyRouteDialog
+        isOpen={!!routeProvider}
+        onOpenChange={(open) => !open && setRouteProvider(null)}
+        provider={routeProvider}
+        allAppointments={assignedAppointments || []}
+      />
     </div>
   );
 }
