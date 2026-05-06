@@ -449,8 +449,8 @@ export default function Index() {
                     <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
                       <HelpCircle className="w-4 h-4" /> Ver Tutorial
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={checkForUpdates} className="gap-2 cursor-pointer">
-                      <RefreshCw className="w-4 h-4" /> Atualizar Sistema
+                    <DropdownMenuItem onSelect={checkForUpdates} disabled={isCheckingUpdates} className="gap-2 cursor-pointer">
+                      <RefreshCw className={`w-4 h-4 ${isCheckingUpdates ? 'animate-spin' : ''}`} /> Sincronizar versão publicada
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -462,9 +462,9 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
                   <HelpCircle className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg text-blue-600 border-blue-200 hover:bg-blue-50 shrink-0 font-medium ml-1 mr-1" onClick={checkForUpdates} title="Buscar atualizações">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Atualizar Sistema
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={checkForUpdates} disabled={isCheckingUpdates} title="Limpar cache e buscar a versão publicada mais recente">
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+                  {isCheckingUpdates ? 'Sincronizando...' : 'Sincronizar App'}
                 </Button>
 
                 {/* Notification Bell */}
