@@ -463,6 +463,23 @@ export default function ServiceProvidersTab() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-start gap-2 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
+              <input
+                id="is_field_tech"
+                type="checkbox"
+                className="mt-1 h-4 w-4"
+                checked={formData.is_field_technician}
+                onChange={e => setFormData({ ...formData, is_field_technician: e.target.checked })}
+              />
+              <div className="flex-1">
+                <Label htmlFor="is_field_tech" className="cursor-pointer font-medium">
+                  🚐 É técnico de campo (aparece em Rotas Técnicas)
+                </Label>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Marque para que o prestador apareça como técnico ao alocar agendamentos em rotas. Desmarque para auxiliares administrativos.
+                </p>
+              </div>
+            </div>
             <div>
               <Label>Observações Técnicas</Label>
               <textarea 
