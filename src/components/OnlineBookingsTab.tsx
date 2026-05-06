@@ -157,7 +157,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   const todayBookings = useMemo(() =>
     bookings.filter(b => {
-      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      const [y, m, d] = b.preferred_date.split('-').map(Number);
+      const bookingDate = new Date(y, m - 1, d, 12, 0, 0);
       return isToday(bookingDate) && (b.status === 'confirmado' || b.status === 'pendente');
     }).sort((a, b) => a.preferred_time.localeCompare(b.preferred_time)),
     [bookings, today]
@@ -165,7 +166,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   const futureBookings = useMemo(() => 
     bookings.filter(b => {
-      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      const [y, m, d] = b.preferred_date.split('-').map(Number);
+      const bookingDate = new Date(y, m - 1, d, 12, 0, 0);
       return (b.status === 'confirmado' || b.status === 'pendente') && 
              isAfter(bookingDate, today) && !isToday(bookingDate);
     }).sort((a, b) => new Date(a.preferred_date).getTime() - new Date(b.preferred_date).getTime()),
@@ -174,7 +176,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   const historyBookings = useMemo(() =>
     bookings.filter(b => {
-      const bookingDate = new Date(b.preferred_date + 'T12:00:00');
+      const [y, m, d] = b.preferred_date.split('-').map(Number);
+      const bookingDate = new Date(y, m - 1, d, 12, 0, 0);
       return isBefore(bookingDate, today) || b.status === 'recusado' || b.status === 'cancelado';
     }).sort((a, b) => new Date(b.preferred_date).getTime() - new Date(a.preferred_date).getTime()),
     [bookings, today]
@@ -208,9 +211,12 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       const cepLine = cepMatch ? `\n🏷️ CEP: ${cepMatch[1].trim()}` : '';
       const mapsLink = addressMatch ? `\n🗺️ Ver no mapa: https://www.google.com/maps/search/${encodeURIComponent(addressMatch[1].trim())}` : '';
       
+      const [y, m, d] = booking.preferred_date.split('-').map(Number);
+      const dateForMsg = new Date(y, m - 1, d, 12, 0, 0);
+      
       const statusMsg = status === 'confirmado' 
-        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}${addressLine}${cepLine}${mapsLink}\n\nAguardamos você! 🙏`
-        : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
+        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${safeFormat(dateForMsg, 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}${addressLine}${cepLine}${mapsLink}\n\nAguardamos você! 🙏`
+        : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${safeFormat(dateForMsg, 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
       
       window.open(formatWhatsAppUrl(booking.client_phone, statusMsg), '_blank');
     }
@@ -254,7 +260,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         serviceCost = Number(serviceData[0].cost_price);
       }
 
-      const dateTime = new Date(`${booking.preferred_date}T${booking.preferred_time}:00`);
+      const [year, month, day] = booking.preferred_date.split('-').map(Number);
+      const [hour, minute] = booking.preferred_time.split(':').map(Number);
+      const dateTime = new Date(year, month - 1, day, hour, minute);
+
       const { error } = await supabase.from('appointments').insert({
         user_id: userId,
         client_id: clientId,
@@ -339,12 +348,16 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     doc.setFontSize(10);
     doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')} | Total: ${bookings.length}`, 14, 30);
 
-    const tableData = bookings.map(b => [
-      b.client_name, b.client_phone, b.service_name,
-      safeFormat(b.preferred_date + 'T12:00:00', 'dd/MM/yyyy'),
-      b.preferred_time, b.payment_method || '-',
-      b.status === 'confirmado' ? 'Confirmado' : b.status === 'pendente' ? 'Pendente' : b.status === 'recusado' ? 'Recusado' : b.status,
-    ]);
+    const tableData = bookings.map(b => {
+      const [y, m, d] = b.preferred_date.split('-').map(Number);
+      const dateForPdf = new Date(y, m - 1, d, 12, 0, 0);
+      return [
+        b.client_name, b.client_phone, b.service_name,
+        safeFormat(dateForPdf, 'dd/MM/yyyy'),
+        b.preferred_time, b.payment_method || '-',
+        b.status === 'confirmado' ? 'Confirmado' : b.status === 'pendente' ? 'Pendente' : b.status === 'recusado' ? 'Recusado' : b.status,
+      ];
+    });
 
     autoTable(doc, {
       startY: 35,
@@ -367,7 +380,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   };
 
   const getDaysUntil = (dateStr: string) => {
-    const bookingDate = new Date(dateStr + 'T12:00:00');
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const bookingDate = new Date(y, m - 1, d, 12, 0, 0);
     const diffMs = bookingDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     if (diffDays === 0) return 'Hoje';
@@ -377,7 +391,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   };
 
   const renderBookingCard = (booking: OnlineBooking, showActions = true) => {
-    const bookingDate = new Date(booking.preferred_date + 'T12:00:00');
+    const [y, m, d] = booking.preferred_date.split('-').map(Number);
+    const bookingDate = new Date(y, m - 1, d, 12, 0, 0);
     const isPast = isBefore(bookingDate, today);
     const isTodayBooking = isToday(bookingDate);
     
@@ -472,9 +487,11 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                   onClick={() => {
                     const addrMatch = booking.notes?.match(/📍\s*([^|]+)/);
                     const addrText = addrMatch ? `\n📍 Local: ${addrMatch[1].trim()}` : '';
+                    const [y, m, d] = booking.preferred_date.split('-').map(Number);
+                    const dateForWA = new Date(y, m - 1, d, 12, 0, 0);
                     const msg = booking.status === 'pendente'
-                      ? `Olá ${booking.client_name}! Recebemos seu agendamento de ${booking.service_name} para ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time}. Estamos analisando e já confirmaremos! 🙏`
-                      : `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time}.${addrText}`;
+                      ? `Olá ${booking.client_name}! Recebemos seu agendamento de ${booking.service_name} para ${safeFormat(dateForWA, 'dd/MM/yyyy')} às ${booking.preferred_time}. Estamos analisando e já confirmaremos! 🙏`
+                      : `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${safeFormat(dateForWA, 'dd/MM/yyyy')} às ${booking.preferred_time}.${addrText}`;
                     window.open(formatWhatsAppUrl(booking.client_phone, msg), '_blank');
                   }}>
                   <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp

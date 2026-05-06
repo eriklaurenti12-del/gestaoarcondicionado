@@ -414,7 +414,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     }
     setScheduling(true);
     try {
-      const appointmentDate = new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString();
+      const [y, m, d] = scheduleDate.split('-').map(Number);
+      const [hh, mm] = scheduleTime.split(':').map(Number);
+      const appointmentDate = new Date(y, m - 1, d, hh, mm).toISOString();
       const data = await fetchPortalData('create_appointment', {
         client_id: scheduleClientId, appointment_date: appointmentDate,
         notes: scheduleNotes || `Agendado via portal por ${session.memberName}`,

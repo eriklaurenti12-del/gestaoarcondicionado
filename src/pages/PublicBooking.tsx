@@ -145,7 +145,10 @@ export default function PublicBooking() {
     if (!selectedDate) return TIME_SLOTS;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const busyTimes = busySlots
-      .filter(s => s.startsWith(dateStr))
+      .filter(s => {
+        const d = new Date(s);
+        return format(d, 'yyyy-MM-dd') === dateStr;
+      })
       .map(s => format(new Date(s), 'HH:mm'));
 
     return TIME_SLOTS.filter(t => {
@@ -465,7 +468,13 @@ export default function PublicBooking() {
                   <Badge className={st.cls}>{st.text}</Badge>
                 </div>
                 <div className="flex items-center gap-4 text-sm text-slate-400">
-                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> 
+                    {(() => {
+                      const [y, m, d] = booking.preferred_date.split('-').map(Number);
+                      return format(new Date(y, m - 1, d, 12, 0, 0), 'dd/MM/yyyy');
+                    })()}
+                  </span>
                   <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {booking.preferred_time}</span>
                 </div>
                 {booking.payment_method && (
@@ -493,14 +502,18 @@ export default function PublicBooking() {
                       {company.whatsapp && (
                         <>
                           <Button size="sm" variant="outline" onClick={() => {
-                            const msg = `Olá! Gostaria de *remarcar* meu agendamento de ${booking.service_name} do dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}. Qual a disponibilidade?`;
+                            const [y, m, d] = booking.preferred_date.split('-').map(Number);
+                            const dateStr = format(new Date(y, m - 1, d, 12, 0, 0), 'dd/MM/yyyy');
+                            const msg = `Olá! Gostaria de *remarcar* meu agendamento de ${booking.service_name} do dia ${dateStr} às ${booking.preferred_time}. Qual a disponibilidade?`;
                             window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
                           }}
                             className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs flex-1 min-w-[100px]">
                             <Calendar className="w-3 h-3 mr-1" /> Remarcar
                           </Button>
                           <Button size="sm" variant="outline" onClick={() => {
-                            const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.`;
+                            const [y, m, d] = booking.preferred_date.split('-').map(Number);
+                            const dateStr = format(new Date(y, m - 1, d, 12, 0, 0), 'dd/MM/yyyy');
+                            const msg = `Olá! Gostaria de falar sobre meu agendamento de ${booking.service_name} no dia ${dateStr} às ${booking.preferred_time}.`;
                             window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
                           }}
                             className="border-green-500/30 text-green-400 hover:bg-green-500/10 text-xs flex-1 min-w-[100px]">
@@ -514,7 +527,9 @@ export default function PublicBooking() {
                   {/* Confirmed: show contact to request service */}
                   {booking.status === 'confirmado' && company.whatsapp && (
                     <Button size="sm" onClick={() => {
-                      const msg = `Olá ${company.company_name}! Meu agendamento de *${booking.service_name}* para o dia *${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}* às *${booking.preferred_time}* foi confirmado.\n\n👤 *${booking.client_name}*\n📱 ${booking.client_phone}\n\nEstou te aguardando! Solicito o serviço conforme combinado.`;
+                      const [y, m, d] = booking.preferred_date.split('-').map(Number);
+                      const dateStr = format(new Date(y, m - 1, d, 12, 0, 0), 'dd/MM/yyyy');
+                      const msg = `Olá ${company.company_name}! Meu agendamento de *${booking.service_name}* para o dia *${dateStr}* às *${booking.preferred_time}* foi confirmado.\n\n👤 *${booking.client_name}*\n📱 ${booking.client_phone}\n\nEstou te aguardando! Solicito o serviço conforme combinado.`;
                       window.open(formatWhatsAppUrl(company.whatsapp!, msg), '_blank');
                     }}
                       className="bg-green-600 hover:bg-green-700 text-white text-xs w-full">

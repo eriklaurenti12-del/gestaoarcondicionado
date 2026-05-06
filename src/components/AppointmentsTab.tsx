@@ -279,7 +279,7 @@ const AppointmentsTab: React.FC = () => {
       if (status === 'concluido' && appointment?.client_id) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const salePrice = calculateAppointmentPrice(appointment);
+          const salePrice = getAppointmentPrice(appointment);
           if (salePrice <= 0) return; // Skip if no value found
 
           const { data: productData } = appointment.service_id ? await supabase
@@ -468,7 +468,9 @@ const AppointmentsTab: React.FC = () => {
       return;
     }
 
-    const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+    const [y, m, d] = appointmentDate.split('-').map(Number);
+    const [hh, mm] = appointmentTime.split(':').map(Number);
+    const dateTime = new Date(y, m - 1, d, hh, mm);
     
     // ========== PAST DATE/TIME VALIDATION ==========
     const now = new Date();
@@ -1906,7 +1908,9 @@ const AppointmentsTab: React.FC = () => {
               onClick={() => {
                 if (!editingAppointment) return;
                 
-                const newDateTimeObj = new Date(`${editDate}T${editTime}`);
+                const [y, m, d] = editDate.split('-').map(Number);
+                const [hh, mm] = editTime.split(':').map(Number);
+                const newDateTimeObj = new Date(y, m - 1, d, hh, mm);
                 
                 // ========== PAST DATE/TIME VALIDATION ==========
                 const now = new Date();
