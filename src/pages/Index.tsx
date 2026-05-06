@@ -38,6 +38,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
+import { forceUpdateApp } from "@/lib/updateApp";
 
 declare const __APP_BUILD_ID__: string;
 
@@ -253,63 +254,8 @@ export default function Index() {
   // Aggressive update: clears app cache/PWA shells and reloads from the published source.
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
-    toast.loading('🔍 Verificando publicação e limpando cache antigo...', { id: 'check-update' });
-
-    const currentBuildId = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'local';
-
-    const hardReload = () => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('app_refresh', Date.now().toString());
-      window.location.replace(url.toString());
-    };
-
-    try {
-      await fetch(`/version.json?refresh=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-      }).catch(() => null);
-
-      window.dispatchEvent(new CustomEvent('pwa:check-update'));
-
-      if ('caches' in window) {
-        try {
-          const keys = await caches.keys();
-          await Promise.all(keys.map(k => caches.delete(k)));
-        } catch { /* noop */ }
-      }
-
-      try {
-        const keysToKeep = ['current_user_id', 'pwa-installed', 'theme'];
-        Object.keys(localStorage).forEach(key => {
-          if (!key.startsWith('sb-') && !keysToKeep.includes(key)) {
-             localStorage.removeItem(key);
-          }
-        });
-        sessionStorage.clear();
-      } catch { /* noop */ }
-
-      if ('serviceWorker' in navigator) {
-        try {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (let reg of regs) {
-            await reg.update().catch(() => undefined);
-            await reg.unregister();
-          }
-        } catch { /* noop */ }
-      }
-
-      toast.success(`✅ Cache limpo. Abrindo versão publicada mais recente (${currentBuildId.slice(0, 10)}).`, { id: 'check-update' });
-      setTimeout(() => {
-        hardReload();
-      }, 800);
-      
-    } catch (err) {
-      console.error('checkForUpdates error:', err);
-      toast.error('Recarregando para garantir atualização...', { id: 'check-update' });
-      setTimeout(() => window.location.reload(), 800);
-    } finally {
-      setTimeout(() => setIsCheckingUpdates(false), 1000);
-    }
+    await forceUpdateApp();
+    setTimeout(() => setIsCheckingUpdates(false), 1000);
   };
 
   const handleSignOut = async () => {

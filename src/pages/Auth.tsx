@@ -13,6 +13,8 @@ import { ParticleBackground } from "@/components/ParticleBackground";
 import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSystemBranding } from "@/hooks/useSystemBranding";
+import { forceUpdateApp } from "@/lib/updateApp";
+import { RefreshCw } from "lucide-react";
 
 const ROLE_INFO: Record<string, { label: string; desc: string; icon: any; color: string }> = {
   painel: { label: 'Painel Admin', desc: 'Acesso ao painel de administração', icon: Shield, color: 'text-cyan-400' },
@@ -170,13 +172,27 @@ export default function Auth() {
       )}
 
       {/* Theme toggle */}
-      <button
-        onClick={toggleTheme}
-        className="absolute top-4 right-4 z-50 p-2.5 rounded-full bg-card/80 border border-border backdrop-blur-sm hover:bg-muted transition-colors"
-        title={isDark ? 'Modo Claro' : 'Modo Escuro'}
-      >
-        {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-foreground" />}
-      </button>
+      <div className="absolute top-4 right-4 z-50 flex gap-2">
+        <button
+          onClick={toggleTheme}
+          className="p-2.5 rounded-full bg-card/80 border border-border backdrop-blur-sm hover:bg-muted transition-colors shadow-sm"
+          title={isDark ? 'Modo Claro' : 'Modo Escuro'}
+        >
+          {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-foreground" />}
+        </button>
+      </div>
+
+      {/* Force Update Button (Top Left) */}
+      <div className="absolute top-4 left-4 z-50">
+        <button
+          onClick={forceUpdateApp}
+          className={`flex items-center gap-2 px-3 py-2 rounded-full bg-card/80 border border-border backdrop-blur-sm hover:bg-muted transition-all shadow-sm group active:scale-95`}
+          title="Forçar Atualização do Sistema"
+        >
+          <RefreshCw className="w-4 h-4 text-primary group-hover:rotate-180 transition-transform duration-500" />
+          <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline text-muted-foreground group-hover:text-primary">Sincronizar Versão</span>
+        </button>
+      </div>
 
       <div className="relative z-10 w-full max-w-md space-y-4">
         {/* Branding */}

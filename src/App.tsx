@@ -18,6 +18,7 @@ import AwaitingActivation from "./pages/AwaitingActivation";
 import TeamPortalLogin from "./pages/TeamPortalLogin";
 import BetaDashboard from "./pages/BetaDashboard";
 import { toast } from "sonner";
+import { ForceUpdateListener } from "@/components/ForceUpdateListener";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -65,6 +66,7 @@ const App = () => (
       <ThemeProvider>
         <BetaModeProvider>
           <TooltipProvider>
+            <ForceUpdateListener />
             <GlobalErrorHandler />
             <Toaster />
             <Sonner />

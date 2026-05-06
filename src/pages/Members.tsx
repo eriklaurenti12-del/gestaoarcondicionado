@@ -83,10 +83,11 @@ const DEFAULT_TABS = [
   { id: 'sidebar-config', label: 'Menu', icon: 'Menu' },
   { id: 'support', label: 'Suporte', icon: 'LifeBuoy' },
   { id: 'system-guide', label: 'Guia PDF', icon: 'BookOpen' },
+  { id: 'system', label: 'Sistema', icon: 'Settings2' },
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind, Headphones
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind, Headphones, Settings2
 };
 
 export default function Members() {
@@ -322,6 +323,40 @@ export default function Members() {
       await loadMembers();
     } catch (error: any) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const forceUpdateAll = async () => {
+    if (!window.confirm("⚠️ Isso forçará a limpeza de cache e recarregamento para TODOS os usuários ativos. Continuar?")) return;
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('admin_settings').upsert({
+        key: 'force_update_all_at',
+        value: now,
+        description: 'Timestamp para forçar atualização global de todos os usuários',
+        updated_at: now
+      }, { onConflict: 'key' });
+      if (error) throw error;
+      toast({ title: "Sinal de atualização enviado para todos! 🚀" });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const forceUpdateUser = async (userId: string, email: string) => {
+    if (!window.confirm(`Forçar atualização para ${email}?`)) return;
+    try {
+      const now = new Date().toISOString();
+      const { error } = await supabase.from('admin_settings').upsert({
+        key: `force_update_user:${userId}`,
+        value: now,
+        description: `Timestamp para forçar atualização do usuário ${email}`,
+        updated_at: now
+      }, { onConflict: 'key' });
+      if (error) throw error;
+      toast({ title: `Sinal de atualização enviado para ${email}! ✓` });
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
@@ -860,6 +895,11 @@ export default function Members() {
                                   {member.subscription?.status === 'aprovado' ? 'Cancelar' : 'Ativar'}
                                 </Button>
                               )}
+                              <Button size="sm" variant="outline" className="h-8 w-8 p-0 ml-1.5 text-amber-500 border-amber-500/30"
+                                onClick={() => forceUpdateUser(member.id, member.email)}
+                                title="Forçar Atualização">
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </Button>
                             </TableCell>
                             <TableCell className="text-center">
                               {!isSuperAdminUser && (
@@ -893,6 +933,53 @@ export default function Members() {
           </TabsContent>
           <TabsContent value="system-guide" className="mt-6">
             <AdminSystemGuideTab />
+          </TabsContent>
+          <TabsContent value="system" className="mt-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-primary" /> Gestão do Sistema (Super Admin)
+                </h2>
+                <p className="text-muted-foreground text-sm">Controle de atualizações e cache global dos usuários</p>
+              </div>
+            </div>
+
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-amber-500" /> 
+                  Forçar Atualização Geral
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Esta ação enviará um sinal para <strong>todos os usuários logados</strong> no sistema. 
+                  Ao receberem o sinal, o navegador deles irá limpar caches e recarregar a versão mais recente.
+                </p>
+                <div className="pt-2">
+                  <Button variant="destructive" className="gap-2 h-11" onClick={forceUpdateAll}>
+                    <RefreshCw className="w-4 h-4" />
+                    Atualizar Sistema de Todos os Usuários
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Informações do Build</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex justify-between text-sm py-2 border-b">
+                  <span className="text-muted-foreground">Ambiente:</span>
+                  <Badge variant="outline">Produção (GitHub Sync)</Badge>
+                </div>
+                <div className="flex justify-between text-sm py-2 border-b">
+                  <span className="text-muted-foreground">Sincronização Realtime:</span>
+                  <Badge className="bg-emerald-500/20 text-emerald-500">Ativa</Badge>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

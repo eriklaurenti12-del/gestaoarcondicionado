@@ -4,6 +4,7 @@ import { RefreshCw as RefreshIcon, X as XIcon, Sparkles as SparklesIcon, AlertCi
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { forceUpdateApp } from '@/lib/updateApp';
 
 const UpdateNotification: React.FC = () => {
   const [showUpdate, setShowUpdate] = useState(false);
@@ -25,14 +26,10 @@ const UpdateNotification: React.FC = () => {
 
   const handleUpdate = async () => {
     setIsUpdating(true);
-    try {
-      if (updateFn) {
-        await updateFn(true);
-      } else {
-        window.location.reload();
-      }
-    } catch {
-      window.location.reload();
+    if (updateFn) {
+      await updateFn(true).catch(() => forceUpdateApp());
+    } else {
+      await forceUpdateApp();
     }
   };
 

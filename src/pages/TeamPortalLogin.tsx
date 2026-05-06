@@ -21,6 +21,7 @@ import { format, addDays, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { forceUpdateApp } from "@/lib/updateApp";
 
 type PortalSession = {
   memberId: string;
@@ -127,6 +128,17 @@ export default function TeamPortalLogin() {
             </form>
           </CardContent>
         </Card>
+        <div className="mt-4 text-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-xs text-muted-foreground hover:text-primary gap-1.5"
+            onClick={forceUpdateApp}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            Sincronizar Versão Publicada
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -554,6 +566,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </div>
             </div>
             <div className="flex gap-2">
+              <Button size="icon" variant="ghost" onClick={forceUpdateApp} title="Sincronizar Versão" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
+                <RefreshCw className="w-4 h-4" />
+              </Button>
               <Button size="icon" variant="ghost" onClick={handleRefresh} className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
                 <RefreshCw className="w-4 h-4" />
               </Button>

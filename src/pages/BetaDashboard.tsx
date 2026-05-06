@@ -26,6 +26,7 @@ import LembretesTab from '@/components/LembretesTab';
 import ImpostosTab from '@/components/ImpostosTab';
 import OnlineBookingsTab from '@/components/OnlineBookingsTab';
 import CompanyDataTab from '@/components/CompanyDataTab';
+import { forceUpdateApp } from '@/lib/updateApp';
 
 type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
 
@@ -104,31 +105,8 @@ export default function BetaDashboard() {
 
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
-    try {
-      if ('serviceWorker' in navigator) {
-        const registrations = await navigator.serviceWorker.getRegistrations();
-        for (let registration of registrations) {
-          await registration.update();
-        }
-      }
-      
-      const cacheKeys = await caches.keys();
-      await Promise.all(cacheKeys.map(key => caches.delete(key)));
-      
-      toast({ 
-        title: "🚀 Sistema Atualizado!", 
-        description: "Limpando cache e recarregando para a versão mais recente...",
-      });
-      
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error('Update failed:', error);
-      toast({ title: "Erro na atualização", variant: "destructive" });
-    } finally {
-      setIsCheckingUpdates(false);
-    }
+    await forceUpdateApp();
+    setTimeout(() => setIsCheckingUpdates(false), 1000);
   };
 
   // Real-time clock for schedule board
