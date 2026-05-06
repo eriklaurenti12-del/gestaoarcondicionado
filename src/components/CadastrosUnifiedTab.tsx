@@ -13,12 +13,22 @@ import DummyDataSeeder from './DummyDataSeeder';
 
 const CadastrosUnifiedTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("clients");
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   React.useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      setUserEmail(session?.user?.email || null);
+      if (!session?.user?.id) {
+        setIsSuperAdmin(false);
+        return;
+      }
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id);
+
+      setIsSuperAdmin(roles?.some((item) => item.role === 'super_admin') || false);
     };
     checkUser();
   }, []);
@@ -66,7 +76,7 @@ const CadastrosUnifiedTab: React.FC = () => {
     <div className="space-y-4">
       <TabGuideCards cards={guideCards} columns={4} />
 
-      {userEmail === 'eriklaurenti09@gmail.com' && <DummyDataSeeder />}
+      {isSuperAdmin && <DummyDataSeeder />}
       
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl h-auto flex-wrap">
