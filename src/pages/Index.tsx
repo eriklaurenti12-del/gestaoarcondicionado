@@ -334,12 +334,12 @@ export default function Index() {
 
   const renderContent = () => {
     if (!canAccessTab(activeTab)) {
-      return <Dashboard onNavigateToTab={setActiveTab} />;
+      return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
     }
 
     switch (activeTab) {
       case "dashboard":
-        return <Dashboard onNavigateToTab={setActiveTab} />;
+        return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
       case "appointments":
         return <AppointmentsTab />;
       case "online-bookings":
@@ -371,7 +371,7 @@ export default function Index() {
       case "historico":
         return <HistoricoGeralTab />;
       default:
-        return <Dashboard onNavigateToTab={setActiveTab} />;
+        return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
     }
   };
 
