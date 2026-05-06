@@ -98,7 +98,7 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: '', technical_notes: ''
+    food_allowance: '', fuel_allowance: '', technical_notes: '', is_field_technician: true
   });
 
   const { data: providers = [], isLoading } = useQuery({
