@@ -583,11 +583,12 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <RefreshCw className="h-3 w-3 text-amber-500 flex-shrink-0" />
-              <span className="truncate">Receita Prevista</span>
+              <span className="truncate">Previsto (a realizar)</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <p className="text-sm sm:text-lg font-bold text-amber-600 truncate">{formatCurrency(receitaPrevista)}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">Agendamentos não concluídos — não conta como receita</p>
           </CardContent>
         </Card>
       </div>
