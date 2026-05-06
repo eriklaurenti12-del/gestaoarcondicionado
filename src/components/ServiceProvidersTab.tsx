@@ -439,11 +439,16 @@ export default function ServiceProvidersTab() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingProvider ? 'Editar Prestador' : 'Novo Prestador'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent">
+          <Card className="border-none shadow-2xl">
+            <CardHeader className="pb-2 border-b">
+              <DialogTitle className="text-xl font-bold flex items-center gap-2">
+                <Users className="w-5 h-5 text-primary" />
+                {editingProvider ? 'Editar Prestador' : 'Novo Prestador'}
+              </DialogTitle>
+            </CardHeader>
+            <ScrollArea className="max-h-[80vh]">
+              <div className="p-6 space-y-4">
             <div>
               <Label>Nome *</Label>
               <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -519,11 +524,17 @@ export default function ServiceProvidersTab() {
                 ))}
               </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setDialogOpen(false); resetForm(); }}>Cancelar</Button>
-            <Button onClick={handleSave}>{editingProvider ? 'Salvar' : 'Cadastrar'}</Button>
-          </DialogFooter>
+            </div>
+            <div className="p-6 border-t bg-muted/30">
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-11">Cancelar</Button>
+                <Button onClick={handleSubmit} className="h-11 px-8 bg-primary hover:bg-primary/90">
+                  {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
+                </Button>
+              </DialogFooter>
+            </div>
+          </ScrollArea>
+          </Card>
         </DialogContent>
       </Dialog>
 

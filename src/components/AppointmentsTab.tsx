@@ -1835,8 +1835,8 @@ const AppointmentsTab: React.FC = () => {
                     {timeSlots.filter(slot => !isTimePast(slot, editDate)).map((slot) => {
                       const isBooked = editDate ? getBookedTimes(editDate).includes(slot) : false;
                       // Don't mark the current slot as booked if it belongs to the appointment being edited
-                      const isSameAsCurrent = editDate === format(new Date(editingAppointment?.appointment_date || ''), 'yyyy-MM-dd') && 
-                                             slot === format(new Date(editingAppointment?.appointment_date || ''), 'HH:mm');
+                      const isSameAsCurrent = editDate === safeFormat(editingAppointment?.appointment_date, 'yyyy-MM-dd') && 
+                                             slot === safeFormat(editingAppointment?.appointment_date, 'HH:mm');
                       
                       return (
                         <SelectItem 
@@ -1922,7 +1922,7 @@ const AppointmentsTab: React.FC = () => {
                   newNotes = `[VALOR:${editPrice}]\n${newNotes}`.trim();
                 }
                 
-                const historyEntry = `\n[ALTERAÇÃO ${format(new Date(), 'dd/MM HH:mm')}] Motivo: ${editReason} | De: ${format(new Date(editingAppointment.appointment_date), 'dd/MM HH:mm')} Para: ${format(new Date(newDateTime), 'dd/MM HH:mm')}`;
+                const historyEntry = `\n[ALTERAÇÃO ${safeFormat(new Date(), 'dd/MM HH:mm')}] Motivo: ${editReason} | De: ${safeFormat(editingAppointment.appointment_date, 'dd/MM HH:mm')} Para: ${safeFormat(newDateTime, 'dd/MM HH:mm')}`;
                 newNotes += historyEntry;
 
                 updateAppointmentMutation.mutate({

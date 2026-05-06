@@ -87,6 +87,7 @@ export default function Index() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showTipsDialog, setShowTipsDialog] = useState(false);
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   const { data: notificationCount = 0 } = useQuery({
     queryKey: ['notification-count', currentUserId],
@@ -464,10 +465,43 @@ export default function Index() {
                 <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
                   <HelpCircle className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={checkForUpdates} disabled={isCheckingUpdates} title="Limpar cache e buscar a versão publicada mais recente">
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates} title="Limpar cache e buscar a versão publicada mais recente">
                   <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
-                  {isCheckingUpdates ? 'Sincronizando...' : 'Sincronizar App'}
+                  {isCheckingUpdates ? 'Sincronizando...' : 'Atualizar'}
                 </Button>
+
+                <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
+                  <DialogContent className="sm:max-w-[400px] bg-slate-900 border-slate-800 text-white p-6 rounded-2xl shadow-2xl">
+                    <DialogHeader className="space-y-3">
+                      <div className="flex items-center gap-2 text-primary">
+                        <RefreshCw className="w-5 h-5" />
+                        <DialogTitle className="text-xl font-bold text-white">Atualizar Sistema</DialogTitle>
+                      </div>
+                      <DialogDescription className="text-slate-400 text-sm leading-relaxed">
+                        Se a tela estiver preta, com erro de login ou lenta, clique no botão abaixo para atualizar e corrigir o sistema.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="mt-6 flex flex-col gap-3">
+                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Passo 1 de 1</div>
+                      <Button 
+                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                        onClick={() => {
+                          setShowUpdateModal(false);
+                          checkForUpdates();
+                        }}
+                      >
+                        Entendi — Atualizar Agora
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        className="w-full h-10 text-slate-500 hover:text-slate-300 hover:bg-white/5 text-sm"
+                        onClick={() => setShowUpdateModal(false)}
+                      >
+                        Fechar e não atualizar
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Notification Bell */}
                 <Popover open={notificationsOpen} onOpenChange={(open) => {

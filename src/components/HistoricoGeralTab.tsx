@@ -35,15 +35,26 @@ interface HistoryItem {
   profit?: number;
 }
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch (e) {
+    return '-';
+  }
+};
+
 export default function HistoricoGeralTab() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [filterMonth, setFilterMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [filterMonth, setFilterMonth] = useState(safeFormat(new Date(), 'yyyy-MM'));
   const [showAllMonths, setShowAllMonths] = useState(false);
   const [selectedClientHistory, setSelectedClientHistory] = useState<any>(null);
   const [renewingItem, setRenewingItem] = useState<HistoryItem | null>(null);
-  const [renewDate, setRenewDate] = useState(format(addDays(new Date(), 1), 'yyyy-MM-dd'));
+  const [renewDate, setRenewDate] = useState(safeFormat(addDays(new Date(), 1), 'yyyy-MM-dd'));
   const [renewTime, setRenewTime] = useState("08:00");
 
   const { data: appointments, isLoading: loadAppts } = useQuery({
@@ -269,13 +280,13 @@ export default function HistoricoGeralTab() {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     const [yr, mo] = filterMonth.split('-').map(Number);
-    doc.text(`${format(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })} — ${filtered.length} registros`, 14, 32);
+    doc.text(`${safeFormat(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })} — ${filtered.length} registros`, 14, 32);
 
     autoTable(doc, {
       startY: 48,
       head: [['Data', 'Tipo', 'Cliente', 'Descrição', 'Valor', 'Status', 'Prestador']],
       body: filtered.map(i => [
-        format(new Date(i.date), 'dd/MM/yy HH:mm'),
+        safeFormat(i.date, 'dd/MM/yy HH:mm'),
         i.type === 'agendamento' ? 'Agenda' : i.type === 'venda' ? 'PDV' : 'Orçamento',
         i.client, i.description,
         i.value > 0 ? `R$ ${i.value.toFixed(2)}` : '-',
@@ -418,13 +429,13 @@ export default function HistoricoGeralTab() {
                             <div className="flex items-center gap-1.5">
                               <Calendar className="w-3 h-3 text-muted-foreground" />
                               <span className="text-[10px] text-muted-foreground">
-                                Realizado em: {format(new Date(item.date), 'dd/MM/yyyy')}
+                                Realizado em: {safeFormat(item.date, 'dd/MM/yyyy')}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
                               <Clock className={`w-3 h-3 ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`} />
                               <span className={`text-[10px] font-bold ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`}>
-                                Próxima Manutenção: {format(expirationDate, 'dd/MM/yyyy')}
+                                Próxima Manutenção: {safeFormat(expirationDate, 'dd/MM/yyyy')}
                                 {isExpired ? ' (VENCIDO)' : isNearing ? ' (Vence em breve)' : ' (Garantia Ativa)'}
                               </span>
                             </div>
@@ -453,7 +464,7 @@ export default function HistoricoGeralTab() {
                         )}
                         {getStatusBadge(item.status)}
                         <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {format(new Date(item.date), 'dd/MM/yy')}
+                          {safeFormat(item.date, 'dd/MM/yy')}
                         </span>
                       </div>
                       
@@ -495,7 +506,7 @@ export default function HistoricoGeralTab() {
                               onClick={() => {
                                 setRenewingItem(item);
                                 if (item.warrantyMonths) {
-                                  setRenewDate(format(addMonths(new Date(item.date), item.warrantyMonths), 'yyyy-MM-dd'));
+                                  setRenewDate(safeFormat(addMonths(new Date(item.date), item.warrantyMonths), 'yyyy-MM-dd'));
                                 }
                               }}
                             >
@@ -513,9 +524,9 @@ export default function HistoricoGeralTab() {
                                 doc.setFontSize(12);
                                 doc.text(`Cliente: ${item.client}`, 20, 40);
                                 doc.text(`Serviço: ${item.description}`, 20, 50);
-                                doc.text(`Data: ${format(new Date(item.date), 'dd/MM/yyyy')}`, 20, 60);
+                                doc.text(`Data: ${safeFormat(item.date, 'dd/MM/yyyy')}`, 20, 60);
                                 if (expirationDate) {
-                                  doc.text(`Próxima Manutenção: ${format(expirationDate, 'dd/MM/yyyy')}`, 20, 70);
+                                  doc.text(`Próxima Manutenção: ${safeFormat(expirationDate, 'dd/MM/yyyy')}`, 20, 70);
                                 }
                                 doc.text(`Valor: R$ ${item.value.toFixed(2)}`, 20, 80);
                                 doc.line(20, 100, 190, 100);
@@ -598,7 +609,7 @@ export default function HistoricoGeralTab() {
                   clientId: renewingItem.clientObj.id,
                   serviceId: renewingItem.serviceId,
                   date: `${renewDate}T${renewTime}:00`,
-                  notes: `[RENOVAÇÃO] Manutenção baseada no serviço realizado em ${format(new Date(renewingItem.date), 'dd/MM/yyyy')}`
+                  notes: `[RENOVAÇÃO] Manutenção baseada no serviço realizado em ${safeFormat(renewingItem.date, 'dd/MM/yyyy')}`
                 });
               }}
             >

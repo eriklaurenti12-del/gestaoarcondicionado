@@ -25,6 +25,17 @@ const timeSlots = [
   '22:00', '22:30', '23:00', '23:30'
 ];
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch (e) {
+    return '-';
+  }
+};
+
 export default function ScheduleBoard() {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -71,10 +82,11 @@ export default function ScheduleBoard() {
   // Filter appointments for selected date
   const dayAppointments = useMemo(() => {
     if (!appointments) return [];
-    return appointments.filter(a => 
-      isSameDay(new Date(a.appointment_date), selectedDate) && 
-      a.status !== 'cancelado'
-    );
+    return appointments.filter(a => {
+      if (!a.appointment_date) return false;
+      const aptDate = new Date(a.appointment_date);
+      return isSameDay(aptDate, selectedDate) && a.status !== 'cancelado';
+    });
   }, [appointments, selectedDate]);
 
   // Map appointments to time slots with duration blocking
@@ -83,7 +95,7 @@ export default function ScheduleBoard() {
     
     dayAppointments.forEach(apt => {
       const aptTime = new Date(apt.appointment_date);
-      const time = format(aptTime, 'HH:mm');
+      const time = safeFormat(aptTime, 'HH:mm');
       const duration = apt.products?.service_duration || 60; // default 60 min
       const slots = Math.ceil(duration / 30); // each slot is 30 min
       
@@ -93,7 +105,7 @@ export default function ScheduleBoard() {
       // Block subsequent slots based on duration
       for (let i = 1; i < slots; i++) {
         const blockedTime = new Date(aptTime.getTime() + i * 30 * 60000);
-        const blockedSlot = format(blockedTime, 'HH:mm');
+        const blockedSlot = safeFormat(blockedTime, 'HH:mm');
         if (!map[blockedSlot]) {
           map[blockedSlot] = { appointment: apt, isBlocked: true };
         }
@@ -154,7 +166,7 @@ export default function ScheduleBoard() {
           {/* Real-time Clock */}
           <div className="flex items-center gap-4">
             <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-              {format(currentTime, 'HH:mm:ss')}
+              {safeFormat(currentTime, 'HH:mm:ss')}
             </div>
             <Button variant="ghost" size="sm" onClick={() => refetch()}>
               <RefreshCw className="w-4 h-4" />
@@ -178,7 +190,7 @@ export default function ScheduleBoard() {
               {isToday(selectedDate) ? 'Hoje' : format(selectedDate, 'EEEE', { locale: ptBR })}
             </p>
             <p className="text-sm text-muted-foreground">
-              {format(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
+              {safeFormat(selectedDate, 'dd/MM/yyyy', { locale: ptBR })}
             </p>
           </div>
           

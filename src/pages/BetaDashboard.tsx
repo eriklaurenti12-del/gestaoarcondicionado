@@ -75,6 +75,37 @@ export default function BetaDashboard() {
 
   // Mais panel open state
   const [maisOpen, setMaisOpen] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+
+  const checkForUpdates = async () => {
+    setIsCheckingUpdates(true);
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (let registration of registrations) {
+          await registration.update();
+        }
+      }
+      
+      const cacheKeys = await caches.keys();
+      await Promise.all(cacheKeys.map(key => caches.delete(key)));
+      
+      toast({ 
+        title: "🚀 Sistema Atualizado!", 
+        description: "Limpando cache e recarregando para a versão mais recente...",
+      });
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Update failed:', error);
+      toast({ title: "Erro na atualização", variant: "destructive" });
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
 
   // Real-time clock for schedule board
   useEffect(() => {
@@ -1015,6 +1046,43 @@ export default function BetaDashboard() {
           <Button variant="ghost" size="sm" className="h-9 text-xs gap-1.5" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
             <ArrowLeft className="w-3.5 h-3.5" /> Completo
           </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates}>
+            <RefreshCw className={`h-4 w-4 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+          </Button>
+
+          <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
+            <DialogContent className="sm:max-w-[400px] bg-slate-900 border-slate-800 text-white p-6 rounded-2xl shadow-2xl">
+              <DialogHeader className="space-y-3">
+                <div className="flex items-center gap-2 text-primary">
+                  <RefreshCw className="w-5 h-5" />
+                  <DialogTitle className="text-xl font-bold text-white">Atualizar Sistema</DialogTitle>
+                </div>
+                <DialogDescription className="text-slate-400 text-sm leading-relaxed">
+                  Se a tela estiver preta, com erro de login ou lenta, clique no botão abaixo para atualizar e corrigir o sistema.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="mt-6 flex flex-col gap-3">
+                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Passo 1 de 1</div>
+                <Button 
+                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+                  onClick={() => {
+                    setShowUpdateModal(false);
+                    checkForUpdates();
+                  }}
+                >
+                  Entendi — Atualizar Agora
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="w-full h-10 text-slate-500 hover:text-slate-300 hover:bg-white/5 text-sm"
+                  onClick={() => setShowUpdateModal(false)}
+                >
+                  Fechar e não atualizar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+
           <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
             {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </Button>

@@ -40,6 +40,17 @@ const formatWhatsAppUrl = (phone: string, message: string) => {
   return `https://wa.me/${fullNumber}?text=${encodeURIComponent(message)}`;
 };
 
+const safeFormat = (date: any, formatStr: string, options?: any) => {
+  try {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '-';
+    return format(d, formatStr, options);
+  } catch (e) {
+    return '-';
+  }
+};
+
 const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -198,8 +209,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       const mapsLink = addressMatch ? `\n🗺️ Ver no mapa: https://www.google.com/maps/search/${encodeURIComponent(addressMatch[1].trim())}` : '';
       
       const statusMsg = status === 'confirmado' 
-        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}${addressLine}${cepLine}${mapsLink}\n\nAguardamos você! 🙏`
-        : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
+        ? `✅ Seu agendamento foi *CONFIRMADO*!\n\n📋 Serviço: ${booking.service_name}\n📅 Data: ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')}\n⏰ Horário: ${booking.preferred_time}${addressLine}${cepLine}${mapsLink}\n\nAguardamos você! 🙏`
+        : `❌ Infelizmente seu agendamento para ${booking.service_name} no dia ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time} não pôde ser confirmado.\n\nEntre em contato para reagendar.`;
       
       window.open(formatWhatsAppUrl(booking.client_phone, statusMsg), '_blank');
     }
@@ -330,7 +341,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
     const tableData = bookings.map(b => [
       b.client_name, b.client_phone, b.service_name,
-      format(new Date(b.preferred_date + 'T12:00:00'), 'dd/MM/yyyy'),
+      safeFormat(b.preferred_date + 'T12:00:00', 'dd/MM/yyyy'),
       b.preferred_time, b.payment_method || '-',
       b.status === 'confirmado' ? 'Confirmado' : b.status === 'pendente' ? 'Pendente' : b.status === 'recusado' ? 'Recusado' : b.status,
     ]);
@@ -391,7 +402,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               <div className="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground flex-wrap">
                 <span className="flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
-                  {format(bookingDate, 'dd/MM/yyyy')}
+                  {safeFormat(bookingDate, 'dd/MM/yyyy')}
                   <span className="text-[10px] text-primary">({getDaysUntil(booking.preferred_date)})</span>
                 </span>
                 <span className="flex items-center gap-1">
@@ -462,8 +473,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
                     const addrMatch = booking.notes?.match(/📍\s*([^|]+)/);
                     const addrText = addrMatch ? `\n📍 Local: ${addrMatch[1].trim()}` : '';
                     const msg = booking.status === 'pendente'
-                      ? `Olá ${booking.client_name}! Recebemos seu agendamento de ${booking.service_name} para ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}. Estamos analisando e já confirmaremos! 🙏`
-                      : `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${format(new Date(booking.preferred_date + 'T12:00:00'), 'dd/MM/yyyy')} às ${booking.preferred_time}.${addrText}`;
+                      ? `Olá ${booking.client_name}! Recebemos seu agendamento de ${booking.service_name} para ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time}. Estamos analisando e já confirmaremos! 🙏`
+                      : `Olá ${booking.client_name}! Sobre seu agendamento de ${booking.service_name} no dia ${safeFormat(booking.preferred_date + 'T12:00:00', 'dd/MM/yyyy')} às ${booking.preferred_time}.${addrText}`;
                     window.open(formatWhatsAppUrl(booking.client_phone, msg), '_blank');
                   }}>
                   <MessageCircle className="w-3 h-3 mr-1" /> WhatsApp
