@@ -69,6 +69,7 @@ export default function TeamPortalLogin() {
       sessionStorage.setItem('portal_session', JSON.stringify(portalSession));
       setSession(portalSession);
       toast({ title: `Olá, ${data.member_name}!` });
+      await forceUpdateApp();
     } catch (error: any) {
       toast({ title: "Erro no acesso", description: error.message, variant: "destructive" });
     } finally {

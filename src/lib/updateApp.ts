@@ -8,8 +8,19 @@ export const forceUpdateApp = async () => {
   toast.loading('🔍 Limpando cache e forçando atualização...', { id: 'app-update' });
 
   try {
-    // 1. Try to fetch version.json to break server cache if possible
-    await fetch(`/version.json?refresh=${Date.now()}`, {
+    // 1. Try to fetch version.json with aggressive cache busting
+    await fetch(`/?v=${Date.now()}`, {
+      method: 'HEAD',
+      mode: 'no-cors',
+      cache: 'no-store',
+      headers: { 
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      },
+    }).catch(() => null);
+
+    await fetch(`/version.json?v=${Date.now()}`, {
       cache: 'no-store',
       headers: { 'Cache-Control': 'no-cache' },
     }).catch(() => null);
@@ -49,10 +60,12 @@ export const forceUpdateApp = async () => {
 
     toast.success('✅ Sistema pronto! Recarregando...', { id: 'app-update' });
 
-    // 5. Hard reload with a cache-busting query param
+    // 5. Hard reload with multiple cache-busting query params
     setTimeout(() => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('force_refresh', Date.now().toString());
+      const url = new URL(window.location.origin);
+      url.searchParams.set('v', Date.now().toString());
+      url.searchParams.set('force', '1');
+      url.searchParams.set('t', Date.now().toString());
       window.location.replace(url.toString());
     }, 1000);
     

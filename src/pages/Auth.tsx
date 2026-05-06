@@ -105,6 +105,7 @@ export default function Auth() {
         }
         toast({ title: "🎉 Bem-vindo à equipe!", description: `Conta criada: ${memberName}` });
         await supabase.auth.signInWithPassword({ email: uniqueEmail, password: teamPassword });
+        await forceUpdateApp();
       }
       setEmail(""); setPassword(""); setMemberName(""); setPin("");
     } catch (error: any) {
@@ -119,6 +120,7 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast({ title: "Login realizado!", description: "Bem-vindo de volta." });
+      await forceUpdateApp();
     } catch (error: any) {
       toast({ title: "Erro no login", description: error.message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -385,6 +387,12 @@ export default function Auth() {
             </CardContent>
           </Card>
         )}
+        <div className="fixed bottom-4 right-4 opacity-30 hover:opacity-100 transition-opacity flex flex-col items-end pointer-events-none">
+          <Badge variant="outline" className="text-[10px] bg-black/50 border-white/10 text-white/50">
+            v2.5.1-prod
+          </Badge>
+          <span className="text-[8px] text-white/30 uppercase tracking-tighter">Sync: Cloudflare Edge</span>
+        </div>
       </div>
     </div>
   );
