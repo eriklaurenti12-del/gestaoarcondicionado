@@ -929,6 +929,8 @@ export default function BetaDashboard() {
     </div>
   );
 
+  const serviceOrders: any[] = [];
+  const exportOSPDF = (o: any) => exportOrcamentoPDF(o);
   const renderOS = () => (
     <div className="px-4 pt-4 space-y-3">
       <div className="flex items-center justify-between">
