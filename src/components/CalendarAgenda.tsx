@@ -59,9 +59,14 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     if (!appointments) return {};
     const byDate: { [key: string]: typeof appointments } = {};
     appointments.forEach(apt => {
-      const dateKey = format(parseISO(apt.appointment_date), 'yyyy-MM-dd');
-      if (!byDate[dateKey]) byDate[dateKey] = [];
-      byDate[dateKey].push(apt);
+      if (!apt.appointment_date) return;
+      try {
+        const dateKey = format(parseISO(apt.appointment_date), 'yyyy-MM-dd');
+        if (!byDate[dateKey]) byDate[dateKey] = [];
+        byDate[dateKey].push(apt);
+      } catch (e) {
+        console.warn('Invalid appointment date:', apt.appointment_date);
+      }
     });
     return byDate;
   }, [appointments]);
@@ -80,11 +85,18 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
   const selectedDayAppointments = useMemo(() => {
     if (!selectedDate || !appointments) return [];
-    return appointments.filter(apt => 
-      isSameDay(parseISO(apt.appointment_date), selectedDate)
-    ).sort((a, b) => 
-      new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime()
-    );
+    return appointments.filter(apt => {
+      if (!apt.appointment_date) return false;
+      try {
+        return isSameDay(parseISO(apt.appointment_date), selectedDate);
+      } catch (e) {
+        return false;
+      }
+    }).sort((a, b) => {
+      const dateA = new Date(a.appointment_date).getTime();
+      const dateB = new Date(b.appointment_date).getTime();
+      return (isNaN(dateA) ? 0 : dateA) - (isNaN(dateB) ? 0 : dateB);
+    });
   }, [selectedDate, appointments]);
 
   // Check if selected date is in the past

@@ -206,12 +206,23 @@ export default function BetaDashboard() {
   };
 
   // PDF Exports
+  const safeFormat = (date: any, formatStr: string, options?: any) => {
+    try {
+      if (!date) return '-';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '-';
+      return format(d, formatStr, options);
+    } catch (e) {
+      return '-';
+    }
+  };
+
   const exportAgendaPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18); doc.text('Agenda - Gestao AC', 14, 20);
     doc.setFontSize(10); doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
     const data = (agendaStatusFilter === 'todos' ? filteredAgenda : filteredAgenda).map(a => [
-      format(new Date(a.appointment_date), 'dd/MM/yyyy HH:mm'),
+      safeFormat(a.appointment_date, 'dd/MM/yyyy HH:mm'),
       (a.clients as any)?.name || '-',
       (a.products as any)?.name || '-',
       a.status,
@@ -234,7 +245,7 @@ export default function BetaDashboard() {
   const exportFinanceiroPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(18); doc.text('Financeiro - Gestao AC', 14, 20);
-    const monthStr = format(new Date(), 'MMMM yyyy', { locale: ptBR });
+    const monthStr = safeFormat(new Date(), 'MMMM yyyy', { locale: ptBR });
     doc.setFontSize(10); doc.text(`Período: ${monthStr}`, 14, 28);
     autoTable(doc, { startY: 34, head: [['Data', 'Descrição', 'Tipo', 'Valor']],
       body: recentFinancial.map(r => [
@@ -290,7 +301,7 @@ export default function BetaDashboard() {
   const filteredProducts = products.filter(p => p.name.toLowerCase().includes(pdvSearch.toLowerCase()));
 
   // Financial computed
-  const monthPrefix = format(new Date(), 'yyyy-MM');
+  const monthPrefix = safeFormat(new Date(), 'yyyy-MM');
   const monthReceitas = recentFinancial.filter(r => r.type === 'entrada' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthDespesas = recentFinancial.filter(r => r.type === 'saida' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthExpenses = fixedExpenses.filter(e => e.expense_date?.substring(0, 7) === monthPrefix).reduce((s, e) => s + Number(e.amount), 0);
@@ -308,8 +319,7 @@ export default function BetaDashboard() {
   const slotMap = useMemo(() => {
     const map: Record<string, { appointment: any; isBlocked: boolean }> = {};
     boardAppointments.forEach(apt => {
-      const aptTime = new Date(apt.appointment_date);
-      const time = format(aptTime, 'HH:mm');
+      const time = safeFormat(apt.appointment_date, 'HH:mm');
       const duration = (apt.products as any)?.service_duration || 60;
       const slots = Math.ceil(duration / 30);
       map[time] = { appointment: apt, isBlocked: false };
@@ -400,7 +410,7 @@ export default function BetaDashboard() {
                 <div key={apt.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
                   <div>
                     <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name} • {format(new Date(apt.appointment_date), 'HH:mm')}</p>
+                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name} • {safeFormat(apt.appointment_date, 'HH:mm')}</p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
@@ -487,7 +497,7 @@ export default function BetaDashboard() {
                         <div className="flex-1">
                           <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
                           <p className="text-xs text-muted-foreground">
-                            {format(aptDate, 'dd/MM/yyyy')} • {format(aptDate, 'HH:mm')} 
+                            {safeFormat(apt.appointment_date, 'dd/MM/yyyy')} • {safeFormat(apt.appointment_date, 'HH:mm')} 
                             {(apt.products as any)?.service_duration && <span className="text-primary"> ({(apt.products as any).service_duration}min)</span>}
                           </p>
                           <p className="text-xs text-muted-foreground">{(apt.products as any)?.name}</p>
@@ -551,13 +561,13 @@ export default function BetaDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                {format(currentTime, 'HH:mm:ss')}
+                {safeFormat(currentTime, 'HH:mm:ss')}
               </div>
               <div className="flex items-center gap-2">
                 <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setBoardDate(addDays(boardDate, -1))} disabled={isSameDay(boardDate, new Date())}>
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <span className="text-sm font-medium">{isToday(boardDate) ? 'Hoje' : format(boardDate, 'dd/MM', { locale: ptBR })}</span>
+                <span className="text-sm font-medium">{isToday(boardDate) ? 'Hoje' : safeFormat(boardDate, 'dd/MM', { locale: ptBR })}</span>
                 <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setBoardDate(addDays(boardDate, 1))}>
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -851,7 +861,7 @@ export default function BetaDashboard() {
               </div>
               <div>
                 <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
-                <p className="text-xs text-muted-foreground">{format(new Date(rec.record_date), 'dd/MM/yyyy')}</p>
+                <p className="text-xs text-muted-foreground">{safeFormat(rec.record_date, 'dd/MM/yyyy')}</p>
               </div>
             </div>
             <p className={`font-bold text-sm ${rec.type === 'entrada' ? 'text-green-500' : 'text-destructive'}`}>
@@ -913,7 +923,7 @@ export default function BetaDashboard() {
             <div className="flex justify-between items-start">
               <div>
                 <p className="text-sm font-medium">{q.title}</p>
-                <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || '-'} • {format(new Date(q.created_at), 'dd/MM/yyyy')}</p>
+                <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || '-'} • {safeFormat(q.created_at, 'dd/MM/yyyy')}</p>
               </div>
               <div className="text-right">
                 <p className="font-bold text-primary text-sm">R$ {Number(q.total).toFixed(2)}</p>

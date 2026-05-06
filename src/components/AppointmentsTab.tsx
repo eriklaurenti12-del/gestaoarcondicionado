@@ -124,12 +124,23 @@ const AppointmentsTab: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
 
-  const getAppointmentPrice = (apt: any) => {
+  const calculateAppointmentPrice = (apt: any) => {
     if (apt.notes) {
       const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
       if (match) return Number(match[1]);
     }
     return Number(apt.products?.price) || 0;
+  };
+
+  const safeFormat = (date: any, formatStr: string, options?: any) => {
+    try {
+      if (!date) return '-';
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return '-';
+      return format(d, formatStr, options);
+    } catch (e) {
+      return '-';
+    }
   };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
@@ -263,7 +274,7 @@ const AppointmentsTab: React.FC = () => {
       if (status === 'concluido' && appointment?.client_id) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          const salePrice = getAppointmentPrice(appointment);
+          const salePrice = calculateAppointmentPrice(appointment);
           if (salePrice <= 0) return; // Skip if no value found
 
           const { data: productData } = appointment.service_id ? await supabase
@@ -628,7 +639,7 @@ const AppointmentsTab: React.FC = () => {
       return;
     }
     const cleanPhone = phone.replace(/\D/g, '');
-    const formattedDate = format(new Date(date), "dd/MM 'às' HH:mm", { locale: ptBR });
+    const formattedDate = safeFormat(date, "dd/MM 'às' HH:mm", { locale: ptBR });
     const message = `Olá ${clientName}! Confirmando seu agendamento para ${formattedDate}. Podemos confirmar?`;
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -640,7 +651,7 @@ const AppointmentsTab: React.FC = () => {
       return;
     }
     const cleanPhone = phone.replace(/\D/g, '');
-    const formattedDate = format(new Date(date), "HH:mm", { locale: ptBR });
+    const formattedDate = safeFormat(date, "HH:mm", { locale: ptBR });
     const message = `Olá ${clientName}! Estamos a caminho para o serviço agendado às ${formattedDate}. Aguarde nossa chegada! 🚗`;
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -664,7 +675,7 @@ const AppointmentsTab: React.FC = () => {
     }
     
     const cleanPhone = phone.replace(/\D/g, '');
-    const serviceDate = format(new Date(appointment.appointment_date), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+    const serviceDate = safeFormat(appointment.appointment_date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
     const serviceName = appointment.products?.name || 'Serviço';
     const servicePrice = getAppointmentPrice(appointment);
     
@@ -791,7 +802,7 @@ const AppointmentsTab: React.FC = () => {
         return appointmentDateObj.toISOString().split('T')[0] === date && a.status !== 'cancelado';
       })
       .map(a => ({
-        time: format(new Date(a.appointment_date), 'HH:mm'),
+        time: safeFormat(a.appointment_date, 'HH:mm'),
         clientName: a.clients?.name || 'Ocupado'
       }));
   };
@@ -828,7 +839,7 @@ const AppointmentsTab: React.FC = () => {
 
     let message = `*🔧 NOVO SERVIÇO ATRIBUÍDO*\n\n`;
     message += `👤 *Cliente:* ${appointment.clients?.name || 'Não informado'}\n`;
-    message += `📅 *Data/Hora:* ${format(new Date(appointment.appointment_date), "dd/MM 'às' HH:mm", { locale: ptBR })}\n`;
+    message += `📅 *Data/Hora:* ${safeFormat(appointment.appointment_date, "dd/MM 'às' HH:mm", { locale: ptBR })}\n`;
     message += `🛠️ *Serviço:* ${appointment.products?.name || 'Manutenção'}\n`;
     message += `📍 *Endereço:* ${appointment.clients?.address || 'Verificar cadastro'}\n`;
     
@@ -871,7 +882,7 @@ const AppointmentsTab: React.FC = () => {
     doc.setFontSize(18);
     doc.text('Horários Disponíveis', 14, 22);
     doc.setFontSize(12);
-    doc.text(`Data: ${format(new Date(selectedDate + 'T12:00:00'), 'dd/MM/yyyy (EEEE)', { locale: ptBR })}`, 14, 32);
+    doc.text(`Data: ${safeFormat(selectedDate + 'T12:00:00', 'dd/MM/yyyy (EEEE)', { locale: ptBR })}`, 14, 32);
     
     const availableSlots = timeSlots.filter(slot => !bookedTimes.includes(slot));
     const tableData = availableSlots.map(slot => [slot, '✅ Disponível']);
@@ -894,12 +905,12 @@ const AppointmentsTab: React.FC = () => {
     doc.setFontSize(18);
     doc.text('Agenda de Atendimentos', 14, 22);
     doc.setFontSize(11);
-    doc.text(`Gerado em: ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 30);
+    doc.text(`Gerado em: ${safeFormat(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 30);
 
     const scheduledAppointments = appointments?.filter(a => a.status !== 'cancelado') || [];
     const tableData = scheduledAppointments.map(a => [
-      format(new Date(a.appointment_date), 'dd/MM/yyyy'),
-      format(new Date(a.appointment_date), 'HH:mm'),
+      safeFormat(a.appointment_date, 'dd/MM/yyyy'),
+      safeFormat(a.appointment_date, 'HH:mm'),
       a.clients?.name || '-',
       a.clients?.telefone || '-',
       a.products?.name || '-',
@@ -922,7 +933,7 @@ const AppointmentsTab: React.FC = () => {
   const exportRoutePDF = () => {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const today = format(new Date(), 'yyyy-MM-dd');
+    const today = safeFormat(new Date(), 'yyyy-MM-dd');
     
     const todayAppts = appointments?.filter(a => {
       const d = a.appointment_date.split('T')[0];
@@ -938,7 +949,7 @@ const AppointmentsTab: React.FC = () => {
     doc.text('Rota do Dia', 14, 18);
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
-    doc.text(format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }), 14, 28);
+    doc.text(safeFormat(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }), 14, 28);
     doc.setFontSize(9);
     doc.text(`${todayAppts.length} atendimento(s)`, 14, 35);
 
@@ -972,7 +983,7 @@ const AppointmentsTab: React.FC = () => {
 
       const tableData = appts.map((a, i) => [
         `${i + 1}`,
-        format(new Date(a.appointment_date), 'HH:mm'),
+        safeFormat(a.appointment_date, 'HH:mm'),
         a.clients?.name || '-',
         a.clients?.telefone || '-',
         a.clients?.address || 'Sem endereço',
@@ -993,7 +1004,7 @@ const AppointmentsTab: React.FC = () => {
 
     doc.setFontSize(8);
     doc.setTextColor(150);
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth / 2, 285, { align: 'center' });
+    doc.text(`Gerado em ${safeFormat(new Date(), "dd/MM/yyyy HH:mm")}`, pageWidth / 2, 285, { align: 'center' });
 
     doc.save(`rota-${today}.pdf`);
     toast({ title: "PDF da rota exportado!", description: "Rota do dia salva com sucesso." });
@@ -1200,8 +1211,8 @@ const AppointmentsTab: React.FC = () => {
                     <TableRow key={appointment.id}>
                       <TableCell className="font-medium text-xs sm:text-sm">
                         <div className="flex flex-col">
-                          <span>{format(new Date(appointment.appointment_date), 'dd/MM/yyyy')}</span>
-                          <span className="text-muted-foreground">{format(new Date(appointment.appointment_date), 'HH:mm')}</span>
+                          <span>{safeFormat(appointment.appointment_date, 'dd/MM/yyyy')}</span>
+                          <span className="text-muted-foreground">{safeFormat(appointment.appointment_date, 'HH:mm')}</span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -1255,7 +1266,7 @@ const AppointmentsTab: React.FC = () => {
                             onClick={() => {
                               setEditingAppointment(appointment);
                               setEditDate(appointment.appointment_date.split('T')[0]);
-                              setEditTime(format(new Date(appointment.appointment_date), 'HH:mm'));
+                              setEditTime(safeFormat(appointment.appointment_date, 'HH:mm'));
                               setEditClientId(String(appointment.client_id || ""));
                               setEditServiceId(String(appointment.service_id || ""));
                               setEditClientName(appointment.clients?.name || "");
