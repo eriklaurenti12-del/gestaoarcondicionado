@@ -617,13 +617,9 @@ const AppointmentsTab: React.FC = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
-  const getAppointmentPrice = (appointment: any) => {
-    const match = appointment.notes?.match(/\[VALOR:(.+?)\]/);
-    if (match && match[1]) {
-      const val = parseFloat(match[1]);
-      return isNaN(val) ? match[1] : `R$ ${val.toFixed(2)}`;
-    }
-    return appointment.products?.price ? `R$ ${Number(appointment.products.price).toFixed(2)}` : 'A combinar';
+  const getAppointmentPriceLabel = (appointment: any) => {
+    const val = getAppointmentPrice(appointment);
+    return val > 0 ? `R$ ${val.toFixed(2)}` : 'A combinar';
   };
 
   const handleWhatsApp = (phone: string | null | undefined, clientName: string, date: string) => {
