@@ -155,6 +155,8 @@ export default function ServiceProvidersTab() {
       cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
       food_allowance: parseFloat(formData.food_allowance) || 0,
       fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
+      technical_notes: formData.technical_notes,
+      is_field_technician: formData.is_field_technician,
       color: formData.color,
       active: true,
       created_at: editingProvider?.created_at || new Date().toISOString(),
