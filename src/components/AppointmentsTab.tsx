@@ -123,25 +123,30 @@ const AppointmentsTab: React.FC = () => {
   const [appointmentTime, setAppointmentTime] = useState("");
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
-
-  const calculateAppointmentPrice = (apt: any) => {
-    if (apt.notes) {
-      const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
-      if (match) return Number(match[1]);
-    }
-    return Number(apt.products?.price) || 0;
-  };
-
+  
   const safeFormat = (date: any, formatStr: string, options?: any) => {
     try {
       if (!date) return '-';
       const d = new Date(date);
       if (isNaN(d.getTime())) return '-';
       return format(d, formatStr, options);
-    } catch (e) {
+    } catch {
       return '-';
     }
   };
+
+  const getAppointmentPrice = (appointment: any): number => {
+  if (!appointment) return 0;
+  
+  // Try to get price from notes tag [VALOR:XXX.XX]
+  if (appointment.notes) {
+    const match = appointment.notes.match(/\[VALOR:([\d.]+)\]/);
+    if (match) return parseFloat(match[1]);
+  }
+  
+  // Fallback to product price
+  return Number(appointment.products?.price) || 0;
+};
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
