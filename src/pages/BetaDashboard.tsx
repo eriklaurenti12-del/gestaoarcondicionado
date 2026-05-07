@@ -17,7 +17,7 @@ import {
   Download, Minus, Trash2, Receipt, Package,
   Wrench, FileCheck, Thermometer, Home, MoreHorizontal,
   TrendingUp, Bell, Globe, Settings, X, RefreshCw,
-  Check, MapPin, Navigation, ChevronLeft, ChevronRight
+  Check, MapPin, Navigation, ChevronLeft, ChevronRight, Briefcase
 } from 'lucide-react';
 import { format, isToday, startOfDay, isSameDay, addDays, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -1299,7 +1299,7 @@ export default function BetaDashboard() {
                 </button>
               ))}
             </div>
-            </div>
+
             <div className="mt-4 pt-4 border-t flex items-center justify-between px-2">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-primary" />
