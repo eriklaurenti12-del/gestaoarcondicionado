@@ -11,7 +11,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, invite_code, user_id, user_email, member_name, selected_role } = await req.json();
+    const body = await req.json();
+    const { action, invite_code, user_email, member_name, selected_role } = body;
 
     console.log('[accept-team-invite] Request action:', action || 'accept', 'invite:', invite_code);
 
@@ -20,7 +21,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Validate invite publicly (used on /auth?team=... before signup)
+    // Validate invite publicly (used on /auth?team=... before signup) — no auth required
     if (action === 'validate') {
       const { data: invite, error: inviteError } = await supabase
         .from('team_invites')
@@ -40,6 +41,22 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
+
+    // For acceptance: require a verified JWT and derive user_id from it (never trust body)
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: authedUser }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authedUser) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    const user_id = authedUser.id;
 
     // Check if invite exists and is pending for acceptance
     const { data: invite, error: inviteError } = await supabase
@@ -64,7 +81,7 @@ Deno.serve(async (req) => {
     // Mark invite as accepted
     const { error: updateError } = await supabase.from('team_invites').update({
       accepted_by: user_id,
-      accepted_email: member_name || user_email,
+      accepted_email: member_name || user_email || authedUser.email,
       status: 'accepted',
       team_role: teamRole,
       accepted_at: new Date().toISOString()
@@ -81,19 +98,11 @@ Deno.serve(async (req) => {
       }).eq('user_id', user_id);
     }
 
-    // Give role based on team_role
-    if (teamRole === 'suporte') {
-      await supabase.from('user_roles').upsert({
-        user_id,
-        role: 'admin'
-      }, { onConflict: 'user_id,role' });
-    } else {
-      // painel or sistema - super_admin role
-      await supabase.from('user_roles').upsert({
-        user_id,
-        role: 'super_admin'
-      }, { onConflict: 'user_id,role' });
-    }
+    // All team invite roles get 'admin' (NOT super_admin). super_admin is reserved for platform owners.
+    await supabase.from('user_roles').upsert({
+      user_id,
+      role: 'admin'
+    }, { onConflict: 'user_id,role' });
 
     // Activate subscription (lifetime for team members)
     const { error: subError } = await supabase.from('subscriptions').upsert({
