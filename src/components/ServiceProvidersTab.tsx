@@ -448,7 +448,7 @@ export default function ServiceProvidersTab() {
                 {editingProvider ? 'Editar Prestador' : 'Novo Prestador'}
               </DialogTitle>
             </CardHeader>
-            <ScrollArea className="flex-1 min-h-0">
+            <ScrollArea className="flex-1 min-h-0 max-h-[calc(90vh-160px)]">
               <div className="p-6 space-y-4">
             <div>
               <Label>Nome *</Label>
@@ -525,8 +525,9 @@ export default function ServiceProvidersTab() {
                 ))}
               </div>
             </div>
-            </div>
-            <div className="p-6 border-t bg-muted/30">
+              </div>
+            </ScrollArea>
+            <div className="p-4 border-t bg-muted/30 shrink-0">
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-11">Cancelar</Button>
                 <Button onClick={handleSave} className="h-11 px-8 bg-primary hover:bg-primary/90">
@@ -534,7 +535,7 @@ export default function ServiceProvidersTab() {
                 </Button>
               </DialogFooter>
             </div>
-          </ScrollArea>
+
           </Card>
         </DialogContent>
       </Dialog>
