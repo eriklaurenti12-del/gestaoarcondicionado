@@ -1197,10 +1197,20 @@ export default function BetaDashboard() {
   const isMaisView = !isMainView && view !== 'mais' && view !== 'novo-cliente';
 
   const viewTitles: Record<BetaView, string> = {
-    home: 'Início', agenda: 'Agenda', pdv: 'PDV', cadastros: 'Cadastros', mais: 'Mais',
-    financeiro: 'Financeiro', impostos: 'Impostos', lembretes: 'Lembretes',
-    'online-bookings': 'Agendamento Online', configuracoes: 'Configurações',
-    'novo-cliente': 'Novo Cliente', estoque: 'Estoque', orcamentos: 'Orçamentos', os: 'Ordens de Serviço',
+    'home': 'Início',
+    'agenda': 'Agenda',
+    'pdv': 'PDV',
+    'cadastros': 'Cadastros',
+    'mais': 'Mais',
+    'financeiro': 'Financeiro',
+    'impostos': 'Impostos',
+    'lembretes': 'Lembretes',
+    'online-bookings': 'Agendamento Online',
+    'configuracoes': 'Configurações',
+    'novo-cliente': 'Novo Cliente',
+    'estoque': 'Estoque',
+    'orcamentos': 'Orçamentos',
+    'os': 'Ordens de Serviço'
   };
 
   return (
