@@ -92,59 +92,64 @@ const ImpostosTab: React.FC = () => {
     }
   });
 
-  // Fetch monthly revenue from sales
+  // Fetch monthly revenue and expenses from centralized financial_records
   const { data: monthlyRevenue } = useQuery({
-    queryKey: ['monthly-revenue', selectedMonth],
+    queryKey: ['monthly-revenue-centralized', selectedMonth],
     queryFn: async () => {
       const [year, month] = selectedMonth.split('-');
       const startDate = `${year}-${month}-01`;
       const endDate = format(endOfMonth(new Date(parseInt(year), parseInt(month) - 1)), 'yyyy-MM-dd');
       
-      const [salesResult, appointmentsResult, expensesResult] = await Promise.all([
-        supabase
-          .from('sales')
-          .select('sale_price, qty, products(type)')
-          .gte('sale_date', startDate + 'T00:00:00')
-          .lte('sale_date', endDate + 'T23:59:59'),
-        supabase
-          .from('appointments')
-          .select('*, products(price, type)')
-          .in('status', ['concluído', 'concluido'])
-          .gte('appointment_date', startDate + 'T00:00:00')
-          .lte('appointment_date', endDate + 'T23:59:59'),
-        supabase
-          .from('fixed_expenses')
-          .select('amount, category')
-          .gte('expense_date', startDate)
-          .lte('expense_date', endDate)
-      ]);
-
-      const productRevenue = salesResult.data?.reduce((sum, sale) => 
-        sum + (Number(sale.sale_price) * sale.qty), 0) || 0;
+      const { data: records, error } = await supabase
+        .from('financial_records')
+        .select('*')
+        .gte('record_date', startDate)
+        .lte('record_date', endDate);
       
-      const serviceRevenue = appointmentsResult.data?.reduce((sum, apt) => 
-        sum + (Number(apt.products?.price) || 0), 0) || 0;
+      if (error) throw error;
 
-      const expenses = expensesResult.data?.reduce((acc, exp) => {
-        acc.total += Number(exp.amount);
-        if (exp.category === 'combustível' || exp.category === 'combustivel') {
-          acc.fuel += Number(exp.amount);
-        } else if (exp.category === 'material' || exp.category === 'peças') {
-          acc.material += Number(exp.amount);
-        } else if (exp.category === 'equipamento') {
-          acc.equipment += Number(exp.amount);
-        } else {
-          acc.other += Number(exp.amount);
-        }
-        return acc;
-      }, { total: 0, fuel: 0, material: 0, equipment: 0, other: 0 }) || { total: 0, fuel: 0, material: 0, equipment: 0, other: 0 };
-
-      return {
-        total: productRevenue + serviceRevenue,
-        products: productRevenue,
-        services: serviceRevenue,
-        expenses
+      const results = {
+        total: 0,
+        products: 0,
+        services: 0,
+        expenses: { total: 0, fuel: 0, material: 0, equipment: 0, other: 0 }
       };
+
+      records?.forEach(r => {
+        const amount = Number(r.amount);
+        if (r.type === 'entrada') {
+          results.total += amount;
+          if (r.category === 'Serviço') {
+            results.services += amount;
+          } else if (r.category === 'Produto') {
+            results.products += amount;
+          }
+        } else if (r.type === 'saque') {
+          results.expenses.total += amount;
+          if (r.category === 'Combustível' || r.category === 'Combustivel') {
+            results.expenses.fuel += amount;
+          } else if (r.category === 'Material' || r.category === 'Peças') {
+            results.expenses.material += amount;
+          } else {
+            results.expenses.other += amount;
+          }
+        }
+      });
+
+      // Also include fixed expenses
+      const { data: fixedExps } = await supabase
+        .from('fixed_expenses')
+        .select('amount')
+        .gte('expense_date', startDate)
+        .lte('expense_date', endDate);
+      
+      fixedExps?.forEach(e => {
+        const amt = Number(e.amount);
+        results.expenses.total += amt;
+        results.expenses.other += amt;
+      });
+
+      return results;
     }
   });
 

@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { recordFinancialEntry } from '@/utils/financialHelpers';
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3 } from "lucide-react";
+import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw } from "lucide-react";
 import { format, endOfMonth, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
@@ -126,6 +128,74 @@ export default function FinanceiroTab() {
     }
   });
 
+  // Fetch completed appointments for synchronization
+  const { data: completedAppointments } = useQuery({
+    queryKey: ["completed-appointments-financial", selectedMonth],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("id, notes, appointment_date, client_id, service_id, products(name, price), clients(name)")
+        .eq("status", "concluido")
+        .gte("appointment_date", selectedMonth + "-01");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedMonth,
+  });
+
+  // Track which appointments have been synced to avoid duplicates
+  const [syncedAppointmentIds, setSyncedAppointmentIds] = useState<Set<string>>(new Set());
+
+  // Sync completed appointments to financial records
+  useEffect(() => {
+    if (!completedAppointments) return;
+    const sync = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const newSynced = new Set<string>(syncedAppointmentIds);
+      
+      for (const apt of completedAppointments) {
+        if (newSynced.has(apt.id)) continue; 
+
+        const amount = getAppointmentPrice(apt);
+        if (amount <= 0) continue;
+
+        const description = `Serviço concluído: ${apt.products?.name || 'Serviço'} - ${apt.clients?.name || 'Cliente'}`;
+        
+        // Robust duplicate check in DB
+        const { data: existing } = await supabase
+          .from('financial_records')
+          .select('id')
+          .eq('description', description)
+          .maybeSingle();
+        
+        if (existing) {
+          newSynced.add(apt.id);
+          continue;
+        }
+
+        const provName = apt.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
+        
+        await recordFinancialEntry({
+          userId: session.user.id,
+          type: 'entrada',
+          amount,
+          description,
+          paymentMethod: 'Dinheiro',
+          category: 'Serviço Concluído',
+          providerName: provName,
+          recordDate: apt.appointment_date,
+        });
+        
+        newSynced.add(apt.id);
+      }
+      setSyncedAppointmentIds(newSynced);
+      fetchRecords();
+    };
+    sync();
+  }, [completedAppointments]);
+
   const getAppointmentPrice = (apt: any) => {
     if (apt.notes) {
       const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
@@ -134,9 +204,9 @@ export default function FinanceiroTab() {
     return Number(apt.products?.price) || 0;
   };
 
-  const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
   const receitaPrevista = pendingAppointments?.reduce((acc, a: any) => acc + getAppointmentPrice(a), 0) || 0;
 
+  // Refresh financial records when month changes
   useEffect(() => {
     fetchRecords();
   }, [selectedMonth]);
@@ -154,7 +224,7 @@ export default function FinanceiroTab() {
     const { data, error } = await supabase
       .from("financial_records")
       .select("*")
-      .eq("user_id", session.user.id)
+      // Removed .eq("user_id", session.user.id) to make it global
       .gte("record_date", startDate)
       .lte("record_date", endDateStr)
       .order("record_date", { ascending: false });
@@ -187,16 +257,19 @@ export default function FinanceiroTab() {
     setSaving(true);
 
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
+    if (!session) {
+      setSaving(false);
+      return;
+    }
 
-    const { error } = await supabase.from("financial_records").insert({
-      user_id: session.user.id,
+    const { error } = await recordFinancialEntry({
+      userId: session.user.id,
       type: formData.type,
       amount: parseFloat(formData.amount),
-      description: formData.description || null,
-      payment_method: formData.payment_method,
+      description: formData.description,
+      paymentMethod: formData.payment_method,
+      category: formData.category || 'Manual',
       installments: parseInt(formData.installments) || 1,
-      category: formData.category || null,
     });
 
     if (error) {
@@ -228,15 +301,23 @@ export default function FinanceiroTab() {
   };
 
   // Financial calculations
-  const totalEntradas = records.filter(r => r.type === "entrada").reduce((acc, r) => acc + Number(r.amount), 0);
+  const entradas = records.filter(r => r.type === "entrada");
+  const totalServicos = entradas.filter(r => r.category === "Serviço").reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalProdutos = entradas.filter(r => r.category === "Produto").reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalOutrasEntradas = entradas.filter(r => r.category !== "Serviço" && r.category !== "Produto").reduce((acc, r) => acc + Number(r.amount), 0);
+  
+  const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
   
-  const totalVendas = sales?.reduce((acc, s) => acc + Number(s.sale_price) * s.qty, 0) || 0;
-  const lucroServicos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
+  const totalGastosRotas = records.filter(r => r.type === "saque" && (r.category === "Alimentação" || r.category === "Combustível")).reduce((acc, r) => acc + Number(r.amount), 0);
   
-  const totalGeral = totalEntradas + totalVendas;
-  const saldoDisponivel = totalGeral - totalSaques - totalReservas - totalGastosFixos;
+  // Total profit from sales table (business performance)
+  const lucroProdutos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
+  
+  // Balance calculation (Source of truth: financial_records + fixed_expenses)
+  const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
+  const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalGastosFixos;
 
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
@@ -280,7 +361,7 @@ export default function FinanceiroTab() {
     let yPos = 55;
     
     const summaryData = [
-      { label: "Total Entradas", value: totalGeral, color: [34, 197, 94] },
+      { label: "Total Entradas", value: totalEntradas, color: [34, 197, 94] },
       { label: "Total Saques", value: totalSaques, color: [239, 68, 68] },
       { label: "Reservas", value: totalReservas, color: [59, 130, 246] },
       { label: "Saldo Disponível", value: saldoDisponivel, color: [147, 51, 234] },
@@ -310,7 +391,7 @@ export default function FinanceiroTab() {
     doc.text("LUCRO LÍQUIDO DOS SERVIÇOS", 20, yPos + 6);
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
-    doc.text(formatCurrency(lucroServicos), 186, yPos + 10, { align: "right" });
+    doc.text(formatCurrency(lucroProdutos), 186, yPos + 10, { align: "right" });
     
     yPos += 25;
     doc.setTextColor(0, 0, 0);
@@ -324,22 +405,10 @@ export default function FinanceiroTab() {
       allTransactions.push({
         date: r.record_date,
         description: r.description || (r.type === "entrada" ? "Entrada" : r.type === "saque" ? "Saque" : "Reserva"),
-        type: r.type,
+        type: r.category || (r.type === "entrada" ? "Entrada" : r.type === "saque" ? "Despesa" : "Reserva"),
         method: r.payment_method,
         amount: Number(r.amount),
         isEntry: r.type === "entrada"
-      });
-    });
-    
-    sales?.forEach(s => {
-      allTransactions.push({
-        date: s.sale_date,
-        description: `${s.products?.name || "Serviço"} - ${s.clients?.name || "Cliente"}`,
-        type: "venda",
-        method: s.payment_method,
-        amount: Number(s.sale_price) * s.qty,
-        isEntry: true,
-        profit: Number(s.total_profit)
       });
     });
     
@@ -349,7 +418,7 @@ export default function FinanceiroTab() {
       safeFormat(new Date(t.date + (t.date.length === 10 ? 'T12:00:00' : '')), "dd/MM/yyyy"),
       t.description,
       t.method || "-",
-      t.type === "venda" ? "Serviço" : t.type.charAt(0).toUpperCase() + t.type.slice(1),
+      t.type,
       t.isEntry ? `+ ${formatCurrency(t.amount)}` : `- ${formatCurrency(t.amount)}`
     ]);
     
@@ -394,6 +463,37 @@ export default function FinanceiroTab() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <TabGuideCards cards={[
+        {
+          icon: TrendingUp,
+          title: 'Entradas e Vendas',
+          badge: 'Receita',
+          badgeColor: 'green',
+          description: <>Total de <strong>Serviços</strong> e <strong>Produtos</strong> vendidos. Tudo o que entra no caixa do seu negócio.</>,
+        },
+        {
+          icon: Fuel,
+          title: 'Gastos de Rota',
+          badge: 'Despesas',
+          badgeColor: 'amber',
+          description: <>Gastos com <strong>Combustível</strong> e <strong>Alimentação</strong> lançados automaticamente pelos prestadores.</>,
+        },
+        {
+          icon: Calculator,
+          title: 'Impostos e Lucro',
+          badge: 'Inteligente',
+          badgeColor: 'blue',
+          description: <>Cálculo automático de <strong>Imposto (6%)</strong> e o lucro real após descontar custos e despesas fixas.</>,
+        },
+        {
+          icon: Wallet,
+          title: 'Saldo Disponível',
+          badge: 'Caixa',
+          badgeColor: 'purple',
+          description: <>O valor que você tem <strong>em mãos agora</strong>, após descontar reservas e todos os gastos do mês.</>,
+        },
+      ]} />
+
       {/* Header */}
       <div className="flex flex-col gap-3">
         <div>
@@ -514,40 +614,29 @@ export default function FinanceiroTab() {
       </div>
 
       {/* Summary Cards - responsive grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2 sm:gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
+        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Wrench className="h-3 w-3 text-blue-500 flex-shrink-0" />
+              <span className="truncate">Serviços</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-blue-600 truncate">{formatCurrency(totalServicos)}</p>
+          </CardContent>
+        </Card>
+
         <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Receipt className="h-3 w-3 text-green-500 flex-shrink-0" />
-              <span className="truncate">Vendas/Serviços</span>
+              <Package className="h-3 w-3 text-green-500 flex-shrink-0" />
+              <span className="truncate">Produtos</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-green-500 truncate">{formatCurrency(totalVendas)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 border-emerald-500/20">
-          <CardHeader className="p-3 pb-1">
-            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Target className="h-3 w-3 text-emerald-500 flex-shrink-0" />
-              <span className="truncate">Lucro Serviços</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-emerald-500 truncate">{formatCurrency(lucroServicos)}</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-teal-500/10 to-teal-600/5 border-teal-500/20">
-          <CardHeader className="p-3 pb-1">
-            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-teal-500 flex-shrink-0" />
-              <span className="truncate">Outras Entradas</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-teal-500 truncate">{formatCurrency(totalEntradas)}</p>
+            <p className="text-sm sm:text-lg font-bold text-green-600 truncate">{formatCurrency(totalProdutos)}</p>
+            <p className="text-[9px] text-emerald-600 mt-0.5">Lucro: {formatCurrency(lucroProdutos)}</p>
           </CardContent>
         </Card>
 
@@ -555,11 +644,11 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <Fuel className="h-3 w-3 text-orange-500 flex-shrink-0" />
-              <span className="truncate">Gastos Fixos</span>
+              <span className="truncate">Gastos Rotas</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-orange-500 truncate">{formatCurrency(totalGastosFixos)}</p>
+            <p className="text-sm sm:text-lg font-bold text-orange-600 truncate">{formatCurrency(totalGastosRotas)}</p>
           </CardContent>
         </Card>
 
@@ -567,23 +656,35 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <TrendingDown className="h-3 w-3 text-red-500 flex-shrink-0" />
+              <span className="truncate">Gastos Fixos</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-3 pt-0">
+            <p className="text-sm sm:text-lg font-bold text-red-600 truncate">{formatCurrency(totalGastosFixos)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-red-700/10 to-red-800/5 border-red-700/20">
+          <CardHeader className="p-3 pb-1">
+            <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <Wallet className="h-3 w-3 text-red-700 flex-shrink-0" />
               <span className="truncate">Saques</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-red-500 truncate">{formatCurrency(totalSaques)}</p>
+            <p className="text-sm sm:text-lg font-bold text-red-700 truncate">{formatCurrency(totalSaques)}</p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+        <Card className="bg-gradient-to-br from-indigo-500/10 to-indigo-600/5 border-indigo-500/20">
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <Wallet className="h-3 w-3 text-blue-500 flex-shrink-0" />
+              <DollarSign className="h-3 w-3 text-indigo-500 flex-shrink-0" />
               <span className="truncate">Reservas</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-blue-500 truncate">{formatCurrency(totalReservas)}</p>
+            <p className="text-sm sm:text-lg font-bold text-indigo-600 truncate">{formatCurrency(totalReservas)}</p>
           </CardContent>
         </Card>
 
@@ -591,7 +692,7 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-primary flex-shrink-0" />
-              <span className="truncate">Saldo Disponível</span>
+              <span className="truncate">Saldo em Caixa</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
@@ -604,13 +705,13 @@ export default function FinanceiroTab() {
         <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20 col-span-2 sm:col-span-1">
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <RefreshCw className="h-3 w-3 text-amber-500 flex-shrink-0" />
-              <span className="truncate">Previsto (a realizar)</span>
+              <Target className="h-3 w-3 text-amber-500 flex-shrink-0" />
+              <span className="truncate">Imposto Previsto</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-amber-600 truncate">{formatCurrency(receitaPrevista)}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">Agendamentos não concluídos — não conta como receita</p>
+            <p className="text-sm sm:text-lg font-bold text-amber-600 truncate">{formatCurrency(totalServicos * 0.06)}</p>
+            <p className="text-[9px] text-muted-foreground mt-0.5">Est. 6% sobre Serviços</p>
           </CardContent>
         </Card>
       </div>

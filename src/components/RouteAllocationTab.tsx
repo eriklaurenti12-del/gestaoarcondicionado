@@ -12,6 +12,7 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { MapPin, Car, Utensils, Send, CheckCircle2, Calendar } from 'lucide-react';
 import { ServiceProvider } from './ServiceProvidersTab';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Badge } from "@/components/ui/badge";
 import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
 import { FileDown, RefreshCw, Trash2 } from 'lucide-react';

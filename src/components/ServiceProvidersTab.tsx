@@ -362,7 +362,8 @@ export default function ServiceProvidersTab() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <ScrollArea className="h-[calc(100vh-280px)] pr-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {filtered.map(provider => {
                 const provAppts = getProviderAppointments(provider.name);
                 const provExpenses = getProviderExpenses(provider.name);
@@ -433,21 +434,32 @@ export default function ServiceProvidersTab() {
                   </div>
                 );
               })}
-            </div>
+              </div>
+            </ScrollArea>
           )}
         </CardContent>
       </Card>
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
+<<<<<<< HEAD
         <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent max-h-[90vh] flex flex-col">
           <Card className="border-none shadow-2xl flex flex-col max-h-[90vh]">
             <CardHeader className="pb-2 border-b shrink-0">
+=======
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent">
+          <Card className="border-none shadow-2xl">
+            <CardHeader className="pb-4 border-b sticky top-0 bg-background z-10 rounded-t-lg">
+>>>>>>> 70fa593 (financeiro)
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
                 {editingProvider ? 'Editar Prestador' : 'Novo Prestador'}
               </DialogTitle>
+              <DialogDescription>
+                Preencha os dados do profissional para gestão de rotas e serviços.
+              </DialogDescription>
             </CardHeader>
+<<<<<<< HEAD
             <ScrollArea className="flex-1 min-h-0 max-h-[calc(90vh-160px)]">
               <div className="p-6 space-y-4">
             <div>
@@ -531,11 +543,154 @@ export default function ServiceProvidersTab() {
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-11">Cancelar</Button>
                 <Button onClick={handleSave} className="h-11 px-8 bg-primary hover:bg-primary/90">
+=======
+            
+            <ScrollArea className="max-h-[60vh] overflow-y-auto">
+              <div className="p-6 space-y-5">
+                <div>
+                  <Label className="text-sm font-semibold mb-1.5 block">Nome do Prestador *</Label>
+                  <Input 
+                    value={formData.name} 
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Nome completo" 
+                    className="h-11" 
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-sm font-semibold mb-1.5 block">Telefone / WhatsApp</Label>
+                    <Input 
+                      value={formData.phone} 
+                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="(00) 00000-0000" 
+                      className="h-11" 
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-semibold mb-1.5 block">Especialidade Principal</Label>
+                    <Select value={formData.specialty} onValueChange={v => setFormData({ ...formData, specialty: v })}>
+                      <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1">
+                      <input
+                        id="is_field_tech"
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-primary text-primary focus:ring-primary"
+                        checked={formData.is_field_technician}
+                        onChange={e => setFormData({ ...formData, is_field_technician: e.target.checked })}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <Label htmlFor="is_field_tech" className="cursor-pointer font-bold text-sm text-primary">
+                        Técnico de Campo
+                      </Label>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-0.5">
+                        Aparece na aba de alocação de rotas e ordens de serviço externas.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-semibold mb-1.5 block text-muted-foreground uppercase tracking-wider text-[10px]">Configurações Financeiras</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div>
+                      <Label className="text-[11px] mb-1 block">Custo p/ Hora</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={formData.cost_per_hour}
+                          onChange={e => setFormData({ ...formData, cost_per_hour: e.target.value })}
+                          className="pl-8 h-10" 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">Alimentação</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={formData.food_allowance}
+                          onChange={e => setFormData({ ...formData, food_allowance: e.target.value })}
+                          className="pl-8 h-10" 
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] mb-1 block">Combustível</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                        <Input 
+                          type="number" 
+                          step="0.01" 
+                          value={formData.fuel_allowance}
+                          onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })}
+                          className="pl-8 h-10" 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-semibold mb-1.5 block">Observações e Ferramental</Label>
+                  <textarea 
+                    className="flex min-h-[100px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                    placeholder="Ex: Possui ferramental completo, carro próprio, etc."
+                    value={formData.technical_notes}
+                    onChange={e => setFormData({ ...formData, technical_notes: e.target.value })}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">Cor de Identificação no Calendário</Label>
+                  <div className="flex gap-2.5 flex-wrap p-3 bg-muted/30 rounded-xl">
+                    {COLORS.map(c => (
+                      <button 
+                        key={c.value} 
+                        type="button"
+                        onClick={() => setFormData({ ...formData, color: c.value })}
+                        className={`w-9 h-9 rounded-full border-2 transition-all shadow-sm ${formData.color === c.value ? 'scale-110 border-foreground ring-2 ring-primary/20' : 'border-white dark:border-gray-800'}`}
+                        style={{ backgroundColor: c.value }} 
+                        title={c.label} 
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </ScrollArea>
+
+            <div className="p-4 border-t bg-muted/20 sticky bottom-0 z-10 rounded-b-lg">
+              <DialogFooter className="flex flex-col sm:flex-row gap-2">
+                <Button variant="ghost" onClick={() => setDialogOpen(false)} className="h-11 order-2 sm:order-1">
+                  Cancelar
+                </Button>
+                <Button 
+                  onClick={handleSave} 
+                  className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 order-1 sm:order-2"
+                >
+>>>>>>> 70fa593 (financeiro)
                   {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
                 </Button>
               </DialogFooter>
             </div>
+<<<<<<< HEAD
 
+=======
+>>>>>>> 70fa593 (financeiro)
           </Card>
         </DialogContent>
       </Dialog>

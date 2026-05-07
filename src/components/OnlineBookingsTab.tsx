@@ -15,6 +15,7 @@ import { ptBR } from 'date-fns/locale';
 import { useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 
 type OnlineBooking = {
   id: string;
@@ -285,21 +286,18 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         const rawPayment = (booking.payment_method || 'PIX').toLowerCase();
         const mappedPayment = paymentMap[rawPayment] || 'PIX';
 
-        const { error: saleError } = await supabase.from('sales').insert({
-          product_id: serviceId,
-          client_id: clientId,
-          qty: 1,
-          sale_price: servicePrice,
-          total_profit: servicePrice - serviceCost,
-          payment_method: mappedPayment as any,
-          user_id: userId,
+        await recordFinancialEntry({
+          userId: userId,
+          type: 'entrada',
+          amount: servicePrice,
+          description: `Venda Online: ${booking.service_name} - ${booking.client_name}`,
+          paymentMethod: mappedPayment as any,
+          category: 'Serviço',
+          recordDate: dateTime.toISOString()
         });
 
-        if (!saleError) {
-          queryClient.invalidateQueries({ queryKey: ['sales'] });
-          queryClient.invalidateQueries({ queryKey: ['sales-history'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-        }
+        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       }
     } catch (e) {
       console.error('Error syncing to agenda:', e);

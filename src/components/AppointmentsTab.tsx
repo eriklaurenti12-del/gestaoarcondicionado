@@ -20,6 +20,7 @@ import autoTable from 'jspdf-autotable';
 import CalendarAgenda from './CalendarAgenda';
 import ScheduleBoard from './ScheduleBoard';
 import RouteExpensesDialog from './RouteExpensesDialog';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Appointment = {
@@ -312,15 +313,16 @@ const AppointmentsTab: React.FC = () => {
               sale_date: appointment.appointment_date // Keep consistent with appointment date
             });
 
-            // Create financial record
-            await supabase.from('financial_records').insert({
-              user_id: session.user.id,
+            // Create financial record using helper
+            const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
+            await recordFinancialEntry({
+              userId: session.user.id,
               type: 'entrada',
               amount: salePrice,
               description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
-              payment_method: 'Dinheiro',
-              category: 'Serviço Agenda',
-              record_date: new Date().toISOString()
+              paymentMethod: 'Dinheiro',
+              category: 'Serviço',
+              providerName: provName,
             });
           }
         }
@@ -551,14 +553,14 @@ const AppointmentsTab: React.FC = () => {
       
       // Add a financial record for the scheduled quote
       if (selectedQuote) {
-        await supabase.from('financial_records').insert({
-          user_id: userId,
+        await recordFinancialEntry({
+          userId: userId,
           type: 'entrada',
           amount: Number(selectedQuote.total),
           description: `Orçamento Agendado: ${selectedQuote.title}`,
-          payment_method: paymentMethod,
-          category: 'Orçamento Agendado',
-          record_date: dateTime.toISOString()
+          paymentMethod: paymentMethod as any,
+          category: 'Serviço',
+          recordDate: dateTime.toISOString()
         });
         queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       }
@@ -571,14 +573,14 @@ const AppointmentsTab: React.FC = () => {
       
       // Add a financial record for the scheduled order
       if (selectedOrder) {
-        await supabase.from('financial_records').insert({
-          user_id: userId,
+        await recordFinancialEntry({
+          userId: userId,
           type: 'entrada',
           amount: Number(selectedOrder.total),
           description: `Pedido Agendado: ${selectedOrder.title}`,
-          payment_method: paymentMethod,
-          category: 'Pedido Agendado',
-          record_date: dateTime.toISOString()
+          paymentMethod: paymentMethod as any,
+          category: 'Serviço',
+          recordDate: dateTime.toISOString()
         });
         queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       }
@@ -1417,14 +1419,10 @@ const AppointmentsTab: React.FC = () => {
           <div className="space-y-4">
             {/* Source Type Selection */}
             <Tabs value={sourceType} onValueChange={(v) => setSourceType(v as 'quote' | 'order' | 'manual')} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="quote" className="flex items-center gap-1">
                   <Receipt className="w-4 h-4" />
                   <span className="hidden sm:inline">Orçamento</span>
-                </TabsTrigger>
-                <TabsTrigger value="order" className="flex items-center gap-1">
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden sm:inline">Pedido</span>
                 </TabsTrigger>
                 <TabsTrigger value="manual" className="flex items-center gap-1">
                   <PlusCircle className="w-4 h-4" />
@@ -1464,37 +1462,7 @@ const AppointmentsTab: React.FC = () => {
                 </div>
               </TabsContent>
               
-              <TabsContent value="order" className="mt-4">
-                <div className="space-y-3 p-4 border rounded-lg bg-blue-50/50 dark:bg-blue-950/20">
-                  <Label className="font-semibold flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                    <FileText className="w-4 h-4" />
-                    Selecionar Pedido de Serviço
-                  </Label>
-                  {pendingOrders && pendingOrders.length > 0 ? (
-                    <Select value={selectedOrderId} onValueChange={setSelectedOrderId}>
-                      <SelectTrigger className="min-h-[44px]">
-                        <SelectValue placeholder="Selecione um pedido..." />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pendingOrders.map((order) => (
-                          <SelectItem key={order.id} value={order.id}>
-                            #{order.order_number} - {order.title} ({order.clients?.name || 'Sem cliente'}) - R$ {Number(order.total).toFixed(2)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum pedido pendente disponível</p>
-                  )}
-                  {selectedOrder && (
-                    <div className="mt-3 p-3 bg-background rounded border animate-fade-in">
-                      <p className="font-medium">{selectedOrder.title}</p>
-                      <p className="text-sm text-muted-foreground">Cliente: {selectedOrder.clients?.name || 'N/A'}</p>
-                      <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Total: R$ {Number(selectedOrder.total).toFixed(2)}</p>
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
+
               
 
               <TabsContent value="manual" className="mt-4">

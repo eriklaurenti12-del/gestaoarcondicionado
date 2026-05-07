@@ -23,6 +23,7 @@ import {
   ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit
 } from 'lucide-react';
 import TabGuideCards from './TabGuideCards';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 
 // ============================================================
 // TYPES
@@ -151,6 +152,19 @@ const ServicesUnifiedTab: React.FC = () => {
         monthly_value: parseFloat(data.monthlyValue) || 0,
         notes: enrichedNotes
       });
+
+      if (!error && parseFloat(data.monthlyValue) > 0) {
+        await recordFinancialEntry({
+          userId: user.id,
+          type: 'entrada',
+          amount: parseFloat(data.monthlyValue),
+          description: `Primeira parcela - Contrato: ${data.title}`,
+          paymentMethod: (data.paymentMethod === 'mensal' ? 'Dinheiro' : data.paymentMethod) as any,
+          category: 'Serviço', // Or 'Contrato' if you want a specific category
+          recordDate: new Date().toISOString()
+        });
+      }
+      
       if (error) throw error;
     },
     onSuccess: () => {

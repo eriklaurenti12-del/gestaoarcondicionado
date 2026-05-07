@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -198,22 +199,37 @@ export default function ServiceOrdersTab() {
 
   // Update status
   const updateStatus = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, order }: { id: string; status: string; order?: ServiceOrder }) => {
       const { error } = await supabase
         .from("service_orders")
         .update({ status })
         .eq("id", id);
       if (error) throw error;
+
+      if (status === 'concluido' && order) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          await recordFinancialEntry({
+            userId: userData.user.id,
+            type: 'entrada',
+            amount: Number(order.total),
+            description: `Pedido Concluído #${order.order_number}: ${order.title}`,
+            paymentMethod: 'Dinheiro', // Default
+            category: 'Serviço',
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-records"] });
       toast.success("Status atualizado!");
     },
   });
 
   // Save signature
   const saveSignature = useMutation({
-    mutationFn: async ({ id, signatureData }: { id: string; signatureData: string }) => {
+    mutationFn: async ({ id, signatureData, order }: { id: string; signatureData: string; order?: ServiceOrder }) => {
       const { error } = await supabase
         .from("service_orders")
         .update({ 
@@ -223,9 +239,24 @@ export default function ServiceOrdersTab() {
         })
         .eq("id", id);
       if (error) throw error;
+
+      if (order) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          await recordFinancialEntry({
+            userId: userData.user.id,
+            type: 'entrada',
+            amount: Number(order.total),
+            description: `Pedido Concluído (Assinado) #${order.order_number}: ${order.title}`,
+            paymentMethod: 'Dinheiro', // Default
+            category: 'Serviço',
+          });
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["service-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-records"] });
       toast.success("Assinatura salva!");
       setSignatureOrder(null);
     },
@@ -327,15 +358,14 @@ export default function ServiceOrdersTab() {
 
       if (error) throw error;
 
-      // Add a financial record for the scheduled order
-      await supabase.from('financial_records').insert({
-        user_id: userData.user.id,
+      // Add a financial record for the scheduled order using helper
+      await recordFinancialEntry({
+        userId: userData.user.id,
         type: 'entrada',
         amount: Number(scheduleOrder.total),
         description: `Pedido Agendado #${scheduleOrder.order_number}: ${scheduleOrder.title}`,
-        payment_method: 'Dinheiro', // Default
-        category: 'Pedido Agendado',
-        record_date: dateTimeObj.toISOString()
+        paymentMethod: 'Dinheiro', // Default
+        category: 'Serviço',
       });
 
       // Update order status to em_andamento
@@ -478,7 +508,7 @@ export default function ServiceOrdersTab() {
     const canvas = canvasRef.current;
     if (!canvas || !signatureOrder) return;
     const signatureData = canvas.toDataURL('image/png');
-    saveSignature.mutate({ id: signatureOrder.id, signatureData });
+    saveSignature.mutate({ id: signatureOrder.id, signatureData, order: signatureOrder });
   };
 
   const generatePDF = (order: ServiceOrder) => {
@@ -1002,7 +1032,7 @@ export default function ServiceOrdersTab() {
                       <TableCell>
                         <Select
                           value={order.status}
-                          onValueChange={(value) => updateStatus.mutate({ id: order.id, status: value })}
+                          onValueChange={(value) => updateStatus.mutate({ id: order.id, status: value, order })}
                         >
                           <SelectTrigger className="w-32 h-8">
                             <SelectValue />

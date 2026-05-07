@@ -19,6 +19,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
   try {
@@ -651,14 +652,14 @@ const PDVTab: React.FC = () => {
         }
 
         // Create financial record for the sale
-        const providerText = selectedProvider && selectedProvider !== '_none' ? ` [Prestador: ${selectedProvider}]` : '';
-        await supabase.from('financial_records').insert({
-          user_id: userId,
+        await recordFinancialEntry({
+          userId: userId,
           type: 'entrada',
           amount: Number(item.product.price) * item.quantity,
-          description: `Venda PDV: ${item.product.name} (${item.quantity}x)${providerText}`,
-          payment_method: paymentMethod,
-          category: 'Venda PDV',
+          description: `Venda PDV: ${item.product.name} (${item.quantity}x)`,
+          paymentMethod: paymentMethod,
+          category: 'Produto',
+          providerName: selectedProvider && selectedProvider !== '_none' ? selectedProvider : undefined,
         });
 
         return saleResult;

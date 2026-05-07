@@ -13,6 +13,7 @@ import { ptBR } from 'date-fns/locale';
 import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { ServiceProvider } from './ServiceProvidersTab';
 
 interface ProviderDailyRouteDialogProps {
@@ -164,6 +165,19 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       if (expensesToInsert.length > 0) {
         const { error } = await supabase.from('fixed_expenses').insert(expensesToInsert);
         if (error) throw error;
+
+        // Also add to financial_records as expenses (saque)
+        for (const exp of expensesToInsert) {
+          await recordFinancialEntry({
+            userId: session.user.id,
+            type: 'saque',
+            amount: exp.amount,
+            description: exp.description,
+            paymentMethod: 'Dinheiro',
+            category: exp.category,
+            providerName: provider.name,
+          });
+        }
       }
 
       // Update status of selected appointments to 'concluido'
@@ -190,28 +204,28 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
 
         // Insert Revenue into financial_records
         if (totalRevenue > 0) {
-          await supabase.from('financial_records').insert({
-            user_id: session.user.id,
+          await recordFinancialEntry({
+            userId: session.user.id,
             type: 'entrada',
             amount: totalRevenue,
             category: 'Serviços',
-            description: `Receita de Rota: ${selectedAppts.length} serviços - ${provider.name}`,
-            record_date: today,
-            payment_method: 'Dinheiro' // Default
+            description: `Receita de Rota: ${selectedAppts.length} serviços`,
+            paymentMethod: 'Dinheiro',
+            providerName: provider.name,
           });
         }
 
         // Insert Labor Cost into financial_records (if provider has cost_per_hour)
         const laborCost = (provider.cost_per_hour || 0) * selectedAppts.length * 1.5; // Estimating 1.5h per service
         if (laborCost > 0) {
-           await supabase.from('financial_records').insert({
-            user_id: session.user.id,
+          await recordFinancialEntry({
+            userId: session.user.id,
             type: 'saque',
             amount: laborCost,
             category: 'Mão de Obra',
-            description: `Pagamento Prestador: ${provider.name} (${selectedAppts.length} serviços)`,
-            record_date: today,
-            payment_method: 'Dinheiro'
+            description: `Pagamento Prestador: (${selectedAppts.length} serviços)`,
+            paymentMethod: 'Dinheiro',
+            providerName: provider.name,
           });
         }
       }
