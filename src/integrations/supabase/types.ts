@@ -1445,6 +1445,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_team_member_pin: {
+        Args: { _member_id: string; _pin: string }
+        Returns: boolean
+      }
       setup_super_admin: { Args: never; Returns: undefined }
       verify_team_pin: {
         Args: { _member_id: string; _pin: string }
