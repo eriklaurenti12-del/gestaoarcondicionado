@@ -86,7 +86,7 @@ const AddSupplierDialog: React.FC<AddSupplierDialogProps> = ({ open, onOpenChang
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Fornecedor" : "Adicionar Novo Fornecedor"}</DialogTitle>
           <DialogDescription>
