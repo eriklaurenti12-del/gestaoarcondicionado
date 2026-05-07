@@ -159,52 +159,6 @@ export default function TeamPortalLogin() {
     </div>
   );
 }
-                  Entre com seu <strong className="text-primary">nome</strong> ou{" "}
-                  <strong className="text-primary">número de telefone</strong> e sua senha
-                </p>
-              </div>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nome ou WhatsApp</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="text" placeholder="Seu nome ou telefone" value={nameOrPhone}
-                    onChange={e => setNameOrPhone(e.target.value)} required className="pl-10 h-12 rounded-lg" />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Senha (4 dígitos)</Label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input type="password" inputMode="numeric" placeholder="••••" value={pin} maxLength={4}
-                    onChange={e => setPin(e.target.value.replace(/\D/g, '').slice(0, 4))} required
-                    className="pl-10 h-12 rounded-lg text-center text-2xl tracking-[0.5em] font-mono" />
-                </div>
-                <p className="text-xs text-muted-foreground">Primeiro acesso? Use o PIN enviado pelo administrador.</p>
-              </div>
-              <Button type="submit" disabled={loading} className="w-full h-12 rounded-lg text-base font-semibold">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Entrar"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-        <div className="mt-4 text-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs text-muted-foreground hover:text-primary gap-1.5"
-            onClick={forceUpdateApp}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            Sincronizar Versão Publicada
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ============ SUBSCRIBER QUICK ACTIONS ============
 function SubscriberQuickActions({ sub, statusBadge, borderColor, activatingUser, onActivate }: {
