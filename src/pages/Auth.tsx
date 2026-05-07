@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useSystemBranding } from "@/hooks/useSystemBranding";
 import { forceUpdateApp } from "@/lib/updateApp";
+import AuthUpdateSpotlight from "@/components/AuthUpdateSpotlight";
 import { RefreshCw } from "lucide-react";
 
 const ROLE_INFO: Record<string, { label: string; desc: string; icon: any; color: string }> = {
