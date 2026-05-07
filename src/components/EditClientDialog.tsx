@@ -200,6 +200,33 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
               )}
             />
 
+            {/* CEP */}
+            <FormItem>
+              <FormLabel className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                CEP (Auto-preenchimento)
+              </FormLabel>
+              <Input
+                placeholder="00000-000"
+                maxLength={9}
+                onChange={async (e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  if (value.length === 8) {
+                    try {
+                      const response = await fetch(`https://viacep.com.br/ws/${value}/json/`);
+                      const data = await response.json();
+                      if (!data.erro) {
+                        const fullAddress = `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`;
+                        form.setValue('address', fullAddress);
+                      }
+                    } catch (error) {
+                      console.error("Erro ao buscar CEP:", error);
+                    }
+                  }
+                }}
+              />
+            </FormItem>
+
             {/* Endereço */}
             <FormField
               control={form.control}

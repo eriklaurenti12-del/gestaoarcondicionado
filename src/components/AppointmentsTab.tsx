@@ -8,12 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
-import { format } from 'date-fns';
+import { format, addMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -22,6 +22,7 @@ import ScheduleBoard from './ScheduleBoard';
 import RouteExpensesDialog from './RouteExpensesDialog';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 type Appointment = {
   id: string;
@@ -176,6 +177,10 @@ const AppointmentsTab: React.FC = () => {
   // Provider selection
   // Provider selection
   const [selectedProvider, setSelectedProvider] = useState<string>("");
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [completionAppointment, setCompletionAppointment] = useState<Appointment | null>(null);
+  const [completionFeedback, setCompletionFeedback] = useState("");
+  const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
 
   // Edit state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -335,7 +340,13 @@ const AppointmentsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      toast({ title: "Status atualizado!" });
+      
+      if (showCompletionDialog) {
+        toast({ title: "Serviço Concluído!", description: "Feedback e próxima manutenção registrados." });
+        setShowCompletionDialog(false);
+      } else {
+        toast({ title: "Status atualizado!" });
+      }
     },
     onError: (error: any) => {
       toast({ variant: "destructive", title: "Erro", description: error.message });
@@ -1323,7 +1334,17 @@ const AppointmentsTab: React.FC = () => {
                                 variant="default" 
                                 className="h-10 px-3 text-sm touch-target"
                                 title="Concluir Serviço"
-                                onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment })}
+                                onClick={() => {
+                                  setCompletionAppointment(appointment);
+                                  setCompletionFeedback("");
+                                  
+                                  // Suggest next maintenance based on periodicity (warranty_months)
+                                  const periodicity = (appointment.products as any)?.warranty_months || 6;
+                                  const nextDate = addMonths(new Date(), periodicity);
+                                  setNextMaintenanceDate(nextDate.toISOString().split('T')[0]);
+                                  
+                                  setShowCompletionDialog(true);
+                                }}
                               >
                                 Concluir
                               </Button>
@@ -1925,6 +1946,75 @@ const AppointmentsTab: React.FC = () => {
         appointmentId={selectedExpenseAppointment.id}
         providerName={selectedExpenseAppointment.provider}
       />
+      <Dialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              Concluir Serviço
+            </DialogTitle>
+            <DialogDescription>
+              Feedback rápido e agendamento da próxima manutenção.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Feedback do Serviço (Opcional)</Label>
+              <Textarea 
+                placeholder="Ex: Ar-condicionado higienizado, filtros trocados..." 
+                value={completionFeedback}
+                onChange={(e) => setCompletionFeedback(e.target.value)}
+                rows={3}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-primary" />
+                Sugestão de Próxima Manutenção
+              </Label>
+              <Input 
+                type="date" 
+                value={nextMaintenanceDate}
+                onChange={(e) => setNextMaintenanceDate(e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Baseado na periodicidade de {(completionAppointment?.products as any)?.warranty_months || 6} meses do serviço.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowCompletionDialog(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={() => {
+                if (!completionAppointment) return;
+                
+                // Add feedback to notes
+                const updatedNotes = completionFeedback 
+                  ? `${completionAppointment.notes || ""}\n[FEEDBACK: ${completionFeedback}]`.trim() 
+                  : completionAppointment.notes;
+
+                // We could also create a future appointment here, 
+                // but usually the "Renovar" logic in History is better for that.
+                // However, the user wants a "Feedback rápido" now.
+                
+                updateStatusMutation.mutate({ 
+                  id: completionAppointment.id, 
+                  status: 'concluido', 
+                  appointment: { ...completionAppointment, notes: updatedNotes } 
+                });
+              }}
+            >
+              Confirmar Conclusão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

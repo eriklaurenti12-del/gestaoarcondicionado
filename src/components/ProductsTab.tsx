@@ -59,6 +59,8 @@ const ProductsTab: React.FC = () => {
   const [editDialogProduct, setEditDialogProduct] = useState<Product | null>(null);
   const [serviceType, setServiceType] = useState('instalacao');
   const [serviceDuration, setServiceDuration] = useState(60);
+  const [warrantyMonths, setWarrantyMonths] = useState(6);
+  const [periodicityMessage, setPeriodicityMessage] = useState("Olá! Passaram-se 6 meses desde sua última limpeza de ar-condicionado. Vamos agendar uma nova?");
   const [productImage, setProductImage] = useState<File | null>(null);
   const [productImagePreview, setProductImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -169,7 +171,10 @@ const ProductsTab: React.FC = () => {
       setQty(1);setExpenses([]);setNewExpenseName("");setNewExpenseValue("");
       setProductImage(null);setProductImagePreview(null);setShowExpenses(false);
       setComboSelectedServices([]);setComboDiscount("");setShowForm(false);
+      setWarrantyMonths(6);setPeriodicityMessage("Olá! Passaram-se 6 meses desde sua última limpeza de ar-condicionado. Vamos agendar uma nova?");
       setSelectedSupplierId("");setStorageLocation("");setStorageShelf("");setStorageSection("");
+      
+      // We will handle periodicity message saving in a side effect or after mutation
     },
     onError: (error: Error) => {
       toast({ variant: "destructive", title: "Erro ao adicionar.", description: error.message });
@@ -298,7 +303,7 @@ const ProductsTab: React.FC = () => {
       cost_price: totalCost || 0,
       barcode: scannedBarcode?.trim() || null,
       supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
-      warranty_months: 12,
+      warranty_months: isService ? warrantyMonths : 12,
       min_stock: isService ? 0 : minStockAlert,
       date_added: new Date().toISOString().split('T')[0],
       user_id: userId,
@@ -404,9 +409,6 @@ const ProductsTab: React.FC = () => {
               <Badge variant="secondary" className="text-xs">{products?.length || 0}</Badge>
             </span>
             <div className="flex gap-2 flex-wrap">
-              
-
-              
               <Button onClick={() => exportToPDF(true)} size="sm" variant="outline">
                 <FileDown className="w-4 h-4 mr-1" /> Interno
               </Button>
@@ -644,11 +646,33 @@ const ProductsTab: React.FC = () => {
 
             {/* Service duration */}
             {serviceTypes.find((t) => t.value === serviceType)?.type === 'service' &&
-          <div className="space-y-1.5">
-                <Label className="text-xs">Tempo de Serviço (min)</Label>
-                <Input type="number" value={serviceDuration}
-            onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))}
-            min="15" step="15" className="h-9" />
+          <div className="space-y-4 pt-2 border-t">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tempo de Serviço (min)</Label>
+                  <Input type="number" value={serviceDuration}
+              onChange={(e) => setServiceDuration(Math.max(15, Number(e.target.value)))}
+              min="15" step="15" className="h-9" />
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="sm:col-span-1 space-y-1.5">
+                    <Label className="text-xs">Periodicidade (Meses)</Label>
+                    <Select value={String(warrantyMonths)} onValueChange={(v) => setWarrantyMonths(Number(v))}>
+                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="3">3 meses</SelectItem>
+                        <SelectItem value="6">6 meses</SelectItem>
+                        <SelectItem value="12">12 meses</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="sm:col-span-3 space-y-1.5">
+                    <Label className="text-xs">Mensagem Padrão de Vencimento</Label>
+                    <Input value={periodicityMessage}
+                onChange={(e) => setPeriodicityMessage(e.target.value)}
+                placeholder="Mensagem para enviar no WhatsApp" className="h-9" />
+                  </div>
+                </div>
               </div>
           }
 

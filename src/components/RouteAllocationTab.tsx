@@ -186,29 +186,36 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       {/* Coluna 1: Lista de Serviços */}
       <Card className="lg:col-span-2">
         <CardHeader className="pb-3 border-b">
-          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
             <div>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <MapPin className="w-5 h-5 text-primary" />
-                Serviços Aguardando Rota
+                1. Selecione os Serviços
               </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Selecione os serviços pendentes para separar a rota da equipe.
-              </p>
             </div>
-            <div className="flex items-center gap-2">
-              <Label className="text-sm whitespace-nowrap">Filtrar Data:</Label>
-              <Input 
-                type="date" 
-                value={filterDate} 
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="w-auto h-9"
-              />
-              {filterDate && (
-                <Button variant="ghost" size="sm" onClick={() => setFilterDate('')} className="h-9 px-2 text-muted-foreground hover:text-foreground">
-                  Limpar
-                </Button>
-              )}
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
+                <Checkbox 
+                  id="select-all" 
+                  checked={unassignedAppointments && unassignedAppointments.length > 0 && selectedAppointments.length === unassignedAppointments.length}
+                  onCheckedChange={(checked) => {
+                    if (checked) {
+                      setSelectedAppointments(unassignedAppointments?.map(a => a.id) || []);
+                    } else {
+                      setSelectedAppointments([]);
+                    }
+                  }}
+                />
+                <Label htmlFor="select-all" className="text-sm font-bold cursor-pointer text-primary">Selecionar Todos</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input 
+                  type="date" 
+                  value={filterDate} 
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="w-auto h-9"
+                />
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -284,9 +291,12 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
 
       {/* Coluna 2: Atribuição e Gastos */}
       <div className="space-y-6">
-        <Card className="sticky top-4">
-          <CardHeader>
-            <CardTitle>Configurar Rota</CardTitle>
+        <Card className="sticky top-4 border-primary shadow-lg ring-1 ring-primary/10">
+          <CardHeader className="bg-primary/5 border-b">
+            <CardTitle className="text-primary flex items-center gap-2">
+              <Car className="w-5 h-5" />
+              2. Configurar Rota
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-5">
             <div className="space-y-2 bg-muted/30 p-3 rounded-lg border text-center">
@@ -295,10 +305,10 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
             </div>
 
             <div className="space-y-2">
-              <Label>Atribuir ao Prestador *</Label>
+              <Label className="font-bold">Atribuir ao Prestador *</Label>
               <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Selecione o prestador" />
+                <SelectTrigger className="h-12 border-primary/30 focus:ring-primary">
+                  <SelectValue placeholder="Escolha o Executor..." />
                 </SelectTrigger>
                 <SelectContent>
                   {providers.filter(p => p.active && p.is_field_technician !== false).map(p => (

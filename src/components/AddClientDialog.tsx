@@ -27,6 +27,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
   const [address, setAddress] = useState("");
   const [preferences, setPreferences] = useState("");
   const [cpfCnpj, setCpfCnpj] = useState("");
+  const [cep, setCep] = useState("");
   const [isCompany, setIsCompany] = useState(false);
 
   const formatPhone = (value: string) => {
@@ -63,6 +64,27 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
 
   const handleCpfCnpjChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCpfCnpj(formatCpfCnpj(e.target.value));
+  };
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+    setCep(value);
+    
+    if (value.length === 8) {
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${value}/json/`);
+        const data = await response.json();
+        if (!data.erro) {
+          const fullAddress = `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`;
+          setAddress(fullAddress);
+          toast({ title: "Endereço encontrado!", description: "Preencha agora apenas o número e complemento." });
+        } else {
+          toast({ variant: "destructive", title: "CEP não encontrado" });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar CEP:", error);
+      }
+    }
   };
 
   const handleSave = async () => {
@@ -138,6 +160,7 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
     setAddress("");
     setPreferences("");
     setCpfCnpj("");
+    setCep("");
     setIsCompany(false);
   };
 
@@ -251,6 +274,21 @@ const AddClientDialog: React.FC<AddClientDialogProps> = ({ isOpen, onOpenChange 
               <p className="text-xs text-muted-foreground">
                 Alerta automático 7 dias antes
               </p>
+            </div>
+
+            {/* CEP */}
+            <div className="space-y-2">
+              <Label htmlFor="client-cep" className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                CEP (Auto-preenchimento)
+              </Label>
+              <Input
+                id="client-cep"
+                value={cep}
+                onChange={handleCepChange}
+                placeholder="00000-000"
+                maxLength={9}
+              />
             </div>
 
             {/* Endereço */}

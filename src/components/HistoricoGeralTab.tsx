@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone, Fuel } from 'lucide-react';
+import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone, Fuel, Send } from 'lucide-react';
 import { format, parseISO, addMonths, isPast, isBefore, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -414,10 +414,14 @@ export default function HistoricoGeralTab() {
                   : null;
                 const isExpired = expirationDate && isPast(expirationDate);
                 const isNearing = expirationDate && isBefore(expirationDate, addDays(new Date(), 15)) && !isExpired;
+                
+                // "Forgotten" logic: If the most recent service is > 6 months ago and no future appointment
+                const isForgotten = !expirationDate && isPast(addMonths(new Date(item.date), 6));
 
                 return (
                   <div key={item.id}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border transition-colors hover:bg-muted/30`}>
+                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border transition-colors hover:bg-muted/30 ${isExpired ? 'border-red-200 bg-red-50/20' : isNearing ? 'border-amber-200 bg-amber-50/20' : ''}`}>
+
                     <div className="flex items-center gap-3 min-w-0">
                       {getHistoryItemBadge(item)}
                       <div className="min-w-0" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
@@ -433,12 +437,20 @@ export default function HistoricoGeralTab() {
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5">
-                              <Clock className={`w-3 h-3 ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`} />
-                              <span className={`text-[10px] font-bold ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`}>
+                              <Clock className={`w-3 h-3 ${isExpired ? 'text-red-600' : isNearing ? 'text-amber-600' : 'text-green-600'}`} />
+                              <span className={`text-[10px] font-bold ${isExpired ? 'text-red-600' : isNearing ? 'text-amber-600' : 'text-green-600'}`}>
                                 Próxima Manutenção: {safeFormat(expirationDate, 'dd/MM/yyyy')}
-                                {isExpired ? ' (VENCIDO)' : isNearing ? ' (Vence em breve)' : ' (Garantia Ativa)'}
+                                {isExpired ? ' (VENCIDO 🔴)' : isNearing ? ' (Vence em breve 🟡)' : ' (Garantia Ativa 🟢)'}
                               </span>
                             </div>
+                          </div>
+                        )}
+                        {isForgotten && (
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <AlertTriangle className="w-3 h-3 text-red-500" />
+                            <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter">
+                              Cliente Esquecido! Sem contato há +6 meses.
+                            </span>
                           </div>
                         )}
                       </div>
@@ -482,6 +494,25 @@ export default function HistoricoGeralTab() {
                             title="Chamar no WhatsApp"
                           >
                             <MessageSquare className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {(isExpired || isNearing || isForgotten) && item.clientObj?.telefone && (
+                          <Button
+                            size="sm"
+                            className="h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white shadow-sm"
+                            onClick={() => {
+                              const phone = item.clientObj.telefone.replace(/\D/g, '');
+                              const msg = isExpired 
+                                ? `Olá ${item.client}! Percebemos que sua manutenção de ar-condicionado está VENCIDA. Evite quebras e gasto excessivo de energia. Vamos agendar uma limpeza?`
+                                : isNearing
+                                ? `Olá ${item.client}! Sua manutenção preventiva está chegando. Vamos garantir o ar puro da sua casa/empresa?`
+                                : `Olá ${item.client}! Faz tempo que não nos vemos. Que tal uma revisão no seu ar-condicionado para garantir o bom funcionamento?`;
+                              window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                              toast.success("Lembrete enviado!");
+                            }}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            Aviso WhatsApp
                           </Button>
                         )}
                         {item.clientObj?.address && (

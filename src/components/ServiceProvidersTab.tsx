@@ -17,7 +17,6 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TabGuideCards from './TabGuideCards';
-import ProviderScheduleDialog from './ProviderScheduleDialog';
 import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
 import RouteAllocationTab from './RouteAllocationTab';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -94,7 +93,6 @@ export default function ServiceProvidersTab() {
   const [editingProvider, setEditingProvider] = useState<ServiceProvider | null>(null);
   const [search, setSearch] = useState('');
   const [historyProvider, setHistoryProvider] = useState<ServiceProvider | null>(null);
-  const [scheduleProvider, setScheduleProvider] = useState<ServiceProvider | null>(null);
   const [routeProvider, setRouteProvider] = useState<ServiceProvider | null>(null);
 
   const [formData, setFormData] = useState({
@@ -401,9 +399,6 @@ export default function ServiceProvidersTab() {
                     <div className="space-y-2 mt-4">
                       {/* Row 1: Operational */}
                       <div className="flex gap-2">
-                        <Button size="sm" className="h-9 text-xs flex-1 bg-primary/10 text-primary border-primary/20 hover:bg-primary/20" onClick={() => setScheduleProvider(provider)}>
-                          <Plus className="w-3.5 h-3.5 mr-1" /> Agendar
-                        </Button>
                         <Button size="sm" className="h-9 text-xs flex-1 bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100" onClick={() => setRouteProvider(provider)}>
                           <Car className="w-3.5 h-3.5 mr-1" /> Rota Hoje
                         </Button>
@@ -671,12 +666,6 @@ export default function ServiceProvidersTab() {
             })()}
           </DialogContent>
         </Dialog>
-
-        <ProviderScheduleDialog
-          isOpen={!!scheduleProvider}
-          onOpenChange={(open) => !open && setScheduleProvider(null)}
-          providerName={scheduleProvider?.name || ''}
-        />
 
         <ProviderDailyRouteDialog
           isOpen={!!routeProvider}
