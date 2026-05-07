@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
@@ -589,9 +589,9 @@ export default function ServiceProvidersTab() {
                 <Button 
                   onClick={handleSave} 
                   className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 order-1 sm:order-2"
-                  disabled={saving}
+                  disabled={saveMutation.isPending}
                 >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
                 </Button>
               </DialogFooter>
