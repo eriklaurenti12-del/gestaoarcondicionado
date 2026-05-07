@@ -46,7 +46,10 @@ export default function ProviderScheduleDialog({ isOpen, onOpenChange, providerN
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Usuário não autenticado');
 
-      const formattedDate = `${appointmentDate}T${appointmentTime}:00`;
+      if (new Date(formattedDate) <= new Date()) {
+          toast.error('Não é possível agendar para horário passado.');
+          return;
+        }
 
       const { error } = await supabase.from('appointments').insert({
         user_id: session.user.id,
@@ -74,7 +77,12 @@ export default function ProviderScheduleDialog({ isOpen, onOpenChange, providerN
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" onKeyDown={(e) => {
+        if (e.key === 'Enter' && !scheduleMutation.isPending && clientId && serviceId && appointmentDate && appointmentTime) {
+          e.preventDefault();
+          scheduleMutation.mutate();
+        }
+      }}>
         <DialogHeader>
           <DialogTitle>Agendar Serviço — {providerName}</DialogTitle>
         </DialogHeader>
