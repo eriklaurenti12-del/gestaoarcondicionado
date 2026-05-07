@@ -387,9 +387,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // === SUBSCRIBERS: list all users with subscriptions ===
+    // === SUBSCRIBERS: list all users with subscriptions (PLATFORM SUPER_ADMIN ONLY) ===
     if (type === 'subscribers') {
-      // All portal members have access
+      const { data: ownerRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', owner_id);
+      if (!ownerRoles?.some((r: any) => r.role === 'super_admin')) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
       const { data: users } = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 });
       const { data: subs } = await supabase.from('subscriptions').select('*');
@@ -417,9 +425,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // === ACTIVATE / DEACTIVATE SUBSCRIBER ===
+    // === ACTIVATE / DEACTIVATE SUBSCRIBER (PLATFORM SUPER_ADMIN ONLY) ===
     if (type === 'activate_subscriber') {
-      // All portal members have access
+      const { data: ownerRoles } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', owner_id);
+      if (!ownerRoles?.some((r: any) => r.role === 'super_admin')) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
       const { target_user_id, plan, activate } = body;
       if (!target_user_id) {
