@@ -166,6 +166,7 @@ export default function Auth() {
 
   return (
     <div className={`min-h-screen ${bg} flex flex-col items-center justify-center p-4 relative overflow-hidden`}>
+      <AuthUpdateSpotlight />
       {isDark && <ParticleBackground className="z-0" />}
       {isDark && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
