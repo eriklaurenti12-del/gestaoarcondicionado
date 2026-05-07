@@ -95,7 +95,6 @@ export default function TeamPortalLogin() {
   }
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-sm space-y-8 animate-in fade-in zoom-in duration-500">
         <div className="text-center space-y-2">
@@ -125,22 +124,6 @@ export default function TeamPortalLogin() {
                   className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${pin.length > i ? 'bg-primary border-primary scale-125 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-white/20'}`}
                 />
               ))}
-=======
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="border border-border/50 shadow-lg rounded-2xl">
-          <CardContent className="p-8 space-y-6">
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-4 rounded-full bg-primary/10 border border-primary/20">
-                <Wind className="w-10 h-10 text-primary" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold">Portal da Equipe</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Entre com seu <strong className="text-primary">nome</strong> ou <strong className="text-primary">número de telefone</strong> e sua senha
-                </p>
-              </div>
->>>>>>> 433cf70 (erik editou 22:40)
             </div>
 
             {/* Numpad for Agility */}
