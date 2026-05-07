@@ -236,17 +236,23 @@ export default function Members() {
     if (!editingMember || !newName.trim()) return;
 
     const updateData: any = { name: newName.trim(), phone: newPhone.trim() || null, role: newRole };
-    if (newPin.length === 4) updateData.pin = newPin;
 
     const { error } = await supabase.from('team_members').update(updateData).eq('id', editingMember.id);
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Membro atualizado! ✓" });
-      resetForm();
-      setEditingMember(null);
-      loadTeamMembers();
+      return;
     }
+    if (newPin.length === 4) {
+      const { error: pinErr } = await supabase.rpc('set_team_member_pin', { _member_id: editingMember.id, _pin: newPin });
+      if (pinErr) {
+        toast({ title: "Erro ao atualizar PIN", description: pinErr.message, variant: "destructive" });
+        return;
+      }
+    }
+    toast({ title: "Membro atualizado! ✓" });
+    resetForm();
+    setEditingMember(null);
+    loadTeamMembers();
   };
 
   const toggleMemberActive = async (member: TeamMember) => {
