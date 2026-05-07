@@ -11,12 +11,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
-import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone, Fuel, Send } from 'lucide-react';
+import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, Fuel, ArrowUpRight, ArrowDownRight, Zap } from 'lucide-react';
 import { format, parseISO, addMonths, isPast, isBefore, addDays, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import TabGuideCards from './TabGuideCards';
 import ClientHistoryDialog from './ClientHistoryDialog';
 
 interface HistoryItem {
@@ -33,6 +32,7 @@ interface HistoryItem {
   serviceId?: number;
   warrantyMonths?: number;
   profit?: number;
+  isRecurring?: boolean;
 }
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -61,7 +61,7 @@ export default function HistoricoGeralTab() {
     queryKey: ['hist-appointments'],
     queryFn: async () => {
       const { data, error } = await supabase.from('appointments')
-        .select('*, clients(id, name, telefone, address), products(id, name, warranty_months)')
+        .select('*, clients(id, name, telefone, address), products(id, name, warranty_months, is_recurring)')
         .order('appointment_date', { ascending: false });
       if (error) throw error;
       return data || [];
@@ -165,6 +165,7 @@ export default function HistoricoGeralTab() {
         provider: extractProvider(a.notes),
         serviceId: a.service_id,
         warrantyMonths: a.products?.warranty_months || 0,
+        isRecurring: a.products?.is_recurring || false,
       });
     });
 
@@ -204,8 +205,8 @@ export default function HistoricoGeralTab() {
         dbId: e.id,
         date: e.expense_date,
         client: e.helper_name || 'Gasto Geral',
-        type: 'venda', // We'll use a specific badge for expenses
-        description: `⛽ Gasto de Rota: ${e.description || e.category}`,
+        type: 'venda', 
+        description: `⛽ Gasto: ${e.description || e.category}`,
         value: -Number(e.amount || 0),
         status: 'pago',
         provider: e.helper_name,
@@ -214,7 +215,7 @@ export default function HistoricoGeralTab() {
 
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     return items;
-  }, [appointments, sales, quotes, productMap]);
+  }, [appointments, sales, quotes, fixedExpenses, productMap]);
 
   const filtered = useMemo(() => {
     return allItems.filter(item => {
@@ -233,54 +234,48 @@ export default function HistoricoGeralTab() {
     const agendamentos = filtered.filter(i => i.type === 'agendamento');
     const vendas = filtered.filter(i => i.type === 'venda');
     const orcamentos = filtered.filter(i => i.type === 'orcamento');
+    const expenses = filtered.filter(i => i.value < 0);
+    
     return {
       total: filtered.length,
       agendamentos: agendamentos.length,
       concluidos: agendamentos.filter(a => a.status === 'concluido').length,
       vendas: vendas.length,
-      totalVendas: vendas.reduce((s, v) => s + v.value, 0),
+      revenue: vendas.filter(v => v.value > 0).reduce((s, v) => s + v.value, 0),
+      expenses: Math.abs(expenses.reduce((s, e) => s + e.value, 0)),
       totalProfit: vendas.reduce((s, v) => s + (v.profit || 0), 0),
       orcamentos: orcamentos.length,
       totalOrcamentos: orcamentos.reduce((s, o) => s + o.value, 0),
     };
   }, [filtered]);
 
-  const getTypeBadge = (type: string) => {
-    switch (type) {
-      case 'agendamento': return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"><Calendar className="w-3 h-3 mr-1" />Agenda</Badge>;
-      case 'venda': return <Badge className="bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"><ShoppingCart className="w-3 h-3 mr-1" />PDV</Badge>;
-      case 'orcamento': return <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"><FileText className="w-3 h-3 mr-1" />Orçamento</Badge>;
-      default: return <Badge>{type}</Badge>;
-    }
-  };
-
-  const getHistoryItemBadge = (item: HistoryItem) => {
-    if (item.value < 0) return <Badge className="bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300"><Fuel className="w-3 h-3 mr-1" />Gasto</Badge>;
-    return getTypeBadge(item.type);
-  };
-
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
-      concluido: 'bg-green-100 text-green-700', pendente: 'bg-amber-100 text-amber-700',
-      agendado: 'bg-blue-100 text-blue-700', cancelado: 'bg-red-100 text-red-700',
-      aprovado: 'bg-green-100 text-green-700', rascunho: 'bg-gray-100 text-gray-700',
-      pago: 'bg-green-100 text-green-700',
+      concluido: 'bg-green-500/10 text-green-500 border-green-500/20',
+      pendente: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+      agendado: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+      cancelado: 'bg-red-500/10 text-red-500 border-red-500/20',
+      aprovado: 'bg-green-500/10 text-green-500 border-green-500/20',
+      pago: 'bg-green-500/10 text-green-500 border-green-500/20',
     };
-    return <Badge className={map[status] || 'bg-gray-100 text-gray-700'}>{status}</Badge>;
+    return (
+      <Badge variant="outline" className={`${map[status] || 'bg-white/5 text-slate-400 border-white/10'} text-[9px] font-black uppercase tracking-tight`}>
+        {status}
+      </Badge>
+    );
   };
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    doc.setFillColor(24, 24, 27);
+    doc.setFillColor(11, 17, 32);
     doc.rect(0, 0, 210, 40, 'F');
     doc.setTextColor(255);
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('Histórico Geral de Serviços', 14, 20);
+    doc.text('EXTRATO OPERACIONAL - HISTÓRICO', 14, 20);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    const [yr, mo] = filterMonth.split('-').map(Number);
-    doc.text(`${safeFormat(new Date(yr, mo - 1, 1), 'MMMM yyyy', { locale: ptBR })} — ${filtered.length} registros`, 14, 32);
+    doc.text(`${showAllMonths ? 'Todo o Período' : filterMonth} — ${filtered.length} registros`, 14, 32);
 
     autoTable(doc, {
       startY: 48,
@@ -289,296 +284,292 @@ export default function HistoricoGeralTab() {
         safeFormat(i.date, 'dd/MM/yy HH:mm'),
         i.type === 'agendamento' ? 'Agenda' : i.type === 'venda' ? 'PDV' : 'Orçamento',
         i.client, i.description,
-        i.value > 0 ? `R$ ${i.value.toFixed(2)}` : '-',
+        i.value !== 0 ? `R$ ${i.value.toFixed(2)}` : '-',
         i.status, i.provider || '-',
       ]),
-      headStyles: { fillColor: [24, 24, 27] },
+      headStyles: { fillColor: [11, 17, 32] },
       styles: { fontSize: 8 },
     });
 
-    doc.save(`historico-${filterMonth}.pdf`);
-    toast.success('PDF exportado!');
+    doc.save(`historico-gestao-${format(new Date(), 'dd-MM-yyyy')}.pdf`);
+    toast.success('PDF gerado com sucesso!');
   };
 
   return (
-    <div className="space-y-4 animate-fade-in">
-      <TabGuideCards cards={[
-        {
-          icon: History,
-          title: 'Histórico Completo',
-          badge: 'Visão Geral',
-          badgeColor: 'blue',
-          description: <>Todos os <strong>serviços, vendas e orçamentos</strong> em um só lugar. Filtre por mês, tipo ou cliente.</>,
-        },
-      ]} />
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      {/* Premium Stats Header */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="op-card p-6 bg-gradient-to-br from-blue-600/10 to-transparent">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+              <Calendar className="w-5 h-5 text-blue-500" />
+            </div>
+            <Badge variant="outline" className="border-blue-500/30 text-blue-500 text-[10px] font-black">AGENDA</Badge>
+          </div>
+          <p className="text-3xl font-black text-white">{stats.agendamentos}</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Serviços Totais</p>
+          <div className="mt-4 h-1 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${(stats.concluidos / (stats.agendamentos || 1)) * 100}%` }} />
+          </div>
+          <p className="text-[10px] text-blue-400 font-black mt-2 uppercase">{stats.concluidos} CONCLUÍDOS</p>
+        </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-blue-500" />
-              <span className="text-xs font-medium text-muted-foreground">Agendamentos</span>
+        <div className="op-card p-6 bg-gradient-to-br from-green-600/10 to-transparent">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-green-500/10 rounded-2xl border border-green-500/20">
+              <DollarSign className="w-5 h-5 text-green-500" />
             </div>
-            <p className="text-xl font-bold text-blue-500">{stats.agendamentos}</p>
-            <p className="text-[10px] text-muted-foreground">{stats.concluidos} concluído(s)</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <ShoppingCart className="h-4 w-4 text-green-500" />
-              <span className="text-xs font-medium text-muted-foreground">Vendas (Faturado)</span>
+            <Badge variant="outline" className="border-green-500/30 text-green-500 text-[10px] font-black">RECURSOS</Badge>
+          </div>
+          <p className="text-3xl font-black text-white">R$ {stats.revenue.toFixed(2)}</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Receita Bruta</p>
+          <div className="flex items-center gap-1.5 mt-4 text-[10px] font-black text-green-500 uppercase tracking-widest">
+            <TrendingUp className="w-3 h-3" />
+            Margem: R$ {stats.totalProfit.toFixed(2)}
+          </div>
+        </div>
+
+        <div className="op-card p-6 bg-gradient-to-br from-red-600/10 to-transparent">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-red-500/10 rounded-2xl border border-red-500/20">
+              <Fuel className="w-5 h-5 text-red-500" />
             </div>
-            <p className="text-xl font-bold text-green-500">R$ {stats.totalVendas.toFixed(2)}</p>
-            <div className="flex items-center gap-1 text-[10px] text-green-600 font-medium">
-              <TrendingUp className="w-3 h-3" />
-              Lucro: R$ {stats.totalProfit.toFixed(2)}
+            <Badge variant="outline" className="border-red-500/30 text-red-500 text-[10px] font-black">CUSTOS</Badge>
+          </div>
+          <p className="text-3xl font-black text-white">R$ {stats.expenses.toFixed(2)}</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Despesas Operacionais</p>
+          <div className="flex items-center gap-1.5 mt-4 text-[10px] font-black text-red-500 uppercase tracking-widest">
+            <ArrowDownRight className="w-3 h-3" />
+            Saída de Caixa
+          </div>
+        </div>
+
+        <div className="op-card p-6 bg-gradient-to-br from-purple-600/10 to-transparent">
+          <div className="flex justify-between items-start mb-4">
+            <div className="p-3 bg-purple-500/10 rounded-2xl border border-purple-500/20">
+              <FileText className="w-5 h-5 text-purple-500" />
             </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText className="h-4 w-4 text-purple-500" />
-              <span className="text-xs font-medium text-muted-foreground">Orçamentos</span>
-            </div>
-            <p className="text-xl font-bold text-purple-500">{stats.orcamentos}</p>
-            <p className="text-[10px] text-muted-foreground">R$ {stats.totalOrcamentos.toFixed(2)}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <ClipboardList className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-medium text-muted-foreground">Total Itens</span>
-            </div>
-            <p className="text-xl font-bold text-amber-500">{stats.total}</p>
-          </CardContent>
-        </Card>
+            <Badge variant="outline" className="border-purple-500/30 text-purple-500 text-[10px] font-black">NEGÓCIOS</Badge>
+          </div>
+          <p className="text-3xl font-black text-white">{stats.orcamentos}</p>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">Orçamentos Gerados</p>
+          <p className="text-[10px] text-purple-400 font-black mt-4 uppercase">R$ {stats.totalOrcamentos.toFixed(2)} EM PROSPECÇÃO</p>
+        </div>
       </div>
 
-      {/* Filters + List */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
+      {/* Main Ledger Control */}
+      <div className="op-card">
+        <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
               <History className="w-5 h-5 text-primary" />
-              Histórico de Serviços
-            </CardTitle>
-            <Button variant="outline" size="sm" onClick={exportPDF}>
-              <FileDown className="w-4 h-4 mr-1" /> PDF
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white uppercase tracking-tight">Livro de Histórico</h2>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Registro Unificado de Operações</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="relative group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-primary transition-colors" />
+              <Input 
+                placeholder="Filtrar por cliente, técnico ou serviço..." 
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="op-input pl-9 w-full md:w-[300px] h-10 text-xs font-black"
+              />
+            </div>
+            <Button variant="outline" onClick={exportPDF} className="h-10 border-white/10 bg-white/5 hover:bg-white/10 text-xs font-black uppercase gap-2">
+              <FileDown className="w-4 h-4 text-blue-500" /> EXPORTAR
             </Button>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 mt-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente, descrição, prestador..." value={search}
-                onChange={e => setSearch(e.target.value)} className="pl-9" />
-            </div>
-            <div className="flex items-center gap-2 px-2 bg-muted/50 rounded-lg border h-10">
-              <Checkbox 
-                id="showAllMonths" 
-                checked={showAllMonths} 
-                onCheckedChange={(checked) => setShowAllMonths(!!checked)}
-              />
-              <Label htmlFor="showAllMonths" className="text-xs font-medium cursor-pointer whitespace-nowrap">
-                Exibir Tudo
-              </Label>
-            </div>
+        </div>
+
+        <div className="p-4 bg-white/5 border-b border-white/5 flex flex-wrap gap-4 items-center">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Tipo:</span>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="agendamento">Agendamentos</SelectItem>
-                <SelectItem value="venda">Vendas PDV</SelectItem>
-                <SelectItem value="orcamento">Orçamentos</SelectItem>
+              <SelectTrigger className="w-[140px] h-8 bg-black/40 border-white/10 text-[10px] font-black uppercase">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#0B1120] border-white/10">
+                <SelectItem value="all">TODOS</SelectItem>
+                <SelectItem value="agendamento">AGENDAMENTOS</SelectItem>
+                <SelectItem value="venda">VENDAS PDV</SelectItem>
+                <SelectItem value="orcamento">ORÇAMENTOS</SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </CardHeader>
-        <CardContent>
+
+          <div className="flex items-center gap-2 bg-black/40 border border-white/5 px-3 py-1.5 rounded-xl">
+            <Checkbox 
+              id="showAllMonths" 
+              checked={showAllMonths} 
+              onCheckedChange={(checked) => setShowAllMonths(!!checked)}
+              className="w-3.5 h-3.5 border-white/20"
+            />
+            <Label htmlFor="showAllMonths" className="text-[9px] font-black text-slate-300 uppercase cursor-pointer tracking-wider">Exibir Histórico Completo</Label>
+          </div>
+        </div>
+
+        <div className="p-0">
           {isLoading ? (
-            <div className="space-y-3">{[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div>
+            <div className="p-8 space-y-4">
+              {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-16 w-full bg-white/5 rounded-2xl" />)}
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <History className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">Nenhum registro encontrado</p>
-              <p className="text-sm mt-1">Ajuste os filtros ou selecione outro mês</p>
+            <div className="py-24 text-center">
+              <History className="w-16 h-16 mx-auto mb-4 text-slate-700 opacity-20" />
+              <p className="text-lg font-black text-slate-400 uppercase tracking-widest">Nada encontrado</p>
+              <p className="text-xs text-slate-600 font-bold uppercase mt-1">Ajuste os filtros de busca</p>
             </div>
           ) : (
-            <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 pb-16 scrollbar-thin scrollbar-thumb-muted">
-              {(() => {
-                const grouped: Record<string, HistoryItem[]> = {};
-                filtered.forEach(item => {
-                  const dateKey = item.date?.split('T')[0] || 'Outros';
-                  if (!grouped[dateKey]) grouped[dateKey] = [];
-                  grouped[dateKey].push(item);
-                });
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/5">
+                    <th className="px-6 py-4 text-left text-[9px] font-black text-slate-500 uppercase tracking-widest">Data / Hora</th>
+                    <th className="px-6 py-4 text-left text-[9px] font-black text-slate-500 uppercase tracking-widest">Cliente / Operação</th>
+                    <th className="px-6 py-4 text-left text-[9px] font-black text-slate-500 uppercase tracking-widest">Técnico / Responsável</th>
+                    <th className="px-6 py-4 text-left text-[9px] font-black text-slate-500 uppercase tracking-widest">Status</th>
+                    <th className="px-6 py-4 text-right text-[9px] font-black text-slate-500 uppercase tracking-widest">Valor Líquido</th>
+                    <th className="px-6 py-4 text-center text-[9px] font-black text-slate-500 uppercase tracking-widest">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {filtered.map(item => {
+                    const expirationDate = item.warrantyMonths && item.warrantyMonths > 0 
+                      ? addMonths(new Date(item.date), item.warrantyMonths) 
+                      : null;
+                    const isExpired = expirationDate && isPast(expirationDate);
+                    const isNearing = expirationDate && isBefore(expirationDate, addDays(new Date(), 15)) && !isExpired;
 
-                return Object.entries(grouped).map(([date, items]) => (
-                  <div key={date} className="space-y-3">
-                    <div className="sticky top-0 z-10 py-1 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                      <div className="flex items-center gap-2">
-                        <div className="h-px flex-1 bg-border" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-0.5 rounded-full border bg-muted/30">
-                          {isToday(new Date(date + 'T12:00:00')) ? 'HOJE' : format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </span>
-                        <div className="h-px flex-1 bg-border" />
-                      </div>
-                    </div>
-
-                    <div className="grid gap-2">
-                      {items.map(item => {
-                        const expirationDate = item.warrantyMonths && item.warrantyMonths > 0 
-                          ? addMonths(new Date(item.date), item.warrantyMonths) 
-                          : null;
-                        const isExpired = expirationDate && isPast(expirationDate);
-                        const isNearing = expirationDate && isBefore(expirationDate, addDays(new Date(), 15)) && !isExpired;
-                        const isForgotten = !expirationDate && isPast(addMonths(new Date(item.date), 6));
-
-                        return (
-                          <div key={item.id}
-                            className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 transition-all hover:bg-muted/30 hover:shadow-sm ${isExpired ? 'border-red-500/30' : isNearing ? 'border-amber-500/30' : 'border-border/60'}`}>
-
-                            <div className="flex items-center gap-4 min-w-0">
-                              <div className={`p-2.5 rounded-full ${item.value < 0 ? 'bg-red-500/10' : item.type === 'agendamento' ? 'bg-blue-500/10' : item.type === 'venda' ? 'bg-green-500/10' : 'bg-purple-500/10'}`}>
-                                {item.value < 0 ? <Fuel className="w-4 h-4 text-red-500" /> : 
-                                 item.type === 'agendamento' ? <Calendar className="w-4 h-4 text-blue-500" /> : 
-                                 item.type === 'venda' ? <ShoppingCart className="w-4 h-4 text-green-500" /> : 
-                                 <FileText className="w-4 h-4 text-purple-500" />}
-                              </div>
-                              
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-bold text-sm truncate hover:text-primary cursor-pointer transition-colors" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
-                                    {item.client}
-                                  </p>
-                                  {getHistoryItemBadge(item)}
-                                </div>
-                                <p className="text-xs text-muted-foreground truncate font-medium">{item.description}</p>
-                                
-                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="w-3 h-3 text-muted-foreground" />
-                                    <span className="text-[10px] text-muted-foreground">{safeFormat(item.date, 'HH:mm')}</span>
-                                  </div>
-                                  {item.provider && (
-                                    <div className="flex items-center gap-1">
-                                      <Users className="w-3 h-3 text-muted-foreground" />
-                                      <span className="text-[10px] font-semibold text-primary">{item.provider}</span>
-                                    </div>
-                                  )}
-                                  {expirationDate && (
-                                    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${isExpired ? 'bg-red-50 text-red-600 border-red-200' : isNearing ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-green-50 text-green-600 border-green-200'}`}>
-                                      <RefreshCw className="w-2.5 h-2.5" />
-                                      <span className="text-[9px] font-bold">
-                                        Próxima: {safeFormat(expirationDate, 'dd/MM/yy')}
-                                      </span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-0">
-                              <div className="flex flex-col items-end">
-                                <span className={`font-black text-sm ${item.value < 0 ? 'text-red-500' : 'text-green-600'}`}>
-                                  {item.value < 0 ? `- R$ ${Math.abs(item.value).toFixed(2)}` : 
-                                   item.value > 0 ? `R$ ${item.value.toFixed(2)}` : 'Serviço'}
-                                </span>
-                                {getStatusBadge(item.status)}
-                              </div>
-
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                {item.clientObj?.telefone && (
-                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => window.open(`https://wa.me/55${item.clientObj.telefone.replace(/\D/g, '')}`, '_blank')}>
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                  </Button>
-                                )}
-                                {item.type === 'agendamento' && item.status === 'concluido' && (
-                                  <Button size="sm" variant="outline" className="h-8 text-[10px] gap-1 px-2 border-amber-200 text-amber-700 bg-amber-50/50" onClick={() => setRenewingItem(item)}>
-                                    <RefreshCw className="w-3 h-3" /> Renovar
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
+                    return (
+                      <tr key={item.id} className="group hover:bg-white/[0.02] transition-colors">
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-white">{safeFormat(item.date, 'dd/MM/yyyy')}</span>
+                            <span className="text-[10px] text-slate-500 font-bold">{safeFormat(item.date, 'HH:mm')}</span>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ));
-              })()}
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex flex-col min-w-[200px]">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-black text-white hover:text-primary cursor-pointer transition-colors" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
+                                {item.client}
+                              </span>
+                              {item.isRecurring && (
+                                <div className="p-1 bg-amber-500/10 rounded-lg" title="Serviço Recorrente">
+                                  <Zap className="w-2.5 h-2.5 text-amber-500" />
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight mt-0.5 line-clamp-1">{item.description}</span>
+                            {expirationDate && (
+                              <div className={`flex items-center gap-1.5 mt-2 text-[9px] font-black uppercase ${isExpired ? 'text-red-500' : isNearing ? 'text-amber-500' : 'text-green-500'}`}>
+                                <ShieldCheck className="w-3 h-3" />
+                                Garantia até {safeFormat(expirationDate, 'dd/MM/yy')}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          {item.provider ? (
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 rounded-lg bg-white/5 flex items-center justify-center text-[10px] font-black text-primary border border-primary/20 uppercase">
+                                {item.provider.charAt(0)}
+                              </div>
+                              <span className="text-xs font-black text-slate-300 uppercase">{item.provider}</span>
+                            </div>
+                          ) : (
+                            <span className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">NÃO ATRIBUÍDO</span>
+                          )}
+                        </td>
+                        <td className="px-6 py-5">
+                          {getStatusBadge(item.status)}
+                        </td>
+                        <td className="px-6 py-5 text-right">
+                          <div className="flex flex-col">
+                            <span className={`text-sm font-black ${item.value < 0 ? 'text-red-500' : item.value > 0 ? 'text-green-500' : 'text-blue-500'}`}>
+                              {item.value < 0 ? `- R$ ${Math.abs(item.value).toFixed(2)}` : 
+                               item.value > 0 ? `R$ ${item.value.toFixed(2)}` : 'RESERVA'}
+                            </span>
+                            {item.profit && item.profit > 0 && (
+                              <span className="text-[9px] text-green-500/60 font-bold uppercase">Lucro: R$ {item.profit.toFixed(2)}</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-5">
+                          <div className="flex justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.clientObj?.telefone && (
+                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-green-500/10 hover:bg-green-500/20 text-green-500 border border-green-500/20 rounded-xl" onClick={() => window.open(`https://wa.me/55${item.clientObj.telefone.replace(/\D/g, '')}`, '_blank')}>
+                                <MessageSquare className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {item.type === 'agendamento' && item.status === 'concluido' && (
+                              <Button size="icon" variant="ghost" className="h-8 w-8 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-xl" onClick={() => setRenewingItem(item)}>
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Renewal Dialog */}
       <Dialog open={!!renewingItem} onOpenChange={(open) => !open && setRenewingItem(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-amber-600">
-              <RefreshCw className="w-5 h-5" />
-              Renovação de Manutenção
+        <DialogContent className="max-w-md bg-[#0B1120] border-white/10 text-white p-0 overflow-hidden">
+          <div className="p-6 border-b border-white/5 bg-white/5">
+            <DialogTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2 text-amber-500">
+              <Zap className="w-5 h-5" /> RE-AGENDAMENTO RECORRENTE
             </DialogTitle>
-            <DialogDescription>
-              Agende uma nova manutenção para {renewingItem?.client} referente ao serviço: {renewingItem?.description}
-            </DialogDescription>
-          </DialogHeader>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Gerar nova ordem para {renewingItem?.client}</p>
+          </div>
 
-          <div className="space-y-4 py-4">
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
-              <div className="text-xs text-amber-800">
-                <p className="font-bold">Atenção</p>
-                <p>A renovação criará um novo agendamento na agenda para a data escolhida abaixo.</p>
-              </div>
+          <div className="p-6 space-y-6">
+            <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              <p className="text-[10px] text-amber-200 font-bold uppercase leading-relaxed">
+                Esta ação criará um novo agendamento preventivo baseado no serviço anterior: <span className="text-white underline">{renewingItem?.description}</span>.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Próxima Manutenção</Label>
-                <Input type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} />
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Nova Data</Label>
+                <Input type="date" value={renewDate} onChange={e => setRenewDate(e.target.value)} className="op-input font-black h-11" />
               </div>
-              <div className="space-y-2">
-                <Label>Horário</Label>
-                <Input type="time" value={renewTime} onChange={e => setRenewTime(e.target.value)} />
+              <div className="space-y-1.5">
+                <Label className="text-[10px] font-black text-slate-400 uppercase ml-1">Horário</Label>
+                <Input type="time" value={renewTime} onChange={e => setRenewTime(e.target.value)} className="op-input font-black h-11" />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Tipo de Manutenção</Label>
-              <Select defaultValue="preventiva">
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="preventiva">🔧 Preventiva (Recorrência)</SelectItem>
-                  <SelectItem value="corretiva">🛠️ Corretiva / Refazer</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRenewingItem(null)}>Cancelar</Button>
+          <DialogFooter className="p-6 bg-white/5 border-t border-white/5">
+            <Button variant="ghost" onClick={() => setRenewingItem(null)} className="text-slate-400 font-black uppercase text-xs">Cancelar</Button>
             <Button 
-              className="bg-amber-600 hover:bg-amber-700"
+              className="op-btn-primary h-12 px-6 font-black uppercase text-xs"
               disabled={renewMutation.isPending}
               onClick={() => {
                 if (!renewingItem || !renewingItem.clientObj?.id || !renewingItem.serviceId) return;
-                
                 renewMutation.mutate({
                   clientId: renewingItem.clientObj.id,
                   serviceId: renewingItem.serviceId,
                   date: `${renewDate}T${renewTime}:00`,
-                  notes: `[RENOVAÇÃO] Manutenção baseada no serviço realizado em ${safeFormat(renewingItem.date, 'dd/MM/yyyy')}`
+                  notes: `[RECORRÊNCIA] Manutenção programada baseada no serviço de ${safeFormat(renewingItem.date, 'dd/MM/yyyy')}`
                 });
               }}
             >
-              {renewMutation.isPending ? "Agendando..." : "Confirmar Agendamento"}
+              {renewMutation.isPending ? "Processando..." : "Confirmar Novo Ciclo"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -592,3 +583,6 @@ export default function HistoricoGeralTab() {
     </div>
   );
 }
+
+// Extra Icons
+const ShieldCheck = ({ className }: { className?: string }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>;

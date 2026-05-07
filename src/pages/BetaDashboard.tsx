@@ -9,15 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Switch } from '@/components/ui/switch';
 import { 
   BarChart3, CalendarDays, Users, DollarSign, FileText, 
   Plus, Search, ArrowLeft, Moon, Sun, Zap, Clock, 
   Phone, Wallet, ShoppingCart, ClipboardList, Wind,
-  Download, Minus, Trash2, Receipt, Package,
+  Download, Trash2, Receipt, Package,
   Wrench, FileCheck, Thermometer, Home, MoreHorizontal,
   TrendingUp, Bell, Globe, Settings, X, RefreshCw,
-  Check, MapPin, Navigation, ChevronLeft, ChevronRight, Briefcase
+  Check, MapPin, Navigation, ChevronLeft, ChevronRight, Briefcase, LayoutDashboard, History, Map, UserPlus
 } from 'lucide-react';
 import { format, isToday, startOfDay, isSameDay, addDays, isBefore } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -27,9 +26,11 @@ import LembretesTab from '@/components/LembretesTab';
 import ImpostosTab from '@/components/ImpostosTab';
 import OnlineBookingsTab from '@/components/OnlineBookingsTab';
 import CompanyDataTab from '@/components/CompanyDataTab';
+import ServiceProvidersTab from '@/components/ServiceProvidersTab';
+import HistoricoGeralTab from '@/components/HistoricoGeralTab';
 import { forceUpdateApp } from '@/lib/updateApp';
 
-type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os';
+type BetaView = 'home' | 'agenda' | 'pdv' | 'cadastros' | 'mais' | 'financeiro' | 'impostos' | 'lembretes' | 'online-bookings' | 'configuracoes' | 'novo-cliente' | 'estoque' | 'orcamentos' | 'os' | 'prestadores' | 'historico';
 
 const safeIsToday = (date: any) => {
   try {
@@ -37,18 +38,6 @@ const safeIsToday = (date: any) => {
     const d = new Date(date);
     if (isNaN(d.getTime())) return false;
     return isToday(d);
-  } catch {
-    return false;
-  }
-};
-
-const safeIsSameDay = (date1: any, date2: any) => {
-  try {
-    if (!date1 || !date2) return false;
-    const d1 = new Date(date1);
-    const d2 = new Date(date2);
-    if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return false;
-    return isSameDay(d1, d2);
   } catch {
     return false;
   }
@@ -62,75 +51,14 @@ export default function BetaDashboard() {
   const [view, setView] = useState<BetaView>('home');
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [showApprenticeTips, setShowApprenticeTips] = useState(true);
 
   // Data states
-  const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
   const [allAppointments, setAllAppointments] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [recentFinancial, setRecentFinancial] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
-  const [quotes, setQuotes] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [fixedExpenses, setFixedExpenses] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [cadastroTab, setCadastroTab] = useState<'clientes' | 'servicos'>('clientes');
-
-  // Form states  
-  const [newClientName, setNewClientName] = useState('');
-  const [newClientPhone, setNewClientPhone] = useState('');
-  const [newClientAddress, setNewClientAddress] = useState('');
-
-  // PDV states
-  const [pdvCart, setPdvCart] = useState<{ product: any; qty: number }[]>([]);
-  const [pdvSearch, setPdvSearch] = useState('');
-  const [pdvPayment, setPdvPayment] = useState<'PIX' | 'Dinheiro' | 'Débito' | 'Crédito'>('PIX');
-  const [pdvClientSearch, setPdvClientSearch] = useState('');
-  const [pdvSelectedClient, setPdvSelectedClient] = useState<any>(null);
-  const [pdvClientMode, setPdvClientMode] = useState<'cadastrado' | 'nome' | 'consumidor'>('cadastrado');
-  const [pdvClientName, setPdvClientName] = useState('');
-  const [pdvDiscount, setPdvDiscount] = useState(0);
-  const [pdvDiscountValue, setPdvDiscountValue] = useState(0);
-  const [pdvTab, setPdvTab] = useState<'pdv' | 'historico'>('pdv');
-
-  // Agenda states
-  const [agendaTab, setAgendaTab] = useState<'lista' | 'horarios'>('lista');
-  const [agendaSearch, setAgendaSearch] = useState('');
-  const [agendaStatusFilter, setAgendaStatusFilter] = useState('todos');
-  const [boardDate, setBoardDate] = useState(new Date());
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  // Mais panel open state
-  const [maisOpen, setMaisOpen] = useState(false);
-  const [showUpdateModal, setShowUpdateModal] = useState(false);
-  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
-
-  const checkForUpdates = async () => {
-    setIsCheckingUpdates(true);
-    await forceUpdateApp();
-    setTimeout(() => setIsCheckingUpdates(false), 1000);
-  };
-
-  // Real-time clock for schedule board
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') { if (e.key === 'Escape') (e.target as HTMLElement).blur(); return; }
-      switch (e.key) {
-        case 'F1': e.preventDefault(); setView('home'); break;
-        case 'F2': e.preventDefault(); setView('pdv'); break;
-        case 'F3': e.preventDefault(); setView('agenda'); break;
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [view]);
 
   useEffect(() => { checkAuth(); }, []);
 
@@ -143,1242 +71,189 @@ export default function BetaDashboard() {
   };
 
   const loadData = async (uid: string) => {
-    const [aptsRes, allAptsRes, clientsRes, finRes, prodsRes, quotesRes, salesRes, expensesRes] = await Promise.all([
-      supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, service_duration, cost_price)').eq('user_id', uid).gte('appointment_date', startOfDay(new Date()).toISOString()).order('appointment_date', { ascending: true }).limit(50),
+    const [allAptsRes, clientsRes, finRes, prodsRes, salesRes, expensesRes] = await Promise.all([
       supabase.from('appointments').select('*, clients(name, telefone, address), products(name, price, service_duration, cost_price)').eq('user_id', uid).order('appointment_date', { ascending: false }).limit(500),
       supabase.from('clients').select('*').eq('user_id', uid).order('created_at', { ascending: false }).limit(500),
       supabase.from('financial_records').select('*').eq('user_id', uid).order('record_date', { ascending: false }).limit(100),
       supabase.from('products').select('*, suppliers(name)').eq('user_id', uid).order('name').limit(500),
-      supabase.from('quotes').select('*, clients(name)').eq('user_id', uid).order('created_at', { ascending: false }).limit(100),
       supabase.from('sales').select('*, clients(name), products(name)').eq('user_id', uid).order('sale_date', { ascending: false }).limit(100),
       supabase.from('fixed_expenses').select('*').eq('user_id', uid).order('expense_date', { ascending: false }).limit(100),
     ]);
-    if (aptsRes.data) setTodayAppointments(aptsRes.data);
     if (allAptsRes.data) setAllAppointments(allAptsRes.data);
     if (clientsRes.data) setClients(clientsRes.data);
     if (finRes.data) setRecentFinancial(finRes.data);
     if (prodsRes.data) setProducts(prodsRes.data);
-    if (quotesRes.data) setQuotes(quotesRes.data);
     if (salesRes.data) setSales(salesRes.data);
     if (expensesRes.data) setFixedExpenses(expensesRes.data);
   };
 
-  const addClient = async () => {
-    if (!newClientName.trim()) { toast({ title: 'Informe o nome', variant: 'destructive' }); return; }
-    const { error } = await supabase.from('clients').insert({ user_id: userId, name: newClientName, telefone: newClientPhone, address: newClientAddress });
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    toast({ title: '✅ Cliente cadastrado!' });
-    setNewClientName(''); setNewClientPhone(''); setNewClientAddress('');
-    setView('cadastros');
-    loadData(userId);
-  };
-
-  // Update appointment status
-  const updateAppointmentStatus = async (id: string, status: string, appointment?: any) => {
-    const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
-    if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
-    
-    // If completing, register sale + financial record
-    if ((status === 'concluido' || status === 'concluído') && appointment?.service_id && appointment?.client_id && appointment?.products) {
-      const salePrice = Number(appointment.products.price);
-      const costPrice = Number(appointment.products.cost_price || 0);
-      
-      await supabase.from('sales').insert({
-        user_id: userId, client_id: appointment.client_id, product_id: appointment.service_id,
-        qty: 1, sale_price: salePrice, total_profit: salePrice - costPrice, payment_method: 'Dinheiro' as const,
-      });
-      await supabase.from('financial_records').insert({
-        user_id: userId, type: 'entrada', amount: salePrice,
-        description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
-        payment_method: 'Dinheiro', category: 'Serviço Agenda',
-      });
-    }
-    
-    toast({ title: `✅ Status: ${status}` });
-    loadData(userId);
-  };
-
-  const deleteAppointment = async (id: string) => {
-    if (!confirm('Excluir agendamento?')) return;
-    const { error } = await supabase.from('appointments').delete().eq('id', id);
-    if (error) { toast({ title: 'Erro', variant: 'destructive' }); return; }
-    toast({ title: 'Agendamento removido' });
-    loadData(userId);
-  };
-
-  const handleCheckIn = async (appointmentId: string) => {
-    if (!navigator.geolocation) {
-      toast({ title: "GPS não suportado", variant: "destructive" });
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      const { latitude, longitude } = pos.coords;
-      const checkInTime = new Date().toLocaleTimeString();
-      const coords = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
-      
-      const { data: apt } = await supabase.from('appointments').select('notes').eq('id', appointmentId).single();
-      const newNotes = `[CHECK-IN GPS: ${coords} às ${checkInTime}]\n${apt?.notes || ""}`;
-      
-      const { error } = await supabase.from('appointments').update({ notes: newNotes }).eq('id', appointmentId);
-      
-      if (error) {
-        toast({ title: "Erro no check-in", variant: "destructive" });
-      } else {
-        toast({ title: "Check-in realizado!", description: `Localização: ${coords}` });
-        loadData(userId);
-      }
-    }, (err) => {
-      toast({ title: "Erro ao obter GPS", description: err.message, variant: "destructive" });
-    });
-  };
-
-  const sendOnTheWay = (clientPhone: string, clientName: string) => {
-    const msg = `Olá *${clientName}*! ❄️\n\nSou o técnico da *AC Service Pro* e acabo de iniciar minha rota. Estou a caminho do seu endereço agora!\n\nAté breve!`;
-    window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(msg)}`, '_blank');
-  };
-
-  // PDV functions
-  const addToCart = (product: any) => {
-    setPdvCart(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
-      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, qty: i.qty + 1 } : i);
-      return [...prev, { product, qty: 1 }];
-    });
-  };
-
-  const removeFromCart = (productId: number) => setPdvCart(prev => prev.filter(i => i.product.id !== productId));
-  const cartSubtotal = pdvCart.reduce((s, i) => s + i.product.price * i.qty, 0);
-  const cartTotal = Math.max(0, cartSubtotal - pdvDiscountValue - (cartSubtotal * pdvDiscount / 100));
-
-  const finalizePdvSale = async () => {
-    if (pdvCart.length === 0) { toast({ title: 'Carrinho vazio', variant: 'destructive' }); return; }
-    for (const item of pdvCart) {
-      const { error } = await supabase.from('sales').insert({
-        user_id: userId, product_id: item.product.id, client_id: pdvSelectedClient?.id || 1,
-        qty: item.qty, sale_price: item.product.price,
-        total_profit: (item.product.price - item.product.cost_price) * item.qty, payment_method: pdvPayment,
-      });
-      if (error) { toast({ title: 'Erro na venda', description: error.message, variant: 'destructive' }); return; }
-    }
-    // Financial record
-    await supabase.from('financial_records').insert({
-      user_id: userId, type: 'entrada', amount: cartTotal,
-      description: `Venda PDV - ${pdvCart.map(i => i.product.name).join(', ')}`,
-      payment_method: pdvPayment, category: 'Venda PDV',
-    });
-    toast({ title: `✅ Venda de R$ ${cartTotal.toFixed(2)} finalizada!` });
-    setPdvCart([]); setPdvSelectedClient(null); setPdvDiscount(0); setPdvDiscountValue(0);
-    loadData(userId);
-  };
-
-  // PDF Exports
-  const safeFormat = (date: any, formatStr: string, options?: any) => {
-    try {
-      if (!date) return '-';
-      const d = new Date(date);
-      if (isNaN(d.getTime())) return '-';
-      return format(d, formatStr, options);
-    } catch (e) {
-      return '-';
-    }
-  };
-
-  const exportAgendaPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text('Agenda - Gestao AC', 14, 20);
-    doc.setFontSize(10); doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 28);
-    const data = (agendaStatusFilter === 'todos' ? filteredAgenda : filteredAgenda).map(a => [
-      safeFormat(a.appointment_date, 'dd/MM/yyyy HH:mm'),
-      (a.clients as any)?.name || '-',
-      (a.products as any)?.name || '-',
-      a.status,
-      `R$ ${Number((a.products as any)?.price || 0).toFixed(2)}`
-    ]);
-    autoTable(doc, { startY: 34, head: [['Data/Hora', 'Cliente', 'Serviço', 'Status', 'Valor']], body: data });
-    doc.save('agenda.pdf'); toast({ title: '📄 PDF exportado!' });
-  };
-
-  const exportClientesPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text('Clientes - Gestao AC', 14, 20);
-    doc.setFontSize(10); doc.text(`Total: ${clients.length} clientes`, 14, 28);
-    autoTable(doc, { startY: 34, head: [['Nome', 'Telefone', 'Endereço']],
-      body: clients.map(c => [c.name, c.telefone || '-', c.address || '-']),
-    });
-    doc.save('clientes.pdf'); toast({ title: '📄 PDF exportado!' });
-  };
-
-  const exportFinanceiroPDF = () => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text('Financeiro - Gestao AC', 14, 20);
-    const monthStr = safeFormat(new Date(), 'MMMM yyyy', { locale: ptBR });
-    doc.setFontSize(10); doc.text(`Período: ${monthStr}`, 14, 28);
-    autoTable(doc, { startY: 34, head: [['Data', 'Descrição', 'Tipo', 'Valor']],
-      body: recentFinancial.map(r => [
-        format(new Date(r.record_date), 'dd/MM/yyyy'),
-        r.description || r.category || '-',
-        r.type === 'entrada' ? 'Receita' : 'Despesa',
-        `R$ ${Number(r.amount).toFixed(2)}`
-      ]),
-    });
-    doc.save('financeiro.pdf'); toast({ title: '📄 PDF exportado!' });
-  };
-
-  const exportOrcamentoPDF = (quote: any) => {
-    const doc = new jsPDF();
-    doc.setFontSize(18); doc.text(`Orçamento #${quote.quote_number}`, 14, 20);
-    doc.setFontSize(12); doc.text(quote.title, 14, 30);
-    doc.setFontSize(10);
-    doc.text(`Cliente: ${(quote.clients as any)?.name || '-'}`, 14, 40);
-    doc.text(`Data: ${format(new Date(quote.created_at), 'dd/MM/yyyy')}`, 14, 48);
-    doc.text(`Status: ${quote.status}`, 14, 56);
-    doc.setFontSize(14); doc.text(`Total: R$ ${Number(quote.total).toFixed(2)}`, 14, 70);
-    doc.save(`orcamento-${quote.quote_number}.pdf`);
-    toast({ title: '📄 PDF exportado!' });
-  };
-
-
-
-  // Computed values
-  const agendaStats = useMemo(() => {
-    const total = allAppointments.length;
-    const agendados = allAppointments.filter(a => a.status === 'agendado').length;
-    const confirmados = allAppointments.filter(a => a.status === 'confirmado').length;
-    const concluidos = allAppointments.filter(a => a.status === 'concluído' || a.status === 'concluido').length;
-    const cancelados = allAppointments.filter(a => a.status === 'cancelado').length;
-    const faturamento = allAppointments.filter(a => a.status === 'concluído' || a.status === 'concluido').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
-    return { total, agendados, confirmados, concluidos, cancelados, faturamento };
-  }, [allAppointments]);
-
-  const filteredAgenda = useMemo(() => {
-    return allAppointments.filter(a => {
-      const matchSearch = agendaSearch === '' || 
-        (a.clients as any)?.name?.toLowerCase().includes(agendaSearch.toLowerCase()) ||
-        (a.products as any)?.name?.toLowerCase().includes(agendaSearch.toLowerCase());
-      const matchStatus = agendaStatusFilter === 'todos' || a.status === agendaStatusFilter;
-      return matchSearch && matchStatus;
-    });
-  }, [allAppointments, agendaSearch, agendaStatusFilter]);
-
-  const filteredClients = clients.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.telefone?.includes(searchQuery)
-  );
-
-  const filteredProducts = products.filter(p => p.name.toLowerCase().includes(pdvSearch.toLowerCase()));
-
-  // Financial computed
-  const monthPrefix = safeFormat(new Date(), 'yyyy-MM');
+  const monthPrefix = format(new Date(), 'yyyy-MM');
   const monthReceitas = recentFinancial.filter(r => r.type === 'entrada' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthDespesas = recentFinancial.filter(r => r.type === 'saida' && r.record_date?.substring(0, 7) === monthPrefix).reduce((s, r) => s + Number(r.amount), 0);
   const monthExpenses = fixedExpenses.filter(e => e.expense_date?.substring(0, 7) === monthPrefix).reduce((s, e) => s + Number(e.amount), 0);
+  const totalNetProfit = monthReceitas - monthDespesas - monthExpenses;
 
-  const todayApts = allAppointments.filter(a => safeIsToday(a.appointment_date));
-  const todayRevenue = todayApts.filter(a => a.status === 'concluído' || a.status === 'concluido').reduce((s, a) => s + ((a.products as any)?.price || 0), 0);
-
-  // Schedule board time slots
-  const timeSlots = ['06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00','18:30','19:00','19:30','20:00','20:30','21:00','21:30','22:00'];
-
-  const boardAppointments = allAppointments.filter(a => 
-    safeIsSameDay(a.appointment_date, boardDate) && a.status !== 'cancelado'
-  );
-
-  const slotMap = useMemo(() => {
-    const map: Record<string, { appointment: any; isBlocked: boolean }> = {};
-    boardAppointments.forEach(apt => {
-      const aptTime = new Date(apt.appointment_date);
-      if (isNaN(aptTime.getTime())) return;
-      
-      const time = format(aptTime, 'HH:mm');
-      const duration = (apt.products as any)?.service_duration || 60;
-      const slots = Math.ceil(duration / 30);
-      map[time] = { appointment: apt, isBlocked: false };
-      for (let i = 1; i < slots; i++) {
-        const blockedTime = new Date(aptTime.getTime() + i * 30 * 60000);
-        const blockedSlot = format(blockedTime, 'HH:mm');
-        if (!map[blockedSlot]) map[blockedSlot] = { appointment: apt, isBlocked: true };
-      }
-    });
-    return map;
-  }, [boardAppointments]);
-
-  // Early return AFTER all hooks
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><Wind className="w-10 h-10 text-primary animate-spin" /></div>;
+    return <div className="min-h-screen flex items-center justify-center bg-[#0B1120]"><Wind className="w-10 h-10 text-primary animate-spin" /></div>;
   }
 
-  const isSlotPast = (time: string) => {
-    if (!isToday(boardDate)) return isBefore(boardDate, startOfDay(new Date()));
-    const [h, m] = time.split(':').map(Number);
-    const slotTime = new Date(); slotTime.setHours(h, m, 0, 0);
-    return isBefore(slotTime, currentTime);
-  };
-
-  const isCurrentSlot = (time: string) => {
-    if (!isToday(boardDate)) return false;
-    const [h, m] = time.split(':').map(Number);
-    return h === currentTime.getHours() && ((m === 0 && currentTime.getMinutes() < 30) || (m === 30 && currentTime.getMinutes() >= 30));
-  };
-
-  // ========== VIEWS ==========
-
   const renderHome = () => (
-    <div className="space-y-3 px-4 pt-4">
-      {showApprenticeTips && (
-        <Card className="bg-primary/10 border-primary/20 border-dashed animate-in fade-in slide-in-from-top-2">
-          <CardContent className="p-3 flex items-start gap-3">
-            <div className="bg-primary/20 p-2 rounded-full">
-              <Zap className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-xs font-bold text-primary">Modo Aprendiz Ativo</p>
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Olá! Use o **Cockpit** para ver o lucro real e a **Central de Ações** (barra flutuante) para agendar rápido.
-              </p>
-            </div>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowApprenticeTips(false)}>
-              <X className="w-3 h-3" />
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-      {/* Quick Action Button - Standout */}
-      <Button 
-        className="w-full h-16 text-lg font-bold gap-2 bg-gradient-to-r from-primary to-cyan-600 shadow-lg shadow-primary/30 animate-pulse-subtle"
-        onClick={() => setView('agenda')}
-      >
-        <Plus className="w-6 h-6" />
-        NOVO AGENDAMENTO
-      </Button>
-
-      {/* Owner Cockpit - Real Profit */}
-      <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 text-white border-none shadow-xl overflow-hidden relative group">
-        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-          <TrendingUp className="w-20 h-20" />
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24">
+      {/* Premium Header/Cockpit */}
+      <div className="op-card bg-gradient-to-br from-primary to-blue-900 border-none relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+          <TrendingUp className="w-32 h-32" />
         </div>
-        <CardContent className="p-5 relative z-10">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold flex items-center gap-2 tracking-widest text-zinc-400 uppercase">
-              <Briefcase className="w-4 h-4 text-primary" />
-              Cockpit do Empresário
-            </h3>
-            <Badge variant="outline" className="text-[9px] border-zinc-700 text-zinc-400">LUCRO REAL</Badge>
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-black text-white/60 uppercase tracking-[0.3em]">Cockpit Operacional</h2>
+            <Badge className="bg-white/10 text-white border-white/20 font-black text-[10px] uppercase">Lucro Real Mês</Badge>
           </div>
-          
-          <div className="grid grid-cols-1 gap-4">
-            <div>
-              <p className="text-[10px] text-zinc-400 uppercase font-bold">Lucro Líquido Real (Mês)</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-black text-primary">
-                  R$ {(monthReceitas - (monthReceitas * 0.06) - (monthReceitas * 0.10) - monthDespesas - monthExpenses).toFixed(2)}
-                </p>
-                <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px]">LÍQUIDO</Badge>
-              </div>
-              <p className="text-[9px] text-zinc-500 mt-1 italic">
-                * Já descontados impostos (6%), comissões (10%) e gastos operacionais.
-              </p>
+          <div className="flex items-baseline gap-3">
+            <p className="text-5xl font-black text-white tracking-tighter">R$ {totalNetProfit.toFixed(2)}</p>
+            <span className="text-primary-foreground/60 font-bold text-sm">Líquido</span>
+          </div>
+          <div className="flex gap-4 pt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-green-400" />
+              <span className="text-[10px] font-black text-white/80 uppercase">R$ {monthReceitas.toFixed(0)} Entrada</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-400" />
+              <span className="text-[10px] font-black text-white/80 uppercase">R$ {(monthDespesas + monthExpenses).toFixed(0)} Gasto</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Decision Dashboard */}
-      <Card className="bg-primary/5 border-primary/20 backdrop-blur-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold flex items-center gap-2">
-              <Zap className="w-4 h-4 text-primary" />
-              DASHBOARD DE DECISÃO
-            </h3>
-            <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/20">ROTA ATIVA</Badge>
-          </div>
-          
-          <div className="space-y-3">
-            {todayAppointments.length > 0 ? (
-              <div className="p-3 bg-card rounded-lg border border-primary/10 shadow-sm">
-                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">PRÓXIMO SERVIÇO</p>
-                <div className="flex justify-between items-start mt-1">
-                  <div>
-                    <p className="font-bold text-sm">{(todayAppointments[0].clients as any)?.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-primary font-medium">{safeFormat(todayAppointments[0].appointment_date, 'HH:mm')}</p>
-                      <span className="text-[10px] text-muted-foreground">• {(todayAppointments[0].clients as any)?.address?.split(',')[0]}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="h-8 w-8 p-0 text-green-600 border-green-200" 
-                      title="Técnico a Caminho"
-                      onClick={() => sendOnTheWay((todayAppointments[0].clients as any)?.telefone?.replace(/\D/g, ''), (todayAppointments[0].clients as any)?.name)}
-                    >
-                      <Zap className="w-3 h-3" />
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="h-8 gap-1 bg-primary" 
-                      title="Abrir no Maps"
-                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((todayAppointments[0].clients as any)?.address || '')}`, '_blank')}
-                    >
-                      <Navigation className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
-                  <Button 
-                    variant="secondary" 
-                    size="sm" 
-                    className="flex-1 h-8 text-[10px] gap-1 font-bold"
-                    onClick={() => handleCheckIn(todayAppointments[0].id)}
-                  >
-                    <MapPin className="w-3 h-3" /> CHECK-IN GPS
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex-1 h-8 text-[10px] gap-1"
-                    onClick={() => setView('agenda')}
-                  >
-                    <Check className="w-3 h-3" /> DETALHES
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground text-center py-2">Sem serviços para agora.</p>
-            )}
-            
-            <div className="flex gap-2">
-              <div className="flex-1 p-2 bg-background rounded border text-center">
-                <p className="text-[9px] text-muted-foreground uppercase">Restantes</p>
-                <p className="text-sm font-bold">{todayAppointments.filter(a => a.status !== 'concluido' && a.status !== 'cancelado').length}</p>
-              </div>
-              <div className="flex-1 p-2 bg-background rounded border text-center">
-                <p className="text-[9px] text-muted-foreground uppercase">Concluídos</p>
-                <p className="text-sm font-bold text-green-600">{todayAppointments.filter(a => a.status === 'concluido').length}</p>
-              </div>
+      {/* Main Grid Actions */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { id: 'agenda', label: 'Agenda', icon: CalendarDays, color: 'text-blue-500', bg: 'bg-blue-500/10' },
+          { id: 'prestadores', label: 'Equipe', icon: Users, color: 'text-orange-500', bg: 'bg-orange-500/10' },
+          { id: 'financeiro', label: 'Financeiro', icon: DollarSign, color: 'text-green-500', bg: 'bg-green-500/10' },
+          { id: 'historico', label: 'Histórico', icon: History, color: 'text-purple-500', bg: 'bg-purple-500/10' },
+        ].map((item: any) => (
+          <button 
+            key={item.id} 
+            onClick={() => setView(item.id)}
+            className="op-card hover:border-primary/40 transition-all text-center p-6 space-y-3 group"
+          >
+            <div className={`w-12 h-12 rounded-2xl ${item.bg} flex items-center justify-center mx-auto group-hover:scale-110 transition-transform`}>
+              <item.icon className={`w-6 h-6 ${item.color}`} />
             </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="cursor-pointer" onClick={() => setView('agenda')}>
-          <CardContent className="p-4 text-center">
-            <CalendarDays className="w-5 h-5 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold">{todayApts.length}</p>
-            <p className="text-xs text-muted-foreground">Hoje</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer" onClick={() => setView('financeiro')}>
-          <CardContent className="p-4 text-center">
-            <DollarSign className="w-5 h-5 text-green-500 mx-auto mb-2" />
-            <p className="text-2xl font-bold">R$ {todayRevenue.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground">Faturado Hoje</p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="cursor-pointer" onClick={() => setView('financeiro')}>
-          <CardContent className="p-4 text-center">
-            <TrendingUp className="w-5 h-5 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold">R$ {monthReceitas.toFixed(0)}</p>
-            <p className="text-xs text-muted-foreground">Mês</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer" onClick={() => setView('cadastros')}>
-          <CardContent className="p-4 text-center">
-            <Users className="w-5 h-5 text-primary mx-auto mb-2" />
-            <p className="text-2xl font-bold">{clients.length}</p>
-            <p className="text-xs text-muted-foreground">Clientes</p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('pdv')}><ShoppingCart className="w-4 h-4" /> Nova Venda</Button>
-        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('agenda')}><CalendarDays className="w-4 h-4" /> Agendar</Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('cadastros')}><Users className="w-4 h-4" /> Cadastros</Button>
-        <Button variant="outline" className="h-12 gap-2" onClick={() => setView('financeiro')}><TrendingUp className="w-4 h-4" /> Financeiro</Button>
-      </div>
-
-      {/* Today's schedule */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Próximos de Hoje</span>
-          </div>
-          {todayApts.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Nenhum agendamento para hoje 🌿</p>
-          ) : (
-            <div className="space-y-2">
-              {todayApts.slice(0, 5).map(apt => (
-                <div key={apt.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/50">
-                  <div>
-                    <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
-                    <p className="text-xs text-muted-foreground">{(apt.products as any)?.name} • {safeFormat(apt.appointment_date, 'HH:mm')}</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Badge variant="outline" className="text-[10px]">{apt.status}</Badge>
-                    {apt.status === 'agendado' && (
-                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => updateAppointmentStatus(apt.id, 'confirmado', apt)}>
-                        <Check className="w-3.5 h-3.5 text-green-500" />
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderAgenda = () => (
-    <div className="space-y-3 px-4 pt-4">
-      {/* Tabs */}
-      <div className="flex bg-muted/50 rounded-lg p-1">
-        {[{ id: 'lista', icon: ClipboardList, label: 'Lista' }, { id: 'horarios', icon: Clock, label: 'Quadro' }].map(t => (
-          <button key={t.id} onClick={() => setAgendaTab(t.id as any)}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${agendaTab === t.id ? 'bg-card shadow text-foreground' : 'text-muted-foreground'}`}>
-            <t.icon className="w-3.5 h-3.5" /> {t.label}
+            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Stats */}
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      {/* Secondary Actions */}
+      <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Total', value: agendaStats.total, color: 'text-foreground' },
-          { label: 'Agendados', value: agendaStats.agendados, color: 'text-yellow-500' },
-          { label: 'Confirmados', value: agendaStats.confirmados, color: 'text-blue-500' },
-          { label: 'Concluídos', value: agendaStats.concluidos, color: 'text-green-500' },
-          { label: 'Faturamento', value: `R$ ${agendaStats.faturamento.toFixed(0)}`, color: 'text-green-500' },
-        ].map(s => (
-          <Card key={s.label} className="min-w-[90px]">
-            <CardContent className="p-2.5">
-              <p className={`text-lg font-bold ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
-            </CardContent>
-          </Card>
+          { id: 'pdv', label: 'PDV', icon: ShoppingCart },
+          { id: 'cadastros', label: 'Clientes', icon: UserPlus },
+          { id: 'mais', label: 'Gestão', icon: LayoutDashboard },
+        ].map((item: any) => (
+          <button 
+            key={item.id} 
+            onClick={() => setView(item.id)}
+            className="op-card p-4 text-center hover:bg-white/5"
+          >
+            <item.icon className="w-5 h-5 text-slate-400 mx-auto mb-2" />
+            <span className="block text-[8px] font-black text-slate-500 uppercase tracking-tighter">{item.label}</span>
+          </button>
         ))}
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={exportAgendaPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => loadData(userId)}><RefreshCw className="w-3.5 h-3.5" /></Button>
-      </div>
-
-      {agendaTab === 'lista' ? (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <CalendarDays className="w-4 h-4" />
-              <span className="font-semibold text-sm">Agendamentos</span>
-            </div>
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente ou serviço..." className="pl-9 h-9" value={agendaSearch} onChange={e => setAgendaSearch(e.target.value)} />
-            </div>
-            {/* Status filter */}
-            <div className="flex gap-1 mb-3 overflow-x-auto">
-              {['todos', 'agendado', 'confirmado', 'concluído', 'cancelado'].map(s => (
-                <Button key={s} size="sm" variant={agendaStatusFilter === s ? 'default' : 'outline'} className="text-[10px] h-7 capitalize" onClick={() => setAgendaStatusFilter(s)}>
-                  {s}
-                </Button>
-              ))}
-            </div>
-            {filteredAgenda.length === 0 ? (
-              <p className="text-sm text-center text-muted-foreground py-6">Nenhum agendamento encontrado</p>
-            ) : (
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
-                {filteredAgenda.slice(0, 50).map(apt => {
-                  const aptDate = new Date(apt.appointment_date);
-                  const isValidDate = !isNaN(aptDate.getTime());
-                  const isPast = isValidDate && aptDate < new Date() && apt.status !== 'concluído' && apt.status !== 'concluido' && apt.status !== 'cancelado';
-                  return (
-                    <div key={apt.id} className={`p-3 rounded-lg border border-border/50 ${isPast ? 'bg-destructive/5 border-destructive/20' : 'bg-muted/30'}`}>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{(apt.clients as any)?.name || 'Cliente'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {safeFormat(apt.appointment_date, 'dd/MM/yyyy')} • {safeFormat(apt.appointment_date, 'HH:mm')} 
-                            {(apt.products as any)?.service_duration && <span className="text-primary"> ({(apt.products as any).service_duration}min)</span>}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{(apt.products as any)?.name}</p>
-                          {(apt.products as any)?.price && <p className="text-xs font-medium text-primary">R$ {Number((apt.products as any).price).toFixed(2)}</p>}
-                        </div>
-                        <Badge variant={apt.status === 'concluído' || apt.status === 'concluido' ? 'default' : apt.status === 'cancelado' ? 'destructive' : 'outline'} className="text-[10px] ml-2">
-                          {apt.status}
-                        </Badge>
-                      </div>
-                      {/* Action buttons */}
-                      <div className="flex gap-1 mt-2 flex-wrap">
-                        {(apt.status === 'agendado') && (
-                          <>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={() => updateAppointmentStatus(apt.id, 'confirmado', apt)}>
-                              <Check className="w-3 h-3" /> Confirmar
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 text-destructive" onClick={() => updateAppointmentStatus(apt.id, 'cancelado')}>
-                              <X className="w-3 h-3" /> Cancelar
-                            </Button>
-                          </>
-                        )}
-                        {(apt.status === 'confirmado') && (
-                          <>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 text-green-600" onClick={() => updateAppointmentStatus(apt.id, 'concluido', apt)}>
-                              <Check className="w-3 h-3" /> Concluir
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1 text-destructive" onClick={() => updateAppointmentStatus(apt.id, 'cancelado')}>
-                              <X className="w-3 h-3" /> Cancelar
-                            </Button>
-                          </>
-                        )}
-                        {isPast && apt.status === 'agendado' && (
-                          <Button size="sm" variant="default" className="h-7 text-[10px] gap-1 bg-green-600" onClick={() => updateAppointmentStatus(apt.id, 'concluido', apt)}>
-                            <Check className="w-3 h-3" /> Serviço Feito
-                          </Button>
-                        )}
-                        {(apt.clients as any)?.telefone && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(`https://wa.me/55${(apt.clients as any).telefone.replace(/\D/g, '')}`, '_blank')}>
-                            <Phone className="w-3 h-3 text-green-500" />
-                          </Button>
-                        )}
-                        {(apt.clients as any)?.address && (
-                          <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((apt.clients as any).address)}`, '_blank')}>
-                            <MapPin className="w-3 h-3 text-blue-500" />
-                          </Button>
-                        )}
-                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteAppointment(apt.id)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      ) : (
-        /* Schedule Board */
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-2xl font-mono font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                {safeFormat(currentTime, 'HH:mm:ss')}
-              </div>
-              <div className="flex items-center gap-2">
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setBoardDate(addDays(boardDate, -1))} disabled={isSameDay(boardDate, new Date())}>
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <span className="text-sm font-medium">{isToday(boardDate) ? 'Hoje' : safeFormat(boardDate, 'dd/MM', { locale: ptBR })}</span>
-                <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => setBoardDate(addDays(boardDate, 1))}>
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="max-h-[400px] overflow-y-auto divide-y">
-              {timeSlots.map(time => {
-                const slotData = slotMap[time];
-                const appointment = slotData?.appointment;
-                const isBlocked = slotData?.isBlocked;
-                const isPast = isSlotPast(time);
-                const isCurrent = isCurrentSlot(time);
-                return (
-                  <div key={time} className={`flex items-stretch ${
-                    isCurrent ? 'bg-primary/20 border-l-4 border-primary' :
-                    isPast ? 'bg-muted/50 opacity-60' :
-                    isBlocked ? 'bg-orange-50 dark:bg-orange-950/20' :
-                    appointment ? 'bg-green-50 dark:bg-green-950/20' : ''
-                  }`}>
-                    <div className={`w-14 flex-shrink-0 p-2 text-center font-mono text-xs border-r ${isCurrent ? 'font-bold text-primary' : 'text-muted-foreground'}`}>{time}</div>
-                    <div className="flex-1 p-2 min-h-[40px]">
-                      {isBlocked && !appointment ? (
-                        <span className="text-[10px] text-orange-600">⏳ Em serviço</span>
-                      ) : appointment && !isBlocked ? (
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-xs font-medium">{appointment.clients?.name || 'Cliente'}</p>
-                            <p className="text-[10px] text-muted-foreground">{appointment.products?.name} {appointment.products?.service_duration && `(${appointment.products.service_duration}min)`}</p>
-                          </div>
-                          <Badge variant="outline" className="text-[9px]">{appointment.status}</Badge>
-                        </div>
-                      ) : isPast ? (
-                        <span className="text-[10px] text-muted-foreground">-</span>
-                      ) : (
-                        <span className="text-[10px] text-green-600">Disponível</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-
-  const renderPDV = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <div className="flex bg-muted/50 rounded-lg p-1">
-        <button onClick={() => setPdvTab('pdv')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${pdvTab === 'pdv' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
-          <ShoppingCart className="w-3.5 h-3.5" /> PDV
-        </button>
-        <button onClick={() => setPdvTab('historico')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${pdvTab === 'historico' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
-          <TrendingUp className="w-3.5 h-3.5" /> Histórico
-        </button>
-      </div>
-
-      {pdvTab === 'pdv' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-sm mb-3">Produtos & Serviços</h3>
-              <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar produto..." value={pdvSearch} onChange={e => setPdvSearch(e.target.value)} className="pl-9 h-9" />
-              </div>
-              <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
-                {filteredProducts.map(p => (
-                  <button key={p.id} onClick={() => addToCart(p)}
-                    className="p-3 rounded-lg border border-border bg-card hover:bg-muted/50 text-left transition-colors">
-                    {p.image_url && <img src={p.image_url} alt={p.name} className="w-full h-16 object-cover rounded mb-1.5" />}
-                    <p className="text-xs font-medium truncate">{p.name}</p>
-                    <p className="text-sm font-bold text-primary">R$ {Number(p.price).toFixed(2)}</p>
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><ShoppingCart className="w-4 h-4" /> Carrinho</h3>
-              <div className="flex gap-1 mb-3">
-                {(['cadastrado', 'consumidor'] as const).map(m => (
-                  <Button key={m} size="sm" variant={pdvClientMode === m ? 'default' : 'outline'} className="flex-1 text-[10px] h-7 capitalize" onClick={() => setPdvClientMode(m)}>
-                    {m === 'cadastrado' ? 'Cadastrado' : 'Consumidor'}
-                  </Button>
-                ))}
-              </div>
-              {pdvClientMode === 'cadastrado' && (
-                <select className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm mb-3"
-                  onChange={e => { const c = clients.find(cl => cl.id === Number(e.target.value)); setPdvSelectedClient(c); }}>
-                  <option value="">Selecione cliente</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              )}
-
-              {pdvCart.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-4">Carrinho vazio</p>
-              ) : (
-                <div className="space-y-2 mb-3 max-h-40 overflow-y-auto">
-                  {pdvCart.map(item => (
-                    <div key={item.product.id} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-1.5">
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPdvCart(prev => prev.map(i => i.product.id === item.product.id && i.qty > 1 ? { ...i, qty: i.qty - 1 } : i))}><Minus className="w-3 h-3" /></Button>
-                        <span className="font-medium text-xs">{item.qty}x</span>
-                        <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setPdvCart(prev => prev.map(i => i.product.id === item.product.id ? { ...i, qty: i.qty + 1 } : i))}><Plus className="w-3 h-3" /></Button>
-                        <span className="truncate text-xs">{item.product.name}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="font-bold text-xs">R$ {(item.product.price * item.qty).toFixed(2)}</span>
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive" onClick={() => removeFromCart(item.product.id)}><Trash2 className="w-3 h-3" /></Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex gap-2 mb-3">
-                <div className="flex-1"><label className="text-[10px] text-muted-foreground">Desc. %</label><Input type="number" min="0" max="100" value={pdvDiscount} onChange={e => setPdvDiscount(Number(e.target.value))} className="h-8 text-xs" /></div>
-                <div className="flex-1"><label className="text-[10px] text-muted-foreground">Desc. R$</label><Input type="number" min="0" value={pdvDiscountValue} onChange={e => setPdvDiscountValue(Number(e.target.value))} className="h-8 text-xs" /></div>
-              </div>
-
-              <div className="mb-3">
-                <div className="flex gap-1.5">
-                  <select className="flex-1 h-8 rounded-md border border-input bg-background px-2 text-xs" value={pdvPayment} onChange={e => setPdvPayment(e.target.value as any)}>
-                    <option>Dinheiro</option><option>PIX</option><option>Débito</option><option>Crédito</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center border-t border-border pt-3 mb-3">
-                <span className="font-bold">Total:</span>
-                <span className="text-xl font-bold text-primary">R$ {cartTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="flex-1 h-10" onClick={() => { setPdvCart([]); setPdvDiscount(0); setPdvDiscountValue(0); }}>Limpar</Button>
-                <Button className="flex-1 h-10 bg-primary" onClick={finalizePdvSale}>Finalizar</Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Últimas Vendas</h3>
-            {sales.length === 0 ? (
-              <p className="text-sm text-center text-muted-foreground py-4">Nenhuma venda</p>
-            ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {sales.slice(0, 30).map((s: any) => (
-                  <div key={s.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border/50">
-                    <div>
-                      <p className="text-sm font-medium">{(s.products as any)?.name || 'Produto'}</p>
-                      <p className="text-[10px] text-muted-foreground">{(s.clients as any)?.name || '-'} • {format(new Date(s.sale_date), 'dd/MM/yyyy')}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-bold text-sm text-primary">R$ {Number(s.sale_price * s.qty).toFixed(2)}</p>
-                      <Badge variant="outline" className="text-[9px]">{s.payment_method}</Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-
-  const renderCadastros = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <div className="flex bg-muted/50 rounded-lg p-1">
-        <button onClick={() => setCadastroTab('clientes')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${cadastroTab === 'clientes' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
-          <Users className="w-3.5 h-3.5" /> Clientes
-        </button>
-        <button onClick={() => setCadastroTab('servicos')} className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-medium transition-colors ${cadastroTab === 'servicos' ? 'bg-card shadow' : 'text-muted-foreground'}`}>
-          <Wrench className="w-3.5 h-3.5" /> Serviços & Produtos
-        </button>
-      </div>
-
-      {cadastroTab === 'clientes' ? (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-sm">Clientes ({clients.length})</h3>
-              <div className="flex gap-2">
-                <Button size="sm" variant="default" className="gap-1 text-xs h-8" onClick={() => setView('novo-cliente')}><Plus className="w-3 h-3" /> Novo</Button>
-                <Button size="sm" variant="outline" className="gap-1 text-xs h-8" onClick={exportClientesPDF}><Download className="w-3 h-3" /> PDF</Button>
-              </div>
-            </div>
-            <div className="relative mb-3">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9 h-9" />
-            </div>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {filteredClients.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-4">Nenhum cliente</p>
-              ) : filteredClients.slice(0, 50).map(c => (
-                <div key={c.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-xs font-bold text-primary">{c.name.substring(0, 2).toUpperCase()}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{c.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{c.telefone || '-'} {c.address ? `• ${c.address}` : ''}</p>
-                    </div>
-                  </div>
-                  {c.telefone && (
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => window.open(`https://wa.me/55${c.telefone.replace(/\D/g, '')}`, '_blank')}>
-                      <Phone className="w-3.5 h-3.5 text-green-500" />
-                    </Button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold text-sm mb-3">Serviços & Produtos ({products.length})</h3>
-            <div className="space-y-2 max-h-96 overflow-y-auto">
-              {products.map(p => (
-                <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border/50">
-                  <div>
-                    <p className="text-sm font-medium">{p.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {p.type === 'service' ? 'Serviço' : p.type === 'piece' ? `Peça • Est: ${p.qty}` : 'Produto'}
-                      {p.service_duration && ` • ${p.service_duration}min`}
-                    </p>
-                  </div>
-                  <p className="font-bold text-sm text-primary">R$ {Number(p.price).toFixed(2)}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  );
-
-  const renderNovoCliente = () => (
-    <div className="px-4 pt-4 space-y-4">
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Novo Cliente</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <Input placeholder="Nome completo *" value={newClientName} onChange={e => setNewClientName(e.target.value)} />
-          <Input placeholder="Telefone / WhatsApp" value={newClientPhone} onChange={e => setNewClientPhone(e.target.value)} />
-          <Input placeholder="Endereço" value={newClientAddress} onChange={e => setNewClientAddress(e.target.value)} />
-          <Button onClick={addClient} className="w-full h-11"><Plus className="w-4 h-4 mr-2" /> Cadastrar Cliente</Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderFinanceiro = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <div className="flex gap-2">
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={exportFinanceiroPDF}><Download className="w-3.5 h-3.5" /> PDF</Button>
-        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => loadData(userId)}><RefreshCw className="w-3.5 h-3.5" /></Button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-xs text-muted-foreground">Receitas (Mês)</p>
-          <p className="text-xl font-bold text-green-500">R$ {monthReceitas.toFixed(2)}</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-xs text-muted-foreground">Despesas (Mês)</p>
-          <p className="text-xl font-bold text-destructive">R$ {(monthDespesas + monthExpenses).toFixed(2)}</p>
-        </CardContent></Card>
-      </div>
-      <Card><CardContent className="p-4 text-center">
-        <p className="text-xs text-muted-foreground">Lucro Líquido (Mês)</p>
-        <p className={`text-2xl font-bold ${(monthReceitas - monthDespesas - monthExpenses) >= 0 ? 'text-green-500' : 'text-destructive'}`}>
-          R$ {(monthReceitas - monthDespesas - monthExpenses).toFixed(2)}
-        </p>
-      </CardContent></Card>
-      
-      <h3 className="font-semibold text-sm">Últimos Registros</h3>
-      {recentFinancial.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-4">Nenhum registro financeiro</p>
-      ) : recentFinancial.slice(0, 20).map(rec => (
-        <Card key={rec.id}>
-          <CardContent className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${rec.type === 'entrada' ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                <DollarSign className={`w-4 h-4 ${rec.type === 'entrada' ? 'text-green-500' : 'text-destructive'}`} />
-              </div>
-              <div>
-                <p className="text-sm font-medium">{rec.description || rec.category || 'Registro'}</p>
-                <p className="text-xs text-muted-foreground">{safeFormat(rec.record_date, 'dd/MM/yyyy')}</p>
-              </div>
-            </div>
-            <p className={`font-bold text-sm ${rec.type === 'entrada' ? 'text-green-500' : 'text-destructive'}`}>
-              {rec.type === 'entrada' ? '+' : '-'}R$ {Number(rec.amount).toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-
-  const renderImpostos = () => (
-    <div className="px-4 pt-4"><ImpostosTab /></div>
-  );
-
-  const renderLembretes = () => (<div className="px-4 pt-4"><LembretesTab /></div>);
-
-  const renderOnlineBookings = () => (
-    <div className="px-4 pt-4"><OnlineBookingsTab userId={userId} /></div>
-  );
-
-  const renderConfiguracoes = () => (
-    <div className="px-4 pt-4"><CompanyDataTab /></div>
-  );
-
-  const renderEstoque = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <Card>
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-sm mb-3 flex items-center gap-2"><Package className="w-4 h-4" /> Estoque ({products.filter(p => p.type === 'piece').length} itens)</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {products.filter(p => p.type === 'piece').length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground py-4">Nenhum item no estoque</p>
-            ) : products.filter(p => p.type === 'piece').map(p => (
-              <div key={p.id} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 border border-border/50">
-                <div>
-                  <p className="text-sm font-medium">{p.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{(p as any).suppliers?.name || '-'} • R$ {Number(p.price).toFixed(2)}</p>
-                </div>
-                <Badge variant={p.qty <= (p.min_stock || 0) ? 'destructive' : 'secondary'} className="text-xs">{p.qty} un.</Badge>
-              </div>
-            ))}
+      {/* Proximo Serviço - Smart Card */}
+      <div className="op-card border-primary/20 bg-primary/5">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <h3 className="text-[10px] font-black text-white uppercase tracking-widest">Próxima Parada Operacional</h3>
           </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderOrcamentos = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Orçamentos ({quotes.length})</h3>
+          <Badge variant="outline" className="text-[9px] border-primary/30 text-primary">CAMPO</Badge>
+        </div>
+        
+        {allAppointments.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido').length > 0 ? (
+          <div className="flex items-center justify-between">
+            <div className="min-w-0">
+              <p className="text-lg font-black text-white uppercase truncate">{allAppointments.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido')[0].clients?.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-primary font-black text-sm">{format(new Date(allAppointments.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido')[0].appointment_date), 'HH:mm')}</span>
+                <span className="text-slate-500 font-bold text-xs truncate max-w-[150px]">{allAppointments.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido')[0].clients?.address}</span>
+              </div>
+            </div>
+            <Button size="icon" className="h-12 w-12 rounded-2xl bg-primary shadow-lg shadow-primary/20 hover:scale-105 transition-transform" onClick={() => setView('prestadores')}>
+              <Navigation className="w-5 h-5" />
+            </Button>
+          </div>
+        ) : (
+          <p className="text-center py-4 text-xs font-bold text-slate-600 uppercase tracking-widest">Nenhuma visita pendente para agora</p>
+        )}
       </div>
-      {quotes.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum orçamento</CardContent></Card>
-      ) : quotes.map(q => (
-        <Card key={q.id}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-sm font-medium">{q.title}</p>
-                <p className="text-xs text-muted-foreground">{(q.clients as any)?.name || '-'} • {safeFormat(q.created_at, 'dd/MM/yyyy')}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-primary text-sm">R$ {Number(q.total).toFixed(2)}</p>
-                <Badge variant={q.status === 'aprovado' ? 'default' : 'outline'} className="text-[10px]">{q.status}</Badge>
-              </div>
-            </div>
-            <div className="flex gap-1 mt-2">
-              <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={() => exportOrcamentoPDF(q)}><Download className="w-3 h-3" /> PDF</Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   );
-
-  const serviceOrders: any[] = [];
-  const exportOSPDF = (o: any) => exportOrcamentoPDF(o);
-  const renderOS = () => (
-    <div className="px-4 pt-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-sm">Ordens de Serviço ({serviceOrders.length})</h3>
-      </div>
-      {serviceOrders.length === 0 ? (
-        <Card><CardContent className="p-6 text-center text-muted-foreground">Nenhum Pedido</CardContent></Card>
-      ) : serviceOrders.map(o => (
-        <Card key={o.id}>
-          <CardContent className="p-3">
-            <div className="flex justify-between items-start">
-              <div>
-                <p className="text-xs text-muted-foreground">#{String(o.order_number).padStart(4, '0')}</p>
-                <p className="text-sm font-medium">{o.title}</p>
-                <p className="text-xs text-muted-foreground">{(o.clients as any)?.name || '-'}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-primary text-sm">R$ {Number(o.total).toFixed(2)}</p>
-                <Badge variant={o.status === 'concluída' ? 'default' : 'outline'} className="text-[10px]">{o.status}</Badge>
-              </div>
-            </div>
-            <div className="flex gap-1 mt-2">
-              <Button size="sm" variant="outline" className="h-7 text-[10px] gap-1" onClick={() => exportOSPDF(o)}><Download className="w-3 h-3" /> PDF</Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-
-  // "Mais" panel items
-  const maisItems = [
-    { id: 'financeiro' as BetaView, icon: TrendingUp, label: 'Financeiro' },
-    { id: 'impostos' as BetaView, icon: ClipboardList, label: 'Impostos' },
-    { id: 'lembretes' as BetaView, icon: Bell, label: 'Lembretes' },
-    { id: 'online-bookings' as BetaView, icon: Globe, label: 'Agend. Online' },
-    { id: 'configuracoes' as BetaView, icon: Settings, label: 'Configurações' },
-    { id: 'estoque' as BetaView, icon: Package, label: 'Estoque' },
-    { id: 'orcamentos' as BetaView, icon: FileCheck, label: 'Orçamentos' },
-    { id: 'os' as BetaView, icon: Wrench, label: 'Ordens Serv.' },
-  ];
-
-  const isMainView = ['home', 'agenda', 'pdv', 'cadastros'].includes(view);
-  const isMaisView = !isMainView && view !== 'mais' && view !== 'novo-cliente';
-
-  const viewTitles: Record<BetaView, string> = {
-    'home': 'Início',
-    'agenda': 'Agenda',
-    'pdv': 'PDV',
-    'cadastros': 'Cadastros',
-    'mais': 'Mais',
-    'financeiro': 'Financeiro',
-    'impostos': 'Impostos',
-    'lembretes': 'Lembretes',
-    'online-bookings': 'Agendamento Online',
-    'configuracoes': 'Configurações',
-    'novo-cliente': 'Novo Cliente',
-    'estoque': 'Estoque',
-    'orcamentos': 'Orçamentos',
-    'os': 'Ordens de Serviço'
-  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-30 bg-card/90 backdrop-blur-md border-b border-border px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {!isMainView && view !== 'mais' ? (
-            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => setView('home')}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-          ) : (
-            <div className="p-1.5 rounded-lg bg-primary/10">
-              <Wind className="w-5 h-5 text-primary" />
-            </div>
-          )}
-          <div>
-            <h1 className="text-sm font-bold">{viewTitles[view]}</h1>
-            <p className="text-[10px] text-muted-foreground">Sistema Simplificado</p>
-          </div>
+    <div className="min-h-screen bg-[#0B1120] text-slate-200 font-sans selection:bg-primary/30">
+      {/* Top Navbar */}
+      <header className="sticky top-0 z-50 bg-[#0B1120]/80 backdrop-blur-xl border-b border-white/5 px-6 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center font-black text-white text-lg">H</div>
+          <span className="font-black text-white text-sm tracking-tighter uppercase">HVAC Control <span className="text-primary">PRO</span></span>
         </div>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="h-9 text-xs gap-1.5" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
-            <ArrowLeft className="w-3.5 h-3.5" /> Completo
+        
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-white" onClick={() => navigate('/dashboard')}>
+            <LayoutDashboard className="w-5 h-5" />
           </Button>
-          <Button variant="outline" size="sm" className="h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates}>
-            <RefreshCw className={`h-4 w-4 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+          <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 hover:text-white relative">
+            <Bell className="w-5 h-5" />
+            <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 rounded-full border-2 border-[#0B1120]" />
           </Button>
-
-          <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-            <DialogContent className="sm:max-w-[400px] bg-slate-900 border-slate-800 text-white p-6 rounded-2xl shadow-2xl">
-              <DialogHeader className="space-y-3">
-                <div className="flex items-center gap-2 text-primary">
-                  <RefreshCw className="w-5 h-5" />
-                  <DialogTitle className="text-xl font-bold text-white">Atualizar Sistema</DialogTitle>
-                </div>
-                <DialogDescription className="text-slate-400 text-sm leading-relaxed">
-                  Se a tela estiver preta, com erro de login ou lenta, clique no botão abaixo para atualizar e corrigir o sistema.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="mt-6 flex flex-col gap-3">
-                <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Passo 1 de 1</div>
-                <Button 
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-                  onClick={() => {
-                    setShowUpdateModal(false);
-                    checkForUpdates();
-                  }}
-                >
-                  Entendi — Atualizar Agora
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full h-10 text-slate-500 hover:text-slate-300 hover:bg-white/5 text-sm"
-                  onClick={() => setShowUpdateModal(false)}
-                >
-                  Fechar e não atualizar
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
-            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-          </Button>
+          <div className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-xs font-black text-primary">EL</div>
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto pb-40">
+      <main className="max-w-6xl mx-auto px-6 py-8">
         {view === 'home' && renderHome()}
-        {view === 'agenda' && renderAgenda()}
-        {view === 'pdv' && renderPDV()}
-        {view === 'cadastros' && renderCadastros()}
-        {view === 'financeiro' && renderFinanceiro()}
-        {view === 'impostos' && renderImpostos()}
-        {view === 'lembretes' && renderLembretes()}
-        {view === 'online-bookings' && renderOnlineBookings()}
-        {view === 'configuracoes' && renderConfiguracoes()}
-        {view === 'novo-cliente' && renderNovoCliente()}
-        {view === 'estoque' && renderEstoque()}
-        {view === 'orcamentos' && renderOrcamentos()}
-        {view === 'os' && renderOS()}
+        {view === 'prestadores' && <ServiceProvidersTab />}
+        {view === 'historico' && <HistoricoGeralTab />}
+        {view === 'agenda' && <div className="op-card p-24 text-center">Módulo de Agenda - Em breve</div>}
+        {/* Placeholder for other views - Integrated via Components */}
+        {view !== 'home' && view !== 'prestadores' && view !== 'historico' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+             <Button variant="ghost" onClick={() => setView('home')} className="mb-6 gap-2 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:text-white">
+                <ArrowLeft className="w-4 h-4" /> VOLTAR AO INÍCIO
+             </Button>
+             <div className="op-card py-20 text-center">
+                <Wrench className="w-16 h-16 text-slate-800 mx-auto mb-4" />
+                <p className="text-lg font-black uppercase tracking-widest text-slate-400">Módulo em Integração</p>
+                <p className="text-xs font-bold uppercase text-slate-600 mt-1">Este componente está sendo migrado para o novo padrão Premium</p>
+             </div>
+          </div>
+        )}
       </main>
 
-      {maisOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setMaisOpen(false)}>
-          <div className="absolute inset-0 bg-black/40" />
-          <div className="absolute bottom-[72px] left-0 right-0 bg-card border-t border-border rounded-t-2xl p-6 max-w-3xl mx-auto animate-in slide-in-from-bottom-4"
-            onClick={e => e.stopPropagation()}>
-            <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mx-auto mb-4" />
-            <div className="grid grid-cols-3 gap-4">
-              {maisItems.map(item => (
-                <button key={item.id} onClick={() => { setView(item.id); setMaisOpen(false); }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/50 transition-colors">
-                  <item.icon className="w-6 h-6 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">{item.label}</span>
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-4 pt-4 border-t flex items-center justify-between px-2">
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-primary" />
-                <span className="text-xs font-medium">Dicas de Aprendiz</span>
-              </div>
-              <Switch checked={showApprenticeTips} onCheckedChange={setShowApprenticeTips} />
-            </div>
-            <Button variant="outline" size="sm" className="w-full mt-4 h-9 text-xs" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
-              <ArrowLeft className="w-3 h-3 mr-1.5" /> Voltar ao Sistema Completo
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Quick Action Center - Fixed Floating */}
-      <div className="fixed bottom-20 left-4 right-4 z-30 pointer-events-none">
-        <div className="max-w-3xl mx-auto flex justify-center">
-          <div className="bg-background/80 backdrop-blur-xl border border-border shadow-2xl rounded-full p-1.5 flex gap-1 pointer-events-auto ring-1 ring-black/5">
-            <Button 
-              size="sm" 
-              className="rounded-full h-10 px-4 gap-2 bg-primary shadow-lg shadow-primary/20"
-              onClick={() => setView('agenda')}
-              title="Novo Agendamento"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="text-xs font-bold">Agendar</span>
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-full h-10 w-10"
-              onClick={() => setView('financeiro')}
-              title="Lançar Gasto"
-            >
-              <DollarSign className="w-4 h-4 text-red-500" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="rounded-full h-10 w-10"
-              onClick={() => setView('cadastros')}
-              title="Buscar Cliente"
-            >
-              <Search className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-30">
-        <div className="max-w-3xl mx-auto flex justify-around py-2 px-2">
-          {[
-            { id: 'home' as BetaView, icon: Home, label: 'Início' },
-            { id: 'agenda' as BetaView, icon: CalendarDays, label: 'Agenda' },
-            { id: 'pdv' as BetaView, icon: ShoppingCart, label: 'PDV' },
-            { id: 'cadastros' as BetaView, icon: Users, label: 'Cadastros' },
-          ].map(item => (
-            <button key={item.id} onClick={() => { setView(item.id); setMaisOpen(false); }}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] ${view === item.id ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-              <item.icon className={`w-5 h-5 ${view === item.id ? 'scale-110' : ''} transition-transform`} />
-              <span className={`text-[10px] font-medium ${view === item.id ? 'text-primary' : ''}`}>{item.label}</span>
-            </button>
-          ))}
-          <button onClick={() => setMaisOpen(!maisOpen)}
-            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-[60px] ${maisOpen || isMaisView ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-            <MoreHorizontal className={`w-5 h-5 ${maisOpen ? 'scale-110' : ''} transition-transform`} />
-            <span className={`text-[10px] font-medium ${maisOpen || isMaisView ? 'text-primary' : ''}`}>Mais</span>
+      {/* Mobile Bottom Navigation */}
+      <nav className="md:hidden fixed bottom-6 left-6 right-6 h-16 bg-[#111827]/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] shadow-2xl z-50 flex items-center justify-around px-4">
+        {[
+          { id: 'home', icon: Home, label: 'Início' },
+          { id: 'agenda', icon: CalendarDays, label: 'Agenda' },
+          { id: 'prestadores', icon: MapPin, label: 'Equipe' },
+          { id: 'historico', icon: History, label: 'Histórico' },
+          { id: 'mais', icon: MoreHorizontal, label: 'Mais' },
+        ].map((item: any) => (
+          <button 
+            key={item.id} 
+            onClick={() => setView(item.id)}
+            className={`flex flex-col items-center justify-center gap-1 transition-all ${view === item.id ? 'text-primary scale-110' : 'text-slate-500 hover:text-slate-300'}`}
+          >
+            <item.icon className="w-5 h-5" />
+            <span className="text-[8px] font-black uppercase tracking-widest">{item.label}</span>
           </button>
-        </div>
+        ))}
       </nav>
     </div>
   );

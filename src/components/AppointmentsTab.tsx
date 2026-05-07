@@ -191,6 +191,7 @@ const AppointmentsTab: React.FC = () => {
   const [completionAppointment, setCompletionAppointment] = useState<Appointment | null>(null);
   const [completionFeedback, setCompletionFeedback] = useState("");
   const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
+  const [customPrice, setCustomPrice] = useState("");
 
   // Edit state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -214,6 +215,16 @@ const AppointmentsTab: React.FC = () => {
     };
     getUserId();
   }, []);
+
+  // Auto-fill price based on provider's daily rate
+  React.useEffect(() => {
+    if (selectedProvider && selectedProvider !== '_none') {
+      const provider = (providers as any[]).find(p => p.name === selectedProvider);
+      if (provider?.daily_rate && provider.daily_rate > 0) {
+        setCustomPrice(String(provider.daily_rate));
+      }
+    }
+  }, [selectedProvider, providers]);
 
   const { data: appointments, isLoading: isLoadingAppointments } = useQuery({ 
     queryKey: ['appointments'], 
@@ -553,6 +564,11 @@ const AppointmentsTab: React.FC = () => {
     if (selectedProvider && selectedProvider !== '_none') {
       fullNotes = `[PRESTADOR:${selectedProvider}]\n${fullNotes}`.trim();
     }
+    
+    // Add value tag if custom price is set
+    if (customPrice) {
+      fullNotes = `[VALOR:${customPrice}]\n${fullNotes}`.trim();
+    }
 
     const installmentAmount = selectedTotal / installments;
     
@@ -660,14 +676,18 @@ const AppointmentsTab: React.FC = () => {
   }, [appointments]);
 
   const getStatusBadge = (status: string) => {
-    const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      agendado: { variant: "secondary", label: "Agendado" },
-      confirmado: { variant: "default", label: "Confirmado" },
-      concluido: { variant: "outline", label: "Concluído" },
-      cancelado: { variant: "destructive", label: "Cancelado" }
+    const variants: Record<string, { className: string; label: string }> = {
+      pendente: { className: "bg-slate-500/10 text-slate-500 border-slate-200", label: "Pendente" },
+      agendado: { className: "bg-amber-500/10 text-amber-600 border-amber-200", label: "Agendado" },
+      confirmado: { className: "bg-blue-500/10 text-blue-600 border-blue-200", label: "Confirmado" },
+      enviado_prestador: { className: "bg-indigo-500/10 text-indigo-600 border-indigo-200", label: "C/ Prestador" },
+      em_rota: { className: "bg-cyan-500/10 text-cyan-600 border-cyan-200", label: "Em Rota" },
+      concluido: { className: "bg-green-500/10 text-green-600 border-green-200", label: "Concluído" },
+      cancelado: { className: "bg-red-500/10 text-red-600 border-red-200", label: "Cancelado" },
+      atrasado: { className: "bg-orange-500/10 text-orange-600 border-orange-200", label: "Atrasado" }
     };
     const config = variants[status] || variants.agendado;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant="outline" className={`font-bold uppercase tracking-tighter text-[10px] ${config.className}`}>{config.label}</Badge>;
   };
 
   const getAppointmentPriceLabel = (appointment: any) => {
@@ -1216,154 +1236,173 @@ const AppointmentsTab: React.FC = () => {
 
       {/* List View */}
       {viewMode === 'list' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-              <span className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                Agendamentos
-              </span>
-              <Button onClick={exportAvailableTimesPDF} size="sm" variant="outline" className="min-h-[44px]">
-                <FileDown className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Horários Disponíveis</span>
-                <span className="sm:hidden">Horários</span>
-              </Button>
-            </CardTitle>
-          </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input placeholder="Buscar cliente ou serviço..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10 transition-all duration-200"/>
+        <div className="op-card">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="space-y-1">
+              <h2 className="text-xl font-black flex items-center gap-2">
+                <Calendar className="w-5 h-5 text-blue-500" />
+                AGENDA OPERACIONAL
+              </h2>
+              <p className="text-xs text-slate-400 font-medium">Cadastre e confirme serviços para enviar à equipe externa</p>
             </div>
-            <Select value={filterMonth} onValueChange={setFilterMonth}>
-              <SelectTrigger className="w-full sm:w-[120px]">
-                <SelectValue placeholder="Mês" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="1">Janeiro</SelectItem>
-                <SelectItem value="2">Fevereiro</SelectItem>
-                <SelectItem value="3">Março</SelectItem>
-                <SelectItem value="4">Abril</SelectItem>
-                <SelectItem value="5">Maio</SelectItem>
-                <SelectItem value="6">Junho</SelectItem>
-                <SelectItem value="7">Julho</SelectItem>
-                <SelectItem value="8">Agosto</SelectItem>
-                <SelectItem value="9">Setembro</SelectItem>
-                <SelectItem value="10">Outubro</SelectItem>
-                <SelectItem value="11">Novembro</SelectItem>
-                <SelectItem value="12">Dezembro</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={filterYear} onValueChange={setFilterYear}>
-              <SelectTrigger className="w-full sm:w-[100px]">
-                <SelectValue placeholder="Ano" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {availableYears.map(year => (
-                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button onClick={() => setShowAddDialog(true)} className="op-btn-primary flex-1 sm:flex-initial">
+                <PlusCircle className="w-4 h-4" />
+                Novo Agendamento
+              </Button>
+              <Button onClick={exportAvailableTimesPDF} variant="outline" className="op-btn-secondary flex-1 sm:flex-initial">
+                <FileDown className="w-4 h-4" />
+                PDF Vagos
+              </Button>
+            </div>
           </div>
+
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="relative col-span-1 sm:col-span-1">
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+                <Input 
+                  placeholder="Buscar cliente..." 
+                  value={search} 
+                  onChange={(e) => setSearch(e.target.value)} 
+                  className="op-input pl-9 h-10"
+                />
+              </div>
+              <Select value={filterMonth} onValueChange={setFilterMonth}>
+                <SelectTrigger className="op-input h-10">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111827] border-white/10 text-white">
+                  <SelectItem value="todos">Todos os meses</SelectItem>
+                  {Array.from({length: 12}).map((_, i) => (
+                    <SelectItem key={i+1} value={String(i+1)}>{format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={filterYear} onValueChange={setFilterYear}>
+                <SelectTrigger className="op-input h-10">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111827] border-white/10 text-white">
+                  <SelectItem value="todos">Todos os anos</SelectItem>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Quick Status Filter Buttons - Visual and Fast */}
-            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-white/5">
               {[
-                { id: 'todos', label: 'Todos', color: 'bg-muted text-muted-foreground' },
-                { id: 'agendado', label: 'Agendados', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-200' },
-                { id: 'confirmado', label: 'Confirmados', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-                { id: 'concluido', label: 'Concluídos', color: 'bg-green-500/10 text-green-600 border-green-200' },
-                { id: 'cancelado', label: 'Cancelados', color: 'bg-red-500/10 text-red-600 border-red-200' },
+                { id: 'todos', label: 'TODOS', color: 'bg-slate-500/10 text-slate-400 border-white/5' },
+                { id: 'pendente', label: 'PENDENTES', color: 'bg-slate-500/10 text-slate-500 border-slate-200' },
+                { id: 'agendado', label: 'AGENDADOS', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                { id: 'confirmado', label: 'CONFIRMADOS', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+                { id: 'enviado_prestador', label: 'C/ PRESTADOR', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-200' },
+                { id: 'em_rota', label: 'EM ROTA', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200' },
+                { id: 'concluido', label: 'CONCLUÍDOS', color: 'bg-green-500/10 text-green-600 border-green-200' },
+                { id: 'cancelado', label: 'CANCELADOS', color: 'bg-red-500/10 text-red-600 border-red-200' },
               ].map(status => (
-                <Button
+                <button
                   key={status.id}
-                  variant={filterStatus === status.id ? 'default' : 'outline'}
-                  size="sm"
                   onClick={() => setFilterStatus(status.id)}
-                  className={`h-8 text-[11px] font-bold rounded-full transition-all ${filterStatus === status.id ? '' : status.color}`}
+                  className={`px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest transition-all border whitespace-nowrap ${
+                    filterStatus === status.id 
+                    ? 'bg-blue-500 text-white border-blue-500 shadow-lg shadow-blue-500/20' 
+                    : `${status.color} hover:border-white/20 opacity-70 hover:opacity-100`
+                  }`}
                 >
                   {status.label}
-                </Button>
+                </button>
               ))}
             </div>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[100px]">Data/Hora</TableHead>
-                  <TableHead className="min-w-[120px]">Cliente</TableHead>
-                  <TableHead className="min-w-[100px]">Serviço</TableHead>
-                  <TableHead className="min-w-[80px]">Status</TableHead>
-                  <TableHead className="min-w-[120px]">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
+            <div className="overflow-hidden rounded-xl border border-white/5">
+              <Table>
+                <TableHeader className="bg-white/5">
+                  <TableRow className="hover:bg-transparent border-white/5">
+                    <TableHead className="text-[10px] font-black uppercase text-slate-400">Data/Hora</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-slate-400">Cliente / Local</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-slate-400">Serviço</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-slate-400 text-center">Status</TableHead>
+                    <TableHead className="text-[10px] font-black uppercase text-slate-400 text-right">Ações Operacionais</TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {isLoadingAppointments ? (
                   Array.from({length: 3}).map((_,i) => (
-                    <TableRow key={i}><TableCell colSpan={5}><Skeleton className="h-8 w-full"/></TableCell></TableRow>
+                    <TableRow key={i} className="border-white/5"><TableCell colSpan={5}><Skeleton className="h-10 w-full bg-white/5"/></TableCell></TableRow>
                   ))
                 ) : filteredAppointments.length === 0 ? (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Nenhum agendamento encontrado</TableCell></TableRow>
+                  <TableRow className="border-white/5"><TableCell colSpan={5} className="text-center py-12 text-slate-500 text-sm italic">Nenhum agendamento encontrado</TableCell></TableRow>
                 ) : (
                   filteredAppointments.map((appointment) => (
-                    <TableRow key={appointment.id}>
-                      <TableCell className="font-medium text-xs sm:text-sm">
+                    <TableRow key={appointment.id} className="hover:bg-white/5 border-white/5 transition-colors group">
+                      <TableCell className="py-4">
                         <div className="flex flex-col">
-                          <span>{safeFormat(appointment.appointment_date, 'dd/MM/yyyy')}</span>
-                          <span className="text-muted-foreground">{safeFormat(appointment.appointment_date, 'HH:mm')}</span>
+                          <span className="text-white font-black text-sm">{safeFormat(appointment.appointment_date, 'dd/MM/yyyy')}</span>
+                          <span className="text-blue-500 font-bold text-xs">{safeFormat(appointment.appointment_date, 'HH:mm')}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="py-4">
                         <div className="flex flex-col">
-                          <span className="text-xs sm:text-sm">{appointment.clients?.name || '-'}</span>
+                          <span className="text-white font-bold text-sm group-hover:text-blue-400 transition-colors">{appointment.clients?.name || '-'}</span>
                           {appointment.clients?.telefone && (
-                            <span className="text-xs text-muted-foreground">{appointment.clients.telefone}</span>
+                            <span className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                              <Phone className="w-2.5 h-2.5" /> {appointment.clients.telefone}
+                            </span>
+                          )}
+                          {(appointment.clients as any)?.address && (
+                            <span className="text-[9px] text-slate-500 truncate max-w-[150px]">{appointment.clients?.address}</span>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="text-xs sm:text-sm">{appointment.products?.name || '-'}</TableCell>
-                      <TableCell>{getStatusBadge(appointment.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1.5">
-                          {appointment.clients?.telefone && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-10 w-10 p-0 touch-target"
-                              onClick={() => handleWhatsApp(appointment.clients?.telefone, appointment.clients?.name || '', appointment.appointment_date)}
-                              title="Chamar no WhatsApp"
-                            >
-                              <Phone className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-10 w-10 p-0 touch-target text-primary hover:bg-primary/10"
-                            onClick={() => sendToProvider(appointment)}
-                            title="Enviar para Prestador (WhatsApp)"
-                          >
-                            <Users className="w-4 h-4" />
-                          </Button>
+                      <TableCell className="py-4">
+                        <div className="flex flex-col">
+                          <span className="text-slate-200 text-xs font-bold">{appointment.products?.name || 'Serviço'}</span>
+                          <span className="text-green-500 text-[10px] font-black">{getAppointmentPriceLabel(appointment)}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 text-center">
+                        {getStatusBadge(appointment.status)}
+                      </TableCell>
+                      <TableCell className="py-4 text-right">
+                        <div className="flex justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-all">
+                          {/* Confirm Button - Prioritized */}
                           {appointment.status === 'agendado' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-10 w-10 p-0 touch-target text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
+                              className="h-9 px-3 text-[10px] font-black uppercase bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500 hover:text-white"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado', appointment })}
-                              title="Confirmar Agendamento"
                             >
-                              <Check className="w-4 h-4" />
+                              <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmar
                             </Button>
                           )}
+                          
+                          {/* Send to Provider - The Architectural Link */}
+                          {(appointment.status === 'confirmado' || appointment.status === 'agendado') && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-9 px-3 text-[10px] font-black uppercase bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500 hover:text-white"
+                              onClick={() => {
+                                sendToProvider(appointment);
+                                if (appointment.status !== 'enviado_prestador') {
+                                  updateStatusMutation.mutate({ id: appointment.id, status: 'enviado_prestador' });
+                                }
+                              }}
+                            >
+                              <Send className="w-3.5 h-3.5 mr-1" /> Enviar
+                            </Button>
+                          )}
+
+                          {/* Edit / View Details */}
                           <Button 
                             size="sm" 
-                            variant="outline" 
-                            className="h-10 w-10 p-0 touch-target"
-                            title="Editar Agendamento"
+                            variant="ghost" 
+                            className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-white/10"
                             onClick={() => {
                               setEditingAppointment(appointment);
                               setEditDate(appointment.appointment_date.split('T')[0]);
@@ -1376,11 +1415,9 @@ const AppointmentsTab: React.FC = () => {
                               const priceMatch = appointment.notes?.match(/\[VALOR:([\d.]+)\]/);
                               setEditPrice(priceMatch ? priceMatch[1] : (appointment.products?.price ? String(appointment.products.price) : ""));
                               
-                              // Extract provider from notes if possible
                               const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
                               setEditProvider(match?.[1] || "");
                               
-                              // Remove provider and valor tag for editing notes
                               let cleanNotes = appointment.notes?.replace(/\[PRESTADOR:.+?\]\n?/, "") || "";
                               cleanNotes = cleanNotes.replace(/\[VALOR:[\d.]+\]\n?/, "");
                               setEditNotes(cleanNotes);
@@ -1388,103 +1425,18 @@ const AppointmentsTab: React.FC = () => {
                           >
                             <FileText className="w-4 h-4" />
                           </Button>
-                          {appointment.status === 'confirmado' && (
-                            <>
-                              {(appointment.clients as any)?.address && (
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className="h-10 w-10 p-0 touch-target text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                                  onClick={() => openGoogleMaps((appointment.clients as any)?.address)}
-                                  title="Abrir no Google Maps"
-                                >
-                                  <Navigation className="w-4 h-4" />
-                                </Button>
-                              )}
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-10 w-10 p-0 touch-target text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                                onClick={() => sendOnMyWay(appointment.clients?.telefone, appointment.clients?.name || '', appointment.appointment_date)}
-                                title="Avisar que está a caminho"
-                              >
-                                <MapPin className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="default" 
-                                className="h-10 px-3 text-sm touch-target"
-                                title="Concluir Serviço"
-                                onClick={() => {
-                                  setCompletionAppointment(appointment);
-                                  setCompletionFeedback("");
-                                  
-                                  // Suggest next maintenance based on periodicity (warranty_months)
-                                  const periodicity = (appointment.products as any)?.warranty_months || 6;
-                                  const nextDate = addMonths(new Date(), periodicity);
-                                  setNextMaintenanceDate(nextDate.toISOString().split('T')[0]);
-                                  
-                                  setShowCompletionDialog(true);
-                                }}
-                              >
-                                Concluir
-                              </Button>
-                            </>
-                          )}
-                          {appointment.status === 'concluido' && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-10 w-10 p-0 touch-target text-green-600 hover:bg-green-50 dark:hover:bg-green-950"
-                                onClick={() => sendServiceReceipt(appointment)}
-                                title="Enviar comprovante WhatsApp"
-                              >
-                                <Send className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-10 w-10 p-0 touch-target text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950"
-                                onClick={() => {
-                                  const providerMatch = appointment.notes?.match(/\[PRESTADOR:(.*?)\]/);
-                                  setSelectedExpenseAppointment({
-                                    id: appointment.id,
-                                    provider: providerMatch ? providerMatch[1] : ''
-                                  });
-                                  setExpensesDialogOpen(true);
-                                }}
-                                title="Lançar Gastos da Rota"
-                              >
-                                <Receipt className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-10 w-10 p-0 touch-target text-primary hover:bg-primary/10"
-                                onClick={() => generateServiceReceiptPDF(appointment)}
-                                title="Gerar PDF do comprovante"
-                              >
-                                <FileText className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                          {appointment.status !== 'cancelado' && appointment.status !== 'concluido' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-10 w-10 p-0 touch-target text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950"
-                              onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'cancelado', appointment })}
-                              title="Cancelar Agendamento"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+
+                          {/* Delete */}
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-9 w-9 p-0 text-red-500/50 hover:text-red-500 hover:bg-red-500/10"
+                            onClick={() => {
                               if (window.confirm('Remover este agendamento?')) {
                                 deleteAppointmentMutation.mutate(appointment.id);
                               }
-                            }} title="Excluir">
+                            }}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1647,6 +1599,18 @@ const AppointmentsTab: React.FC = () => {
                         ))}
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div className="mt-3">
+                    <Label className="text-sm">Preço Customizado (R$)</Label>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      value={customPrice} 
+                      onChange={(e) => setCustomPrice(e.target.value)} 
+                      placeholder="Deixe em branco para usar o preço padrão"
+                      className="min-h-[44px]"
+                    />
                   </div>
                 </div>
               </TabsContent>

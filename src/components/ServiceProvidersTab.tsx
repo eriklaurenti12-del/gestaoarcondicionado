@@ -7,17 +7,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car, Loader2, RefreshCw } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car, Loader2, RefreshCw, Zap, ShieldCheck, Activity, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Switch } from "@/components/ui/switch";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import TabGuideCards from './TabGuideCards';
 import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
 import RouteAllocationTab from './RouteAllocationTab';
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -176,27 +174,22 @@ export default function ServiceProvidersTab() {
     let updated: ServiceProvider[];
     if (editingProvider) {
       updated = providers.map(p => p.id === editingProvider.id ? newProvider : p);
-      toast.success('Prestador atualizado!');
+      toast.success('Profissional atualizado!');
     } else {
       updated = [...providers, newProvider];
-      toast.success('Prestador cadastrado!');
+      toast.success('Novo profissional cadastrado!');
     }
     
     saveMutation.mutate(updated);
     setDialogOpen(false);
-    setFormData({ 
-      name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', 
-      food_allowance: '', fuel_allowance: '', technical_notes: '', daily_rate: '', 
-      driver_cost: '', is_field_technician: true, is_recurring_expenses: true 
-    });
-    setEditingProvider(null);
+    resetForm();
   };
 
   const handleDelete = (id: string) => {
-    if (!confirm('Excluir este prestador?')) return;
+    if (!confirm('Excluir este prestador? Isso removerá o vínculo histórico operacional.')) return;
     const updated = providers.filter(p => p.id !== id);
     saveMutation.mutate(updated);
-    toast.success('Prestador removido!');
+    toast.success('Removido com sucesso!');
   };
 
   const handleEdit = (provider: ServiceProvider) => {
@@ -237,282 +230,198 @@ export default function ServiceProvidersTab() {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    doc.setFillColor(24, 24, 27);
+    doc.setFillColor(11, 17, 32);
     doc.rect(0, 0, 210, 40, 'F');
-    doc.setTextColor(255, 255, 255);
+    doc.setTextColor(255);
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text('Equipe de Prestadores', 14, 20);
+    doc.text('RELAÇÃO DE EQUIPE TÉCNICA', 14, 20);
     doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Gerado em ${format(new Date(), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`, 14, 32);
-
-    const tableData = providers.map(p => [
-      p.name, p.phone || '-', p.specialty,
-      `R$ ${p.cost_per_hour.toFixed(2)}/h`,
-      p.active ? 'Ativo' : 'Inativo'
-    ]);
+    doc.text(`Total: ${providers.length} Profissionais — Ativos: ${providers.filter(p=>p.active).length}`, 14, 30);
 
     autoTable(doc, {
       startY: 48,
-      head: [['Nome', 'Telefone', 'Especialidade', 'Custo/Hora', 'Status']],
-      body: tableData,
-      headStyles: { fillColor: [24, 24, 27] },
-      styles: { fontSize: 10 },
+      head: [['Nome', 'Telefone', 'Especialidade', 'Custo/H', 'Gasto Mensal']],
+      body: providers.map(p => [
+        p.name, p.phone || '-', p.specialty,
+        `R$ ${p.cost_per_hour.toFixed(2)}`,
+        `R$ ${getProviderExpenses(p.name).reduce((s: number, e: any) => s + Number(e.amount), 0).toFixed(2)}`
+      ]),
+      headStyles: { fillColor: [11, 17, 32] },
+      styles: { fontSize: 9 },
     });
 
-    doc.save('prestadores.pdf');
-    toast.success('PDF exportado!');
+    doc.save(`equipe-tecnica-${format(new Date(), 'dd-MM-yy')}.pdf`);
+    toast.success('Relatório gerado!');
   };
 
-  const totalCostMonth = providers.reduce((sum, p) => {
-    const pExpenses = getProviderExpenses(p.name);
-    return sum + pExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
-  }, 0);
-
   return (
-    <div className="space-y-4 animate-fade-in">
-      <TabGuideCards cards={[
-        {
-          icon: Users,
-          title: 'Equipe de Prestadores',
-          badge: 'Cadastro',
-          badgeColor: 'blue',
-          description: <>Cadastre seus <strong>prestadores/funcionários</strong>. Associe cada um a serviços agendados e controle custos.</>,
-        },
-        {
-          icon: MapPin,
-          title: 'Rotas & Custos',
-          badge: 'Gestão',
-          badgeColor: 'emerald',
-          description: <>Visualize o <strong>histórico de serviços por prestador</strong> e os gastos com combustível e alimentação.</>,
-        },
-      ]} />
-
-      <Tabs defaultValue="cadastro" className="space-y-4">
-        <TabsList className="bg-muted/50 p-1">
-          <TabsTrigger value="cadastro" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <Users className="w-4 h-4 mr-2" />
-            Cadastro de Prestadores
-          </TabsTrigger>
-          <TabsTrigger value="separar" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-            <MapPin className="w-4 h-4 mr-2" />
-            Separar Rota
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cadastro" className="space-y-4 m-0">
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-blue-500" />
-              <span className="text-xs font-medium text-muted-foreground">Prestadores</span>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
+      <Tabs defaultValue="cadastro" className="w-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+          <TabsList className="bg-black/40 border border-white/5 p-1 rounded-2xl h-12">
+            <TabsTrigger value="cadastro" className="px-6 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest gap-2">
+              <Users className="w-4 h-4" /> CADASTRO
+            </TabsTrigger>
+            <TabsTrigger value="separar" className="px-6 rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white font-black uppercase text-[10px] tracking-widest gap-2">
+              <MapPin className="w-4 h-4" /> SEPARAR ROTA
+            </TabsTrigger>
+          </TabsList>
+          
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <div className="relative flex-1 md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Input 
+                placeholder="Buscar por nome ou especialidade..." 
+                value={search} 
+                onChange={e => setSearch(e.target.value)}
+                className="op-input pl-9 h-11 text-xs font-bold"
+              />
             </div>
-            <p className="text-xl font-bold text-blue-500">{providers.length}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Wrench className="h-4 w-4 text-green-500" />
-              <span className="text-xs font-medium text-muted-foreground">Ativos</span>
-            </div>
-            <p className="text-xl font-bold text-green-500">{providers.filter(p => p.active).length}</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-medium text-muted-foreground">Custo Médio/h</span>
-            </div>
-            <p className="text-xl font-bold text-amber-500">
-              R$ {providers.length > 0 ? (providers.reduce((s, p) => s + p.cost_per_hour, 0) / providers.length).toFixed(2) : '0.00'}
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-red-500/10 to-red-600/5 border-red-500/20">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-red-500" />
-              <span className="text-xs font-medium text-muted-foreground">Gastos Equipe</span>
-            </div>
-            <p className="text-xl font-bold text-red-500">R$ {totalCostMonth.toFixed(2)}</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5 text-primary" />
-              Prestadores de Serviço
-            </CardTitle>
-            <div className="flex gap-2 flex-wrap">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)}
-                  className="pl-9 w-[180px]" />
-              </div>
-              <Button variant="outline" size="sm" onClick={exportPDF}>
-                <FileDown className="w-4 h-4 mr-1" /> PDF
-              </Button>
-              <Button size="sm" onClick={() => { resetForm(); setDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-1" /> Novo
-              </Button>
-            </div>
+            <Button variant="outline" onClick={exportPDF} className="h-11 border-white/10 bg-white/5 hover:bg-white/10 text-slate-400">
+              <FileDown className="w-4 h-4" />
+            </Button>
+            <Button onClick={() => { resetForm(); setDialogOpen(true); }} className="op-btn-primary h-11 px-6 font-black uppercase text-[10px] tracking-widest gap-2">
+              <UserPlus className="w-4 h-4" /> NOVO TÉCNICO
+            </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+
+        <TabsContent value="cadastro" className="m-0 focus-visible:ring-0">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3].map(i => <div key={i} className="h-64 op-card animate-pulse" />)}
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Users className="w-16 h-16 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">Nenhum prestador cadastrado</p>
-              <p className="text-sm mt-1">Cadastre seus prestadores para associá-los aos serviços</p>
-              <Button className="mt-4" onClick={() => { resetForm(); setDialogOpen(true); }}>
-                <Plus className="w-4 h-4 mr-2" /> Cadastrar Primeiro Prestador
-              </Button>
+            <div className="py-24 text-center op-card border-dashed">
+              <Users className="w-16 h-16 mx-auto mb-4 text-slate-700 opacity-20" />
+              <p className="text-lg font-black text-slate-400 uppercase tracking-widest">Nenhum profissional na base</p>
+              <p className="text-xs text-slate-600 font-bold uppercase mt-1">Inicie o cadastro da sua equipe externa</p>
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-280px)] pr-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filtered.map(provider => {
                 const provAppts = getProviderAppointments(provider.name);
                 const provExpenses = getProviderExpenses(provider.name);
                 const totalExpenses = provExpenses.reduce((s: number, e: any) => s + Number(e.amount), 0);
-                return (
-                  <div key={provider.id}
-                    className="p-4 rounded-xl border hover:shadow-md transition-all hover:border-primary/30"
-                    style={{ borderLeftColor: provider.color, borderLeftWidth: '4px' }}>
-                    <div className="flex justify-between items-start">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold truncate">{provider.name}</h3>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <Wrench className="w-3 h-3" /> {provider.specialty}
-                        </p>
-                        {provider.phone && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                            <Phone className="w-3 h-3" /> {provider.phone}
-                          </p>
-                        )}
-                      </div>
-                      <Badge style={{ backgroundColor: `${provider.color}20`, color: provider.color, borderColor: `${provider.color}40` }}>
-                        R$ {provider.cost_per_hour.toFixed(2)}/h
-                      </Badge>
-                    </div>
-                    {(provider.food_allowance || provider.fuel_allowance || provider.daily_rate || provider.driver_cost) ? (
-                      <div className="flex flex-wrap gap-2 mt-2">
-                        {provider.food_allowance ? <Badge variant="outline" className="text-[10px] bg-amber-50">🍔 R$ {provider.food_allowance.toFixed(2)}</Badge> : null}
-                        {provider.fuel_allowance ? <Badge variant="outline" className="text-[10px] bg-gray-50">⛽ R$ {provider.fuel_allowance.toFixed(2)}</Badge> : null}
-                        {provider.daily_rate ? <Badge variant="outline" className="text-[10px] bg-blue-50">📅 R$ {provider.daily_rate.toFixed(2)}</Badge> : null}
-                        {provider.driver_cost ? <Badge variant="outline" className="text-[10px] bg-purple-50">🚗 R$ {provider.driver_cost.toFixed(2)}</Badge> : null}
-                      </div>
-                    ) : null}
-                    <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
-                      <span>{provAppts.length} serviço(s)</span>
-                      <span className="text-red-500">R$ {totalExpenses.toFixed(2)} gastos</span>
-                    </div>
-                    <div className="space-y-2 mt-4">
-                      {/* Row 1: Operational */}
-                      <div className="flex gap-2">
-                        <Button size="sm" className="h-9 text-xs flex-1 bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100" onClick={() => setRouteProvider(provider)}>
-                          <Car className="w-3.5 h-3.5 mr-1" /> Rota Hoje
-                        </Button>
-                      </div>
+                const completed = provAppts.filter((a:any) => a.status === 'concluido').length;
 
-                      {/* Row 2: Admin/Comm */}
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="outline" className="h-8 text-[10px] flex-1" onClick={() => setHistoryProvider(provider)}>
-                          Histórico
-                        </Button>
-                        {provider.phone && (
-                          <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-green-600 border-green-200 hover:bg-green-50"
-                            onClick={() => {
-                              const phone = provider.phone.replace(/\D/g, '');
-                              window.open(`https://wa.me/55${phone}`, '_blank');
-                            }}>
-                            <Send className="w-3 h-3" />
-                          </Button>
-                        )}
-                        <Button size="sm" variant="outline" className="h-8 w-8 p-0" onClick={() => handleEdit(provider)}>
-                          <Edit2 className="w-3 h-3 text-muted-foreground" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive hover:bg-destructive/5" onClick={() => handleDelete(provider.id)}>
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
+                return (
+                  <div key={provider.id} className="op-card group relative overflow-hidden transition-all hover:border-primary/50">
+                    <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                      <Button size="icon" variant="ghost" className="h-8 w-8 bg-white/5 hover:bg-white/10 text-white rounded-lg" onClick={() => handleEdit(provider)}>
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-lg transition-colors" onClick={() => handleDelete(provider.id)}>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+
+                    <div className="flex items-center gap-4 mb-6">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-white text-xl shadow-lg ring-4 ring-white/5" style={{ backgroundColor: provider.color }}>
+                        {provider.name.charAt(0)}
                       </div>
+                      <div className="min-w-0">
+                        <h3 className="text-white font-black text-lg uppercase truncate pr-16">{provider.name}</h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <Badge variant="outline" className="bg-primary/10 border-primary/20 text-primary text-[9px] font-black uppercase">{provider.specialty}</Badge>
+                          {provider.active && <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Custo Base</p>
+                        <p className="text-white font-black text-sm">R$ {provider.cost_per_hour.toFixed(2)}/h</p>
+                      </div>
+                      <div className="bg-white/5 rounded-2xl p-3 border border-white/5">
+                        <p className="text-[9px] font-black text-slate-500 uppercase mb-1">Diária Fixa</p>
+                        <p className="text-white font-black text-sm">R$ {provider.daily_rate?.toFixed(2) || '0.00'}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4 mb-6 border-t border-white/5 pt-4">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                          <Activity className="w-3 h-3 text-blue-500" /> Rendimento
+                        </span>
+                        <span className="text-xs font-black text-white">{completed}/{provAppts.length} Concluídos</span>
+                      </div>
+                      <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-500 transition-all duration-1000" style={{ width: `${(completed / (provAppts.length || 1)) * 100}%` }} />
+                      </div>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {provider.food_allowance ? <Badge variant="outline" className="bg-amber-500/10 border-amber-500/20 text-amber-500 text-[9px] font-black">🍔 R$ {provider.food_allowance.toFixed(2)}</Badge> : null}
+                        {provider.fuel_allowance ? <Badge variant="outline" className="bg-slate-500/10 border-white/10 text-slate-400 text-[9px] font-black">⛽ R$ {provider.fuel_allowance.toFixed(2)}</Badge> : null}
+                        {provider.is_recurring_expenses && <Badge variant="outline" className="bg-blue-500/10 border-blue-500/20 text-blue-500 text-[9px] font-black uppercase">RECORRENTE</Badge>}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button className="op-btn-primary flex-1 h-11 font-black uppercase text-[10px] tracking-widest gap-2" onClick={() => setRouteProvider(provider)}>
+                        <Car className="w-4 h-4" /> MONTAR ROTA
+                      </Button>
+                      {provider.phone && (
+                        <Button variant="outline" className="h-11 w-12 border-white/10 bg-white/5 hover:bg-green-500/10 text-green-500" onClick={() => window.open(`https://wa.me/55${provider.phone.replace(/\D/g, '')}`, '_blank')}>
+                          <Phone className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 );
               })}
-              </div>
-            </ScrollArea>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+
+        <TabsContent value="separar" className="m-0 focus-visible:ring-0">
+          <RouteAllocationTab providers={providers} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-2xl font-bold flex items-center gap-2">
-              <Users className="w-6 h-6 text-primary" />
-              {editingProvider ? 'Editar Profissional' : 'Novo Profissional da Equipe'}
+        <DialogContent className="max-w-2xl bg-[#0B1120] border-white/10 text-white p-0 overflow-hidden shadow-2xl">
+          <div className="p-8 border-b border-white/5 bg-white/5">
+            <DialogTitle className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+              <UserPlus className="w-8 h-8 text-primary" />
+              {editingProvider ? 'Atualizar Profissional' : 'Novo Integrante da Equipe'}
             </DialogTitle>
-            <DialogDescription>
-              Preencha os dados abaixo para gerenciar rotas, custos e disponibilidade.
-            </DialogDescription>
-          </DialogHeader>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-2">Configurações operacionais e custos fixos</p>
+          </div>
 
-          <ScrollArea className="flex-1 px-6 py-2">
-            <div className="space-y-6 pb-6">
-              {/* Seção 1: Dados Básicos */}
+          <ScrollArea className="max-h-[70vh] p-8">
+            <div className="space-y-8">
+              {/* Seção 1: Identidade */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Dados Principais</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="w-4 h-4 text-primary" />
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Identificação Básica</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Nome Completo *</Label>
-                    <Input 
-                      value={formData.name} 
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Ex: João Silva" 
-                      className="h-11" 
-                    />
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Nome Completo</Label>
+                    <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="Ex: João da Silva" className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Telefone / WhatsApp</Label>
-                    <Input 
-                      value={formData.phone} 
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="(00) 00000-0000" 
-                      className="h-11" 
-                    />
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">WhatsApp Operacional</Label>
+                    <Input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })} placeholder="(00) 00000-0000" className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Especialidade</Label>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Especialidade Principal</Label>
                     <Select value={formData.specialty} onValueChange={v => setFormData({ ...formData, specialty: v })}>
-                      <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                      <SelectContent>
+                      <SelectTrigger className="op-input h-12 font-bold"><SelectValue /></SelectTrigger>
+                      <SelectContent className="bg-[#111827] border-white/10">
                         {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Gastos Recorrentes?</Label>
-                    <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 h-11">
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 text-blue-500" />
-                        <span className="text-xs font-medium">Lançar custos automático</span>
-                      </div>
-                      <Switch
-                        checked={formData.is_recurring_expenses}
-                        onCheckedChange={checked => setFormData({ ...formData, is_recurring_expenses: checked })}
-                      />
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Automação de Custos</Label>
+                    <div className="flex items-center justify-between p-3 rounded-2xl border border-white/5 bg-black/20 h-12">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Lançar custos fixos em rotas?</span>
+                      <Switch checked={formData.is_recurring_expenses} onCheckedChange={c => setFormData({ ...formData, is_recurring_expenses: c })} />
                     </div>
                   </div>
                 </div>
@@ -520,209 +429,71 @@ export default function ServiceProvidersTab() {
 
               {/* Seção 2: Financeiro */}
               <div className="space-y-4">
-                <h4 className="text-sm font-semibold text-primary uppercase tracking-wider">Configurações Financeiras</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="w-4 h-4 text-green-500" />
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Matriz de Custos</h4>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Custo p/ Hora</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                      <Input 
-                        type="number" step="0.01" 
-                        value={formData.cost_per_hour}
-                        onChange={e => setFormData({ ...formData, cost_per_hour: e.target.value })}
-                        className="pl-8 h-11" 
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Custo/Hora (R$)</Label>
+                    <Input type="number" step="0.01" value={formData.cost_per_hour} onChange={e => setFormData({ ...formData, cost_per_hour: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Alimentação</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                      <Input 
-                        type="number" step="0.01" 
-                        value={formData.food_allowance}
-                        onChange={e => setFormData({ ...formData, food_allowance: e.target.value })}
-                        className="pl-8 h-11" 
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Diária Fixa (R$)</Label>
+                    <Input type="number" step="0.01" value={formData.daily_rate} onChange={e => setFormData({ ...formData, daily_rate: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Combustível</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                      <Input 
-                        type="number" step="0.01" 
-                        value={formData.fuel_allowance}
-                        onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })}
-                        className="pl-8 h-11" 
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Aux. Alimentação (R$)</Label>
+                    <Input type="number" step="0.01" value={formData.food_allowance} onChange={e => setFormData({ ...formData, food_allowance: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Diária</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                      <Input 
-                        type="number" step="0.01" 
-                        value={formData.daily_rate}
-                        onChange={e => setFormData({ ...formData, daily_rate: e.target.value })}
-                        className="pl-8 h-11" 
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Aux. Combustível (R$)</Label>
+                    <Input type="number" step="0.01" value={formData.fuel_allowance} onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs font-medium">Custo Motorista</Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
-                      <Input 
-                        type="number" step="0.01" 
-                        value={formData.driver_cost}
-                        onChange={e => setFormData({ ...formData, driver_cost: e.target.value })}
-                        className="pl-8 h-11" 
-                      />
-                    </div>
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Aux. Motorista (R$)</Label>
+                    <Input type="number" step="0.01" value={formData.driver_cost} onChange={e => setFormData({ ...formData, driver_cost: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
                 </div>
               </div>
 
-              {/* Seção 3: Notas e Cor */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Observações e Ferramental</Label>
-                  <textarea 
-                    className="flex min-h-[100px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary transition-all"
-                    placeholder="Ex: Possui ferramental completo, carro próprio..."
-                    value={formData.technical_notes}
-                    onChange={e => setFormData({ ...formData, technical_notes: e.target.value })}
-                  />
+              {/* Seção 3: Visual */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="w-4 h-4 text-amber-500" />
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Identidade no Mapa/Agenda</h4>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold">Cor no Calendário</Label>
-                  <div className="grid grid-cols-4 gap-2 p-3 bg-muted/30 rounded-xl border">
-                    {COLORS.map(c => (
-                      <button 
-                        key={c.value} type="button"
-                        onClick={() => setFormData({ ...formData, color: c.value })}
-                        className={`w-full aspect-square rounded-lg border-2 transition-all flex items-center justify-center ${formData.color === c.value ? 'scale-105 border-primary shadow-lg ring-2 ring-primary/20' : 'border-transparent'}`}
-                        style={{ backgroundColor: c.value }}
-                      >
-                        {formData.color === c.value && <div className="w-2 h-2 bg-white rounded-full shadow-sm" />}
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-4 sm:grid-cols-8 gap-3 p-4 bg-black/20 rounded-2xl border border-white/5">
+                  {COLORS.map(c => (
+                    <button 
+                      key={c.value} type="button"
+                      onClick={() => setFormData({ ...formData, color: c.value })}
+                      className={`aspect-square rounded-xl border-2 transition-all flex items-center justify-center ${formData.color === c.value ? 'scale-110 border-white shadow-xl ring-4 ring-white/10' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                      style={{ backgroundColor: c.value }}
+                    >
+                      {formData.color === c.value && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           </ScrollArea>
 
-          <DialogFooter className="p-6 border-t bg-muted/20 gap-3">
-            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="h-11 px-6">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleSave} 
-              disabled={saveMutation.isPending}
-              className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-            >
-              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-              {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
+          <DialogFooter className="p-8 border-t border-white/5 bg-white/5 gap-3">
+            <Button variant="ghost" onClick={() => setDialogOpen(false)} className="h-12 px-6 text-slate-400 font-black uppercase text-xs">Descartar</Button>
+            <Button onClick={handleSave} disabled={saveMutation.isPending} className="op-btn-primary h-12 px-10 font-black uppercase text-xs tracking-widest">
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : editingProvider ? 'Salvar Alterações' : 'Confirmar Cadastro'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* History Dialog */}
-      <Dialog open={!!historyProvider} onOpenChange={() => setHistoryProvider(null)}>
-        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: historyProvider?.color }} />
-              Histórico — {historyProvider?.name}
-            </DialogTitle>
-          </DialogHeader>
-          {historyProvider && (() => {
-            const appts = getProviderAppointments(historyProvider.name);
-            const exps = getProviderExpenses(historyProvider.name);
-            return (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <Card className="bg-blue-500/5 border-blue-500/20">
-                    <CardContent className="p-3">
-                      <p className="text-xs text-muted-foreground">Serviços</p>
-                      <p className="text-lg font-bold text-blue-500">{appts.length}</p>
-                    </CardContent>
-                  </Card>
-                  <Card className="bg-red-500/5 border-red-500/20">
-                    <CardContent className="p-3">
-                      <p className="text-xs text-muted-foreground">Gastos</p>
-                      <p className="text-lg font-bold text-red-500">
-                        R$ {exps.reduce((s: number, e: any) => s + Number(e.amount), 0).toFixed(2)}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-sm mb-2">Serviços Realizados</h4>
-                  {appts.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum serviço associado</p>
-                  ) : (
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {appts.slice(0, 20).map((a: any) => (
-                        <div key={a.id} className="p-2 bg-muted/50 rounded-lg text-sm">
-                          <div className="flex justify-between">
-                            <span className="font-medium">{a.clients?.name || 'Cliente'}</span>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(a.appointment_date), 'dd/MM/yy HH:mm')}
-                            </span>
-                          </div>
-                          <span className={`text-xs ${a.status === 'concluido' ? 'text-green-500' : 'text-amber-500'}`}>
-                            {a.status}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div>
-                  <h4 className="font-semibold text-sm mb-2">Gastos Associados</h4>
-                  {exps.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Nenhum gasto registrado</p>
-                  ) : (
-                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                      {exps.slice(0, 20).map((e: any) => (
-                        <div key={e.id} className="flex justify-between p-2 bg-muted/50 rounded-lg text-sm">
-                          <div>
-                            <span className="font-medium">{e.description || e.category}</span>
-                            <span className="text-xs text-muted-foreground ml-2">
-                              {format(new Date(e.expense_date + 'T12:00:00'), 'dd/MM/yy')}
-                            </span>
-                          </div>
-                          <span className="font-medium text-red-500">R$ {Number(e.amount).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                </div>
-              );
-            })()}
-          </DialogContent>
-        </Dialog>
-
-        <ProviderDailyRouteDialog
-          isOpen={!!routeProvider}
-          onOpenChange={(open) => !open && setRouteProvider(null)}
-          provider={routeProvider}
-          allAppointments={appointments || []}
-        />
-      </TabsContent>
-
-      <TabsContent value="separar" className="m-0">
-        <RouteAllocationTab providers={providers} />
-      </TabsContent>
-    </Tabs>
+      <ProviderDailyRouteDialog
+        isOpen={!!routeProvider}
+        onOpenChange={(open) => !open && setRouteProvider(null)}
+        provider={routeProvider}
+        allAppointments={appointments || []}
+      />
     </div>
   );
 }
