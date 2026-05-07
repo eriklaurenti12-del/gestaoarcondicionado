@@ -5,6 +5,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MINUTES = 15;
+const GENERIC_ERROR = 'Credenciais inválidas';
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,26 +28,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    console.log('[team-portal-login] Looking for:', member_name);
-
-    // Search in team_members table by name or phone
-    const { data: members, error } = await supabase
+    // Look up active members
+    const { data: members } = await supabase
       .from('team_members')
-      .select('*')
+      .select('id, name, phone, role, user_id, is_active')
       .eq('is_active', true);
 
-    if (error || !members || members.length === 0) {
-      return new Response(JSON.stringify({ error: 'Nenhum membro encontrado' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Match by name (case-insensitive) or by phone (last 8 digits)
     const cleanInput = member_name.replace(/\D/g, '');
-    const match = members.find((m: any) => {
-      // Match by name
-      if (m.name.toLowerCase().trim() === member_name.toLowerCase().trim()) return true;
-      // Match by phone
+    const match = (members || []).find((m: any) => {
+      if (m.name?.toLowerCase().trim() === member_name.toLowerCase().trim()) return true;
       if (cleanInput.length >= 8 && m.phone) {
         const cleanPhone = m.phone.replace(/\D/g, '');
         if (cleanPhone.endsWith(cleanInput.slice(-8))) return true;
@@ -52,19 +45,56 @@ Deno.serve(async (req) => {
     });
 
     if (!match) {
-      return new Response(JSON.stringify({ error: 'Membro não encontrado. Verifique seu nome ou telefone.' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Verify PIN
-    if (match.pin !== pin) {
-      return new Response(JSON.stringify({ error: 'PIN incorreto.' }), {
+      // Generic error to prevent username enumeration
+      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    console.log('[team-portal-login] Authenticated:', match.name);
+    // Check lockout
+    const { data: attempts } = await supabase
+      .from('team_login_attempts')
+      .select('fail_count, locked_until')
+      .eq('member_id', match.id)
+      .maybeSingle();
+
+    if (attempts?.locked_until && new Date(attempts.locked_until) > new Date()) {
+      return new Response(JSON.stringify({ error: 'Conta temporariamente bloqueada. Tente novamente em alguns minutos.' }), {
+        status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Verify PIN via SECURITY DEFINER function (compares against bcrypt hash)
+    const { data: verifyResult } = await supabase.rpc('verify_team_pin', {
+      _member_id: match.id,
+      _pin: pin,
+    });
+
+    if (verifyResult !== true) {
+      const newCount = (attempts?.fail_count || 0) + 1;
+      const lockUntil = newCount >= MAX_ATTEMPTS
+        ? new Date(Date.now() + LOCKOUT_MINUTES * 60 * 1000).toISOString()
+        : null;
+
+      await supabase.from('team_login_attempts').upsert({
+        member_id: match.id,
+        fail_count: newCount,
+        locked_until: lockUntil,
+        last_attempt_at: new Date().toISOString(),
+      }, { onConflict: 'member_id' });
+
+      return new Response(JSON.stringify({ error: GENERIC_ERROR }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    // Success: reset attempts
+    await supabase.from('team_login_attempts').upsert({
+      member_id: match.id,
+      fail_count: 0,
+      locked_until: null,
+      last_attempt_at: new Date().toISOString(),
+    }, { onConflict: 'member_id' });
 
     return new Response(JSON.stringify({
       member_id: match.id,

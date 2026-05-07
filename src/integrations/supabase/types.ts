@@ -1262,6 +1262,27 @@ export type Database = {
         }
         Relationships: []
       }
+      team_login_attempts: {
+        Row: {
+          fail_count: number
+          last_attempt_at: string
+          locked_until: string | null
+          member_id: string
+        }
+        Insert: {
+          fail_count?: number
+          last_attempt_at?: string
+          locked_until?: string | null
+          member_id: string
+        }
+        Update: {
+          fail_count?: number
+          last_attempt_at?: string
+          locked_until?: string | null
+          member_id?: string
+        }
+        Relationships: []
+      }
       team_members: {
         Row: {
           created_at: string
@@ -1269,7 +1290,8 @@ export type Database = {
           is_active: boolean
           name: string
           phone: string | null
-          pin: string
+          pin: string | null
+          pin_hash: string | null
           role: string
           updated_at: string
           user_id: string
@@ -1280,7 +1302,8 @@ export type Database = {
           is_active?: boolean
           name: string
           phone?: string | null
-          pin: string
+          pin?: string | null
+          pin_hash?: string | null
           role?: string
           updated_at?: string
           user_id: string
@@ -1291,7 +1314,8 @@ export type Database = {
           is_active?: boolean
           name?: string
           phone?: string | null
-          pin?: string
+          pin?: string | null
+          pin_hash?: string | null
           role?: string
           updated_at?: string
           user_id?: string
@@ -1421,7 +1445,15 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_team_member_pin: {
+        Args: { _member_id: string; _pin: string }
+        Returns: boolean
+      }
       setup_super_admin: { Args: never; Returns: undefined }
+      verify_team_pin: {
+        Args: { _member_id: string; _pin: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user" | "super_admin"
