@@ -567,7 +567,20 @@ export default function HistoricoGeralTab() {
                               }}
                             >
                               <FileDown className="w-3 h-3" />
-                              Recibo
+                              PDF
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="h-8 gap-1 text-[10px] bg-green-500 hover:bg-green-600 text-white"
+                              onClick={() => {
+                                const phone = item.clientObj.telefone.replace(/\D/g, '');
+                                const nextDate = expirationDate ? safeFormat(expirationDate, 'dd/MM/yyyy') : 'A definir';
+                                const msg = `📝 *RECIBO DE SERVIÇO*\n\n👤 *Cliente:* ${item.client}\n🛠 *Serviço:* ${item.description}\n📅 *Data:* ${safeFormat(item.date, 'dd/MM/yyyy')}\n💰 *Valor:* R$ ${item.value.toFixed(2)}\n\n⏳ *Próxima Manutenção:* ${nextDate}\n\nObrigado pela preferência! ❄️`;
+                                window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+                              }}
+                            >
+                              <Phone className="w-3 h-3" />
+                              WhatsApp
                             </Button>
                           </div>
                         )}

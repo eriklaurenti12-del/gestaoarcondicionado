@@ -139,6 +139,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       const today = new Date().toISOString().split('T')[0];
 
       if (combustivel && parseFloat(combustivel) > 0) {
+        if (!provider?.name) throw new Error("Prestador é obrigatório para lançar combustível.");
         expensesToInsert.push({
           user_id: session.user.id,
           category: 'Combustível',
@@ -150,6 +151,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       }
 
       if (alimentacao && parseFloat(alimentacao) > 0) {
+        if (!provider?.name) throw new Error("Prestador é obrigatório para lançar alimentação.");
         expensesToInsert.push({
           user_id: session.user.id,
           category: 'Alimentação',

@@ -8,12 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
-import { format, addMonths } from 'date-fns';
+import { format, addMonths, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -33,6 +33,7 @@ type Appointment = {
   status: string;
   notes: string | null;
   created_at: string;
+  location?: string | null;
   clients?: { name: string; telefone: string | null; address?: string | null } | null;
   products?: { name: string; price: number; service_duration?: number } | null;
 };
@@ -126,6 +127,15 @@ const AppointmentsTab: React.FC = () => {
   const [notes, setNotes] = useState("");
   const [userId, setUserId] = useState<string>("");
   
+  const safeIsToday = (date: any) => {
+    try {
+      if (!date) return false;
+      return isToday(new Date(date));
+    } catch {
+      return false;
+    }
+  };
+
   const safeFormat = (date: any, formatStr: string, options?: any) => {
     try {
       if (!date) return '-';
@@ -267,6 +277,7 @@ const AppointmentsTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['installments'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({ title: "Sucesso!", description: "Agendamento criado." });
       resetForm();
       setShowAddDialog(false);
@@ -598,6 +609,17 @@ const AppointmentsTab: React.FC = () => {
       
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+    }
+
+    // 4. Autonomous Communication (WhatsApp Confirmation)
+    const client = clients?.find(c => c.id === clientId);
+    const clientName = client?.name || newClientName || "Cliente";
+    const clientPhone = (client?.telefone || newClientPhone || "").replace(/\D/g, '');
+    const formattedDate = format(dateTime, "dd/MM/yyyy 'às' HH:mm");
+    
+    if (clientPhone) {
+      const confirmMsg = `Olá *${clientName}*! ❄️\n\nConfirmamos seu agendamento com a *AC Service Pro*:\n\n📅 *Data:* ${formattedDate}\n📍 *Endereço:* ${client?.address || newClientAddress || "Não informado"}\n\nQualquer dúvida, estamos à disposição!`;
+      window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(confirmMsg)}`, '_blank');
     }
   };
   
@@ -1098,36 +1120,80 @@ const AppointmentsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="p-4">
-            <div className="text-2xl sm:text-3xl font-bold">{todayAppointments}</div>
-            <div className="text-xs sm:text-sm text-muted-foreground">Hoje</div>
+      {/* Decision Dashboard - Top level guidance */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="bg-primary/5 border-primary/20 shadow-sm overflow-hidden group hover:shadow-md transition-all">
+          <CardHeader className="p-4 pb-2 bg-primary/10">
+            <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2 text-primary">
+              <Zap className="w-3.5 h-3.5 animate-pulse" />
+              PRÓXIMO SERVIÇO
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            {appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido' && a.status !== 'cancelado')[0] ? (
+              <div className="space-y-2">
+                <div className="flex justify-between items-start">
+                  <div className="min-w-0">
+                    <p className="font-bold text-lg leading-tight truncate">
+                      {appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido' && a.status !== 'cancelado')[0]?.clients?.name}
+                    </p>
+                    <p className="text-xs font-bold text-primary flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {safeFormat(appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido' && a.status !== 'cancelado')[0]?.appointment_date, 'HH:mm')}
+                    </p>
+                  </div>
+                  <Badge className="bg-primary/20 text-primary hover:bg-primary/30 border-none text-[10px] h-5 flex-shrink-0">HOJE</Badge>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button size="sm" className="flex-1 h-8 text-[11px] font-bold" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido' && a.status !== 'cancelado')[0]?.clients?.address || '')}`, '_blank')}>
+                    <Navigation className="w-3 h-3 mr-1" /> IR
+                  </Button>
+                  <Button size="sm" variant="outline" className="flex-1 h-8 text-[11px] font-bold" onClick={() => window.open(`https://wa.me/55${(appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'concluido' && a.status !== 'cancelado')[0]?.clients?.telefone || '').replace(/\D/g, '')}`, '_blank')}>
+                    <Phone className="w-3 h-3 mr-1" /> WHATS
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-muted-foreground italic text-sm">
+                Nenhum serviço pendente para hoje.
+              </div>
+            )}
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-yellow-500">
-              {appointments?.filter(a => a.status === 'agendado').length || 0}
+
+        <Card className="border-border/40 shadow-sm">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <ClipboardList className="w-3.5 h-3.5" />
+              PROGRESSO DO DIA
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            <div className="flex items-end justify-between mb-2">
+              <span className="text-2xl font-black">{appointments?.filter(a => safeIsToday(a.appointment_date) && a.status === 'concluido').length || 0}</span>
+              <span className="text-xs text-muted-foreground">de {appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'cancelado').length || 0} agendados</span>
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">Agendados</div>
+            <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-1000" 
+                style={{ width: `${((appointments?.filter(a => safeIsToday(a.appointment_date) && a.status === 'concluido').length || 0) / (appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'cancelado').length || 1)) * 100}%` }}
+              />
+            </div>
           </CardContent>
         </Card>
-        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-green-500">
-              {appointments?.filter(a => a.status === 'confirmado').length || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">Confirmados</div>
-          </CardContent>
-        </Card>
-        <Card className="transition-all duration-200 hover:scale-[1.02] hover:shadow-lg">
-          <CardContent className="p-4">
-            <div className="text-2xl sm:text-3xl font-bold text-primary">
-              {appointments?.filter(a => a.status === 'concluido').length || 0}
-            </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">Concluídos</div>
+
+        <Card className="border-border/40 shadow-sm bg-muted/20">
+          <CardHeader className="p-4 pb-2">
+            <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+              <Wallet className="w-3.5 h-3.5" />
+              FATURAMENTO HOJE
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-2">
+            <p className="text-2xl font-black text-green-600">
+              R$ {appointments?.filter(a => safeIsToday(a.appointment_date) && (a.status === 'concluido' || a.status === 'concluído')).reduce((sum, a) => sum + getAppointmentPrice(a), 0).toFixed(2)}
+            </p>
+            <p className="text-[10px] text-muted-foreground font-medium mt-1">Estimado total: R$ {appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'cancelado').reduce((sum, a) => sum + getAppointmentPrice(a), 0).toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
@@ -1195,19 +1261,28 @@ const AppointmentsTab: React.FC = () => {
                 ))}
               </SelectContent>
             </Select>
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-full sm:w-[140px]">
-                <SelectValue placeholder="Filtrar" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="agendado">Agendados</SelectItem>
-                <SelectItem value="confirmado">Confirmados</SelectItem>
-                <SelectItem value="concluido">Concluídos</SelectItem>
-                <SelectItem value="cancelado">Cancelados</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
+            {/* Quick Status Filter Buttons - Visual and Fast */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+              {[
+                { id: 'todos', label: 'Todos', color: 'bg-muted text-muted-foreground' },
+                { id: 'agendado', label: 'Agendados', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-200' },
+                { id: 'confirmado', label: 'Confirmados', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
+                { id: 'concluido', label: 'Concluídos', color: 'bg-green-500/10 text-green-600 border-green-200' },
+                { id: 'cancelado', label: 'Cancelados', color: 'bg-red-500/10 text-red-600 border-red-200' },
+              ].map(status => (
+                <Button
+                  key={status.id}
+                  variant={filterStatus === status.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setFilterStatus(status.id)}
+                  className={`h-8 text-[11px] font-bold rounded-full transition-all ${filterStatus === status.id ? '' : status.color}`}
+                >
+                  {status.label}
+                </Button>
+              ))}
+            </div>
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -1437,7 +1512,8 @@ const AppointmentsTab: React.FC = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4">
+          <form onSubmit={(e) => { e.preventDefault(); handleAddAppointment(); }} className="space-y-4">
+            <div className="space-y-4">
             {/* Source Type Selection */}
             <Tabs value={sourceType} onValueChange={(v) => setSourceType(v as 'quote' | 'order' | 'manual')} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
@@ -1735,12 +1811,12 @@ const AppointmentsTab: React.FC = () => {
             )}
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
+          <DialogFooter className="gap-2 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={() => { setShowAddDialog(false); resetForm(); }}>
               Cancelar
             </Button>
             <Button 
-              onClick={handleAddAppointment} 
+              type="submit"
               disabled={
                 addAppointmentMutation.isPending || 
                 !appointmentDate || 
@@ -1755,8 +1831,9 @@ const AppointmentsTab: React.FC = () => {
               {addAppointmentMutation.isPending ? "Salvando..." : "Agendar"}
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </form>
+      </DialogContent>
+    </Dialog>
       {/* Edit Appointment Dialog */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
         <DialogContent className="max-w-md">
@@ -1990,27 +2067,59 @@ const AppointmentsTab: React.FC = () => {
               Cancelar
             </Button>
             <Button 
-              className="bg-green-600 hover:bg-green-700"
-              onClick={() => {
+              className="bg-green-600 hover:bg-green-700 font-bold gap-2"
+              disabled={updateStatusMutation.isPending}
+              onClick={async () => {
                 if (!completionAppointment) return;
                 
-                // Add feedback to notes
+                const clientPhone = completionAppointment.clients?.telefone?.replace(/\D/g, '') || '';
+                const clientName = completionAppointment.clients?.name || 'Cliente';
+                
+                // 1. Prepare Notes with Feedback
                 const updatedNotes = completionFeedback 
                   ? `${completionAppointment.notes || ""}\n[FEEDBACK: ${completionFeedback}]`.trim() 
                   : completionAppointment.notes;
 
-                // We could also create a future appointment here, 
-                // but usually the "Renovar" logic in History is better for that.
-                // However, the user wants a "Feedback rápido" now.
+                // 2. Create Future Recurrence (180 days)
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + 180);
                 
+                const recurrenceNote = `[RECORRÊNCIA AUTOMÁTICA] Referente ao serviço #${completionAppointment.id} concluído em ${new Date().toLocaleDateString()}`;
+                
+                await supabase.from('appointments').insert({
+                  user_id: completionAppointment.user_id,
+                  client_id: completionAppointment.client_id,
+                  service_id: completionAppointment.service_id,
+                  appointment_date: futureDate.toISOString(),
+                  status: 'agendado', // Set as agendado but with a note for sales
+                  notes: recurrenceNote,
+                  location: completionAppointment.location
+                });
+
+                // 3. Update Current Status
                 updateStatusMutation.mutate({ 
                   id: completionAppointment.id, 
                   status: 'concluido', 
                   appointment: { ...completionAppointment, notes: updatedNotes } 
                 });
+
+                // 4. Autonomous Communication (Satisfaction Survey)
+                const surveyMsg = `Olá *${clientName}*! ❄️\n\nFicamos felizes em concluir seu serviço. Poderia nos dar um feedback rápido? Sua opinião é muito importante para nós!\n\nNota de 0 a 10?\nQualquer observação?\n\nObrigado pela preferência!`;
+                
+                // 5. Generate Receipt PDF (Automatic Download)
+                generateServiceReceiptPDF(completionAppointment);
+                
+                window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(surveyMsg)}`, '_blank');
+                
+                setShowCompletionDialog(false);
+                toast({ 
+                  title: "Serviço concluído", 
+                  description: "Recibo gerado e Lembrete de 180 dias agendado!" 
+                });
               }}
             >
-              Confirmar Conclusão
+              <CheckCircle className="w-4 h-4" />
+              Concluir e Notificar Cliente
             </Button>
           </DialogFooter>
         </DialogContent>

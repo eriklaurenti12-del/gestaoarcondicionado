@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { 
   BarChart3, CalendarDays, Users, DollarSign, FileText, 
   Plus, Search, ArrowLeft, Moon, Sun, Zap, Clock, 
@@ -61,6 +62,7 @@ export default function BetaDashboard() {
   const [view, setView] = useState<BetaView>('home');
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showApprenticeTips, setShowApprenticeTips] = useState(true);
 
   // Data states
   const [todayAppointments, setTodayAppointments] = useState<any[]>([]);
@@ -202,6 +204,38 @@ export default function BetaDashboard() {
     if (error) { toast({ title: 'Erro', variant: 'destructive' }); return; }
     toast({ title: 'Agendamento removido' });
     loadData(userId);
+  };
+
+  const handleCheckIn = async (appointmentId: string) => {
+    if (!navigator.geolocation) {
+      toast({ title: "GPS não suportado", variant: "destructive" });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      const { latitude, longitude } = pos.coords;
+      const checkInTime = new Date().toLocaleTimeString();
+      const coords = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      
+      const { data: apt } = await supabase.from('appointments').select('notes').eq('id', appointmentId).single();
+      const newNotes = `[CHECK-IN GPS: ${coords} às ${checkInTime}]\n${apt?.notes || ""}`;
+      
+      const { error } = await supabase.from('appointments').update({ notes: newNotes }).eq('id', appointmentId);
+      
+      if (error) {
+        toast({ title: "Erro no check-in", variant: "destructive" });
+      } else {
+        toast({ title: "Check-in realizado!", description: `Localização: ${coords}` });
+        loadData(userId);
+      }
+    }, (err) => {
+      toast({ title: "Erro ao obter GPS", description: err.message, variant: "destructive" });
+    });
+  };
+
+  const sendOnTheWay = (clientPhone: string, clientName: string) => {
+    const msg = `Olá *${clientName}*! ❄️\n\nSou o técnico da *AC Service Pro* e acabo de iniciar minha rota. Estou a caminho do seu endereço agora!\n\nAté breve!`;
+    window.open(`https://wa.me/55${clientPhone}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   // PDV functions
@@ -390,6 +424,145 @@ export default function BetaDashboard() {
 
   const renderHome = () => (
     <div className="space-y-3 px-4 pt-4">
+      {showApprenticeTips && (
+        <Card className="bg-primary/10 border-primary/20 border-dashed animate-in fade-in slide-in-from-top-2">
+          <CardContent className="p-3 flex items-start gap-3">
+            <div className="bg-primary/20 p-2 rounded-full">
+              <Zap className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-primary">Modo Aprendiz Ativo</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Olá! Use o **Cockpit** para ver o lucro real e a **Central de Ações** (barra flutuante) para agendar rápido.
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowApprenticeTips(false)}>
+              <X className="w-3 h-3" />
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+      {/* Quick Action Button - Standout */}
+      <Button 
+        className="w-full h-16 text-lg font-bold gap-2 bg-gradient-to-r from-primary to-cyan-600 shadow-lg shadow-primary/30 animate-pulse-subtle"
+        onClick={() => setView('agenda')}
+      >
+        <Plus className="w-6 h-6" />
+        NOVO AGENDAMENTO
+      </Button>
+
+      {/* Owner Cockpit - Real Profit */}
+      <Card className="bg-gradient-to-br from-zinc-900 to-zinc-800 text-white border-none shadow-xl overflow-hidden relative group">
+        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+          <TrendingUp className="w-20 h-20" />
+        </div>
+        <CardContent className="p-5 relative z-10">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-xs font-bold flex items-center gap-2 tracking-widest text-zinc-400 uppercase">
+              <Briefcase className="w-4 h-4 text-primary" />
+              Cockpit do Empresário
+            </h3>
+            <Badge variant="outline" className="text-[9px] border-zinc-700 text-zinc-400">LUCRO REAL</Badge>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <p className="text-[10px] text-zinc-400 uppercase font-bold">Lucro Líquido Real (Mês)</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-primary">
+                  R$ {(monthReceitas - (monthReceitas * 0.06) - (monthReceitas * 0.10) - monthDespesas - monthExpenses).toFixed(2)}
+                </p>
+                <Badge className="bg-emerald-500/20 text-emerald-400 border-none text-[10px]">LÍQUIDO</Badge>
+              </div>
+              <p className="text-[9px] text-zinc-500 mt-1 italic">
+                * Já descontados impostos (6%), comissões (10%) e gastos operacionais.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Decision Dashboard */}
+      <Card className="bg-primary/5 border-primary/20 backdrop-blur-sm">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold flex items-center gap-2">
+              <Zap className="w-4 h-4 text-primary" />
+              DASHBOARD DE DECISÃO
+            </h3>
+            <Badge variant="outline" className="text-[10px] bg-primary/10 border-primary/20">ROTA ATIVA</Badge>
+          </div>
+          
+          <div className="space-y-3">
+            {todayAppointments.length > 0 ? (
+              <div className="p-3 bg-card rounded-lg border border-primary/10 shadow-sm">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">PRÓXIMO SERVIÇO</p>
+                <div className="flex justify-between items-start mt-1">
+                  <div>
+                    <p className="font-bold text-sm">{(todayAppointments[0].clients as any)?.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <p className="text-xs text-primary font-medium">{safeFormat(todayAppointments[0].appointment_date, 'HH:mm')}</p>
+                      <span className="text-[10px] text-muted-foreground">• {(todayAppointments[0].clients as any)?.address?.split(',')[0]}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-8 w-8 p-0 text-green-600 border-green-200" 
+                      title="Técnico a Caminho"
+                      onClick={() => sendOnTheWay((todayAppointments[0].clients as any)?.telefone?.replace(/\D/g, ''), (todayAppointments[0].clients as any)?.name)}
+                    >
+                      <Zap className="w-3 h-3" />
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      className="h-8 gap-1 bg-primary" 
+                      title="Abrir no Maps"
+                      onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((todayAppointments[0].clients as any)?.address || '')}`, '_blank')}
+                    >
+                      <Navigation className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2 mt-3 pt-3 border-t border-border/50">
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="flex-1 h-8 text-[10px] gap-1 font-bold"
+                    onClick={() => handleCheckIn(todayAppointments[0].id)}
+                  >
+                    <MapPin className="w-3 h-3" /> CHECK-IN GPS
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1 h-8 text-[10px] gap-1"
+                    onClick={() => setView('agenda')}
+                  >
+                    <Check className="w-3 h-3" /> DETALHES
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground text-center py-2">Sem serviços para agora.</p>
+            )}
+            
+            <div className="flex gap-2">
+              <div className="flex-1 p-2 bg-background rounded border text-center">
+                <p className="text-[9px] text-muted-foreground uppercase">Restantes</p>
+                <p className="text-sm font-bold">{todayAppointments.filter(a => a.status !== 'concluido' && a.status !== 'cancelado').length}</p>
+              </div>
+              <div className="flex-1 p-2 bg-background rounded border text-center">
+                <p className="text-[9px] text-muted-foreground uppercase">Concluídos</p>
+                <p className="text-sm font-bold text-green-600">{todayAppointments.filter(a => a.status === 'concluido').length}</p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-2 gap-3">
         <Card className="cursor-pointer" onClick={() => setView('agenda')}>
           <CardContent className="p-4 text-center">
@@ -1126,12 +1299,55 @@ export default function BetaDashboard() {
                 </button>
               ))}
             </div>
+            </div>
+            <div className="mt-4 pt-4 border-t flex items-center justify-between px-2">
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-primary" />
+                <span className="text-xs font-medium">Dicas de Aprendiz</span>
+              </div>
+              <Switch checked={showApprenticeTips} onCheckedChange={setShowApprenticeTips} />
+            </div>
             <Button variant="outline" size="sm" className="w-full mt-4 h-9 text-xs" onClick={() => { toggleBeta(); navigate('/dashboard'); }}>
               <ArrowLeft className="w-3 h-3 mr-1.5" /> Voltar ao Sistema Completo
             </Button>
           </div>
         </div>
       )}
+
+      {/* Quick Action Center - Fixed Floating */}
+      <div className="fixed bottom-20 left-4 right-4 z-30 pointer-events-none">
+        <div className="max-w-3xl mx-auto flex justify-center">
+          <div className="bg-background/80 backdrop-blur-xl border border-border shadow-2xl rounded-full p-1.5 flex gap-1 pointer-events-auto ring-1 ring-black/5">
+            <Button 
+              size="sm" 
+              className="rounded-full h-10 px-4 gap-2 bg-primary shadow-lg shadow-primary/20"
+              onClick={() => setView('agenda')}
+              title="Novo Agendamento"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="text-xs font-bold">Agendar</span>
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full h-10 w-10"
+              onClick={() => setView('financeiro')}
+              title="Lançar Gasto"
+            >
+              <DollarSign className="w-4 h-4 text-red-500" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full h-10 w-10"
+              onClick={() => setView('cadastros')}
+              title="Buscar Cliente"
+            >
+              <Search className="w-4 h-4 text-muted-foreground" />
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-30">
         <div className="max-w-3xl mx-auto flex justify-around py-2 px-2">
