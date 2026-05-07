@@ -440,15 +440,15 @@ export default function ServiceProvidersTab() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent">
-          <Card className="border-none shadow-2xl">
-            <CardHeader className="pb-2 border-b">
+        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent max-h-[90vh] flex flex-col">
+          <Card className="border-none shadow-2xl flex flex-col max-h-[90vh]">
+            <CardHeader className="pb-2 border-b shrink-0">
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
                 {editingProvider ? 'Editar Prestador' : 'Novo Prestador'}
               </DialogTitle>
             </CardHeader>
-            <ScrollArea className="max-h-[80vh]">
+            <ScrollArea className="flex-1 min-h-0">
               <div className="p-6 space-y-4">
             <div>
               <Label>Nome *</Label>
