@@ -96,7 +96,7 @@ export default function TeamPortalLogin() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-sm space-y-8 animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-sm space-y-8">
         <div className="text-center space-y-2">
           <div className="inline-flex p-4 rounded-3xl bg-primary/10 border border-primary/20 mb-2">
             <Wind className="w-12 h-12 text-primary" />
