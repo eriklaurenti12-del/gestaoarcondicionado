@@ -45,9 +45,15 @@ export const ForceUpdateListener = () => {
         .select('value')
         .eq('key', 'force_update_all_at')
         .maybeSingle();
-      
+
+      const globalLast = localStorage.getItem('last_global_force_update');
       if (globalData?.value) {
-        handleUpdateSignal(globalData.value, true);
+        if (!globalLast) {
+          // First time we see this signal — record it WITHOUT triggering an update.
+          localStorage.setItem('last_global_force_update', globalData.value);
+        } else {
+          handleUpdateSignal(globalData.value, true);
+        }
       }
 
       // Check individual signal
@@ -56,9 +62,14 @@ export const ForceUpdateListener = () => {
         .select('value')
         .eq('key', `force_update_user:${user.id}`)
         .maybeSingle();
-      
+
+      const userLast = localStorage.getItem('last_user_force_update');
       if (userData?.value) {
-        handleUpdateSignal(userData.value, false);
+        if (!userLast) {
+          localStorage.setItem('last_user_force_update', userData.value);
+        } else {
+          handleUpdateSignal(userData.value, false);
+        }
       }
     };
 
