@@ -209,22 +209,27 @@ export default function Members() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { error } = await supabase.from('team_members').insert({
+    const { data: inserted, error } = await supabase.from('team_members').insert({
       user_id: user.id,
       name: newName.trim(),
       phone: newPhone.trim() || null,
-      pin: newPin,
       role: newRole,
-    } as any);
+    } as any).select('id').single();
 
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Membro adicionado! ✓" });
-      resetForm();
-      setShowAddDialog(false);
-      loadTeamMembers();
+      return;
     }
+    // Hash and store the PIN via secure RPC
+    const { error: pinErr } = await supabase.rpc('set_team_member_pin', { _member_id: inserted.id, _pin: newPin });
+    if (pinErr) {
+      toast({ title: "Erro ao definir PIN", description: pinErr.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Membro adicionado! ✓" });
+    resetForm();
+    setShowAddDialog(false);
+    loadTeamMembers();
   };
 
   const updateTeamMember = async () => {
