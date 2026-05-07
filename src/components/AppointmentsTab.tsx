@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,35 +206,6 @@ const AppointmentsTab: React.FC = () => {
   const [editClientAddress, setEditClientAddress] = useState("");
   const [editPrice, setEditPrice] = useState("");
 
-  React.useEffect(() => {
-    const getUserId = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user?.id) {
-        setUserId(session.user.id);
-      }
-    };
-    getUserId();
-  }, []);
-
-  // Auto-fill price based on provider's daily rate
-  React.useEffect(() => {
-    if (selectedProvider && selectedProvider !== '_none') {
-      const provider = (providers as any[]).find(p => p.name === selectedProvider);
-      if (provider?.daily_rate && provider.daily_rate > 0) {
-        setCustomPrice(String(provider.daily_rate));
-      }
-    }
-  }, [selectedProvider, providers]);
-
-  const { data: appointments, isLoading: isLoadingAppointments } = useQuery({ 
-    queryKey: ['appointments'], 
-    queryFn: fetchAppointments 
-  });
-  const { data: clients } = useQuery({ queryKey: ['clients-list'], queryFn: fetchClients });
-  const { data: services } = useQuery({ queryKey: ['services-list'], queryFn: fetchServices });
-  const { data: pendingQuotes } = useQuery({ queryKey: ['pending-quotes'], queryFn: fetchPendingQuotes });
-  const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
-  
   // Fetch providers from admin_settings - Unified to avoid redeclaration
   const { data: providers = [] } = useQuery({
     queryKey: ['service-providers-unified'],
@@ -251,6 +222,73 @@ const AppointmentsTab: React.FC = () => {
       return [];
     },
   });
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.id) {
+        setUserId(session.user.id);
+      }
+    };
+    getUserId();
+  }, []);
+
+  // Auto-fill price based on provider's daily rate
+  useEffect(() => {
+    if (selectedProvider && selectedProvider !== '_none') {
+      const provider = (providers as any[]).find(p => p.name === selectedProvider);
+      if (provider?.daily_rate && provider.daily_rate > 0) {
+        setCustomPrice(String(provider.daily_rate));
+      }
+    }
+  }, [selectedProvider, providers]);
+
+  // AUTO-SAVE: Load from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('appointment_form_autosave');
+    if (saved) {
+      const data = JSON.parse(saved);
+      setSelectedClientId(data.clientId || "");
+      setSelectedServiceId(data.serviceId || "");
+      setAppointmentDate(data.date || "");
+      setAppointmentTime(data.time || "");
+      setNotes(data.notes || "");
+    }
+  }, []);
+
+  // AUTO-SAVE: Save to localStorage on change
+  useEffect(() => {
+    const data = {
+      clientId: selectedClientId,
+      serviceId: selectedServiceId,
+      date: appointmentDate,
+      time: appointmentTime,
+      notes: notes
+    };
+    localStorage.setItem('appointment_form_autosave', JSON.stringify(data));
+  }, [selectedClientId, selectedServiceId, appointmentDate, appointmentTime, notes]);
+
+  const clearAutoSave = () => {
+    localStorage.removeItem('appointment_form_autosave');
+  };
+
+  const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
+
+  // REALTIME SUBSCRIPTION
+  useEffect(() => {
+    const channel = supabase
+      .channel('appointments-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, (payload) => {
+        console.log('Realtime appointment change:', payload);
+        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const addAppointmentMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -291,6 +329,7 @@ const AppointmentsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast({ title: "Sucesso!", description: "Agendamento criado." });
       resetForm();
+      clearAutoSave();
       setShowAddDialog(false);
     },
     onError: (error: any) => {
@@ -355,6 +394,16 @@ const AppointmentsTab: React.FC = () => {
         }
       }
     },
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'] });
+      const previousAppointments = queryClient.getQueryData<Appointment[]>(['appointments']);
+      if (previousAppointments) {
+        queryClient.setQueryData<Appointment[]>(['appointments'], 
+          previousAppointments.map(a => a.id === id ? { ...a, status } : a)
+        );
+      }
+      return { previousAppointments };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -370,7 +419,10 @@ const AppointmentsTab: React.FC = () => {
         toast({ title: "Status atualizado!" });
       }
     },
-    onError: (error: any) => {
+    onError: (error: any, __, context) => {
+      if (context?.previousAppointments) {
+        queryClient.setQueryData(['appointments'], context.previousAppointments);
+      }
       toast({ variant: "destructive", title: "Erro", description: error.message });
     }
   });
@@ -1398,6 +1450,22 @@ const AppointmentsTab: React.FC = () => {
                             </Button>
                           )}
 
+                          {/* Quick Complete - 1 Click Concluir */}
+                          {(appointment.status === 'confirmado' || appointment.status === 'enviado_prestador') && (
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="h-9 px-3 text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                              onClick={() => {
+                                if (window.confirm('Marcar este serviço como CONCLUÍDO e gerar financeiro?')) {
+                                  updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment });
+                                }
+                              }}
+                            >
+                              <Check className="w-3.5 h-3.5 mr-1" /> Baixa
+                            </Button>
+                          )}
+
                           {/* Edit / View Details */}
                           <Button 
                             size="sm" 
@@ -1447,8 +1515,8 @@ const AppointmentsTab: React.FC = () => {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-        </Card>
+        </div>
+      </div>
       )}
 
       {/* Dialog Novo Agendamento */}

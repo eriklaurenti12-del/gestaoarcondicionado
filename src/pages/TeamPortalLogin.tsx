@@ -33,7 +33,10 @@ type PortalSession = {
 export default function TeamPortalLogin() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [nameOrPhone, setNameOrPhone] = useState("");
+  const [nameOrPhone, setNameOrPhone] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('n') || params.get('name') || "";
+  });
   const [pin, setPin] = useState("");
   const [session, setSession] = useState<PortalSession | null>(() => {
     try {
@@ -42,22 +45,17 @@ export default function TeamPortalLogin() {
     } catch { return null; }
   });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nameOrPhone.trim() || pin.length !== 4) {
-      toast({ title: "Preencha todos os campos", variant: "destructive" });
-      return;
-    }
+  const handleLogin = async (inputPin?: string) => {
+    const finalPin = inputPin || pin;
+    if (!nameOrPhone.trim() || finalPin.length !== 4) return;
 
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('team-portal-login', {
-        body: { member_name: nameOrPhone.trim(), pin }
+        body: { member_name: nameOrPhone.trim(), pin: finalPin }
       });
 
-      if (error || data?.error) {
-        throw new Error(data?.error || error?.message || "Erro ao fazer login");
-      }
+      if (error || data?.error) throw new Error(data?.error || error?.message || "PIN incorreto");
 
       const portalSession: PortalSession = {
         memberId: data.member_id,
@@ -68,18 +66,28 @@ export default function TeamPortalLogin() {
 
       sessionStorage.setItem('portal_session', JSON.stringify(portalSession));
       setSession(portalSession);
-      toast({ title: `Olá, ${data.member_name}!` });
-      await forceUpdateApp();
+      toast({ title: `Bem-vindo, ${data.member_name}!` });
+      // Minor delay to show toast before refresh
+      setTimeout(() => window.location.reload(), 500);
     } catch (error: any) {
-      toast({ title: "Erro no acesso", description: error.message, variant: "destructive" });
+      toast({ title: "Acesso Negado", description: error.message, variant: "destructive" });
+      setPin("");
     } finally {
       setLoading(false);
     }
   };
 
+  const handlePinClick = (num: string) => {
+    if (pin.length < 4) {
+      const newPin = pin + num;
+      setPin(newPin);
+      if (newPin.length === 4) handleLogin(newPin);
+    }
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem('portal_session');
-    setSession(null);
+    window.location.href = '/portal';
   };
 
   if (session) {
@@ -87,17 +95,70 @@ export default function TeamPortalLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <Card className="border border-border/50 shadow-lg rounded-2xl">
-          <CardContent className="p-8 space-y-6">
-            <div className="flex flex-col items-center gap-3">
-              <div className="p-4 rounded-full bg-primary/10 border border-primary/20">
-                <Wind className="w-10 h-10 text-primary" />
-              </div>
-              <div className="text-center">
-                <h1 className="text-2xl font-bold">Portal da Equipe</h1>
-                <p className="text-sm text-muted-foreground mt-1">
+    <div className="min-h-screen bg-[#0a0a0b] text-white flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-sm space-y-8 animate-in fade-in zoom-in duration-500">
+        <div className="text-center space-y-2">
+          <div className="inline-flex p-4 rounded-3xl bg-primary/10 border border-primary/20 mb-2">
+            <Wind className="w-12 h-12 text-primary" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter">PORTAL EQUIPE</h1>
+          <p className="text-muted-foreground text-sm">Entre com seu nome e PIN de 4 dígitos</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground ml-1">IDENTIFICAÇÃO</Label>
+            <Input 
+              placeholder="Seu nome ou telefone"
+              value={nameOrPhone}
+              onChange={e => setNameOrPhone(e.target.value)}
+              className="h-14 bg-white/5 border-white/10 rounded-2xl text-center text-lg font-medium focus:ring-primary/20"
+            />
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-center gap-3">
+              {[0, 1, 2, 3].map(i => (
+                <div 
+                  key={i}
+                  className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${pin.length > i ? 'bg-primary border-primary scale-125 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-white/20'}`}
+                />
+              ))}
+            </div>
+
+            {/* Numpad for Agility */}
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                <button
+                  key={n}
+                  onClick={() => handlePinClick(String(n))}
+                  className="h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 active:scale-95 transition-all text-2xl font-bold"
+                >
+                  {n}
+                </button>
+              ))}
+              <button onClick={() => setPin("")} className="h-16 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 active:scale-95 transition-all text-sm font-bold uppercase">Limpar</button>
+              <button onClick={() => handlePinClick("0")} className="h-16 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 active:scale-95 transition-all text-2xl font-bold">0</button>
+              <button 
+                onClick={() => handleLogin()} 
+                disabled={loading || pin.length !== 4}
+                className="h-16 rounded-2xl bg-primary text-white active:scale-95 transition-all flex items-center justify-center disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <CheckCircle2 className="w-8 h-8" />}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="text-center pt-4">
+          <Button variant="link" className="text-muted-foreground text-xs" onClick={() => window.location.href = '/'}>
+            <ArrowLeft className="w-3 h-3 mr-2" /> Voltar ao site principal
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
                   Entre com seu <strong className="text-primary">nome</strong> ou{" "}
                   <strong className="text-primary">número de telefone</strong> e sua senha
                 </p>
@@ -278,11 +339,25 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     };
     sendHeartbeat();
     const interval = setInterval(sendHeartbeat, 30000);
+
+    // Setup Realtime Subscription for the portal
+    const channel = supabase
+      .channel('portal-sync')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments', filter: `user_id=eq.${session.ownerId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['portal-today'] });
+        queryClient.invalidateQueries({ queryKey: ['portal-bookings'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'sales', filter: `user_id=eq.${session.ownerId}` }, () => {
+        queryClient.invalidateQueries({ queryKey: ['portal-sales'] });
+      })
+      .subscribe();
+
     return () => {
       clearInterval(interval);
+      supabase.removeChannel(channel);
       fetchPortalData('go_offline').catch(() => {});
     };
-  }, [session.memberId]);
+  }, [session.memberId, session.ownerId, queryClient]);
 
   const { data: todayAppointments = [], refetch: refetchApts } = useQuery({
     queryKey: ['portal-today', session.ownerId],
@@ -551,6 +626,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
   const totalLucro = (portalSales as any[]).reduce((s: number, r: any) => s + Number(r.total_profit || 0), 0);
 
+  const roleTabPermissions: Record<string, string[]> = {
+    admin: ["agenda", "cadastros", "financeiro", "vendas", "admin", "suporte"],
+    gerente: ["agenda", "cadastros", "financeiro", "vendas", "suporte"],
+    atendimento: ["agenda", "cadastros", "suporte"],
+    tecnico: ["agenda", "suporte"],
+    vendedor: ["vendas", "cadastros", "suporte"],
+  };
+
+  const visibleTabs = roleTabPermissions[session.role] || ["agenda", "suporte"];
+
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Header - matching screenshot */}
@@ -614,22 +699,24 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </Card>
         </div>
 
-        {/* Single row of 6 tabs */}
+        {/* Single row of tabs - dynamically filtered */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-6 h-10">
-            <TabsTrigger value="agenda" className="text-xs gap-1"><CalendarDays className="w-3.5 h-3.5" /><span className="hidden sm:inline">Agenda</span></TabsTrigger>
-            <TabsTrigger value="cadastros" className="text-xs gap-1"><Users className="w-3.5 h-3.5" /><span className="hidden sm:inline">Cadastros</span></TabsTrigger>
-            <TabsTrigger value="financeiro" className="text-xs gap-1"><DollarSign className="w-3.5 h-3.5" /><span className="hidden sm:inline">Financeiro</span></TabsTrigger>
-            <TabsTrigger value="vendas" className="text-xs gap-1"><ShoppingCart className="w-3.5 h-3.5" /><span className="hidden sm:inline">Vendas</span></TabsTrigger>
-            <TabsTrigger value="admin" className="text-xs gap-1"><Shield className="w-3.5 h-3.5" /><span className="hidden sm:inline">Admin</span></TabsTrigger>
-            <TabsTrigger value="suporte" className="text-xs gap-1 relative">
-              <Headphones className="w-3.5 h-3.5" /><span className="hidden sm:inline">Suporte</span>
-              {supportRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                  {supportRequests.length}
-                </span>
-              )}
-            </TabsTrigger>
+          <TabsList className={`w-full grid h-10`} style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+            {visibleTabs.includes("agenda") && <TabsTrigger value="agenda" className="text-xs gap-1"><CalendarDays className="w-3.5 h-3.5" /><span className="hidden sm:inline">Agenda</span></TabsTrigger>}
+            {visibleTabs.includes("cadastros") && <TabsTrigger value="cadastros" className="text-xs gap-1"><Users className="w-3.5 h-3.5" /><span className="hidden sm:inline">Cadastros</span></TabsTrigger>}
+            {visibleTabs.includes("financeiro") && <TabsTrigger value="financeiro" className="text-xs gap-1"><DollarSign className="w-3.5 h-3.5" /><span className="hidden sm:inline">Financeiro</span></TabsTrigger>}
+            {visibleTabs.includes("vendas") && <TabsTrigger value="vendas" className="text-xs gap-1"><ShoppingCart className="w-3.5 h-3.5" /><span className="hidden sm:inline">Vendas</span></TabsTrigger>}
+            {visibleTabs.includes("admin") && <TabsTrigger value="admin" className="text-xs gap-1"><Shield className="w-3.5 h-3.5" /><span className="hidden sm:inline">Admin</span></TabsTrigger>}
+            {visibleTabs.includes("suporte") && (
+              <TabsTrigger value="suporte" className="text-xs gap-1 relative">
+                <Headphones className="w-3.5 h-3.5" /><span className="hidden sm:inline">Suporte</span>
+                {supportRequests.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[8px] rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                    {supportRequests.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            )}
           </TabsList>
 
           {/* ========== AGENDA ========== */}

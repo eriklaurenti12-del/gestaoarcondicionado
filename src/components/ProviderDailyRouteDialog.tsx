@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2, XCircle, DollarSign, UserCheck, ShieldCheck, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2, XCircle, DollarSign, UserCheck, ShieldCheck, TrendingUp, AlertTriangle, ListTodo, RefreshCw } from 'lucide-react';
 import jsPDF from 'jspdf';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { ServiceProvider } from './ServiceProvidersTab';
@@ -77,7 +77,7 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       for (const exp of expenses) {
         await recordFinancialEntry({
           userId: session.user.id,
-          type: 'saída',
+          type: 'saque',
           amount: exp.val,
           description: `FECHAMENTO ROTA: ${provider.name} - ${exp.cat}`,
           paymentMethod: 'Dinheiro',
@@ -101,8 +101,10 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
         await supabase.from('sales').insert({
           user_id: session.user.id,
           client_id: apt.client_id,
-          service_id: apt.service_id,
-          amount: price,
+          product_id: apt.service_id,
+          sale_price: price,
+          qty: 1,
+          total_profit: price,
           sale_date: todayStr,
           status: 'concluido',
           payment_method: 'Dinheiro',
@@ -282,6 +284,4 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
   );
 }
 
-// Helper icons
-const ListTodo = ({ className }: { className?: string }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" /><path d="M8 12h8" /><path d="M8 18h8" /><path d="M8 6h8" /></svg>;
-const RefreshCw = ({ className }: { className?: string }) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" /><path d="M3 21v-5h5" /></svg>;
+

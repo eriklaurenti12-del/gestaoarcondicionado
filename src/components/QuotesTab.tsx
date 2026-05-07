@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -71,6 +71,26 @@ export default function QuotesTab() {
   const [items, setItems] = useState<QuoteItem[]>([
     { description: "", quantity: 1, unit_price: 0, total: 0 }
   ]);
+
+  // AUTO-SAVE: Load from localStorage on mount
+  useEffect(() => {
+    const savedForm = localStorage.getItem('quote_form_autosave');
+    const savedItems = localStorage.getItem('quote_items_autosave');
+    if (savedForm) setFormData(JSON.parse(savedForm));
+    if (savedItems) setItems(JSON.parse(savedItems));
+  }, []);
+
+  // AUTO-SAVE: Save to localStorage on change
+  useEffect(() => {
+    if (!isDialogOpen) return; // Only save when editing
+    localStorage.setItem('quote_form_autosave', JSON.stringify(formData));
+    localStorage.setItem('quote_items_autosave', JSON.stringify(items));
+  }, [formData, items, isDialogOpen]);
+
+  const clearAutoSave = () => {
+    localStorage.removeItem('quote_form_autosave');
+    localStorage.removeItem('quote_items_autosave');
+  };
 
   // Fetch quotes
   const { data: quotes, isLoading } = useQuery({
@@ -149,6 +169,7 @@ export default function QuotesTab() {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success("Orçamento criado!");
       resetForm();
+      clearAutoSave();
       setIsDialogOpen(false);
     },
     onError: (error) => {
@@ -186,6 +207,7 @@ export default function QuotesTab() {
       queryClient.invalidateQueries({ queryKey: ["quotes"] });
       toast.success("Orçamento atualizado!");
       resetForm();
+      clearAutoSave();
       setIsDialogOpen(false);
     },
     onError: (error) => {

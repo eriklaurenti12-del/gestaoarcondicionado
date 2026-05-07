@@ -24,6 +24,7 @@ import NotificationsPanel from "@/components/NotificationsPanel";
 import OnlineBookingsTab from "@/components/OnlineBookingsTab";
 import NotificationSettings from "@/components/NotificationSettings";
 import LembretesTab from "@/components/LembretesTab";
+import EmployeesTab from "@/components/EmployeesTab";
 import OnboardingTour from "@/components/OnboardingTour";
 import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -293,8 +294,8 @@ export default function Index() {
     painel: ['dashboard'],
     suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents', 'prestadores', 'historico', 'lembretes'],
     sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
-    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
-    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
+    super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico', 'funcionarios'],
+    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico', 'funcionarios'],
   };
 
   const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['']).includes(tab);
@@ -337,6 +338,8 @@ export default function Index() {
         return <ServiceProvidersTab />;
       case "historico":
         return <HistoricoGeralTab />;
+      case "funcionarios":
+        return <EmployeesTab />;
       default:
         return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
     }

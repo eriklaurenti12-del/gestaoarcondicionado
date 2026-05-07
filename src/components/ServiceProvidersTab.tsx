@@ -36,6 +36,8 @@ export interface ServiceProvider {
   is_field_technician?: boolean;
   is_recurring_expenses?: boolean;
   created_at: string;
+  has_system_access?: boolean;
+  team_member_id?: string;
 }
 
 const COLORS = [
@@ -100,7 +102,8 @@ export default function ServiceProvidersTab() {
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
     food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '', 
-    is_field_technician: true, is_recurring_expenses: true
+    is_field_technician: true, is_recurring_expenses: true,
+    has_system_access: false, system_pin: ''
   });
 
   const { data: providers = [], isLoading } = useQuery({
@@ -145,44 +148,91 @@ export default function ServiceProvidersTab() {
     setFormData({ 
       name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', 
       food_allowance: '', fuel_allowance: '', technical_notes: '', daily_rate: '',
-      driver_cost: '', is_field_technician: true, is_recurring_expenses: true 
+      driver_cost: '', is_field_technician: true, is_recurring_expenses: true,
+      has_system_access: false, system_pin: ''
     });
     setEditingProvider(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name.trim()) { toast.error('Nome é obrigatório'); return; }
     
-    const newProvider: ServiceProvider = {
-      id: editingProvider?.id || crypto.randomUUID(),
-      name: formData.name.trim(),
-      phone: formData.phone,
-      specialty: formData.specialty,
-      cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
-      food_allowance: parseFloat(formData.food_allowance) || 0,
-      fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
-      daily_rate: parseFloat(formData.daily_rate) || 0,
-      driver_cost: parseFloat(formData.driver_cost) || 0,
-      technical_notes: formData.technical_notes,
-      is_field_technician: formData.is_field_technician,
-      is_recurring_expenses: formData.is_recurring_expenses,
-      color: formData.color,
-      active: true,
-      created_at: editingProvider?.created_at || new Date().toISOString(),
-    };
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
 
-    let updated: ServiceProvider[];
-    if (editingProvider) {
-      updated = providers.map(p => p.id === editingProvider.id ? newProvider : p);
-      toast.success('Profissional atualizado!');
-    } else {
-      updated = [...providers, newProvider];
-      toast.success('Novo profissional cadastrado!');
+      let teamMemberId = editingProvider?.team_member_id;
+
+      if (formData.has_system_access) {
+        if (teamMemberId) {
+          // Update existing team member
+          await supabase.from('team_members').update({
+            name: formData.name.trim(),
+            phone: formData.phone || null,
+            role: 'tecnico',
+            is_active: true
+          }).eq('id', teamMemberId);
+          
+          if (formData.system_pin?.length === 4) {
+            await supabase.rpc('set_team_member_pin', { _member_id: teamMemberId, _pin: formData.system_pin });
+          }
+        } else {
+          // Create new team member
+          const { data: newMember, error: memberErr } = await supabase.from('team_members').insert({
+            user_id: session.user.id,
+            name: formData.name.trim(),
+            phone: formData.phone || null,
+            role: 'tecnico',
+            is_active: true
+          }).select('id').single();
+          
+          if (memberErr) throw memberErr;
+          teamMemberId = newMember.id;
+          
+          if (formData.system_pin?.length === 4) {
+            await supabase.rpc('set_team_member_pin', { _member_id: teamMemberId, _pin: formData.system_pin });
+          }
+        }
+      } else if (teamMemberId) {
+        // Deactivate access if it was enabled before
+        await supabase.from('team_members').update({ is_active: false }).eq('id', teamMemberId);
+      }
+
+      const newProvider: ServiceProvider = {
+        id: editingProvider?.id || crypto.randomUUID(),
+        name: formData.name.trim(),
+        phone: formData.phone,
+        specialty: formData.specialty,
+        cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
+        food_allowance: parseFloat(formData.food_allowance) || 0,
+        fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
+        daily_rate: parseFloat(formData.daily_rate) || 0,
+        driver_cost: parseFloat(formData.driver_cost) || 0,
+        technical_notes: formData.technical_notes,
+        is_field_technician: formData.is_field_technician,
+        is_recurring_expenses: formData.is_recurring_expenses,
+        has_system_access: formData.has_system_access,
+        team_member_id: teamMemberId,
+        color: formData.color,
+        active: true,
+        created_at: editingProvider?.created_at || new Date().toISOString(),
+      };
+
+      let updated: ServiceProvider[];
+      if (editingProvider) {
+        updated = providers.map(p => p.id === editingProvider.id ? newProvider : p);
+        toast.success('Profissional atualizado!');
+      } else {
+        updated = [...providers, newProvider];
+        toast.success('Novo profissional cadastrado!');
+      }
+      
+      saveMutation.mutate(updated);
+      setDialogOpen(false);
+      resetForm();
+    } catch (error: any) {
+      toast.error('Erro ao salvar acesso: ' + error.message);
     }
-    
-    saveMutation.mutate(updated);
-    setDialogOpen(false);
-    resetForm();
   };
 
   const handleDelete = (id: string) => {
@@ -457,7 +507,41 @@ export default function ServiceProvidersTab() {
                 </div>
               </div>
 
-              {/* Seção 3: Visual */}
+
+              {/* Seção 3: Acesso ao Sistema */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-500" />
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest">Portal e Acessos</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-black/20 p-6 rounded-2xl border border-white/5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Liberar Acesso?</Label>
+                    <div className="flex items-center justify-between p-3 rounded-2xl border border-white/5 bg-black/20 h-12">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Permitir login no portal?</span>
+                      <Switch 
+                        checked={formData.has_system_access} 
+                        onCheckedChange={c => setFormData({ ...formData, has_system_access: c })} 
+                      />
+                    </div>
+                  </div>
+                  {formData.has_system_access && (
+                    <div className="space-y-2 animate-in slide-in-from-left duration-300">
+                      <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Senha (PIN 4 Dígitos)</Label>
+                      <Input 
+                        type="password" 
+                        maxLength={4}
+                        placeholder="••••"
+                        value={formData.system_pin} 
+                        onChange={e => setFormData({ ...formData, system_pin: e.target.value.replace(/\D/g, '').slice(0, 4) })} 
+                        className="op-input h-12 font-bold text-center text-xl tracking-[1em]" 
+                      />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Seção 4: Visual */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="w-4 h-4 text-amber-500" />

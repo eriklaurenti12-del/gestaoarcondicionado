@@ -150,7 +150,7 @@ const iconMap: Record<string, any> = {
   "btu-calculator": Thermometer, pdv: ShoppingCart, financeiro: Wallet,
   impostos: TrendingUp, company: Briefcase, "notifications-settings": Bell,
   lembretes: MessageCircle, backup: Database, prestadores: Users,
-  historico: ClipboardList,
+  historico: ClipboardList, funcionarios: UserPlus,
 };
 
 const defaultSections = [
@@ -159,6 +159,7 @@ const defaultSections = [
     { id: "cadastros", title: "Cadastros" },
     { id: "appointments", title: "Agenda" },
     { id: "prestadores", title: "Prestadores" },
+    { id: "funcionarios", title: "Funcionários" },
     { id: "online-bookings", title: "Agendamento Online" },
   ]},
   { label: "GESTÃO", icon: "ClipboardList", items: [

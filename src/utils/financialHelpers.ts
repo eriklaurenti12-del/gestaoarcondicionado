@@ -15,6 +15,7 @@ export async function recordFinancialEntry({
   paymentMethod,
   category,
   providerName,
+  memberName,
   installments,
   recordDate,
 }: {
@@ -25,10 +26,22 @@ export async function recordFinancialEntry({
   paymentMethod: string;
   category: string;
   providerName?: string;
+  memberName?: string;
   installments?: number;
   recordDate?: string;
 }) {
-  const desc = providerName ? `${description} [Prestador: ${providerName}]` : description;
+  let desc = providerName ? `${description} [Prestador: ${providerName}]` : description;
+  
+  if (!memberName) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      memberName = user.email?.split('@')[0] || 'admin';
+    }
+  }
+
+  if (memberName) {
+    desc = `${desc} (Por: ${memberName})`;
+  }
 
   const { data, error } = await supabase.from('financial_records').insert([
     {

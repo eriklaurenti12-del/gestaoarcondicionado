@@ -70,6 +70,7 @@ export default function FinanceiroTab() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(() => safeFormat(new Date(), "yyyy-MM"));
   const [refreshing, setRefreshing] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
@@ -206,10 +207,82 @@ export default function FinanceiroTab() {
 
   const receitaPrevista = pendingAppointments?.reduce((acc, a: any) => acc + getAppointmentPrice(a), 0) || 0;
 
-  // Refresh financial records when month changes
+  // Check if month is locked
   useEffect(() => {
-    fetchRecords();
+    const checkLock = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      
+      const { data } = await supabase
+        .from('financial_locks')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('locked_date', selectedMonth + "-01")
+        .maybeSingle();
+      
+      setIsLocked(!!data);
+    };
+    checkLock();
   }, [selectedMonth]);
+
+  const handleQuickAdd = async (category: string, amount: number, description: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await recordFinancialEntry({
+        userId: session.user.id,
+        type: 'saque',
+        amount,
+        description: description,
+        paymentMethod: 'Dinheiro',
+        category,
+        recordDate: new Date().toISOString()
+      });
+      if (error) throw error;
+      toast({ title: `Lançado: R$ ${amount.toFixed(2)} (${category})` });
+      fetchRecords();
+    } catch (error: any) {
+      toast({ title: "Erro no lançamento rápido", description: error.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleLock = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    if (isLocked) {
+      // Unlock
+      const { error } = await supabase
+        .from('financial_locks')
+        .delete()
+        .eq('user_id', session.user.id)
+        .eq('locked_date', selectedMonth + "-01");
+      
+      if (!error) {
+        setIsLocked(false);
+        toast({ title: "Mês desbloqueado!" });
+      }
+    } else {
+      // Lock
+      const { error } = await supabase
+        .from('financial_locks')
+        .insert({
+          user_id: session.user.id,
+          locked_date: selectedMonth + "-01"
+        });
+      
+      if (!error) {
+        setIsLocked(true);
+        toast({ title: "Mês bloqueado com sucesso!", description: "Edições e exclusões foram desabilitadas." });
+      } else {
+        toast({ title: "Erro ao bloquear", variant: "destructive" });
+      }
+    }
+  };
 
   const fetchRecords = async () => {
     setLoading(true);
@@ -494,6 +567,46 @@ export default function FinanceiroTab() {
         },
       ]} />
 
+      {/* Quick Actions Bar for Agility */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Button 
+          variant="outline" 
+          onClick={() => handleQuickAdd('Combustível', 50, 'Abastecimento rápido')}
+          className="h-16 flex flex-col gap-1 border-blue-500/30 hover:bg-blue-500/5 text-blue-600"
+          disabled={saving || isLocked}
+        >
+          <Fuel className="w-5 h-5" />
+          <span className="text-[10px] font-bold uppercase">Combustível R$50</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => handleQuickAdd('Alimentação', 30, 'Refeição rápida')}
+          className="h-16 flex flex-col gap-1 border-orange-500/30 hover:bg-orange-500/5 text-orange-600"
+          disabled={saving || isLocked}
+        >
+          <Utensils className="w-5 h-5" />
+          <span className="text-[10px] font-bold uppercase">Almoço R$30</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => handleQuickAdd('Peças', 100, 'Compra de material/peças')}
+          className="h-16 flex flex-col gap-1 border-emerald-500/30 hover:bg-emerald-500/5 text-emerald-600"
+          disabled={saving || isLocked}
+        >
+          <Package className="w-5 h-5" />
+          <span className="text-[10px] font-bold uppercase">Peças R$100</span>
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={() => setDialogOpen(true)}
+          className="h-16 flex flex-col gap-1 border-primary/30 hover:bg-primary/5 text-primary"
+          disabled={saving || isLocked}
+        >
+          <Plus className="w-5 h-5" />
+          <span className="text-[10px] font-bold uppercase">Novo Personalizado</span>
+        </Button>
+      </div>
+
       {/* Header */}
       <div className="flex flex-col gap-3">
         <div>
@@ -515,9 +628,24 @@ export default function FinanceiroTab() {
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
           </Button>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          
+          {/* Lock Button - Only for Owners */}
+          {!localStorage.getItem('portal_member_name') && (
+            <Button 
+              variant={isLocked ? "destructive" : "outline"} 
+              size="sm" 
+              onClick={() => handleToggleLock()}
+              disabled={refreshing}
+              className="gap-2"
+            >
+              {isLocked ? <Wrench className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
+              <span className="hidden sm:inline">{isLocked ? "Mês Bloqueado" : "Bloquear Mês"}</span>
+            </Button>
+          )}
+
+          <Dialog open={dialogOpen} onOpenChange={(open) => !isLocked && setDialogOpen(open)}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-primary to-accent min-w-[44px]">
+              <Button className="bg-gradient-to-r from-primary to-accent min-w-[44px]" disabled={isLocked}>
                 <Plus className="h-4 w-4" />
                 <span className="ml-1">Novo</span>
               </Button>
@@ -834,6 +962,7 @@ export default function FinanceiroTab() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(record.id)}
+                          disabled={isLocked}
                           className="text-destructive hover:text-destructive h-8 w-8"
                         >
                           <Trash2 className="h-4 w-4" />
