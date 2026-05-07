@@ -442,15 +442,9 @@ export default function ServiceProvidersTab() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
-<<<<<<< HEAD
         <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent max-h-[90vh] flex flex-col">
           <Card className="border-none shadow-2xl flex flex-col max-h-[90vh]">
             <CardHeader className="pb-2 border-b shrink-0">
-=======
-        <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none bg-transparent">
-          <Card className="border-none shadow-2xl">
-            <CardHeader className="pb-4 border-b sticky top-0 bg-background z-10 rounded-t-lg">
->>>>>>> 70fa593 (financeiro)
               <DialogTitle className="text-xl font-bold flex items-center gap-2">
                 <Users className="w-5 h-5 text-primary" />
                 {editingProvider ? 'Editar Prestador' : 'Novo Prestador'}
@@ -459,93 +453,7 @@ export default function ServiceProvidersTab() {
                 Preencha os dados do profissional para gestão de rotas e serviços.
               </DialogDescription>
             </CardHeader>
-<<<<<<< HEAD
             <ScrollArea className="flex-1 min-h-0 max-h-[calc(90vh-160px)]">
-              <div className="p-6 space-y-4">
-            <div>
-              <Label>Nome *</Label>
-              <Input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome completo" className="min-h-[44px]" />
-            </div>
-            <div>
-              <Label>Telefone</Label>
-              <Input value={formData.phone} onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                placeholder="(00) 00000-0000" className="min-h-[44px]" />
-            </div>
-            <div>
-              <Label>Especialidade</Label>
-              <Select value={formData.specialty} onValueChange={v => setFormData({ ...formData, specialty: v })}>
-                <SelectTrigger className="min-h-[44px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {SPECIALTIES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-start gap-2 p-3 rounded-md border border-blue-200 bg-blue-50/50 dark:bg-blue-900/10">
-              <input
-                id="is_field_tech"
-                type="checkbox"
-                className="mt-1 h-4 w-4"
-                checked={formData.is_field_technician}
-                onChange={e => setFormData({ ...formData, is_field_technician: e.target.checked })}
-              />
-              <div className="flex-1">
-                <Label htmlFor="is_field_tech" className="cursor-pointer font-medium">
-                  🚐 É técnico de campo (aparece em Rotas Técnicas)
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Marque para que o prestador apareça como técnico ao alocar agendamentos em rotas. Desmarque para auxiliares administrativos.
-                </p>
-              </div>
-            </div>
-            <div>
-              <Label>Observações Técnicas</Label>
-              <textarea 
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Ex: Possui ferramental completo, carro próprio, etc."
-                value={formData.technical_notes}
-                onChange={e => setFormData({ ...formData, technical_notes: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label>Custo por Hora (R$)</Label>
-              <Input type="number" step="0.01" value={formData.cost_per_hour}
-                onChange={e => setFormData({ ...formData, cost_per_hour: e.target.value })}
-                placeholder="0.00" className="min-h-[44px]" />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Alimentação Fixa (R$)</Label>
-                <Input type="number" step="0.01" value={formData.food_allowance}
-                  onChange={e => setFormData({ ...formData, food_allowance: e.target.value })}
-                  placeholder="0.00" className="min-h-[44px]" />
-              </div>
-              <div>
-                <Label>Combustível Fixo (R$)</Label>
-                <Input type="number" step="0.01" value={formData.fuel_allowance}
-                  onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })}
-                  placeholder="0.00" className="min-h-[44px]" />
-              </div>
-            </div>
-            <div>
-              <Label>Cor de Identificação</Label>
-              <div className="flex gap-2 flex-wrap mt-1">
-                {COLORS.map(c => (
-                  <button key={c.value} onClick={() => setFormData({ ...formData, color: c.value })}
-                    className={`w-8 h-8 rounded-full border-2 transition-all ${formData.color === c.value ? 'scale-110 border-foreground' : 'border-transparent'}`}
-                    style={{ backgroundColor: c.value }} title={c.label} />
-                ))}
-              </div>
-            </div>
-              </div>
-            </ScrollArea>
-            <div className="p-4 border-t bg-muted/30 shrink-0">
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setDialogOpen(false)} className="h-11">Cancelar</Button>
-                <Button onClick={handleSave} className="h-11 px-8 bg-primary hover:bg-primary/90">
-=======
-            
-            <ScrollArea className="max-h-[60vh] overflow-y-auto">
               <div className="p-6 space-y-5">
                 <div>
                   <Label className="text-sm font-semibold mb-1.5 block">Nome do Prestador *</Label>
@@ -681,16 +589,13 @@ export default function ServiceProvidersTab() {
                 <Button 
                   onClick={handleSave} 
                   className="h-11 px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 order-1 sm:order-2"
+                  disabled={saving}
                 >
->>>>>>> 70fa593 (financeiro)
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                   {editingProvider ? 'Salvar Alterações' : 'Cadastrar Prestador'}
                 </Button>
               </DialogFooter>
             </div>
-<<<<<<< HEAD
-
-=======
->>>>>>> 70fa593 (financeiro)
           </Card>
         </DialogContent>
       </Dialog>
