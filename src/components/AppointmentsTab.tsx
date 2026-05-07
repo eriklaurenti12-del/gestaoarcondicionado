@@ -715,14 +715,24 @@ const AppointmentsTab: React.FC = () => {
     const cleanPhone = provider.phone.replace(/\D/g, '');
     const serviceDate = safeFormat(appointment.appointment_date, "dd/MM (EEEE) 'às' HH:mm", { locale: ptBR });
     
-    const message = `🛠️ *NOVO SERVIÇO ATRIBUÍDO*\n\n` +
+    let message = `🛠️ *NOVO SERVIÇO ATRIBUÍDO*\n\n` +
       `👤 *Cliente:* ${appointment.clients?.name || 'N/A'}\n` +
       `📅 *Data:* ${serviceDate}\n` +
       `🔧 *Serviço:* ${appointment.products?.name || 'N/A'}\n` +
-      `📍 *Endereço:* ${appointment.clients?.address || 'Não informado'}\n` +
-      `💰 *Valor:* ${getAppointmentPriceLabel(appointment)}\n\n` +
-      (appointment.notes ? `📝 *Obs:* ${appointment.notes.replace(/\[.*?\]/g, '').trim()}\n\n` : '') +
-      `Favor confirmar o recebimento! ✅`;
+      `📍 *Endereço:* ${appointment.clients?.address || 'Não informado'}\n`;
+    
+    if (appointment.clients?.address) {
+      message += `🗺️ *Navegar:* https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointment.clients.address)}\n`;
+    }
+
+    message += `💰 *Valor:* ${getAppointmentPriceLabel(appointment)}\n\n`;
+    
+    if (appointment.notes) {
+      const cleanNotes = appointment.notes.replace(/\[.*?\]/g, '').trim();
+      if (cleanNotes) message += `📝 *Obs:* ${cleanNotes}\n\n`;
+    }
+    
+    message += `Favor confirmar o recebimento! ✅`;
 
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -894,40 +904,7 @@ const AppointmentsTab: React.FC = () => {
   };
 
 
-  const sendToProvider = (appointment: Appointment) => {
-    const match = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/);
-    const provName = match?.[1];
-    if (!provName) {
-      toast({ title: "Nenhum prestador vinculado", variant: "destructive" });
-      return;
-    }
 
-    const provider = (providers as any[]).find(p => p.name === provName);
-    if (!provider || !provider.phone) {
-      toast({ title: "Telefone do prestador não encontrado", variant: "destructive" });
-      return;
-    }
-
-    let message = `*🔧 NOVO SERVIÇO ATRIBUÍDO*\n\n`;
-    message += `👤 *Cliente:* ${appointment.clients?.name || 'Não informado'}\n`;
-    message += `📅 *Data/Hora:* ${safeFormat(appointment.appointment_date, "dd/MM 'às' HH:mm", { locale: ptBR })}\n`;
-    message += `🛠️ *Serviço:* ${appointment.products?.name || 'Manutenção'}\n`;
-    message += `📍 *Endereço:* ${appointment.clients?.address || 'Verificar cadastro'}\n`;
-    
-    if (appointment.clients?.address) {
-      message += `🗺️ *Navegar:* https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(appointment.clients.address)}\n`;
-    }
-    
-    if (appointment.notes) {
-      const cleanNotes = appointment.notes.replace(/\[PRESTADOR:.+?\]\n?/, "");
-      if (cleanNotes.trim()) message += `\n📝 *Obs:* ${cleanNotes.trim()}\n`;
-    }
-    
-    message += `\n_Acesse o sistema para mais detalhes._`;
-
-    const phone = provider.phone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');
-  };
 
   // Get booked times for a specific date (simple list)
   const getBookedTimes = (date: string) => {
