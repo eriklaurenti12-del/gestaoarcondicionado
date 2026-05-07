@@ -8,8 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { format, parseISO } from 'date-fns';
+import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { MapPin, Car, Utensils, Send, CheckCircle2, Calendar } from 'lucide-react';
 import { ServiceProvider } from './ServiceProvidersTab';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
@@ -23,31 +25,37 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
   const [selectedProviderId, setSelectedProviderId] = useState<string>('');
   const [combustivel, setCombustivel] = useState('');
   const [alimentacao, setAlimentacao] = useState('');
-  const [filterDate, setFilterDate] = useState<string>(''); // empty means 'all'
+  const [diaria, setDiaria] = useState('');
+  const [motorista, setMotorista] = useState('');
+  const [filterDate, setFilterDate] = useState<string>(format(new Date(), 'yyyy-MM-dd')); // default to today
+  const [showAssigned, setShowAssigned] = useState(false);
   const [moveToToday, setMoveToToday] = useState(true);
   const [routeProvider, setRouteProvider] = useState<ServiceProvider | null>(null);
 
   // Get all unassigned appointments
-  const { data: unassignedAppointmentsRaw, isLoading } = useQuery({
-    queryKey: ['unassigned-appointments'],
+  const { data: allAppointmentsRaw, isLoading } = useQuery({
+    queryKey: ['route-appointments', filterDate],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('appointments')
         .select('*, clients(name, telefone, address), products(name)')
-        .in('status', ['agendado', 'confirmado', 'futura'])
+        .in('status', ['agendado', 'confirmado', 'futura', 'pendente'])
         .order('appointment_date', { ascending: true });
         
       if (error) throw error;
-      
-      // Filter out those that already have a provider
-      return (data || []).filter(a => !a.notes?.includes('[PRESTADOR:'));
+      return data || [];
     }
   });
 
-  const unassignedAppointments = unassignedAppointmentsRaw?.filter(apt => {
-    if (!filterDate) return true;
-    return apt.appointment_date.startsWith(filterDate);
-  });
+  const unassignedAppointments = useMemo(() => {
+    if (!allAppointmentsRaw) return [];
+    return allAppointmentsRaw.filter(a => {
+      const hasProvider = a.notes?.includes('[PRESTADOR:');
+      const matchesDate = !filterDate || a.appointment_date.startsWith(filterDate);
+      if (showAssigned) return matchesDate;
+      return !hasProvider && matchesDate;
+    });
+  }, [allAppointmentsRaw, filterDate, showAssigned]);
 
   // Get ALL assigned appointments for monitoring
   const { data: assignedAppointments } = useQuery({
@@ -97,6 +105,29 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       prev.includes(id) ? prev.filter(aId => aId !== id) : [...prev, id]
     );
   };
+
+  // Pre-fill defaults when provider is selected
+  React.useEffect(() => {
+    if (selectedProviderId) {
+      const provider = providers.find(p => p.id === selectedProviderId);
+      if (provider && provider.is_recurring_expenses !== false) {
+        setCombustivel(provider.fuel_allowance ? String(provider.fuel_allowance) : '');
+        setAlimentacao(provider.food_allowance ? String(provider.food_allowance) : '');
+        setDiaria(provider.daily_rate ? String(provider.daily_rate) : '');
+        setMotorista(provider.driver_cost ? String(provider.driver_cost) : '');
+      } else {
+        setCombustivel('');
+        setAlimentacao('');
+        setDiaria('');
+        setMotorista('');
+      }
+    } else {
+      setCombustivel('');
+      setAlimentacao('');
+      setDiaria('');
+      setMotorista('');
+    }
+  }, [selectedProviderId, providers]);
 
   const allocateRouteMutation = useMutation({
     mutationFn: async () => {
@@ -151,13 +182,34 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       }
 
       if (alimentacao && parseFloat(alimentacao) > 0) {
-        if (!provider?.name) throw new Error("Prestador é obrigatório para lançar alimentação.");
         expensesToInsert.push({
           user_id: session.user.id,
           category: 'Alimentação',
           amount: parseFloat(alimentacao),
           expense_date: today,
           description: `Alimentação Rota - ${provider.name}`,
+          helper_name: provider.name,
+        });
+      }
+
+      if (diaria && parseFloat(diaria) > 0) {
+        expensesToInsert.push({
+          user_id: session.user.id,
+          category: 'Diária',
+          amount: parseFloat(diaria),
+          expense_date: today,
+          description: `Diária Prestador - ${provider.name}`,
+          helper_name: provider.name,
+        });
+      }
+
+      if (motorista && parseFloat(motorista) > 0) {
+        expensesToInsert.push({
+          user_id: session.user.id,
+          category: 'Motorista',
+          amount: parseFloat(motorista),
+          expense_date: today,
+          description: `Custo Motorista Rota - ${provider.name}`,
           helper_name: provider.name,
         });
       }
@@ -179,9 +231,111 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
       setSelectedProviderId('');
       setCombustivel('');
       setAlimentacao('');
+      setDiaria('');
+      setMotorista('');
     },
     onError: (error: any) => toast.error(`Erro: ${error.message}`)
   });
+
+  const exportRoutePDF = (provName: string, appts: any[]) => {
+    const doc = new jsPDF();
+    const provider = providers.find(p => p.name === provName);
+    const dateStr = format(new Date(), 'dd/MM/yyyy', { locale: ptBR });
+
+    appts.forEach((apt, index) => {
+      if (index > 0) doc.addPage();
+
+      // Header Box
+      doc.setFillColor(30, 41, 59);
+      doc.rect(0, 0, 210, 40, 'F');
+      
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(22);
+      doc.text('ROTA DE SERVIÇO', 105, 15, { align: 'center' });
+      doc.setFontSize(12);
+      doc.text(`AC SERVICE PRO - ${dateStr}`, 105, 25, { align: 'center' });
+      doc.text(`PRESTADOR: ${provName.toUpperCase()}`, 105, 33, { align: 'center' });
+
+      // Client Info Section
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INFORMAÇÕES DO CLIENTE', 20, 55);
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, 58, 190, 58);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`NOME: ${apt.clients?.name || 'N/A'}`, 20, 68);
+      doc.text(`TELEFONE: ${apt.clients?.telefone || 'N/A'}`, 20, 76);
+      
+      doc.setFont('helvetica', 'bold');
+      doc.text('ENDEREÇO:', 20, 84);
+      doc.setFont('helvetica', 'normal');
+      const addressLines = doc.splitTextToSize(apt.clients?.address || 'N/A', 160);
+      doc.text(addressLines, 20, 90);
+
+      // Service Details Section
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(30, 41, 59);
+      doc.text('DETALHES DO SERVIÇO', 20, 115);
+      doc.line(20, 118, 190, 118);
+
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(0, 0, 0);
+      
+      // Use a background for the service summary
+      doc.setFillColor(248, 250, 252);
+      doc.rect(20, 122, 170, 25, 'F');
+      
+      doc.text(`SERVIÇO: ${apt.products?.name || 'Personalizado'}`, 25, 130);
+      doc.text(`HORÁRIO PREVISTO: ${format(parseISO(apt.appointment_date), 'HH:mm')}`, 25, 138);
+      
+      const price = apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1] || apt.products?.price || '0.00';
+      doc.setFont('helvetica', 'bold');
+      doc.text(`VALOR A COBRAR: R$ ${Number(price).toFixed(2)}`, 110, 138);
+
+      if (apt.notes) {
+        doc.setFont('helvetica', 'bold');
+        doc.text('OBSERVAÇÕES E NOTAS:', 20, 160);
+        doc.setFont('helvetica', 'normal');
+        const notesLines = doc.splitTextToSize(apt.notes.replace(/\[.*?\]/g, '').trim(), 160);
+        doc.text(notesLines, 20, 166);
+      }
+
+      // Checkbox list for tech (Verification list)
+      doc.setDrawColor(30, 41, 59);
+      doc.setFont('helvetica', 'bold');
+      doc.text('CHECKLIST DE EXECUÇÃO', 20, 195);
+      doc.line(20, 197, 75, 197);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.rect(20, 205, 5, 5); doc.text('Serviço Concluído / Testado', 28, 209);
+      doc.rect(20, 215, 5, 5); doc.text('Área Limpa / Organizada', 28, 219);
+      doc.rect(20, 225, 5, 5); doc.text('Pagamento Recebido', 28, 229);
+      doc.rect(110, 205, 5, 5); doc.text('Nota Fiscal / Recibo', 118, 209);
+      doc.rect(110, 215, 5, 5); doc.text('Material Adicional Usado', 118, 219);
+
+      // Signature Section with better layout
+      doc.setFontSize(10);
+      doc.line(20, 265, 100, 265);
+      doc.text('Assinatura do Técnico', 60, 270, { align: 'center' });
+
+      doc.line(110, 265, 190, 265);
+      doc.text('Visto do Cliente (Ok Final)', 150, 270, { align: 'center' });
+      
+      // Footer with Branding
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text('AC SERVICE PRO - Inteligência em Climatização', 105, 285, { align: 'center' });
+      doc.text(`Página ${index + 1} de ${appts.length}`, 190, 285, { align: 'right' });
+    });
+
+    doc.save(`rota_${provName.replace(/\s+/g, '_').toLowerCase()}_${format(new Date(), 'yyyyMMdd')}.pdf`);
+    toast.success('PDF da Rota gerado com sucesso!');
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
@@ -195,7 +349,15 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                 1. Selecione os Serviços
               </CardTitle>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
+                <Checkbox 
+                  id="show-assigned" 
+                  checked={showAssigned}
+                  onCheckedChange={(checked) => setShowAssigned(!!checked)}
+                />
+                <Label htmlFor="show-assigned" className="text-sm font-bold cursor-pointer text-primary">Mostrar Atribuídos</Label>
+              </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/5 rounded-lg border border-primary/10">
                 <Checkbox 
                   id="select-all" 
@@ -218,6 +380,19 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                   className="w-auto h-9"
                 />
               </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-9 gap-1"
+                onClick={() => {
+                  if (unassignedAppointments) {
+                    setSelectedAppointments(unassignedAppointments.map(a => a.id));
+                    toast.success('Todos os serviços selecionados');
+                  }
+                }}
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Puxar Todos
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -318,6 +493,12 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                   ))}
                 </SelectContent>
               </Select>
+              {selectedProviderId && providers.find(p => p.id === selectedProviderId) && (
+                <div className="mt-2 text-[10px] text-muted-foreground flex gap-2 flex-wrap">
+                  {providers.find(p => p.id === selectedProviderId)?.daily_rate ? <span>Diária Padrão: R$ {providers.find(p => p.id === selectedProviderId)?.daily_rate?.toFixed(2)}</span> : null}
+                  {providers.find(p => p.id === selectedProviderId)?.driver_cost ? <span>Motorista Padrão: R$ {providers.find(p => p.id === selectedProviderId)?.driver_cost?.toFixed(2)}</span> : null}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center space-x-2 py-2">
@@ -357,6 +538,31 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                   min="0" step="0.01" 
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Calendar className="w-4 h-4 text-blue-500" /> Diária (R$)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={diaria} 
+                    onChange={e => setDiaria(e.target.value)} 
+                    className="h-11"
+                    min="0" step="0.01" 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2"><Car className="w-4 h-4 text-purple-500" /> Motorista (R$)</Label>
+                  <Input 
+                    type="number" 
+                    placeholder="0.00" 
+                    value={motorista} 
+                    onChange={e => setMotorista(e.target.value)} 
+                    className="h-11"
+                    min="0" step="0.01" 
+                  />
+                </div>
+              </div>
             </div>
 
             <Button 
@@ -394,22 +600,43 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                         <span className="font-bold">{provName}</span>
                         <div className="flex flex-col items-end gap-1">
                           <Badge variant="outline" className="bg-background">{appts.length} serviços</Badge>
-                          <span className="text-[10px] font-bold text-green-600">
-                            Previsto: R$ {appts.reduce((sum, a) => {
-                              const price = a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1] || a.products?.price || 0;
-                              return sum + Number(price);
-                            }, 0).toFixed(2)}
+                          <span className="text-[10px] font-bold text-green-600 text-right">
+                            {(() => {
+                              const totalRevenue = appts.reduce((sum, a) => {
+                                const price = a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1] || a.products?.price || 0;
+                                return sum + Number(price);
+                              }, 0);
+                              
+                              const provider = providers.find(p => p.name === provName);
+                              const estExpenses = (provider?.daily_rate || 0) + (provider?.driver_cost || 0) + (provider?.fuel_allowance || 0) + (provider?.food_allowance || 0);
+                              const profit = totalRevenue - estExpenses;
+                              
+                              return (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-[10px] font-bold text-blue-600">Receita: R$ {totalRevenue.toFixed(2)}</span>
+                                  <span className="text-[10px] font-bold text-green-600">Lucro Est: R$ {profit.toFixed(2)}</span>
+                                </div>
+                              );
+                            })()}
                           </span>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-2 mt-2">
                         <Button 
                           size="sm" 
+                          variant="outline" 
+                          className="h-7 text-[10px] gap-1 border-slate-300 hover:bg-slate-100"
+                          onClick={() => exportRoutePDF(provName, appts)}
+                        >
+                          <FileDown className="w-3 h-3" /> Gerar PDF
+                        </Button>
+                        <Button 
+                          size="sm" 
                           variant="secondary" 
                           className="h-7 text-[10px] gap-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
                           onClick={() => setRouteProvider(providers.find(p => p.name === provName) || null)}
                         >
-                          <CheckCircle2 className="w-3 h-3" /> Confirmar Rota
+                          <CheckCircle2 className="w-3 h-3" /> Confirmar Retorno
                         </Button>
                         <Button 
                           size="sm" 

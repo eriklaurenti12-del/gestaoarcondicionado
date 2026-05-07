@@ -32,11 +32,14 @@ export const useRealtimeDashboard = () => {
     const channel = supabase
       .channel('public:appointments')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, (payload) => {
+        if (payload.eventType === 'DELETE') {
+          setAppointments(prev => prev.filter(a => a.id !== payload.old.id));
+          return;
+        }
+        
         const newRecord = payload.new as RealtimeAppointment;
         setAppointments((prev) => {
-          // Remove any existing entry with same id, then add the new one
           const filtered = prev.filter((a) => a.id !== newRecord.id);
-          // Keep sorted by appointment_date
           return [...filtered, newRecord].sort(
             (a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime()
           );

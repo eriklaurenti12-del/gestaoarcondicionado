@@ -698,6 +698,35 @@ const AppointmentsTab: React.FC = () => {
     window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  // Send service details to Provider
+  const sendToProvider = (appointment: Appointment) => {
+    const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
+    if (!provName) {
+      toast({ variant: "destructive", title: "Nenhum prestador atribuído", description: "Edite o agendamento para escolher um prestador primeiro." });
+      return;
+    }
+
+    const provider = providers.find((p: any) => p.name === provName);
+    if (!provider?.phone) {
+      toast({ variant: "destructive", title: "Telefone do prestador não encontrado" });
+      return;
+    }
+
+    const cleanPhone = provider.phone.replace(/\D/g, '');
+    const serviceDate = safeFormat(appointment.appointment_date, "dd/MM (EEEE) 'às' HH:mm", { locale: ptBR });
+    
+    const message = `🛠️ *NOVO SERVIÇO ATRIBUÍDO*\n\n` +
+      `👤 *Cliente:* ${appointment.clients?.name || 'N/A'}\n` +
+      `📅 *Data:* ${serviceDate}\n` +
+      `🔧 *Serviço:* ${appointment.products?.name || 'N/A'}\n` +
+      `📍 *Endereço:* ${appointment.clients?.address || 'Não informado'}\n` +
+      `💰 *Valor:* ${getAppointmentPriceLabel(appointment)}\n\n` +
+      (appointment.notes ? `📝 *Obs:* ${appointment.notes.replace(/\[.*?\]/g, '').trim()}\n\n` : '') +
+      `Favor confirmar o recebimento! ✅`;
+
+    window.open(`https://wa.me/55${cleanPhone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   // Open Google Maps with client address
   const openGoogleMaps = (address: string | null | undefined) => {
     if (!address) {
@@ -1474,17 +1503,11 @@ const AppointmentsTab: React.FC = () => {
                               <X className="w-4 h-4" />
                             </Button>
                           )}
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="h-10 w-10 p-0 touch-target text-destructive hover:bg-destructive/10"
-                            onClick={() => {
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
                               if (window.confirm('Remover este agendamento?')) {
                                 deleteAppointmentMutation.mutate(appointment.id);
                               }
-                            }}
-                            title="Excluir Agendamento"
-                          >
+                            }} title="Excluir">
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>

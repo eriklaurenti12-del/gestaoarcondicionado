@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { format, isToday, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2 } from 'lucide-react';
+import { Car, Utensils, CheckCircle, Clock, FileDown, Send, CheckCircle2, XCircle } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
@@ -25,9 +25,11 @@ interface ProviderDailyRouteDialogProps {
 
 export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provider, allAppointments }: ProviderDailyRouteDialogProps) {
   const queryClient = useQueryClient();
-  const [selectedAppointments, setSelectedAppointments] = useState<string[]>([]);
+  const [selectedAppointments, setSelectedAppointments] = useState<Record<string, string>>({}); // id -> status
   const [combustivel, setCombustivel] = useState('');
   const [alimentacao, setAlimentacao] = useState('');
+  const [diaria, setDiaria] = useState('');
+  const [motorista, setMotorista] = useState('');
 
   // Get today's appointments for this provider
   const todaysAppointments = (allAppointments || []).filter(a => {
@@ -42,11 +44,17 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
     if (isOpen && provider) {
       setCombustivel(provider.fuel_allowance ? String(provider.fuel_allowance) : '');
       setAlimentacao(provider.food_allowance ? String(provider.food_allowance) : '');
-      // Automatically select all pending/agendado appointments by default
-      const defaultSelected = todaysAppointments
-        .filter(a => a.status !== 'cancelado')
-        .map(a => a.id);
-      setSelectedAppointments(defaultSelected);
+      setDiaria(provider.daily_rate ? String(provider.daily_rate) : '');
+      setMotorista(provider.driver_cost ? String(provider.driver_cost) : '');
+      
+      // Initialize with 'concluido' for all pending/agendado appointments
+      const initialStatus: Record<string, string> = {};
+      todaysAppointments
+        .filter(a => a.status !== 'cancelado' && a.status !== 'concluido')
+        .forEach(a => {
+          initialStatus[a.id] = 'concluido';
+        });
+      setSelectedAppointments(initialStatus);
     }
   }, [isOpen, provider]);
 
@@ -71,7 +79,9 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
     doc.setFont('helvetica', 'normal');
     doc.text(`Prestador: ${provider.name} | Data: ${format(new Date(), "dd/MM/yyyy", { locale: ptBR })}`, 14, 32);
 
-    const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
+    const completedIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'concluido');
+    const selectedAppts = todaysAppointments.filter(a => completedIds.includes(a.id));
+    
     const tableData = selectedAppts.map((a, i) => [
       i + 1,
       format(new Date(a.appointment_date), 'HH:mm'),
@@ -99,7 +109,8 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       return;
     }
 
-    const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
+    const completedIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'concluido');
+    const selectedAppts = todaysAppointments.filter(a => completedIds.includes(a.id));
     if (selectedAppts.length === 0) return;
 
     let message = `*ROTEIRO DE HOJE - ${format(new Date(), 'dd/MM/yyyy')}*\n`;
@@ -132,11 +143,18 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       if (!session) throw new Error('Usuário não autenticado');
       if (!provider) throw new Error('Prestador não encontrado');
 
+      const completedIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'concluido');
+      const canceledIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'cancelado');
+      const pendingIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'pendente');
+
+      const completedAppts = todaysAppointments.filter(a => completedIds.includes(a.id));
+      
+      const servicesInfo = completedAppts.length > 0 
+        ? ` (${completedAppts.length} serviços concluídos)` 
+        : '';
+
       const expensesToInsert = [];
       const today = new Date().toISOString().split('T')[0];
-      const servicesInfo = selectedAppointments.length > 0 
-        ? ` (${selectedAppointments.length} serviço(s) no dia)`
-        : '';
 
       if (combustivel && parseFloat(combustivel) > 0) {
         expensesToInsert.push({
@@ -160,13 +178,32 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
         });
       }
 
-      if (expensesToInsert.length === 0 && selectedAppointments.length === 0) return;
+      if (diaria && parseFloat(diaria) > 0) {
+        expensesToInsert.push({
+          user_id: session.user.id,
+          category: 'Diária',
+          amount: parseFloat(diaria),
+          expense_date: today,
+          description: `Diária Diária - ${provider.name}${servicesInfo}`,
+          helper_name: provider.name,
+        });
+      }
+
+      if (motorista && parseFloat(motorista) > 0) {
+        expensesToInsert.push({
+          user_id: session.user.id,
+          category: 'Motorista',
+          amount: parseFloat(motorista),
+          expense_date: today,
+          description: `Motorista Diário - ${provider.name}${servicesInfo}`,
+          helper_name: provider.name,
+        });
+      }
 
       if (expensesToInsert.length > 0) {
         const { error } = await supabase.from('fixed_expenses').insert(expensesToInsert);
         if (error) throw error;
 
-        // Also add to financial_records as expenses (saque)
         for (const exp of expensesToInsert) {
           await recordFinancialEntry({
             userId: session.user.id,
@@ -180,12 +217,9 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
         }
       }
 
-      // Update status of selected appointments to 'concluido'
       let totalRevenue = 0;
-      if (selectedAppointments.length > 0) {
-        const selectedAppts = todaysAppointments.filter(a => selectedAppointments.includes(a.id));
-        
-        for (const apt of selectedAppts) {
+      if (completedIds.length > 0) {
+        for (const apt of completedAppts) {
           let price = 0;
           if (apt.notes) {
             const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
@@ -195,39 +229,27 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
           totalRevenue += price;
         }
 
-        const { error: aptError } = await supabase
-          .from('appointments')
-          .update({ status: 'concluido' })
-          .in('id', selectedAppointments);
-        
-        if (aptError) console.error("Erro ao concluir agendamentos", aptError);
+        await supabase.from('appointments').update({ status: 'concluido' }).in('id', completedIds);
+      }
 
-        // Insert Revenue into financial_records
-        if (totalRevenue > 0) {
-          await recordFinancialEntry({
-            userId: session.user.id,
-            type: 'entrada',
-            amount: totalRevenue,
-            category: 'Serviços',
-            description: `Receita de Rota: ${selectedAppts.length} serviços`,
-            paymentMethod: 'Dinheiro',
-            providerName: provider.name,
-          });
-        }
+      if (canceledIds.length > 0) {
+        await supabase.from('appointments').update({ status: 'cancelado' }).in('id', canceledIds);
+      }
 
-        // Insert Labor Cost into financial_records (if provider has cost_per_hour)
-        const laborCost = (provider.cost_per_hour || 0) * selectedAppts.length * 1.5; // Estimating 1.5h per service
-        if (laborCost > 0) {
-          await recordFinancialEntry({
-            userId: session.user.id,
-            type: 'saque',
-            amount: laborCost,
-            category: 'Mão de Obra',
-            description: `Pagamento Prestador: (${selectedAppts.length} serviços)`,
-            paymentMethod: 'Dinheiro',
-            providerName: provider.name,
-          });
-        }
+      if (pendingIds.length > 0) {
+        await supabase.from('appointments').update({ status: 'agendado' }).in('id', pendingIds);
+      }
+
+      if (totalRevenue > 0) {
+        await recordFinancialEntry({
+          userId: session.user.id,
+          type: 'entrada',
+          amount: totalRevenue,
+          category: 'Serviços',
+          description: `Receita de Rota: ${completedAppts.length} serviços`,
+          paymentMethod: 'Dinheiro',
+          providerName: provider.name,
+        });
       }
     },
     onSuccess: () => {
@@ -254,7 +276,6 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6 py-4 pr-2">
-          {/* Serviços do Dia */}
           <div className="space-y-3">
             <Label className="text-base">Serviços da Rota ({todaysAppointments.length})</Label>
             {todaysAppointments.length === 0 ? (
@@ -263,29 +284,48 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
                 <p>Nenhum serviço agendado para hoje.</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {todaysAppointments.map(apt => (
-                  <label key={apt.id} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedAppointments.includes(apt.id) ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
-                    <Checkbox 
-                      checked={selectedAppointments.includes(apt.id)}
-                      onCheckedChange={() => toggleAppointment(apt.id)}
-                      className="mt-1"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium truncate">{apt.clients?.name || 'Cliente'}</span>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {format(new Date(apt.appointment_date), 'HH:mm')}
-                        </span>
+              <div className="space-y-3">
+                {todaysAppointments.map((apt) => (
+                  <div key={apt.id} className="flex flex-col p-3 rounded-lg border bg-card/50 gap-3">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <p className="text-sm font-bold truncate">{apt.clients?.name}</p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {format(parseISO(apt.appointment_date), 'HH:mm')} • {apt.products?.name}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground truncate mt-0.5">
-                        {apt.clients?.address || 'Sem endereço'}
-                      </p>
-                      <Badge variant="outline" className={`mt-2 text-[10px] ${apt.status === 'concluido' ? 'border-green-500 text-green-600' : 'border-amber-500 text-amber-600'}`}>
-                        {apt.status.toUpperCase()}
+                      <Badge variant={selectedAppointments[apt.id] === 'concluido' ? 'default' : 'outline'} className="text-[9px]">
+                        {selectedAppointments[apt.id] || apt.status}
                       </Badge>
                     </div>
-                  </label>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant={selectedAppointments[apt.id] === 'concluido' ? 'default' : 'outline'}
+                        className={`flex-1 h-8 text-[10px] gap-1 ${selectedAppointments[apt.id] === 'concluido' ? 'bg-green-600 hover:bg-green-700' : ''}`}
+                        onClick={() => setSelectedAppointments(prev => ({ ...prev, [apt.id]: 'concluido' }))}
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Concluído
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={selectedAppointments[apt.id] === 'cancelado' ? 'destructive' : 'outline'}
+                        className="flex-1 h-8 text-[10px] gap-1"
+                        onClick={() => setSelectedAppointments(prev => ({ ...prev, [apt.id]: 'cancelado' }))}
+                      >
+                        <XCircle className="w-3 h-3" /> Cancelado
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant={selectedAppointments[apt.id] === 'pendente' ? 'secondary' : 'outline'}
+                        className="flex-1 h-8 text-[10px] gap-1"
+                        onClick={() => setSelectedAppointments(prev => ({ ...prev, [apt.id]: 'pendente' }))}
+                      >
+                        <Clock className="w-3 h-3" /> Adiado
+                      </Button>
+                    </div>
+                  </div>
                 ))}
                 <p className="text-[11px] text-muted-foreground mt-2 text-center bg-muted/30 p-2 rounded">
                   <CheckCircle className="w-3 h-3 inline mr-1 text-green-500" />
@@ -319,8 +359,28 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
                   min="0" step="0.01" 
                 />
               </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">📅 Diária (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={diaria} 
+                  onChange={e => setDiaria(e.target.value)} 
+                  min="0" step="0.01" 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">🚗 Motorista (R$)</Label>
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={motorista} 
+                  onChange={e => setMotorista(e.target.value)} 
+                  min="0" step="0.01" 
+                />
+              </div>
             </div>
-            {(provider?.fuel_allowance || provider?.food_allowance) && (
+            {(provider?.fuel_allowance || provider?.food_allowance || provider?.daily_rate || provider?.driver_cost) && (
               <p className="text-[11px] text-muted-foreground italic">
                 * Preenchido automaticamente com os valores fixos do prestador.
               </p>

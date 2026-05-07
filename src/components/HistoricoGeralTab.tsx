@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 import { Search, FileDown, History, Calendar, DollarSign, Users, CheckCircle, ClipboardList, ShoppingCart, FileText, RefreshCw, AlertTriangle, Clock, TrendingUp, MessageSquare, MapPin, Phone, Fuel, Send } from 'lucide-react';
-import { format, parseISO, addMonths, isPast, isBefore, addDays } from 'date-fns';
+import { format, parseISO, addMonths, isPast, isBefore, addDays, isToday } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -407,188 +407,109 @@ export default function HistoricoGeralTab() {
               <p className="text-sm mt-1">Ajuste os filtros ou selecione outro mês</p>
             </div>
           ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 pb-16">
-              {filtered.map(item => {
-                const expirationDate = item.warrantyMonths && item.warrantyMonths > 0 
-                  ? addMonths(new Date(item.date), item.warrantyMonths) 
-                  : null;
-                const isExpired = expirationDate && isPast(expirationDate);
-                const isNearing = expirationDate && isBefore(expirationDate, addDays(new Date(), 15)) && !isExpired;
-                
-                // "Forgotten" logic: If the most recent service is > 6 months ago and no future appointment
-                const isForgotten = !expirationDate && isPast(addMonths(new Date(item.date), 6));
+            <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2 pb-16 scrollbar-thin scrollbar-thumb-muted">
+              {(() => {
+                const grouped: Record<string, HistoryItem[]> = {};
+                filtered.forEach(item => {
+                  const dateKey = item.date?.split('T')[0] || 'Outros';
+                  if (!grouped[dateKey]) grouped[dateKey] = [];
+                  grouped[dateKey].push(item);
+                });
 
-                return (
-                  <div key={item.id}
-                    className={`flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg border transition-colors hover:bg-muted/30 ${isExpired ? 'border-red-200 bg-red-50/20' : isNearing ? 'border-amber-200 bg-amber-50/20' : ''}`}>
-
-                    <div className="flex items-center gap-3 min-w-0">
-                      {getHistoryItemBadge(item)}
-                      <div className="min-w-0" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
-                        <p className="font-medium text-sm truncate hover:underline cursor-pointer">{item.client}</p>
-                        <p className="text-xs text-muted-foreground truncate">{item.description}</p>
-                        
-                        {expirationDate && (
-                          <div className="flex flex-col gap-1 mt-1">
-                            <div className="flex items-center gap-1.5">
-                              <Calendar className="w-3 h-3 text-muted-foreground" />
-                              <span className="text-[10px] text-muted-foreground">
-                                Realizado em: {safeFormat(item.date, 'dd/MM/yyyy')}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                              <Clock className={`w-3 h-3 ${isExpired ? 'text-red-600' : isNearing ? 'text-amber-600' : 'text-green-600'}`} />
-                              <span className={`text-[10px] font-bold ${isExpired ? 'text-red-600' : isNearing ? 'text-amber-600' : 'text-green-600'}`}>
-                                Próxima Manutenção: {safeFormat(expirationDate, 'dd/MM/yyyy')}
-                                {isExpired ? ' (VENCIDO 🔴)' : isNearing ? ' (Vence em breve 🟡)' : ' (Garantia Ativa 🟢)'}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                        {isForgotten && (
-                          <div className="flex items-center gap-1.5 mt-1">
-                            <AlertTriangle className="w-3 h-3 text-red-500" />
-                            <span className="text-[10px] font-bold text-red-500 uppercase tracking-tighter">
-                              Cliente Esquecido! Sem contato há +6 meses.
-                            </span>
-                          </div>
-                        )}
+                return Object.entries(grouped).map(([date, items]) => (
+                  <div key={date} className="space-y-3">
+                    <div className="sticky top-0 z-10 py-1 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                      <div className="flex items-center gap-2">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground px-2 py-0.5 rounded-full border bg-muted/30">
+                          {isToday(new Date(date + 'T12:00:00')) ? 'HOJE' : format(new Date(date + 'T12:00:00'), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                        </span>
+                        <div className="h-px flex-1 bg-border" />
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                      <div className="flex items-center gap-2 mr-2">
-                        {item.provider && (
-                          <Badge variant="outline" className="text-[10px] h-5">
-                            <Users className="w-2.5 h-2.5 mr-1" />{item.provider}
-                          </Badge>
-                        )}
-                        {item.value > 0 && (
-                          <div className="flex flex-col items-end">
-                            <span className="font-semibold text-xs text-green-600">
-                              R$ {item.value.toFixed(2)}
-                            </span>
-                            {item.profit !== undefined && item.profit > 0 && (
-                              <span className="text-[9px] text-green-500/80 font-medium">
-                                + R$ {item.profit.toFixed(2)} lucro
-                              </span>
-                            )}
+
+                    <div className="grid gap-2">
+                      {items.map(item => {
+                        const expirationDate = item.warrantyMonths && item.warrantyMonths > 0 
+                          ? addMonths(new Date(item.date), item.warrantyMonths) 
+                          : null;
+                        const isExpired = expirationDate && isPast(expirationDate);
+                        const isNearing = expirationDate && isBefore(expirationDate, addDays(new Date(), 15)) && !isExpired;
+                        const isForgotten = !expirationDate && isPast(addMonths(new Date(item.date), 6));
+
+                        return (
+                          <div key={item.id}
+                            className={`group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border bg-card/50 transition-all hover:bg-muted/30 hover:shadow-sm ${isExpired ? 'border-red-500/30' : isNearing ? 'border-amber-500/30' : 'border-border/60'}`}>
+
+                            <div className="flex items-center gap-4 min-w-0">
+                              <div className={`p-2.5 rounded-full ${item.value < 0 ? 'bg-red-500/10' : item.type === 'agendamento' ? 'bg-blue-500/10' : item.type === 'venda' ? 'bg-green-500/10' : 'bg-purple-500/10'}`}>
+                                {item.value < 0 ? <Fuel className="w-4 h-4 text-red-500" /> : 
+                                 item.type === 'agendamento' ? <Calendar className="w-4 h-4 text-blue-500" /> : 
+                                 item.type === 'venda' ? <ShoppingCart className="w-4 h-4 text-green-500" /> : 
+                                 <FileText className="w-4 h-4 text-purple-500" />}
+                              </div>
+                              
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-sm truncate hover:text-primary cursor-pointer transition-colors" onClick={() => item.clientObj?.id && setSelectedClientHistory(item.clientObj)}>
+                                    {item.client}
+                                  </p>
+                                  {getHistoryItemBadge(item)}
+                                </div>
+                                <p className="text-xs text-muted-foreground truncate font-medium">{item.description}</p>
+                                
+                                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5">
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3 text-muted-foreground" />
+                                    <span className="text-[10px] text-muted-foreground">{safeFormat(item.date, 'HH:mm')}</span>
+                                  </div>
+                                  {item.provider && (
+                                    <div className="flex items-center gap-1">
+                                      <Users className="w-3 h-3 text-muted-foreground" />
+                                      <span className="text-[10px] font-semibold text-primary">{item.provider}</span>
+                                    </div>
+                                  )}
+                                  {expirationDate && (
+                                    <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full border ${isExpired ? 'bg-red-50 text-red-600 border-red-200' : isNearing ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-green-50 text-green-600 border-green-200'}`}>
+                                      <RefreshCw className="w-2.5 h-2.5" />
+                                      <span className="text-[9px] font-bold">
+                                        Próxima: {safeFormat(expirationDate, 'dd/MM/yy')}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-0">
+                              <div className="flex flex-col items-end">
+                                <span className={`font-black text-sm ${item.value < 0 ? 'text-red-500' : 'text-green-600'}`}>
+                                  {item.value < 0 ? `- R$ ${Math.abs(item.value).toFixed(2)}` : 
+                                   item.value > 0 ? `R$ ${item.value.toFixed(2)}` : 'Serviço'}
+                                </span>
+                                {getStatusBadge(item.status)}
+                              </div>
+
+                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {item.clientObj?.telefone && (
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={() => window.open(`https://wa.me/55${item.clientObj.telefone.replace(/\D/g, '')}`, '_blank')}>
+                                    <MessageSquare className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
+                                {item.type === 'agendamento' && item.status === 'concluido' && (
+                                  <Button size="sm" variant="outline" className="h-8 text-[10px] gap-1 px-2 border-amber-200 text-amber-700 bg-amber-50/50" onClick={() => setRenewingItem(item)}>
+                                    <RefreshCw className="w-3 h-3" /> Renovar
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                        {getStatusBadge(item.status)}
-                        <span className="text-[10px] text-muted-foreground whitespace-nowrap">
-                          {safeFormat(item.date, 'dd/MM/yy')}
-                        </span>
-                      </div>
-                      
-                      {/* Connectivity Buttons */}
-                      <div className="flex items-center gap-1">
-                        {item.clientObj?.telefone && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
-                            onClick={() => {
-                              const phone = item.clientObj.telefone.replace(/\D/g, '');
-                              window.open(`https://wa.me/55${phone}`, '_blank');
-                            }}
-                            title="Chamar no WhatsApp"
-                          >
-                            <MessageSquare className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {(isExpired || isNearing || isForgotten) && item.clientObj?.telefone && (
-                          <Button
-                            size="sm"
-                            className="h-8 gap-1.5 bg-green-600 hover:bg-green-700 text-white shadow-sm"
-                            onClick={() => {
-                              const phone = item.clientObj.telefone.replace(/\D/g, '');
-                              const msg = isExpired 
-                                ? `Olá ${item.client}! Percebemos que sua manutenção de ar-condicionado está VENCIDA. Evite quebras e gasto excessivo de energia. Vamos agendar uma limpeza?`
-                                : isNearing
-                                ? `Olá ${item.client}! Sua manutenção preventiva está chegando. Vamos garantir o ar puro da sua casa/empresa?`
-                                : `Olá ${item.client}! Faz tempo que não nos vemos. Que tal uma revisão no seu ar-condicionado para garantir o bom funcionamento?`;
-                              window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-                              toast.success("Lembrete enviado!");
-                            }}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            Aviso WhatsApp
-                          </Button>
-                        )}
-                        {item.clientObj?.address && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                            onClick={() => {
-                              window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(item.clientObj.address)}`, '_blank');
-                            }}
-                            title="Ver no Google Maps"
-                          >
-                            <MapPin className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {item.type === 'agendamento' && item.status === 'concluido' && (
-                          <div className="flex gap-1">
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-8 gap-1 text-[10px] border-amber-200 bg-amber-50/30 hover:bg-amber-100 text-amber-700"
-                              onClick={() => {
-                                setRenewingItem(item);
-                                if (item.warrantyMonths) {
-                                  setRenewDate(safeFormat(addMonths(new Date(item.date), item.warrantyMonths), 'yyyy-MM-dd'));
-                                }
-                              }}
-                            >
-                              <RefreshCw className="w-3 h-3" />
-                              Renovar
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="outline" 
-                              className="h-8 gap-1 text-[10px] border-blue-200 bg-blue-50/30 hover:bg-blue-100 text-blue-700"
-                              onClick={() => {
-                                const doc = new jsPDF();
-                                doc.setFontSize(18);
-                                doc.text("RECIBO DE SERVIÇO", 105, 20, { align: 'center' });
-                                doc.setFontSize(12);
-                                doc.text(`Cliente: ${item.client}`, 20, 40);
-                                doc.text(`Serviço: ${item.description}`, 20, 50);
-                                doc.text(`Data: ${safeFormat(item.date, 'dd/MM/yyyy')}`, 20, 60);
-                                if (expirationDate) {
-                                  doc.text(`Próxima Manutenção: ${safeFormat(expirationDate, 'dd/MM/yyyy')}`, 20, 70);
-                                }
-                                doc.text(`Valor: R$ ${item.value.toFixed(2)}`, 20, 80);
-                                doc.line(20, 100, 190, 100);
-                                doc.text("Assinatura do Prestador", 105, 110, { align: 'center' });
-                                doc.save(`recibo-${item.client.replace(/\s/g, '-')}.pdf`);
-                                toast.success("Recibo gerado com sucesso!");
-                              }}
-                            >
-                              <FileDown className="w-3 h-3" />
-                              PDF
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              className="h-8 gap-1 text-[10px] bg-green-500 hover:bg-green-600 text-white"
-                              onClick={() => {
-                                const phone = item.clientObj.telefone.replace(/\D/g, '');
-                                const nextDate = expirationDate ? safeFormat(expirationDate, 'dd/MM/yyyy') : 'A definir';
-                                const msg = `📝 *RECIBO DE SERVIÇO*\n\n👤 *Cliente:* ${item.client}\n🛠 *Serviço:* ${item.description}\n📅 *Data:* ${safeFormat(item.date, 'dd/MM/yyyy')}\n💰 *Valor:* R$ ${item.value.toFixed(2)}\n\n⏳ *Próxima Manutenção:* ${nextDate}\n\nObrigado pela preferência! ❄️`;
-                                window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(msg)}`, '_blank');
-                              }}
-                            >
-                              <Phone className="w-3 h-3" />
-                              WhatsApp
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                        );
+                      })}
                     </div>
                   </div>
-                );
-              })}
+                ));
+              })()}
             </div>
           )}
         </CardContent>

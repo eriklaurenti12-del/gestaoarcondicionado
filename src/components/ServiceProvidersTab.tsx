@@ -10,9 +10,10 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
-import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Users, Phone, Wrench, DollarSign, Search, FileDown, MapPin, Send, Car, Loader2, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Switch } from "@/components/ui/switch";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,8 +32,11 @@ export interface ServiceProvider {
   active: boolean;
   food_allowance?: number;
   fuel_allowance?: number;
+  daily_rate?: number;
+  driver_cost?: number;
   technical_notes?: string;
   is_field_technician?: boolean;
+  is_recurring_expenses?: boolean;
   created_at: string;
 }
 
@@ -97,7 +101,8 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: '', technical_notes: '', is_field_technician: true
+    food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '', 
+    is_field_technician: true, is_recurring_expenses: true
   });
 
   const { data: providers = [], isLoading } = useQuery({
@@ -139,7 +144,11 @@ export default function ServiceProvidersTab() {
   });
 
   const resetForm = () => {
-    setFormData({ name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', food_allowance: '', fuel_allowance: '', technical_notes: '', is_field_technician: true });
+    setFormData({ 
+      name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', 
+      food_allowance: '', fuel_allowance: '', technical_notes: '', daily_rate: '',
+      driver_cost: '', is_field_technician: true, is_recurring_expenses: true 
+    });
     setEditingProvider(null);
   };
 
@@ -154,8 +163,11 @@ export default function ServiceProvidersTab() {
       cost_per_hour: parseFloat(formData.cost_per_hour) || 0,
       food_allowance: parseFloat(formData.food_allowance) || 0,
       fuel_allowance: parseFloat(formData.fuel_allowance) || 0,
+      daily_rate: parseFloat(formData.daily_rate) || 0,
+      driver_cost: parseFloat(formData.driver_cost) || 0,
       technical_notes: formData.technical_notes,
       is_field_technician: formData.is_field_technician,
+      is_recurring_expenses: formData.is_recurring_expenses,
       color: formData.color,
       active: true,
       created_at: editingProvider?.created_at || new Date().toISOString(),
@@ -172,7 +184,12 @@ export default function ServiceProvidersTab() {
     
     saveMutation.mutate(updated);
     setDialogOpen(false);
-    resetForm();
+    setFormData({ 
+      name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', 
+      food_allowance: '', fuel_allowance: '', technical_notes: '', daily_rate: '', 
+      driver_cost: '', is_field_technician: true, is_recurring_expenses: true 
+    });
+    setEditingProvider(null);
   };
 
   const handleDelete = (id: string) => {
@@ -191,9 +208,12 @@ export default function ServiceProvidersTab() {
       cost_per_hour: String(provider.cost_per_hour),
       food_allowance: String(provider.food_allowance || ''),
       fuel_allowance: String(provider.fuel_allowance || ''),
+      daily_rate: String(provider.daily_rate || ''),
+      driver_cost: String(provider.driver_cost || ''),
       color: provider.color,
       technical_notes: provider.technical_notes || '',
       is_field_technician: provider.is_field_technician !== false,
+      is_recurring_expenses: provider.is_recurring_expenses !== false,
     });
     setDialogOpen(true);
   };
@@ -386,10 +406,12 @@ export default function ServiceProvidersTab() {
                         R$ {provider.cost_per_hour.toFixed(2)}/h
                       </Badge>
                     </div>
-                    {(provider.food_allowance || provider.fuel_allowance) ? (
-                      <div className="flex gap-2 mt-2">
+                    {(provider.food_allowance || provider.fuel_allowance || provider.daily_rate || provider.driver_cost) ? (
+                      <div className="flex flex-wrap gap-2 mt-2">
                         {provider.food_allowance ? <Badge variant="outline" className="text-[10px] bg-amber-50">🍔 R$ {provider.food_allowance.toFixed(2)}</Badge> : null}
                         {provider.fuel_allowance ? <Badge variant="outline" className="text-[10px] bg-gray-50">⛽ R$ {provider.fuel_allowance.toFixed(2)}</Badge> : null}
+                        {provider.daily_rate ? <Badge variant="outline" className="text-[10px] bg-blue-50">📅 R$ {provider.daily_rate.toFixed(2)}</Badge> : null}
+                        {provider.driver_cost ? <Badge variant="outline" className="text-[10px] bg-purple-50">🚗 R$ {provider.driver_cost.toFixed(2)}</Badge> : null}
                       </div>
                     ) : null}
                     <div className="flex gap-3 mt-3 text-xs text-muted-foreground">
@@ -481,17 +503,15 @@ export default function ServiceProvidersTab() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium">Tipo de Atuação</Label>
+                    <Label className="text-sm font-medium">Gastos Recorrentes?</Label>
                     <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 h-11">
                       <div className="flex items-center gap-2">
-                        <Car className="w-4 h-4 text-primary" />
-                        <span className="text-xs font-medium">Técnico de Campo</span>
+                        <RefreshCw className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs font-medium">Lançar custos automático</span>
                       </div>
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 rounded border-primary text-primary"
-                        checked={formData.is_field_technician}
-                        onChange={e => setFormData({ ...formData, is_field_technician: e.target.checked })}
+                      <Switch
+                        checked={formData.is_recurring_expenses}
+                        onCheckedChange={checked => setFormData({ ...formData, is_recurring_expenses: checked })}
                       />
                     </div>
                   </div>
@@ -534,6 +554,30 @@ export default function ServiceProvidersTab() {
                         type="number" step="0.01" 
                         value={formData.fuel_allowance}
                         onChange={e => setFormData({ ...formData, fuel_allowance: e.target.value })}
+                        className="pl-8 h-11" 
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Diária</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                      <Input 
+                        type="number" step="0.01" 
+                        value={formData.daily_rate}
+                        onChange={e => setFormData({ ...formData, daily_rate: e.target.value })}
+                        className="pl-8 h-11" 
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Custo Motorista</Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                      <Input 
+                        type="number" step="0.01" 
+                        value={formData.driver_cost}
+                        onChange={e => setFormData({ ...formData, driver_cost: e.target.value })}
                         className="pl-8 h-11" 
                       />
                     </div>
