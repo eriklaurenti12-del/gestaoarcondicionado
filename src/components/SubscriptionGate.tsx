@@ -37,13 +37,13 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
 
   const checkSubscription = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
       if (!user) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
+      const { data: subData, error } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', user.id)
@@ -51,24 +51,24 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
 
       if (error) throw error;
 
-      setSubscription(data);
+      setSubscription(subData);
       
       const now = new Date();
       
       // Check if subscription is approved and active
-      if (data?.is_active && data?.status === 'aprovado') {
+      if (subData?.is_active && subData?.status === 'aprovado') {
         setHasAccess(true);
         setIsTrial(false);
         
         // Calculate days until expiry for non-lifetime plans
-        if (data?.end_date && data.plan !== 'vitalicio') {
-          const days = differenceInDays(new Date(data.end_date), now);
+        if (subData?.end_date && subData.plan !== 'vitalicio') {
+          const days = differenceInDays(new Date(subData.end_date), now);
           setDaysUntilExpiry(days);
         }
       } 
       // Check if it's a trial (pending status = 1 day trial from start_date or created_at)
-      else if (data?.status === 'pendente') {
-        const startDate = data?.start_date ? new Date(data.start_date) : new Date(data?.created_at);
+      else if (subData?.status === 'pendente') {
+        const startDate = subData?.start_date ? new Date(subData.start_date) : new Date(subData?.created_at);
         const trialEndDate = addDays(startDate, 1); // 1 day trial
         const hoursLeft = differenceInHours(trialEndDate, now);
         

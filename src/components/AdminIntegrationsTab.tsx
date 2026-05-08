@@ -419,7 +419,7 @@ export const AdminIntegrationsTab: React.FC = () => {
 
   const callCreateFakeUser = async (email: string): Promise<boolean> => {
     const password = 'Teste@1234';
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) throw new Error('Sessão não encontrada. Faça login novamente.');
 
     const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-fake-user`, {

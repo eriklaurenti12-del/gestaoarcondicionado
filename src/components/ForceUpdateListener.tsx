@@ -36,7 +36,8 @@ export const ForceUpdateListener = () => {
 
     // 1. Initial check on mount
     const checkInitialSignals = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
       if (!user) return;
 
       // Check global signal
@@ -92,7 +93,8 @@ export const ForceUpdateListener = () => {
           if (newRecord.key === 'force_update_all_at') {
             handleUpdateSignal(newRecord.value, true);
           } else {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data } = await supabase.auth.getUser();
+            const user = data?.user;
             if (user && newRecord.key === `force_update_user:${user.id}`) {
               handleUpdateSignal(newRecord.value, false);
             }

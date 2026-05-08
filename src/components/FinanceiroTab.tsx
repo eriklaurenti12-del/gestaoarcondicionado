@@ -151,7 +151,7 @@ export default function FinanceiroTab() {
   useEffect(() => {
     if (!completedAppointments) return;
     const sync = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
       
       const newSynced = new Set<string>(syncedAppointmentIds);
@@ -210,7 +210,7 @@ export default function FinanceiroTab() {
   // Check if month is locked
   useEffect(() => {
     const checkLock = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
       
       const { data } = await supabase
@@ -226,7 +226,7 @@ export default function FinanceiroTab() {
   }, [selectedMonth]);
 
   const handleQuickAdd = async (category: string, amount: number, description: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) return;
     
     setSaving(true);
@@ -251,7 +251,7 @@ export default function FinanceiroTab() {
   };
 
   const handleToggleLock = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) return;
 
     if (isLocked) {
@@ -286,7 +286,7 @@ export default function FinanceiroTab() {
 
   const fetchRecords = async () => {
     setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) return;
 
     const monthStart = new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1);
@@ -329,7 +329,7 @@ export default function FinanceiroTab() {
     e.preventDefault();
     setSaving(true);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) {
       setSaving(false);
       return;

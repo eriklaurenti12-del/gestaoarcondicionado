@@ -13,7 +13,7 @@ const DummyDataSeeder: React.FC = () => {
   const seedData = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
       const userId = session.user.id;
 
@@ -108,7 +108,7 @@ const DummyDataSeeder: React.FC = () => {
     
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
       const userId = session.user.id;
 

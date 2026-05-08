@@ -54,7 +54,8 @@ export default function Auth() {
       else if (event === 'SIGNED_IN' && session) navigate("/dashboard");
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data?.session;
       if (session) navigate("/dashboard");
     });
 

@@ -264,7 +264,7 @@ export default function SupportButton({ tipsOpen, onTipsOpenChange }: SupportBut
     
     setUploadingImage(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
       if (!user) throw new Error('Usuário não autenticado');
       
       const fileExt = selectedImage.name.split('.').pop();

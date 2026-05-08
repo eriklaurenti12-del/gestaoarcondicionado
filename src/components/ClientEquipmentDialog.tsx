@@ -107,7 +107,7 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
 
   const addMutation = useMutation({
     mutationFn: async (data: Omit<Equipment, 'id' | 'created_at' | 'user_id'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
       if (!user) throw new Error('Usuário não autenticado');
 
       const { error } = await supabase.from('client_equipment').insert({
@@ -169,7 +169,7 @@ const ClientEquipmentDialog: React.FC<ClientEquipmentDialogProps> = ({
 
   const scheduleMutation = useMutation({
     mutationFn: async (data: { equipment_id: string; scheduled_date: string; interval_months: number; maintenance_type: string; notes?: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
       if (!user) throw new Error('Usuário não autenticado');
 
       const { error } = await supabase.from('scheduled_maintenance').insert({

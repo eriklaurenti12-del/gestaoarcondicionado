@@ -43,7 +43,7 @@ export default function ProviderScheduleDialog({ isOpen, onOpenChange, providerN
 
   const scheduleMutation = useMutation({
     mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Usuário não autenticado');
 
       const formattedDate = `${appointmentDate}T${appointmentTime}:00`;

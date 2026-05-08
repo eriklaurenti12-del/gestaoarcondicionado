@@ -65,7 +65,7 @@ const EditClientDialog: React.FC<EditClientDialogProps> = ({ client, isOpen, onO
   
   const onSubmit = async (data: ClientFormValues) => {
     // Duplicate detection for update (excluding self)
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (session) {
       const phoneDigits = (data.telefone || '').replace(/\D/g, '');
       const { data: existing } = await supabase

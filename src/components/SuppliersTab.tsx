@@ -71,7 +71,7 @@ const SuppliersTab: React.FC = () => {
 
   React.useEffect(() => {
     const getUserId = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (session?.user?.id) setUserId(session.user.id);
     };
     getUserId();

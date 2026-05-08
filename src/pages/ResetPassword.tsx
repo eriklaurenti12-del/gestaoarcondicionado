@@ -47,7 +47,7 @@ export default function ResetPassword() {
             variant: "destructive",
           });
           navigate("/auth");
-        } else if (data.session) {
+        } else if (data?.session) {
           console.log('Session set successfully');
           setIsReady(true);
         }
@@ -73,7 +73,8 @@ export default function ResetPassword() {
     });
 
     // Check if there's an existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data?.session;
       console.log('Existing session check:', !!session);
       if (session) {
         setIsReady(true);
@@ -91,7 +92,8 @@ export default function ResetPassword() {
     // Timeout for token processing
     timeoutId = setTimeout(() => {
       if (!isHandled) {
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        supabase.auth.getSession().then(({ data }) => {
+          const session = data?.session;
           if (session) {
             setIsReady(true);
           } else {

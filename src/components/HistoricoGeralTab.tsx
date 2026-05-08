@@ -111,7 +111,7 @@ export default function HistoricoGeralTab() {
 
   const renewMutation = useMutation({
     mutationFn: async (vars: { clientId: number; serviceId: number; date: string; notes: string }) => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error("Não autenticado");
       
       const { error } = await supabase.from('appointments').insert({

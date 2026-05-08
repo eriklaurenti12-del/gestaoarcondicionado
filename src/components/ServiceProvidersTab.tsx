@@ -158,7 +158,7 @@ export default function ServiceProvidersTab() {
     if (!formData.name.trim()) { toast.error('Nome é obrigatório'); return; }
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
 
       let teamMemberId = editingProvider?.team_member_id;
@@ -257,6 +257,8 @@ export default function ServiceProvidersTab() {
       technical_notes: provider.technical_notes || '',
       is_field_technician: provider.is_field_technician !== false,
       is_recurring_expenses: provider.is_recurring_expenses !== false,
+      has_system_access: provider.has_system_access || false,
+      system_pin: '',
     });
     setDialogOpen(true);
   };

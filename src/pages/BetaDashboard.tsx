@@ -63,7 +63,7 @@ export default function BetaDashboard() {
   useEffect(() => { checkAuth(); }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (!session) { navigate('/'); return; }
     setUserId(session.user.id);
     setLoading(false);

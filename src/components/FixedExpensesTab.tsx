@@ -89,7 +89,7 @@ const FixedExpensesTab: React.FC = () => {
 
   const addMutation = useMutation({
     mutationFn: async (expense: any) => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Não autenticado');
       
       const { error } = await supabase.from('fixed_expenses').insert({
@@ -124,7 +124,7 @@ const FixedExpensesTab: React.FC = () => {
 
   const copyMutation = useMutation({
     mutationFn: async ({ fromMonth, toMonth }: { fromMonth: string; toMonth: string }) => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Não autenticado');
 
       // Get recurring expenses from source month

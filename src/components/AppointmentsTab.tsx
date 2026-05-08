@@ -225,7 +225,7 @@ const AppointmentsTab: React.FC = () => {
 
   useEffect(() => {
     const getUserId = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (session?.user?.id) {
         setUserId(session.user.id);
       }
@@ -344,7 +344,7 @@ const AppointmentsTab: React.FC = () => {
       
       // If completing the appointment and has a service, register the sale AND financial record
       if (status === 'concluido' && appointment?.client_id) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
         if (session) {
           const salePrice = getAppointmentPrice(appointment);
           if (salePrice <= 0) return; // Skip if no value found

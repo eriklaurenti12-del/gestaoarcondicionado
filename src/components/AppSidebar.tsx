@@ -192,7 +192,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const { data: companyData } = useQuery({
     queryKey: ['company-data-sidebar'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session?.user?.id) return null;
       const { data, error } = await supabase
         .from('company_data')

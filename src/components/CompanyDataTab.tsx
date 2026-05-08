@@ -37,7 +37,7 @@ const CompanyDataTab: React.FC = () => {
   const { data: companyData, isLoading } = useQuery({
     queryKey: ['company-data'],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Não autenticado');
       
       setUserId(session.user.id);
@@ -157,7 +157,7 @@ const CompanyDataTab: React.FC = () => {
     }
 
     // Get current user id directly
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     const currentUserId = session?.user?.id;
     if (!currentUserId) {
       toast({ title: "Erro", description: "Usuário não autenticado", variant: "destructive" });

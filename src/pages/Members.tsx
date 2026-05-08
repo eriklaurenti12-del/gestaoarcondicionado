@@ -145,7 +145,7 @@ export default function Members() {
   }, []);
 
   const checkSuperAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
     if (!user) { navigate("/"); return; }
     setCurrentUserEmail(user.email || null);
     const { data: roleData, error } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
@@ -206,7 +206,7 @@ export default function Members() {
       toast({ title: "Preencha nome e PIN de 4 dígitos", variant: "destructive" });
       return;
     }
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
     if (!user) return;
 
     const { data: inserted, error } = await supabase.from('team_members').insert({

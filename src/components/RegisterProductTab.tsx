@@ -50,7 +50,7 @@ const RegisterProductTab: React.FC = () => {
 
   useEffect(() => {
     const getUserId = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (session?.user?.id) setUserId(session.user.id);
     };
     getUserId();
@@ -185,7 +185,7 @@ const RegisterProductTab: React.FC = () => {
 
     try {
       if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
         if (session?.user?.id) {
           setUserId(session.user.id);
         } else {

@@ -102,7 +102,7 @@ const EditProductDialog: React.FC<EditProductDialogProps> = ({ product, isOpen, 
 
   const uploadImage = async (): Promise<string | null> => {
     if (!imageFile) return imagePreview; // keep existing
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
     if (!user) return null;
     const fileExt = imageFile.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;

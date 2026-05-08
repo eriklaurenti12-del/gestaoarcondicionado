@@ -48,7 +48,7 @@ const AwaitingActivation: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) {
         navigate('/');
         return;
@@ -80,7 +80,7 @@ const AwaitingActivation: React.FC = () => {
 
   const checkSubscriptionStatus = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) {
         navigate('/');
         return false;

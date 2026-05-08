@@ -15,7 +15,7 @@ export function UserProfileDropdown({ onSignOut, onNavigateCompany }: UserProfil
 
   useEffect(() => {
     const loadUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (session?.user) {
         setUserEmail(session.user.email || "");
         const { data: profile } = await supabase

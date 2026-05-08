@@ -177,7 +177,7 @@ export default function Index() {
 
   const checkAuth = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) {
         navigate("/");
         return;
@@ -240,7 +240,7 @@ export default function Index() {
   };
 
   const handleOnboardingComplete = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
     if (session) {
       const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
       localStorage.setItem(onboardingKey, 'true');

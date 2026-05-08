@@ -56,7 +56,7 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
 
   const registerClosingAuditMutation = useMutation({
     mutationFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session || !provider) throw new Error('Dados incompletos');
 
       const completedIds = Object.keys(selectedAppointments).filter(id => selectedAppointments[id] === 'concluido');

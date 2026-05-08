@@ -17,7 +17,7 @@ const CadastrosUnifiedTab: React.FC = () => {
 
   React.useEffect(() => {
     const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session?.user?.id) {
         setIsSuperAdmin(false);
         return;

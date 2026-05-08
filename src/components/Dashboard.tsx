@@ -485,7 +485,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
     useEffect(() => {
       const loadUserData = async () => {
         try {
-          const { data: { user } } = await supabase.auth.getUser();
+          const { data: authData } = await supabase.auth.getUser(); const user = authData?.user;
           if (user) {
             const [{ data: profile }, { data: company }, { data: settings }] = await Promise.all([
               supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle(),
@@ -570,7 +570,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
 
         // Financial integration logic (matches AppointmentsTab)
         if (status === 'concluido' && appointment?.client_id) {
-          const { data: { session } } = await supabase.auth.getSession();
+          const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
           if (session) {
             const salePrice = getAppointmentPrice(appointment);
             if (salePrice <= 0) return; // Skip if no value found

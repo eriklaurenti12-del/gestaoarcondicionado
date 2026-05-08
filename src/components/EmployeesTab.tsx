@@ -100,7 +100,7 @@ export default function EmployeesTab() {
   const loadTeamMembers = async () => {
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
 
       const { data, error } = await supabase
@@ -140,7 +140,7 @@ export default function EmployeesTab() {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
 
       if (editingMember) {
@@ -245,7 +245,7 @@ export default function EmployeesTab() {
     if (!selectedMember || !financeData.amount) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
 
       const { error } = await recordFinancialEntry({
