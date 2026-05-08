@@ -33,6 +33,8 @@ const PAYMENT_METHODS = [
   { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
 ];
 
+type Vacation = { start_date: string; end_date: string; reason?: string };
+
 type BookingSettings = {
   enabled: boolean;
   weekdays: { sun: boolean; mon: boolean; tue: boolean; wed: boolean; thu: boolean; fri: boolean; sat: boolean };
@@ -43,6 +45,7 @@ type BookingSettings = {
   lunch_end?: string | null;
   min_advance_hours: number;
   max_advance_days: number;
+  vacations?: Vacation[];
 };
 
 const DEFAULT_SETTINGS: BookingSettings = {
@@ -55,6 +58,7 @@ const DEFAULT_SETTINGS: BookingSettings = {
   lunch_end: '13:00',
   min_advance_hours: 2,
   max_advance_days: 30,
+  vacations: [],
 };
 
 const WK_KEYS: Array<keyof BookingSettings['weekdays']> = ['sun','mon','tue','wed','thu','fri','sat'];
@@ -183,15 +187,18 @@ export default function PublicBooking() {
     const days: Date[] = [];
     const today = startOfDay(now);
     const maxDays = settings.max_advance_days ?? 30;
+    const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const vacations = settings.vacations || [];
     for (let i = 0; i < 14; i++) {
       const day = addDays(calendarStart, i);
       if (isBefore(day, today)) continue;
-      // skip days beyond max_advance_days
       const diffD = (day.getTime() - today.getTime()) / 86400000;
       if (diffD > maxDays) continue;
-      // skip weekdays disabled in settings
       const wkKey = WK_KEYS[day.getDay()];
       if (settings.weekdays && settings.weekdays[wkKey] === false) continue;
+      // skip vacation periods
+      const dStr = ymd(day);
+      if (vacations.some(v => dStr >= v.start_date && dStr <= v.end_date)) continue;
       days.push(day);
     }
     return days;

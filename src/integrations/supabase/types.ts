@@ -581,6 +581,7 @@ export type Database = {
           start_time: string
           updated_at: string
           user_id: string
+          vacations: Json
           weekdays: Json
         }
         Insert: {
@@ -597,6 +598,7 @@ export type Database = {
           start_time?: string
           updated_at?: string
           user_id: string
+          vacations?: Json
           weekdays?: Json
         }
         Update: {
@@ -613,6 +615,7 @@ export type Database = {
           start_time?: string
           updated_at?: string
           user_id?: string
+          vacations?: Json
           weekdays?: Json
         }
         Relationships: []

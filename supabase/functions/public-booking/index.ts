@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
         min_advance_hours: 2,
         max_advance_days: 30,
         auto_confirm: false,
+        vacations: [],
       };
 
       return new Response(JSON.stringify({
@@ -225,6 +226,15 @@ Deno.serve(async (req) => {
       const wkKey = ['sun','mon','tue','wed','thu','fri','sat'][dt.getDay()];
       if ((s.weekdays || {})[wkKey] === false) {
         return new Response(JSON.stringify({ error: 'Dia da semana indisponível para agendamento.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Vacations / folgas block
+      const vacations = Array.isArray(s.vacations) ? s.vacations : [];
+      const vac = vacations.find((v: any) => safeDate >= v.start_date && safeDate <= v.end_date);
+      if (vac) {
+        return new Response(JSON.stringify({ error: `Em férias/folga (${vac.start_date} → ${vac.end_date})${vac.reason ? ': ' + vac.reason : ''}.` }), {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }

@@ -23,6 +23,7 @@ import RouteExpensesDialog from './RouteExpensesDialog';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useBusinessHours } from "@/hooks/useBusinessHours";
 
 type Appointment = {
   id: string;
@@ -119,6 +120,7 @@ const fetchPendingOrders = async (): Promise<ServiceOrder[]> => {
 const AppointmentsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { validateSlot } = useBusinessHours();
   const [search, setSearch] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
@@ -589,17 +591,17 @@ const AppointmentsTab: React.FC = () => {
     const [hh, mm] = appointmentTime.split(':').map(Number);
     const dateTime = new Date(y, m - 1, d, hh, mm);
     
-    // ========== PAST DATE/TIME VALIDATION ==========
-    const now = new Date();
-    if (dateTime <= now) {
-      toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
+    // ========== BUSINESS-HOURS / VACATION / PAST VALIDATION ==========
+    const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
+    const duration = (selectedService as any)?.service_duration || 60; // exact cadastrado, sem arredondar
+    const validationError = validateSlot(dateTime, { durationMinutes: duration });
+    if (validationError) {
+      toast({ variant: "destructive", title: "Horário inválido", description: validationError });
       return;
     }
     // ===============================================
-    
+
     // ========== CONFLICT DETECTION ==========
-    const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
-    const duration = (selectedService as any)?.service_duration || 60; // default 60 min
     const newStart = dateTime.getTime();
     const newEnd = newStart + duration * 60 * 1000;
     

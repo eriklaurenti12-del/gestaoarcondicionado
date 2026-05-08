@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe, Upload, X, Image } from "lucide-react";
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
+import { BusinessHoursCard } from "@/components/BusinessHoursCard";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
@@ -447,43 +448,8 @@ const CompanyDataTab: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* Schedule */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Horário de Funcionamento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Dias de Trabalho</Label>
-                <Input
-                  placeholder="Seg - Sáb"
-                  value={workDays}
-                  onChange={(e) => setWorkDays(e.target.value)}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Abertura</Label>
-                  <Input
-                    type="time"
-                    value={openingHours}
-                    onChange={(e) => setOpeningHours(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Fechamento</Label>
-                  <Input
-                    type="time"
-                    value={closingHours}
-                    onChange={(e) => setClosingHours(e.target.value)}
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Business Hours - source of truth */}
+          <BusinessHoursCard />
         </div>
 
         {/* Right Column - Forms */}
