@@ -1291,6 +1291,7 @@ export type Database = {
           is_active: boolean
           monthly_salary: number | null
           name: string
+          permissions: Json | null
           phone: string | null
           pin: string | null
           pin_hash: string | null
@@ -1306,6 +1307,7 @@ export type Database = {
           is_active?: boolean
           monthly_salary?: number | null
           name: string
+          permissions?: Json | null
           phone?: string | null
           pin?: string | null
           pin_hash?: string | null
@@ -1321,6 +1323,7 @@ export type Database = {
           is_active?: boolean
           monthly_salary?: number | null
           name?: string
+          permissions?: Json | null
           phone?: string | null
           pin?: string | null
           pin_hash?: string | null
