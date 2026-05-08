@@ -54,6 +54,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     paymentMethod: string;
     description: string;
     isUpdate: boolean;
+    waLink?: string;
+    waMessage?: string;
+    hasPhone?: boolean;
   } | null>(null);
   const queryClient = useQueryClient();
 
