@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Moon, Sun } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { forceUpdateApp } from "@/lib/updateApp";
@@ -88,6 +89,7 @@ export default function Index() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  useGlobalShortcuts(); // Ctrl+Shift+R: limpa cache + reconcilia financeiro
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
@@ -152,6 +154,14 @@ export default function Index() {
         }
         localStorage.setItem('current_user_id', user.id);
         setCurrentUserId(user.id);
+
+        // Pré-aquece o endpoint da agenda online para abrir instantâneo
+        try {
+          const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+          if (projectId) {
+            fetch(`https://${projectId}.supabase.co/functions/v1/public-booking?user_id=${user.id}`).catch(() => {});
+          }
+        } catch { /* ignore */ }
 
         const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
         const isSA = roles?.some(r => r.role === 'super_admin') || false;
