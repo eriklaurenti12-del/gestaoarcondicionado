@@ -60,19 +60,18 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
-      if (!session) return;
+      if (!session) return { status } as any;
 
-      // Reverse financial entries when leaving "concluido"
       if (status !== 'concluido') {
         await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
         await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
-        return;
+        return { status } as any;
       }
 
       if (status === 'concluido' && appointment?.client_id) {
         const finalPm = paymentMethod || 'Dinheiro';
         const salePrice = Number(appointment.products?.price) || 0;
-        if (salePrice <= 0) return;
+        if (salePrice <= 0) return { status } as any;
 
         const { data: productData } = appointment.service_id ? await supabase
           .from('products').select('cost_price').eq('id', appointment.service_id).maybeSingle() : { data: null };
@@ -98,19 +97,34 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           await supabase.from('sales').update({ payment_method: finalPm as any }).eq('id', existingSale.id);
         }
 
+        const description = `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`;
         await recordFinancialEntry({
           userId: session.user.id,
           type: 'entrada',
           amount: salePrice,
-          description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+          description,
           paymentMethod: finalPm,
           category: 'Serviço',
           appointmentId: id,
           recordDate: appointment.appointment_date,
         });
+
+        return {
+          status,
+          summary: {
+            clientName: appointment.clients?.name || 'Cliente',
+            serviceName: appointment.products?.name || 'Serviço',
+            salePrice,
+            profit,
+            paymentMethod: finalPm,
+            description,
+            isUpdate: !!existingSale,
+          },
+        } as any;
       }
+      return { status } as any;
     },
-    onSuccess: (_, { status }) => {
+    onSuccess: (result: any, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -122,6 +136,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
         cancelado: '❌ Cancelado',
       };
       toast.success(labels[status] || 'Status atualizado');
+      if (result?.summary) {
+        setServiceSummary(result.summary);
+      }
     }
   });
 
