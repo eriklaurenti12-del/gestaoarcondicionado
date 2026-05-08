@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, Building2, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Building2, ChevronDown, Users } from "lucide-react";
 
 interface UserProfileDropdownProps {
   onSignOut: () => void;
