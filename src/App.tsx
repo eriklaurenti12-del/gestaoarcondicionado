@@ -80,6 +80,7 @@ const App = () => (
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/members" element={<Members />} />
                 <Route path="/agendar" element={<PublicBooking />} />
+                <Route path="/agendar/:userId" element={<PublicBooking />} />
                 <Route path="/awaiting-activation" element={<AwaitingActivation />} />
                 <Route path="/portal" element={<TeamPortalLogin />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

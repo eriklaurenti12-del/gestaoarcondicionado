@@ -274,6 +274,33 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_audit_log: {
+        Row: {
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          record_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          record_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          record_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_reconciliation_log: {
         Row: {
           created_at: string
@@ -327,6 +354,7 @@ export type Database = {
           installments: number | null
           payment_method: string | null
           record_date: string
+          sale_id: number | null
           type: string
           updated_at: string
           user_id: string
@@ -341,6 +369,7 @@ export type Database = {
           installments?: number | null
           payment_method?: string | null
           record_date?: string
+          sale_id?: number | null
           type: string
           updated_at?: string
           user_id: string
@@ -355,6 +384,7 @@ export type Database = {
           installments?: number | null
           payment_method?: string | null
           record_date?: string
+          sale_id?: number | null
           type?: string
           updated_at?: string
           user_id?: string
@@ -535,6 +565,57 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      online_booking_settings: {
+        Row: {
+          auto_confirm: boolean
+          created_at: string
+          enabled: boolean
+          end_time: string
+          id: string
+          lunch_end: string | null
+          lunch_start: string | null
+          max_advance_days: number
+          min_advance_hours: number
+          slot_minutes: number
+          start_time: string
+          updated_at: string
+          user_id: string
+          weekdays: Json
+        }
+        Insert: {
+          auto_confirm?: boolean
+          created_at?: string
+          enabled?: boolean
+          end_time?: string
+          id?: string
+          lunch_end?: string | null
+          lunch_start?: string | null
+          max_advance_days?: number
+          min_advance_hours?: number
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          user_id: string
+          weekdays?: Json
+        }
+        Update: {
+          auto_confirm?: boolean
+          created_at?: string
+          enabled?: boolean
+          end_time?: string
+          id?: string
+          lunch_end?: string | null
+          lunch_start?: string | null
+          max_advance_days?: number
+          min_advance_hours?: number
+          slot_minutes?: number
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          weekdays?: Json
+        }
+        Relationships: []
       }
       online_bookings: {
         Row: {
@@ -1506,7 +1587,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      financial_audit_view: {
+        Row: {
+          category: string | null
+          month_year: string | null
+          qtd_financial_records: number | null
+          qtd_sales: number | null
+          total_financial_records: number | null
+          total_sales: number | null
+          type: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_active_subscription: { Args: { _user_id: string }; Returns: boolean }

@@ -652,15 +652,16 @@ const PDVTab: React.FC = () => {
           }
         }
 
-        // Create financial record for the sale
+        // Create financial record for the sale (vinculado por sale_id para idempotência)
         await recordFinancialEntry({
           userId: userId,
           type: 'entrada',
           amount: Number(item.product.price) * item.quantity,
           description: `Venda PDV: ${item.product.name} (${item.quantity}x)`,
           paymentMethod: paymentMethod,
-          category: 'Produto',
+          category: item.product.type === 'service' ? 'Serviço' : 'Produto',
           providerName: selectedProvider && selectedProvider !== '_none' ? selectedProvider : undefined,
+          saleId: saleResult.id,
         });
 
         return saleResult;

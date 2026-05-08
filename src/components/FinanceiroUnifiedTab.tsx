@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, BarChart3, Wallet, Fuel } from "lucide-react";
+import { TrendingUp, BarChart3, Wallet, Fuel, Activity } from "lucide-react";
 import ChartsMetrics from './ChartsMetrics';
 import FinanceiroReportsTab from './FinanceiroReportsTab';
 import FinanceiroTab from './FinanceiroTab';
 import FixedExpensesTab from './FixedExpensesTab';
+import FinanceiroReconciliationTab from './FinanceiroReconciliationTab';
 import TabGuideCards from './TabGuideCards';
 
 const FinanceiroUnifiedTab: React.FC = () => {
@@ -47,6 +48,15 @@ const FinanceiroUnifiedTab: React.FC = () => {
       onClick: () => setActiveSubTab('gastos-rota'),
       isActive: activeSubTab === 'gastos-rota',
     },
+    {
+      icon: Activity,
+      title: 'Conciliação',
+      badge: 'Auditoria',
+      badgeColor: 'red',
+      description: <>Detecta <strong>duplicatas, vendas órfãs e divergências</strong> entre PDV e financeiro.</>,
+      onClick: () => setActiveSubTab('conciliacao'),
+      isActive: activeSubTab === 'conciliacao',
+    },
   ];
 
   return (
@@ -54,7 +64,7 @@ const FinanceiroUnifiedTab: React.FC = () => {
       <TabGuideCards cards={guideCards} columns={4} />
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="controle" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
             <Wallet className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Controle</span>
@@ -70,6 +80,10 @@ const FinanceiroUnifiedTab: React.FC = () => {
           <TabsTrigger value="gastos-rota" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
             <Fuel className="w-4 h-4 flex-shrink-0" />
             <span className="truncate">Gastos</span>
+          </TabsTrigger>
+          <TabsTrigger value="conciliacao" className="flex items-center gap-1 px-2 text-xs sm:text-sm">
+            <Activity className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">Conciliar</span>
           </TabsTrigger>
         </TabsList>
 
@@ -87,6 +101,10 @@ const FinanceiroUnifiedTab: React.FC = () => {
 
         <TabsContent value="gastos-rota" className="mt-4">
           <FixedExpensesTab />
+        </TabsContent>
+
+        <TabsContent value="conciliacao" className="mt-4">
+          <FinanceiroReconciliationTab />
         </TabsContent>
       </Tabs>
     </div>
