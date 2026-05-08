@@ -490,7 +490,8 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                 className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateStatusMutation.mutate({ id: apt.id, status: 'concluido' });
+                                  setDecisionPaymentMethod('Dinheiro');
+                                  setDecisionAppointment(apt);
                                 }}
                               >
                                 <Check className="w-3 h-3 mr-1" /> Concluir
