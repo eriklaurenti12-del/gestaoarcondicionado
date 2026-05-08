@@ -54,12 +54,67 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, paymentMethod, appointment }: { id: string; status: string; paymentMethod?: string; appointment?: any }) => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (!session) return;
+
+      // Reverse financial entries when leaving "concluido"
+      if (status !== 'concluido') {
+        await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        return;
+      }
+
+      if (status === 'concluido' && appointment?.client_id) {
+        const finalPm = paymentMethod || 'Dinheiro';
+        const salePrice = Number(appointment.products?.price) || 0;
+        if (salePrice <= 0) return;
+
+        const { data: productData } = appointment.service_id ? await supabase
+          .from('products').select('cost_price').eq('id', appointment.service_id).maybeSingle() : { data: null };
+        const profit = salePrice - Number(productData?.cost_price || 0);
+
+        const { data: existingSale } = await supabase
+          .from('sales').select('id')
+          .eq('user_id', session.user.id).eq('appointment_id', id).maybeSingle();
+
+        if (!existingSale) {
+          await supabase.from('sales').insert({
+            user_id: session.user.id,
+            client_id: appointment.client_id,
+            product_id: appointment.service_id || null,
+            qty: 1,
+            sale_price: salePrice,
+            total_profit: profit,
+            payment_method: finalPm as any,
+            sale_date: appointment.appointment_date,
+            appointment_id: id,
+          } as any);
+        } else {
+          await supabase.from('sales').update({ payment_method: finalPm as any }).eq('id', existingSale.id);
+        }
+
+        await recordFinancialEntry({
+          userId: session.user.id,
+          type: 'entrada',
+          amount: salePrice,
+          description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+          paymentMethod: finalPm,
+          category: 'Serviço',
+          appointmentId: id,
+          recordDate: appointment.appointment_date,
+        });
+      }
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] });
       const labels: Record<string, string> = {
         pendente: '📅 Reagendado',
         confirmado: '✓ Confirmado',
