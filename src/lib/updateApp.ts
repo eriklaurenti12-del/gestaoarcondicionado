@@ -1,105 +1,119 @@
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Aggressively clears all caches, unregisters service workers,
- * and reloads the application to ensure the latest version.
- *
- * IMPORTANT: stamps the DB-backed update markers so ForceUpdateListener
- * does NOT re-trigger an infinite update loop after the reload.
+ * NUCLEAR force update — clears absolutely everything:
+ * - All CacheStorage entries (PWA precache, runtime cache, workbox)
+ * - All Service Workers (unregister + force skip waiting)
+ * - SessionStorage
+ * - LocalStorage (except auth tokens)
+ * - IndexedDB databases
+ * - Then does a hard reload bypassing all caches
  */
 export const forceUpdateApp = async () => {
-  // Guard: if we already ran a force update in the last 30 seconds, skip.
-  const lastRunStr = localStorage.getItem('app_last_force_update_at');
-  if (lastRunStr) {
-    const elapsed = Date.now() - parseInt(lastRunStr, 10);
-    if (elapsed < 30_000) {
-      console.warn('[forceUpdateApp] Skipped — already ran ' + elapsed + 'ms ago');
-      toast.info('Sistema já foi sincronizado recentemente.');
-      return;
-    }
-  }
-  localStorage.setItem('app_last_force_update_at', Date.now().toString());
-
-  toast.loading('🔍 Limpando cache e forçando atualização...', { id: 'app-update' });
+  toast.loading('🔥 Limpando TODO o cache do sistema...', { id: 'nuclear-update' });
 
   try {
-    // 0. Stamp update markers BEFORE reload so realtime listener won't re-trigger.
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const [{ data: globalRow }, { data: userRow }] = await Promise.all([
-        supabase.from('admin_settings').select('value').eq('key', 'force_update_all_at').maybeSingle(),
-        user
-          ? supabase.from('admin_settings').select('value').eq('key', `force_update_user:${user.id}`).maybeSingle()
-          : Promise.resolve({ data: null } as any),
-      ]);
-      const nowIso = new Date().toISOString();
-      localStorage.setItem('last_global_force_update', globalRow?.value || nowIso);
-      localStorage.setItem('last_user_force_update', userRow?.value || nowIso);
-    } catch (e) {
-      const nowIso = new Date().toISOString();
-      localStorage.setItem('last_global_force_update', nowIso);
-      localStorage.setItem('last_user_force_update', nowIso);
-    }
-
-    // 1. Cache-bust ping
-    await fetch(`/version.json?v=${Date.now()}`, {
-      cache: 'no-store',
-      headers: { 'Cache-Control': 'no-cache' },
-    }).catch(() => null);
-
-    // 2. Clear CacheStorage
+    // 1. DESTROY all CacheStorage (workbox, precache, runtime, etc.)
     if ('caches' in window) {
       try {
         const keys = await caches.keys();
+        console.log('[NUCLEAR] Deleting caches:', keys);
         await Promise.all(keys.map(k => caches.delete(k)));
-      } catch (e) { console.error('Cache clear error:', e); }
+      } catch (e) { console.error('[NUCLEAR] Cache clear error:', e); }
     }
 
-    // 3. Clear storage selectively
-    try {
-      const keysToKeep = [
-        'sb-access-token',
-        'sb-refresh-token',
-        'current_user_id',
-        'pwa-installed',
-        'theme',
-        'last_global_force_update',
-        'last_user_force_update',
-        'app_last_force_update_at',
-        'app_version',
-      ];
-      const prefixesToKeep = ['sb-', 'ac_onboarding_completed_', 'push_notif_'];
-
-      Object.keys(localStorage).forEach(key => {
-        const shouldKeep = keysToKeep.includes(key) || prefixesToKeep.some(p => key.startsWith(p));
-        if (!shouldKeep) localStorage.removeItem(key);
-      });
-      sessionStorage.clear();
-    } catch (e) { console.error('Storage clear error:', e); }
-
-    // 4. Unregister Service Workers
+    // 2. KILL all Service Workers
     if ('serviceWorker' in navigator) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
+        console.log('[NUCLEAR] Unregistering', registrations.length, 'service workers');
         for (const reg of registrations) {
-          await reg.update().catch(() => undefined);
+          // Try to skip waiting on the SW
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
           await reg.unregister();
         }
-      } catch (e) { console.error('SW unregister error:', e); }
+      } catch (e) { console.error('[NUCLEAR] SW error:', e); }
     }
 
-    toast.success('✅ Sistema pronto! Recarregando...', { id: 'app-update' });
+    // 3. CLEAR sessionStorage completely
+    try { sessionStorage.clear(); } catch (e) { /* noop */ }
 
-    // 5. Reload preserving current path
+    // 4. CLEAR localStorage — keep ONLY the absolute minimum for auth
+    try {
+      const authKeysToKeep: string[] = [];
+      // Find and preserve only Supabase auth keys
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('sb-')) {
+          authKeysToKeep.push(key);
+        }
+      }
+      const authBackup: Record<string, string> = {};
+      authKeysToKeep.forEach(key => {
+        const val = localStorage.getItem(key);
+        if (val) authBackup[key] = val;
+      });
+
+      // Nuke everything
+      localStorage.clear();
+
+      // Restore only auth
+      Object.entries(authBackup).forEach(([key, val]) => {
+        localStorage.setItem(key, val);
+      });
+
+      // Mark that we just did a nuclear update
+      localStorage.setItem('nuclear_update_at', Date.now().toString());
+    } catch (e) { console.error('[NUCLEAR] localStorage error:', e); }
+
+    // 5. DELETE IndexedDB databases (workbox stores, etc.)
+    try {
+      if ('indexedDB' in window) {
+        const dbs = await (indexedDB as any).databases?.();
+        if (dbs) {
+          for (const db of dbs) {
+            if (db.name) {
+              console.log('[NUCLEAR] Deleting IndexedDB:', db.name);
+              indexedDB.deleteDatabase(db.name);
+            }
+          }
+        }
+        // Also try known workbox DB names
+        ['workbox-expiration', 'workbox-precache-v2'].forEach(name => {
+          try { indexedDB.deleteDatabase(name); } catch { /* noop */ }
+        });
+      }
+    } catch (e) { console.error('[NUCLEAR] IndexedDB error:', e); }
+
+    // 6. Cache-bust fetch to force CDN/edge refresh
+    try {
+      await fetch(`/index.html?cache_bust=${Date.now()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      });
+    } catch { /* noop */ }
+
+    toast.success('✅ Cache TOTALMENTE limpo! Recarregando...', { id: 'nuclear-update' });
+
+    // 7. HARD RELOAD — use location.href with cache buster to bypass everything
     setTimeout(() => {
-      const url = new URL(window.location.href);
-      url.searchParams.set('v', Date.now().toString());
-      window.location.replace(url.toString());
-    }, 800);
+      // Navigate to clean URL with cache buster
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.location.href = cleanUrl + '?v=' + Date.now();
+    }, 500);
+
   } catch (err) {
-    console.error('forceUpdateApp error:', err);
-    toast.error('Erro na limpeza, recarregando...', { id: 'app-update' });
-    setTimeout(() => window.location.reload(), 1000);
+    console.error('[NUCLEAR] Fatal error:', err);
+    toast.error('Erro na limpeza, forçando reload...', { id: 'nuclear-update' });
+    // Even on error, force a hard reload
+    setTimeout(() => {
+      window.location.href = window.location.origin + '?v=' + Date.now();
+    }, 300);
   }
 };
