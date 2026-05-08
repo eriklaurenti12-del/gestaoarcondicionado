@@ -29,6 +29,7 @@ const RegisterProductTab: React.FC = () => {
   const [qty, setQty] = useState(1);
   const [minStock, setMinStock] = useState(5);
   const [serviceDuration, setServiceDuration] = useState(60);
+  const [validityMonths, setValidityMonths] = useState(0);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -215,7 +216,7 @@ const RegisterProductTab: React.FC = () => {
         image_url: imageUrl,
         supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
         min_stock: isService ? 0 : minStock,
-        warranty_months: 12,
+        warranty_months: isService ? validityMonths : 12,
         storage_location: storageLocation.trim() || null,
         storage_shelf: storageShelf.trim() || null,
         storage_section: storageSection.trim() || null,
@@ -372,7 +373,29 @@ const RegisterProductTab: React.FC = () => {
             </div>
           )}
 
-          {/* Margin display */}
+          {/* Service-only: duration + validity */}
+          {registerType === 'service' && !isCombo && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Duração (min)</Label>
+                <Input type="number" min={5} step={5} value={serviceDuration} onChange={(e) => setServiceDuration(Math.max(5, parseInt(e.target.value) || 60))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-500" /> Prazo de validade</Label>
+                <Select value={String(validityMonths)} onValueChange={(v) => setValidityMonths(parseInt(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Sem validade</SelectItem>
+                    <SelectItem value="3">3 meses</SelectItem>
+                    <SelectItem value="6">6 meses</SelectItem>
+                    <SelectItem value="12">1 ano</SelectItem>
+                    <SelectItem value="24">2 anos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Conta a partir da data de cada agendamento.</p>
+              </div>
+            </div>
+          )}
           {totalCost > 0 && parseFloat(price) > 0 && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/60 text-sm">
               <span className="text-muted-foreground">Custo total:</span>
