@@ -627,6 +627,10 @@ export default function FinanceiroTab() {
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
           </Button>
+          <Button onClick={() => setCsvDialogOpen(true)} variant="outline" size="sm" className="min-w-[44px]" title="Exportar CSV (Excel) com filtros">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">CSV</span>
+          </Button>
           
           {/* Lock Button - Only for Owners */}
           {!localStorage.getItem('portal_member_name') && (
