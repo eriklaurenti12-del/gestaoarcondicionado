@@ -621,6 +621,27 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     }
   }, [activeTab, visibleTabs.join(',')]);
 
+  if (showFullSystem) {
+    return (
+      <PortalFullSystemView
+        onBack={() => setShowFullSystem(false)}
+        memberName={session.memberName}
+        role={session.role}
+        canAccess={canAccess}
+        data={{
+          todayAppointments: todayAppointments as any[],
+          pendingBookings: pendingBookings as any[],
+          clients: portalClients as any[],
+          financial: portalFinancial as any[],
+          products: portalProducts as any[],
+          sales: portalSales as any[],
+          suppliers: portalSuppliers as any[],
+          subscribers: portalSubscribers as any[],
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Header - matching screenshot */}
