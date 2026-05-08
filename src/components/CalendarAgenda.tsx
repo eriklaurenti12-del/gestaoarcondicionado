@@ -949,26 +949,42 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           <DialogHeader>
             <DialogTitle>Encaminhar para {pendingAssign?.provider?.name}</DialogTitle>
             <DialogDescription>
-              Preencha (opcional) os custos previstos da rota. Serão lançados como despesa vinculada ao agendamento.
+              Defina a data da rota e os custos previstos. Os valores serão lançados como despesa vinculada ao agendamento.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-2 gap-3 py-2">
+          <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label className="text-xs">Combustível (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={assignFuel} onChange={(e) => setAssignFuel(e.target.value)} placeholder="0,00" />
+              <Label className="text-xs">Data das despesas (rota)</Label>
+              <Input
+                type="date"
+                value={assignDate}
+                onChange={(e) => { setAssignDate(e.target.value); setAssignErrors(prev => ({ ...prev, date: undefined })); }}
+              />
+              {assignErrors.date && <p className="text-[11px] text-destructive">{assignErrors.date}</p>}
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Alimentação (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={assignFood} onChange={(e) => setAssignFood(e.target.value)} placeholder="0,00" />
+            <div className="grid grid-cols-2 gap-3">
+              {([
+                { key: 'fuel', label: 'Combustível (R$)', value: assignFuel, set: setAssignFuel, err: assignErrors.fuel },
+                { key: 'food', label: 'Alimentação (R$)', value: assignFood, set: setAssignFood, err: assignErrors.food },
+                { key: 'daily', label: 'Diária (R$)', value: assignDaily, set: setAssignDaily, err: assignErrors.daily },
+                { key: 'driver', label: 'Motorista (R$)', value: assignDriver, set: setAssignDriver, err: assignErrors.driver },
+              ] as const).map((f) => (
+                <div key={f.key} className="space-y-1">
+                  <Label className="text-xs">{f.label}</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={f.value}
+                    onChange={(e) => { f.set(e.target.value); setAssignErrors(prev => ({ ...prev, [f.key]: undefined })); }}
+                    placeholder="0,00"
+                    className={f.err ? 'border-destructive focus-visible:ring-destructive' : ''}
+                  />
+                  {f.err && <p className="text-[11px] text-destructive">{f.err}</p>}
+                </div>
+              ))}
             </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Diária (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={assignDaily} onChange={(e) => setAssignDaily(e.target.value)} placeholder="0,00" />
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Motorista (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={assignDriver} onChange={(e) => setAssignDriver(e.target.value)} placeholder="0,00" />
-            </div>
+            <p className="text-[11px] text-muted-foreground">Use 0 para campos que não se aplicam. Valores negativos não são permitidos.</p>
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setPendingAssign(null)}>Cancelar</Button>
@@ -976,32 +992,54 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               onClick={async () => {
                 if (!pendingAssign) return;
                 const { apt, provider } = pendingAssign;
+
+                // Validate
+                const errs: typeof assignErrors = {};
+                if (!assignDate) errs.date = 'Informe a data';
+                const checkField = (raw: string): string | undefined => {
+                  if (raw === '' || raw === null || raw === undefined) return 'Obrigatório';
+                  const n = Number(raw);
+                  if (isNaN(n)) return 'Valor inválido';
+                  if (n < 0) return 'Não pode ser negativo';
+                  return undefined;
+                };
+                errs.fuel = checkField(assignFuel);
+                errs.food = checkField(assignFood);
+                errs.daily = checkField(assignDaily);
+                errs.driver = checkField(assignDriver);
+                const hasErrors = Object.values(errs).some(Boolean);
+                if (hasErrors) {
+                  setAssignErrors(errs);
+                  toast.error('Corrija os campos destacados antes de confirmar.');
+                  return;
+                }
+                setAssignErrors({});
+
                 try {
                   await assignProviderMutation.mutateAsync({ apt, providerName: provider.name });
                   const { data: sessionData } = await supabase.auth.getSession();
                   const session = sessionData?.session;
                   if (session) {
-                    const today = new Date().toISOString().split('T')[0];
                     const items = [
-                      { cat: 'Combustível', val: parseFloat(assignFuel) },
-                      { cat: 'Alimentação', val: parseFloat(assignFood) },
-                      { cat: 'Diária', val: parseFloat(assignDaily) },
-                      { cat: 'Motorista', val: parseFloat(assignDriver) },
-                    ].filter(i => !isNaN(i.val) && i.val > 0);
+                      { cat: 'Combustível', val: Number(assignFuel) },
+                      { cat: 'Alimentação', val: Number(assignFood) },
+                      { cat: 'Diária', val: Number(assignDaily) },
+                      { cat: 'Motorista', val: Number(assignDriver) },
+                    ].filter(i => i.val > 0);
                     if (items.length > 0) {
                       const rows = items.map(i => ({
                         user_id: session.user.id,
                         appointment_id: apt.id,
                         category: i.cat,
                         amount: i.val,
-                        expense_date: today,
+                        expense_date: assignDate,
                         description: `${i.cat} - Rota ${provider.name}`,
                         helper_name: provider.name,
                       }));
                       const { error } = await supabase.from('fixed_expenses').insert(rows);
                       if (error) throw error;
                       queryClient.invalidateQueries({ queryKey: ['fixed_expenses'] });
-                      toast.success(`Despesas registradas (${items.length})`);
+                      toast.success(`Despesas registradas (${items.length}) em ${assignDate}`);
                     }
                   }
                   setPendingAssign(null);
