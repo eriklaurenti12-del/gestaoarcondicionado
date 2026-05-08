@@ -66,11 +66,11 @@ export async function recordFinancialEntry({
 
   // Pre-check: sale_id + type
   if (saleId) {
-    const { data: existing } = await supabase
+    const { data: existing } = await (supabase as any)
       .from('financial_records')
       .select('id')
       .eq('user_id', userId)
-      .eq('sale_id' as any, saleId)
+      .eq('sale_id', saleId)
       .eq('type', type)
       .maybeSingle();
     if (existing) {
