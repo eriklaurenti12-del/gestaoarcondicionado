@@ -139,6 +139,48 @@ export default function EmployeesTab() {
     };
   }, []);
 
+  // Sync salary/vale to fixed_expenses (auto recurring) for current month
+  const syncRecurringExpense = async (memberId: string, memberName: string, salary: number, vale: number, category: string, userId: string) => {
+    const tag = `auto:team:${memberId}`;
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0,10);
+
+    // Remove previous auto entries for this member in current month
+    await supabase
+      .from('fixed_expenses')
+      .delete()
+      .eq('user_id', userId)
+      .ilike('description', `${tag}%`)
+      .gte('expense_date', monthStart);
+
+    const rows: any[] = [];
+    if (salary > 0) {
+      rows.push({
+        user_id: userId,
+        category,
+        helper_name: memberName,
+        amount: salary,
+        description: `${tag} | ${category} mensal de ${memberName}`,
+        expense_date: monthStart,
+        is_recurring: true,
+      });
+    }
+    if (vale > 0) {
+      rows.push({
+        user_id: userId,
+        category: 'Vale',
+        helper_name: memberName,
+        amount: vale,
+        description: `${tag} | Vale (adiantamento) de ${memberName}`,
+        expense_date: monthStart,
+        is_recurring: true,
+      });
+    }
+    if (rows.length > 0) {
+      await supabase.from('fixed_expenses').insert(rows);
+    }
+  };
+
   const handleSaveMember = async () => {
     if (!formData.name.trim() || (!editingMember && formData.pin.length !== 4)) {
       toast({ title: "Preencha o nome e um PIN de 4 dígitos", variant: "destructive" });
@@ -149,58 +191,69 @@ export default function EmployeesTab() {
       const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
 
+      const salary = parseFloat(formData.monthly_salary || '0') || 0;
+      const vale = parseFloat(formData.vale_amount || '0') || 0;
+      const category = formData.expense_category || 'Salário';
+
+      let memberId = editingMember?.id;
+      const memberName = formData.name.trim();
+
       if (editingMember) {
-        // Update
         const { error } = await supabase
           .from('team_members')
           .update({
-            name: formData.name.trim(),
+            name: memberName,
             phone: formData.phone.trim() || null,
             role: formData.role,
+            monthly_salary: salary,
+            vale_amount: vale,
+            expense_category: category,
           })
           .eq('id', editingMember.id);
-
         if (error) throw error;
 
-        // Update PIN if provided
         if (formData.pin.length === 4) {
           const { error: pinErr } = await supabase.rpc('set_team_member_pin', {
-            _member_id: editingMember.id,
-            _pin: formData.pin
+            _member_id: editingMember.id, _pin: formData.pin
           });
           if (pinErr) throw pinErr;
         }
-
         toast({ title: "Funcionário atualizado! ✓" });
       } else {
-        // Create
         const { data: inserted, error } = await supabase
           .from('team_members')
           .insert({
             user_id: session.user.id,
-            name: formData.name.trim(),
+            name: memberName,
             phone: formData.phone.trim() || null,
             role: formData.role,
-            is_active: true
+            is_active: true,
+            monthly_salary: salary,
+            vale_amount: vale,
+            expense_category: category,
           })
           .select('id')
           .single();
-
         if (error) throw error;
+        memberId = inserted.id;
 
-        // Set PIN
         const { error: pinErr } = await supabase.rpc('set_team_member_pin', {
-          _member_id: inserted.id,
-          _pin: formData.pin
+          _member_id: inserted.id, _pin: formData.pin
         });
         if (pinErr) throw pinErr;
 
         toast({ title: "Funcionário cadastrado! ✓" });
       }
 
+      // Sync recurring expense
+      if (memberId && (salary > 0 || vale > 0)) {
+        await syncRecurringExpense(memberId, memberName, salary, vale, category, session.user.id);
+        toast({ title: "💰 Despesa recorrente atualizada", description: `${memberName} já consta no Gasto Recorrente do mês.` });
+      }
+
       setShowAddDialog(false);
       setEditingMember(null);
-      setFormData({ name: "", phone: "", role: "tecnico", pin: "" });
+      setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário" });
       loadTeamMembers();
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
