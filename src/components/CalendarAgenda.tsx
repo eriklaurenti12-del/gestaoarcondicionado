@@ -560,6 +560,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                     const assignedColor = assignedProvider
                       ? (providers as any[]).find(p => p.name === assignedProvider)?.color || '#6366f1'
                       : null;
+                    const aptExpenses = expensesByApt[apt.id] || [];
+                    const aptExpensesTotal = aptExpenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+                    const aptRouteDate = aptExpenses[0]?.expense_date || null;
 
                     return (
                       <Card
