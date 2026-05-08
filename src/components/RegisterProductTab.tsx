@@ -29,6 +29,7 @@ const RegisterProductTab: React.FC = () => {
   const [qty, setQty] = useState(1);
   const [minStock, setMinStock] = useState(5);
   const [serviceDuration, setServiceDuration] = useState(60);
+  const [validityMonths, setValidityMonths] = useState(0);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
