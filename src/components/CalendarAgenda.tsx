@@ -45,6 +45,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [decisionAppointment, setDecisionAppointment] = useState<any | null>(null);
+  const [decisionPaymentMethod, setDecisionPaymentMethod] = useState<string>('Dinheiro');
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
