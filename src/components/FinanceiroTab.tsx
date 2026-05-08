@@ -284,6 +284,24 @@ export default function FinanceiroTab() {
     setLoading(false);
   };
 
+  const handleExportCsv = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setCsvBusy(true);
+    try {
+      const ds = await buildMonthDataset(session.user.id, selectedMonth);
+      const csv = buildMonthCsv(ds, csvFilters);
+      downloadCsv(`extrato-financeiro-${selectedMonth}.csv`, csv);
+      toast({ title: '📊 CSV exportado', description: 'Arquivo pronto para abrir no Excel.' });
+      setCsvDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Erro ao exportar CSV', description: e.message, variant: 'destructive' });
+    } finally {
+      setCsvBusy(false);
+    }
+  };
+
   const handleReconcile = async () => {
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
