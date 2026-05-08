@@ -1069,9 +1069,13 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
             </div>
             <p className="text-[11px] text-muted-foreground">Use 0 para campos que não se aplicam. Valores negativos não são permitidos.</p>
           </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPendingAssign(null)}>Cancelar</Button>
+          <div className="flex justify-end gap-2 pt-2 border-t">
+            <Button variant="outline" size="sm" className="h-9 px-4 gap-1.5" onClick={() => setPendingAssign(null)}>
+              <X className="w-4 h-4" /> Cancelar
+            </Button>
             <Button
+              size="sm"
+              className="h-9 px-4 gap-1.5"
               onClick={async () => {
                 if (!pendingAssign) return;
                 const { apt, provider } = pendingAssign;
