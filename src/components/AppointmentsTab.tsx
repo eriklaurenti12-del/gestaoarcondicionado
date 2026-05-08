@@ -1348,11 +1348,8 @@ const AppointmentsTab: React.FC = () => {
             <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-white/5">
               {[
                 { id: 'todos', label: 'TODOS', color: 'bg-slate-500/10 text-slate-400 border-white/5' },
-                { id: 'pendente', label: 'PENDENTES', color: 'bg-slate-500/10 text-slate-500 border-slate-200' },
-                { id: 'pendente', label: 'AGENDADOS', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                { id: 'pendente', label: 'PENDENTES', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
                 { id: 'confirmado', label: 'CONFIRMADOS', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-                { id: 'confirmado', label: 'C/ PRESTADOR', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-200' },
-                { id: 'em_rota', label: 'EM ROTA', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200' },
                 { id: 'concluido', label: 'CONCLUÍDOS', color: 'bg-green-500/10 text-green-600 border-green-200' },
                 { id: 'cancelado', label: 'CANCELADOS', color: 'bg-red-500/10 text-red-600 border-red-200' },
               ].map(status => (
