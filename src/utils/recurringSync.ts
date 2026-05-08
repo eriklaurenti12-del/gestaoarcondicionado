@@ -117,14 +117,73 @@ export async function ensureMonthlyRecurringExpenses(
     await supabase.from('fixed_expenses').insert(rowsToInsert);
   }
 
+  // 4) Recurring revenue from active maintenance_contracts (monthly_value > 0)
+  // Idempotent via description tag `auto:contract:<id>` in financial_records.
+  const { data: contracts } = await supabase
+    .from('maintenance_contracts')
+    .select('id, title, monthly_value, status, client_id, clients:client_id(name)')
+    .eq('user_id', userId)
+    .eq('status', 'ativo');
+
+  const activeContracts = (contracts || []).filter((c: any) => Number(c.monthly_value) > 0);
+  let insertedContracts = 0;
+  const insertedContractRows: Array<{ category: string; helper_name: string | null; amount: number; description: string }> = [];
+
+  if (activeContracts.length > 0) {
+    const { data: existingContractRecs } = await supabase
+      .from('financial_records')
+      .select('id, description')
+      .eq('user_id', userId)
+      .eq('type', 'entrada')
+      .gte('record_date', monthStart)
+      .lte('record_date', monthEnd + 'T23:59:59.999Z')
+      .ilike('description', 'auto:contract:%');
+
+    const existingTags = new Set<string>();
+    for (const r of existingContractRecs || []) {
+      const m = (r.description || '').match(/^(auto:contract:[^|\s]+)/i);
+      if (m) existingTags.add(m[1]);
+    }
+
+    const contractRecords: any[] = [];
+    for (const c of activeContracts) {
+      const tag = `auto:contract:${c.id}`;
+      if (existingTags.has(tag)) continue;
+      const clientName = (c as any).clients?.name || 'Cliente';
+      const desc = `${tag} | mensal | Contrato mensal: ${c.title} - ${clientName}`;
+      contractRecords.push({
+        user_id: userId,
+        type: 'entrada',
+        amount: Number(c.monthly_value) || 0,
+        description: desc,
+        payment_method: 'PIX',
+        category: 'Contrato',
+        record_date: `${monthStart}T12:00:00Z`,
+      });
+      insertedContractRows.push({
+        category: 'Contrato',
+        helper_name: clientName,
+        amount: Number(c.monthly_value) || 0,
+        description: desc,
+      });
+    }
+    if (contractRecords.length > 0) {
+      await supabase.from('financial_records').insert(contractRecords);
+      insertedContracts = contractRecords.length;
+    }
+  }
+
   return {
-    count: rowsToInsert.length,
-    rows: rowsToInsert.map((r) => ({
-      category: r.category as string,
-      helper_name: (r.helper_name as string) ?? null,
-      amount: Number(r.amount) || 0,
-      description: r.description as string,
-    })),
+    count: rowsToInsert.length + insertedContracts,
+    rows: [
+      ...rowsToInsert.map((r) => ({
+        category: r.category as string,
+        helper_name: (r.helper_name as string) ?? null,
+        amount: Number(r.amount) || 0,
+        description: r.description as string,
+      })),
+      ...insertedContractRows,
+    ],
   };
 }
 
