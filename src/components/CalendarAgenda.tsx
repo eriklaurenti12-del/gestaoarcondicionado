@@ -57,10 +57,10 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       const labels: Record<string, string> = {
+        pendente: '📅 Reagendado',
         confirmado: '✓ Confirmado',
         concluido: '✅ Concluído',
         cancelado: '❌ Cancelado',
-        agendado: '📅 Reagendado'
       };
       toast.success(labels[status] || 'Status atualizado');
     }
