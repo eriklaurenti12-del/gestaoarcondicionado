@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
       member_name: match.name,
       role: match.role,
       owner_id: match.user_id,
+      permissions: (match as any).permissions || null,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
