@@ -92,6 +92,9 @@ const ImpostosTab: React.FC = () => {
   const [danfePreview, setDanfePreview] = useState<DanfeParsed | null>(null);
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const autoPulledRef = useRef<string | null>(null);
   // Generate last 12 months for selection
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(new Date(), i);
