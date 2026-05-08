@@ -28,6 +28,7 @@ type PortalSession = {
   memberName: string;
   role: string;
   ownerId: string;
+  permissions?: string[] | null;
 };
 
 export default function TeamPortalLogin() {
@@ -62,6 +63,7 @@ export default function TeamPortalLogin() {
         memberName: data.member_name,
         role: data.role,
         ownerId: data.owner_id,
+        permissions: Array.isArray(data.permissions) ? data.permissions : null,
       };
 
       sessionStorage.setItem('portal_session', JSON.stringify(portalSession));
@@ -588,7 +590,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     vendedor: ["vendas", "cadastros", "suporte"],
   };
 
-  const visibleTabs = roleTabPermissions[session.role] || ["agenda", "suporte"];
+  // Per-member permissions take precedence over role defaults
+  const visibleTabs = (session.permissions && session.permissions.length > 0)
+    ? session.permissions
+    : (roleTabPermissions[session.role] || ["agenda", "suporte"]);
 
   // Guard: if active tab not allowed for this role, redirect to first allowed
   useEffect(() => {

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Users, UserPlus, KeyRound, Phone, Shield, ShieldCheck, 
   Trash2, Edit2, UserX, UserCheck, ExternalLink, Copy,
-  Search, Loader2, DollarSign, Calendar, Lock, Link2
+  Search, Loader2, DollarSign, Calendar, Lock, Link2, CheckCircle2
 } from "lucide-react";
 import {
   Dialog,
@@ -43,7 +43,8 @@ export interface TeamMember {
   monthly_salary?: number | null;
   vale_amount?: number | null;
   expense_category?: string | null;
-  pin?: string; // Raw PIN is never returned from DB, only used in forms
+  permissions?: string[] | null;
+  pin?: string;
 }
 
 const ROLE_LABELS: Record<TeamRole, { label: string, color: string, description: string }> = {
@@ -74,6 +75,23 @@ const ROLE_LABELS: Record<TeamRole, { label: string, color: string, description:
   },
 };
 
+const ALL_PORTAL_TABS: { id: string; label: string; description: string }[] = [
+  { id: "agenda", label: "Agenda", description: "Ver e criar agendamentos do dia" },
+  { id: "cadastros", label: "Cadastros", description: "Listar e cadastrar clientes" },
+  { id: "vendas", label: "Vendas / PDV", description: "Registrar vendas e produtos" },
+  { id: "financeiro", label: "Financeiro", description: "Ver faturamento e relatórios" },
+  { id: "admin", label: "Admin", description: "Liberar/cancelar assinantes (super-admin)" },
+  { id: "suporte", label: "Suporte", description: "Atender solicitações da equipe" },
+];
+
+const ROLE_DEFAULT_PERMS: Record<TeamRole, string[]> = {
+  admin: ["agenda", "cadastros", "financeiro", "vendas", "admin", "suporte"],
+  gerente: ["agenda", "cadastros", "financeiro", "vendas", "suporte"],
+  atendimento: ["agenda", "cadastros", "suporte"],
+  tecnico: ["agenda", "suporte"],
+  vendedor: ["vendas", "cadastros", "suporte"],
+};
+
 export default function EmployeesTab() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -91,6 +109,7 @@ export default function EmployeesTab() {
     monthly_salary: "",
     vale_amount: "",
     expense_category: "Salário",
+    permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] as string[],
   });
   
   // Financial modal state
@@ -102,6 +121,19 @@ export default function EmployeesTab() {
     category: "Salário",
     type: "saque" as "entrada" | "saque" | "reserva",
   });
+
+  const togglePermission = (id: string) => {
+    setFormData(fd => ({
+      ...fd,
+      permissions: fd.permissions.includes(id)
+        ? fd.permissions.filter(p => p !== id)
+        : [...fd.permissions, id],
+    }));
+  };
+
+  const applyRoleDefaults = (role: TeamRole) => {
+    setFormData(fd => ({ ...fd, role, permissions: [...ROLE_DEFAULT_PERMS[role]] }));
+  };
 
   const loadTeamMembers = async () => {
     setLoading(true);
@@ -208,6 +240,7 @@ export default function EmployeesTab() {
             monthly_salary: salary,
             vale_amount: vale,
             expense_category: category,
+            permissions: formData.permissions as any,
           })
           .eq('id', editingMember.id);
         if (error) throw error;
@@ -231,6 +264,7 @@ export default function EmployeesTab() {
             monthly_salary: salary,
             vale_amount: vale,
             expense_category: category,
+            permissions: formData.permissions as any,
           })
           .select('id')
           .single();
@@ -253,7 +287,7 @@ export default function EmployeesTab() {
 
       setShowAddDialog(false);
       setEditingMember(null);
-      setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário" });
+      setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário", permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] });
       loadTeamMembers();
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -341,13 +375,13 @@ export default function EmployeesTab() {
   const portalUrl = `${window.location.origin}/portal`;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Funcionários e Acessos</h2>
           <p className="text-muted-foreground">Gerencie sua equipe, permissões e acesso ao portal.</p>
         </div>
-        <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário" }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
+        <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário", permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
           <UserPlus className="w-4 h-4" /> Novo Funcionário
         </Button>
       </div>
@@ -418,7 +452,7 @@ export default function EmployeesTab() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {filteredMembers.map((member) => (
                 <Card key={member.id} className={`overflow-hidden border-border/40 hover:border-primary/30 transition-all duration-300 ${!member.is_active ? 'opacity-60 grayscale-[0.5]' : 'shadow-sm hover:shadow-md'}`}>
                   <CardHeader className="p-4 pb-2">
@@ -449,6 +483,7 @@ export default function EmployeesTab() {
                               monthly_salary: member.monthly_salary != null ? String(member.monthly_salary) : "",
                               vale_amount: member.vale_amount != null ? String(member.vale_amount) : "",
                               expense_category: member.expense_category || "Salário",
+                              permissions: (member.permissions && member.permissions.length > 0) ? [...member.permissions] : [...ROLE_DEFAULT_PERMS[member.role]],
                             });
                             setShowAddDialog(true);
                           }}
@@ -479,8 +514,8 @@ export default function EmployeesTab() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-4 pt-2 space-y-4">
-                    <div className="space-y-2 text-xs text-muted-foreground">
+                  <CardContent className="p-4 pt-2 space-y-3">
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
                       {member.phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="w-3 h-3" /> {member.phone}
@@ -493,6 +528,21 @@ export default function EmployeesTab() {
                         <Lock className="w-3 h-3" /> PIN Protegido
                       </div>
                     </div>
+                    {(() => {
+                      const perms = (member.permissions && member.permissions.length > 0) ? member.permissions : ROLE_DEFAULT_PERMS[member.role];
+                      return (
+                        <div className="flex flex-wrap gap-1 pt-1 border-t border-border/40">
+                          {perms.map(p => {
+                            const tab = ALL_PORTAL_TABS.find(t => t.id === p);
+                            return (
+                              <Badge key={p} variant="secondary" className="text-[9px] py-0 px-1.5 h-4">
+                                {tab?.label || p}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     <div className="flex gap-2 pt-2">
                       <Button 
@@ -522,7 +572,7 @@ export default function EmployeesTab() {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent className="sm:max-w-[480px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] sm:max-w-[520px] max-h-[88vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>{editingMember ? 'Editar Funcionário' : 'Cadastrar Funcionário'}</DialogTitle>
             <DialogDescription>
@@ -531,7 +581,7 @@ export default function EmployeesTab() {
                 : 'Defina o nome, função e senha de acesso do novo membro da equipe.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-3 py-2">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome Completo</Label>
               <Input 
@@ -567,7 +617,7 @@ export default function EmployeesTab() {
               <Label>Nível de Acesso (Função)</Label>
               <Select 
                 value={formData.role} 
-                onValueChange={(val: TeamRole) => setFormData({ ...formData, role: val })}
+                onValueChange={(val: TeamRole) => applyRoleDefaults(val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma função" />
@@ -583,6 +633,41 @@ export default function EmployeesTab() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Permissões granulares por funcionário */}
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-500" />
+                  <Label className="text-sm font-bold">Permissões do Portal</Label>
+                </div>
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px] gap-1" onClick={() => applyRoleDefaults(formData.role)}>
+                  <ShieldCheck className="w-3 h-3" /> Padrão da Função
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Marque apenas as áreas que este funcionário poderá acessar no portal <code className="text-foreground">/portal</code>.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {ALL_PORTAL_TABS.map((tab) => {
+                  const checked = formData.permissions.includes(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => togglePermission(tab.id)}
+                      className={`text-left rounded-md border px-2.5 py-2 transition-all ${checked ? 'border-blue-500/50 bg-blue-500/10' : 'border-border/40 bg-muted/30 opacity-70'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/30'}`}>
+                          {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="text-xs font-semibold">{tab.label}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 ml-6 leading-tight">{tab.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
