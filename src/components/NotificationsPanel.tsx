@@ -36,7 +36,7 @@ const fetchNotificationData = async () => {
     supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false),
     supabase.from('appointments').select('*, clients(name, telefone), products(name)').gte('appointment_date', today.toISOString().split('T')[0]),
     supabase.from('quotes').select('*, clients(name, telefone)').in('status', ['pendente', 'enviado']),
-    supabase.from('service_orders').select('*, clients(name, telefone)').in('status', ['pendente', 'agendado'])
+    supabase.from('service_orders').select('*, clients(name, telefone)').in('status', ['pendente', 'pendente'])
   ]);
 
   return { 
@@ -199,7 +199,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
     data.appointments
       .filter((apt: any) => {
         const aptDate = new Date(apt.appointment_date);
-        return isToday(aptDate) && apt.status !== 'concluído' && apt.status !== 'cancelado';
+        return isToday(aptDate) && apt.status !== 'concluido' && apt.status !== 'cancelado';
       })
       .forEach((apt: any) => {
         notifications.push({
@@ -261,7 +261,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
       const daysSinceCreated = differenceInDays(today, createdAt);
       
       let priority: 'high' | 'medium' | 'low' = 'low';
-      if (order.status === 'agendado') priority = 'medium';
+      if (order.status === 'pendente') priority = 'medium';
       if (daysSinceCreated >= 7) priority = 'high';
 
       notifications.push({
@@ -273,7 +273,7 @@ const NotificationsPanel: React.FC<{ onClose?: () => void }> = ({ onClose }) => 
         data: order,
         action: order.clients?.telefone ? () => {
           const phone = order.clients.telefone.replace(/\D/g, '');
-          const message = order.status === 'agendado' 
+          const message = order.status === 'pendente' 
             ? `Olá ${order.clients.name}! Confirmando o pedido de serviço "${order.title}". Aguardamos você!`
             : `Olá ${order.clients.name}! Sobre o pedido de serviço "${order.title}", gostaria de agendar a visita. Qual a melhor data?`;
           window.open(`https://wa.me/55${phone}?text=${encodeURIComponent(message)}`, '_blank');

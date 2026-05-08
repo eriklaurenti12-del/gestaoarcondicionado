@@ -122,7 +122,7 @@ export default function FinanceiroTab() {
       const { data, error } = await supabase
         .from("appointments")
         .select("notes, products(price)")
-        .in("status", ["agendado", "confirmado"])
+        .in("status", ["pendente", "confirmado"])
         .gte("appointment_date", selectedMonth + "-01");
       if (error) throw error;
       return data;

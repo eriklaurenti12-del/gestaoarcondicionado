@@ -119,7 +119,7 @@ export default function HistoricoGeralTab() {
         client_id: vars.clientId,
         service_id: vars.serviceId,
         appointment_date: vars.date,
-        status: 'agendado',
+        status: 'pendente',
         notes: vars.notes
       });
       if (error) throw error;

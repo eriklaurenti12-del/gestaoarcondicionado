@@ -255,7 +255,7 @@ export default function QuotesTab() {
         client_id: scheduleQuote.client_id,
         appointment_date: scheduleDate,
         notes: `Orçamento #${scheduleQuote.quote_number}: ${scheduleQuote.title}\n[VALOR:${scheduleQuote.total}]\n${scheduleNotes}`,
-        status: 'agendado'
+        status: 'pendente'
       });
 
       if (error) throw error;
@@ -777,7 +777,7 @@ export default function QuotesTab() {
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="aprovado">Aprovado</SelectItem>
-                            <SelectItem value="agendado">Agendado</SelectItem>
+                            <SelectItem value="pendente">Agendado</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
                             <SelectItem value="recusado">Recusado</SelectItem>
                           </SelectContent>

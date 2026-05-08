@@ -131,7 +131,7 @@ const RotatingNotifications: React.FC = () => {
         .select('*, clients(name), products(name)')
         .gte('appointment_date', today.toISOString())
         .lte('appointment_date', nextWeek.toISOString())
-        .neq('status', 'concluído')
+        .neq('status', 'concluido')
         .neq('status', 'cancelado')
         .order('appointment_date', { ascending: true })
         .limit(10);
@@ -167,7 +167,7 @@ const RotatingNotifications: React.FC = () => {
       const { data } = await supabase
         .from('appointments')
         .select('*, clients(name), products(name)')
-        .eq('status', 'agendado')
+        .eq('status', 'pendente')
         .lt('appointment_date', today.toISOString())
         .order('appointment_date', { ascending: false })
         .limit(10);

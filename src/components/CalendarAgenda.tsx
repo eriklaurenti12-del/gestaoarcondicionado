@@ -114,7 +114,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   }, [selectedDate]);
 
   const canUseQuickDecision = (appointmentDate: string, status: string) => {
-    const isPendingStatus = status === 'agendado' || status === 'confirmado';
+    const isPendingStatus = status === 'pendente' || status === 'confirmado';
     return isPendingStatus && isBefore(parseISO(appointmentDate), new Date());
   };
 
@@ -457,7 +457,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                 className="text-xs h-7 flex-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateStatusMutation.mutate({ id: apt.id, status: 'agendado' });
+                                  updateStatusMutation.mutate({ id: apt.id, status: 'pendente' });
                                 }}
                               >
                                 ↩️ Reabrir

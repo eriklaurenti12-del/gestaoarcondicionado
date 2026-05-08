@@ -353,7 +353,7 @@ export default function ServiceOrdersTab() {
         client_id: scheduleOrder.client_id,
         appointment_date: scheduleDate,
         notes: `Pedido #${scheduleOrder.order_number}: ${scheduleOrder.title}\nTotal: R$ ${scheduleOrder.total.toFixed(2)}\n${scheduleNotes}`,
-        status: 'agendado'
+        status: 'pendente'
       });
 
       if (error) throw error;
@@ -1039,7 +1039,7 @@ export default function ServiceOrdersTab() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
-                            <SelectItem value="agendado">Agendado</SelectItem>
+                            <SelectItem value="pendente">Agendado</SelectItem>
                             <SelectItem value="em_andamento">Em Andamento</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
                             <SelectItem value="cancelado">Cancelado</SelectItem>

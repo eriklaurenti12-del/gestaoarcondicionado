@@ -108,7 +108,7 @@ const fetchDashboardData = async () => {
     const installmentsPromise = supabase.from('installments').select('*, appointments(clients(name, telefone))').eq('is_paid', false).order('due_date').limit(200);
     const fixedExpensesPromise = supabase.from('fixed_expenses').select('*').order('expense_date', { ascending: false }).limit(500);
     const quotesPromise = supabase.from('quotes').select('*, clients(name)').in('status', ['pendente', 'enviado']).order('created_at', { ascending: false }).limit(200);
-    const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'agendado']).order('created_at', { ascending: false }).limit(200);
+    const serviceOrdersPromise = supabase.from('service_orders').select('*, clients(name)').in('status', ['pendente', 'pendente']).order('created_at', { ascending: false }).limit(200);
     const scheduledMaintenancePromise = supabase.from('scheduled_maintenance').select('*, clients(name, telefone)').eq('is_completed', false).order('created_at', { ascending: false }).limit(100);
 
     const [{ data: products, error: pError }, { data: clients, error: cError }, { data: sales, error: sError }, { data: appointments, error: aError }, { data: installments, error: iError }, { data: fixedExpenses, error: feError }, { data: quotes, error: qError }, { data: serviceOrders, error: soError }, { data: scheduledMaintenance, error: smError }] = await Promise.all([productsPromise, clientsPromise, salesPromise, appointmentsPromise, installmentsPromise, fixedExpensesPromise, quotesPromise, serviceOrdersPromise, scheduledMaintenancePromise]);
@@ -133,7 +133,7 @@ const fetchDashboardData = async () => {
 
     // Expected revenue from scheduled/confirmed appointments (not yet concluded)
     const expectedRevenue = appointmentsList
-      .filter(a => (a.status === 'agendado' || a.status === 'confirmado'))
+      .filter(a => (a.status === 'pendente' || a.status === 'confirmado'))
       .reduce((sum, a) => sum + getAppointmentPrice(a), 0);
     // Filter sales for CURRENT MONTH only
     const now = new Date();
@@ -146,7 +146,7 @@ const fetchDashboardData = async () => {
     const confirmedAppointmentsThisMonth = appointmentsList.filter((a: any) => {
       try {
         return a.appointment_date?.substring(0, 7) === currentMonthPrefix && 
-               (a.status === 'concluido' || a.status === 'concluído' || a.status === 'confirmado');
+               (a.status === 'concluido' || a.status === 'concluido' || a.status === 'confirmado');
       } catch { return false; }
     });
     
@@ -200,7 +200,7 @@ const fetchDashboardData = async () => {
 
     const todayAppointments = appointmentsList.filter(a => {
       const status = (a.status || '').toLowerCase();
-      const isCompleted = status === 'concluido' || status === 'concluído';
+      const isCompleted = status === 'concluido' || status === 'concluido';
       return safeIsToday(a.appointment_date) && !isCompleted;
     });
     const weekAppointments = appointmentsList.filter(a => {
@@ -209,10 +209,10 @@ const fetchDashboardData = async () => {
     });
 
     const confirmedToday = todayAppointments.filter(a => a.status === 'confirmado').length;
-    const scheduledToday = todayAppointments.filter(a => a.status === 'agendado').length;
+    const scheduledToday = todayAppointments.filter(a => a.status === 'pendente').length;
     const completedToday = appointmentsList.filter(a => {
         const status = (a.status || '').toLowerCase();
-        return safeIsToday(a.appointment_date) && (status === 'concluido' || status === 'concluído');
+        return safeIsToday(a.appointment_date) && (status === 'concluido' || status === 'concluido');
     }).length;
 
     const pendingInstallments = installmentsList.map((inst: any) => {
@@ -335,7 +335,7 @@ const fetchDashboardData = async () => {
 
     // Maintenance Radar: Completed services that will need renewal soon
     const maintenanceRadar = appointmentsList
-      .filter(a => (a.status === 'concluido' || a.status === 'concluído') && (a.products as any)?.warranty_months)
+      .filter(a => (a.status === 'concluido' || a.status === 'concluido') && (a.products as any)?.warranty_months)
       .map(a => {
         const doneDate = new Date(a.appointment_date);
         const nextDate = addMonths(doneDate, (a.products as any).warranty_months);
@@ -353,7 +353,7 @@ const fetchDashboardData = async () => {
 
     // Overdue appointments (agendado but past date)
     const overdueAppointments = appointmentsList
-      .filter(a => a.status === 'agendado' && new Date(a.appointment_date) < today)
+      .filter(a => a.status === 'pendente' && new Date(a.appointment_date) < today)
       .map((a: any) => ({
         ...a,
         daysOverdue: safeDifferenceInDays(today, a.appointment_date)
@@ -1418,7 +1418,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
             <div className="space-y-3">
               {appointmentStats.todayAppointments.map((apt: any) => {
                 const isPast = new Date(apt.appointment_date) < new Date();
-                const isPending = apt.status === 'agendado' || apt.status === 'confirmado';
+                const isPending = apt.status === 'pendente' || apt.status === 'confirmado';
                 const isDone = apt.status === 'concluido';
                 const isCancelled = apt.status === 'cancelado';
 
@@ -1440,7 +1440,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
                           apt.status === 'concluido' ? 'outline' :
                           apt.status === 'cancelado' ? 'destructive' : 'secondary'
                         } className="text-xs">
-                          {apt.status === 'agendado' ? 'Agendado' :
+                          {apt.status === 'pendente' ? 'Agendado' :
                            apt.status === 'confirmado' ? 'Confirmado' :
                            apt.status === 'concluido' ? 'Concluído' :
                            apt.status === 'cancelado' ? 'Cancelado' : apt.status}
@@ -1512,7 +1512,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
                             variant="ghost"
                             className="text-xs h-7 flex-1"
                             onClick={() => {
-                              updateAppointmentStatus.mutate({ id: apt.id, status: 'agendado', appointment: apt });
+                              updateAppointmentStatus.mutate({ id: apt.id, status: 'pendente', appointment: apt });
                             }}
                           >
                             ↩️ Reabrir

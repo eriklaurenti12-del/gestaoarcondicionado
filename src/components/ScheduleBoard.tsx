@@ -149,7 +149,7 @@ export default function ScheduleBoard() {
     switch (status) {
       case 'confirmado': return 'bg-green-500';
       case 'concluido': return 'bg-blue-500';
-      case 'agendado': return 'bg-yellow-500';
+      case 'pendente': return 'bg-yellow-500';
       default: return 'bg-gray-500';
     }
   };
@@ -253,7 +253,7 @@ export default function ScheduleBoard() {
                             </div>
                           </div>
                           <Badge variant="outline" className="text-xs flex-shrink-0">
-                            {appointment.status === 'agendado' ? 'Agendado' :
+                            {appointment.status === 'pendente' ? 'Agendado' :
                              appointment.status === 'confirmado' ? 'Confirmado' :
                              appointment.status === 'concluido' ? 'Concluído' : appointment.status}
                           </Badge>

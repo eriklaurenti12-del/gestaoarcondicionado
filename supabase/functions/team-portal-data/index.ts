@@ -500,7 +500,7 @@ Deno.serve(async (req) => {
         service_id: service_id ? Number(service_id) : null,
         appointment_date,
         notes: aptNotes || `Agendado via portal por ${member.name}`,
-        status: 'agendado',
+        status: 'pendente',
       }).select().single();
 
       if (error) {

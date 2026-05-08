@@ -47,7 +47,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
     return allAppointmentsRaw.filter(a => {
       const hasProvider = a.notes?.includes('[PRESTADOR:');
       const matchesDate = !filterDate || a.appointment_date.startsWith(filterDate);
-      const isPendingStatus = ['agendado', 'confirmado', 'futura', 'pendente', 'enviado_prestador'].includes(a.status);
+      const isPendingStatus = ['pendente', 'confirmado', 'futura', 'pendente', 'confirmado'].includes(a.status);
       
       if (showAssigned) return matchesDate && isPendingStatus;
       return !hasProvider && matchesDate && isPendingStatus;
@@ -109,7 +109,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
           ? `[PRESTADOR:${provider.name}]\n${apt.notes}` 
           : `[PRESTADOR:${provider.name}]`;
           
-        let updateData: any = { notes: newNotes, status: 'enviado_prestador' };
+        let updateData: any = { notes: newNotes, status: 'confirmado' };
         if (moveToToday) {
           const todayDate = new Date();
           const aptDate = new Date(apt.appointment_date);
@@ -423,10 +423,10 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                         </div>
                         <Badge variant="outline" className={`text-[9px] font-black uppercase px-2 py-1 ${
                           apt.status === 'concluido' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                          apt.status === 'enviado_prestador' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                          apt.status === 'confirmado' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                           'bg-blue-500/10 text-blue-500 border-blue-500/20'
                         }`}>
-                          {apt.status === 'enviado_prestador' ? 'Na Rota' : apt.status}
+                          {apt.status === 'confirmado' ? 'Na Rota' : apt.status}
                         </Badge>
                       </div>
                       
@@ -667,7 +667,7 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                                 </>
                               )}
                               {allowReopen && (
-                                <button onClick={() => updateStatus(a.id, 'enviado_prestador')} title="Reabrir" className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 flex items-center justify-center transition-colors">
+                                <button onClick={() => updateStatus(a.id, 'confirmado')} title="Reabrir" className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 flex items-center justify-center transition-colors">
                                   <RefreshCw className="w-3.5 h-3.5" />
                                 </button>
                               )}

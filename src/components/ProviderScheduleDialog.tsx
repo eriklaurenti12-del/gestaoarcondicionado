@@ -58,7 +58,7 @@ export default function ProviderScheduleDialog({ isOpen, onOpenChange, providerN
         client_id: parseInt(clientId),
         service_id: parseInt(serviceId),
         appointment_date: formattedDate,
-        status: 'agendado',
+        status: 'pendente',
         notes: `[PRESTADOR:${providerName}]`
       });
 
