@@ -46,6 +46,15 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [decisionAppointment, setDecisionAppointment] = useState<any | null>(null);
   const [decisionPaymentMethod, setDecisionPaymentMethod] = useState<string>('Dinheiro');
+  const [serviceSummary, setServiceSummary] = useState<{
+    clientName: string;
+    serviceName: string;
+    salePrice: number;
+    profit: number;
+    paymentMethod: string;
+    description: string;
+    isUpdate: boolean;
+  } | null>(null);
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
@@ -60,19 +69,18 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
-      if (!session) return;
+      if (!session) return { status } as any;
 
-      // Reverse financial entries when leaving "concluido"
       if (status !== 'concluido') {
         await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
         await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
-        return;
+        return { status } as any;
       }
 
       if (status === 'concluido' && appointment?.client_id) {
         const finalPm = paymentMethod || 'Dinheiro';
         const salePrice = Number(appointment.products?.price) || 0;
-        if (salePrice <= 0) return;
+        if (salePrice <= 0) return { status } as any;
 
         const { data: productData } = appointment.service_id ? await supabase
           .from('products').select('cost_price').eq('id', appointment.service_id).maybeSingle() : { data: null };
@@ -98,19 +106,34 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           await supabase.from('sales').update({ payment_method: finalPm as any }).eq('id', existingSale.id);
         }
 
+        const description = `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`;
         await recordFinancialEntry({
           userId: session.user.id,
           type: 'entrada',
           amount: salePrice,
-          description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+          description,
           paymentMethod: finalPm,
           category: 'Serviço',
           appointmentId: id,
           recordDate: appointment.appointment_date,
         });
+
+        return {
+          status,
+          summary: {
+            clientName: appointment.clients?.name || 'Cliente',
+            serviceName: appointment.products?.name || 'Serviço',
+            salePrice,
+            profit,
+            paymentMethod: finalPm,
+            description,
+            isUpdate: !!existingSale,
+          },
+        } as any;
       }
+      return { status } as any;
     },
-    onSuccess: (_, { status }) => {
+    onSuccess: (result: any, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
@@ -122,6 +145,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
         cancelado: '❌ Cancelado',
       };
       toast.success(labels[status] || 'Status atualizado');
+      if (result?.summary) {
+        setServiceSummary(result.summary);
+      }
     }
   });
 
@@ -672,6 +698,48 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               Fechar
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Service completion summary */}
+      <Dialog open={!!serviceSummary} onOpenChange={(open) => !open && setServiceSummary(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Check className="w-5 h-5" /> Serviço lançado com sucesso
+            </DialogTitle>
+            <DialogDescription>
+              Confira o que foi registrado em Vendas e no Financeiro.
+            </DialogDescription>
+          </DialogHeader>
+          {serviceSummary && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span className="font-medium">{serviceSummary.clientName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Serviço</span><span className="font-medium">{serviceSummary.serviceName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Forma de pagamento</span><span className="font-medium">{serviceSummary.paymentMethod}</span></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-green-50 p-3">
+                  <p className="text-[11px] text-green-700 uppercase font-semibold">Valor (Venda + Financeiro)</p>
+                  <p className="text-lg font-bold text-green-700">R$ {serviceSummary.salePrice.toFixed(2)}</p>
+                </div>
+                <div className="rounded-lg border bg-blue-50 p-3">
+                  <p className="text-[11px] text-blue-700 uppercase font-semibold">Lucro</p>
+                  <p className="text-lg font-bold text-blue-700">R$ {serviceSummary.profit.toFixed(2)}</p>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground italic">
+                {serviceSummary.isUpdate
+                  ? '↻ Venda existente foi atualizada com a nova forma de pagamento.'
+                  : '✓ Nova venda criada e entrada lançada no Financeiro.'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-semibold">Descrição registrada:</span> {serviceSummary.description}
+              </p>
+              <Button className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

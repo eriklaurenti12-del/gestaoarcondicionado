@@ -336,6 +336,33 @@ export default function FinanceiroTab() {
     }
   };
 
+  const handleSyncContracts = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setRefreshing(true);
+    try {
+      const result = await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+      const contractRows = (result?.rows || []).filter((r: any) => /^auto:contract:/i.test(r.description));
+      const contractCount = contractRows.length;
+      await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+      if (contractCount === 0) {
+        toast({ title: '🔄 Contratos já sincronizados', description: 'Nenhum contrato pendente para este mês.' });
+      } else {
+        toast({
+          title: `🔄 ${contractCount} contrato(s) sincronizado(s)`,
+          description: `Lançamento mensal criado em Receitas para o mês ${selectedMonth}.`,
+        });
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro ao sincronizar contratos', description: e.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
@@ -653,6 +680,10 @@ export default function FinanceiroTab() {
           <Button onClick={handleReconcile} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]" title="Remove duplicatas, órfãos e ressincroniza o mês">
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Reconciliar</span>
+          </Button>
+          <Button onClick={handleSyncContracts} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px] border-blue-300 text-blue-700 hover:bg-blue-50" title="Força o lançamento mensal dos contratos ativos">
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-1">🔄 Contratos do mês</span>
           </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
