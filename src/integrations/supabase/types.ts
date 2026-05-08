@@ -274,6 +274,48 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_reconciliation_log: {
+        Row: {
+          created_at: string
+          details: Json
+          dup_records: number
+          dup_sales: number
+          id: string
+          inserted_recurring: number
+          month_year: string
+          orphan_records: number
+          orphan_sales: number
+          triggered_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          dup_records?: number
+          dup_sales?: number
+          id?: string
+          inserted_recurring?: number
+          month_year: string
+          orphan_records?: number
+          orphan_sales?: number
+          triggered_by?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          dup_records?: number
+          dup_sales?: number
+          id?: string
+          inserted_recurring?: number
+          month_year?: string
+          orphan_records?: number
+          orphan_sales?: number
+          triggered_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_records: {
         Row: {
           amount: number
