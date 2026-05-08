@@ -244,7 +244,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
   const companyName = companyData?.company_name || systemName;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border">
+    <Sidebar collapsible="offcanvas" className="border-r border-border">
       <SidebarHeader className="p-4 pb-3 border-b border-border">
         <div className="flex items-center gap-3">
           {(companyData?.logo_url || systemLogoUrl) ? (
