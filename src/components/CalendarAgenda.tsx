@@ -521,6 +521,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 <div className="space-y-3">
                   {selectedDayAppointments.map((apt: any) => {
                     const canQuickDecide = canUseQuickDecision(apt.appointment_date, apt.status);
+                    const prestadorMatch = apt.notes?.match(/\[PRESTADOR:([^\]]+)\]/);
+                    const assignedProvider = prestadorMatch ? prestadorMatch[1] : null;
+                    const assignedColor = assignedProvider
+                      ? (providers as any[]).find(p => p.name === assignedProvider)?.color || '#6366f1'
+                      : null;
 
                     return (
                       <Card
