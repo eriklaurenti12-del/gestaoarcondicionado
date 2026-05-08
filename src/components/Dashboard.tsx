@@ -623,10 +623,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
         queryClient.invalidateQueries({ queryKey: ['appointments'] });
         const labels: Record<string, string> = {
+          pendente: '📅 Reaberto',
           confirmado: '✓ Confirmado',
           concluido: '✅ Concluído',
           cancelado: '❌ Cancelado',
-          agendado: '📅 Reaberto'
         };
         toast.success(labels[status] || 'Status atualizado');
         setDecisionDialog({ open: false, appointment: null });
