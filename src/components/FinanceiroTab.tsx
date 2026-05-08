@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet } from "lucide-react";
+import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
+import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
 import { format, endOfMonth, isToday } from "date-fns";
@@ -72,6 +74,9 @@ export default function FinanceiroTab() {
   const [selectedMonth, setSelectedMonth] = useState(() => safeFormat(new Date(), "yyyy-MM"));
   const [refreshing, setRefreshing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvFilters, setCsvFilters] = useState<CsvFilters>(DEFAULT_CSV_FILTERS);
+  const [csvBusy, setCsvBusy] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
@@ -277,6 +282,24 @@ export default function FinanceiroTab() {
       setRecords((data as FinancialRecord[]) || []);
     }
     setLoading(false);
+  };
+
+  const handleExportCsv = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setCsvBusy(true);
+    try {
+      const ds = await buildMonthDataset(session.user.id, selectedMonth);
+      const csv = buildMonthCsv(ds, csvFilters);
+      downloadCsv(`extrato-financeiro-${selectedMonth}.csv`, csv);
+      toast({ title: '📊 CSV exportado', description: 'Arquivo pronto para abrir no Excel.' });
+      setCsvDialogOpen(false);
+    } catch (e: any) {
+      toast({ title: 'Erro ao exportar CSV', description: e.message, variant: 'destructive' });
+    } finally {
+      setCsvBusy(false);
+    }
   };
 
   const handleReconcile = async () => {
@@ -621,6 +644,10 @@ export default function FinanceiroTab() {
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
+          </Button>
+          <Button onClick={() => setCsvDialogOpen(true)} variant="outline" size="sm" className="min-w-[44px]" title="Exportar CSV (Excel) com filtros">
+            <FileSpreadsheet className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">CSV</span>
           </Button>
           
           {/* Lock Button - Only for Owners */}
@@ -970,6 +997,43 @@ export default function FinanceiroTab() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Exportar CSV
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Selecione o que incluir no extrato do mês <strong>{selectedMonth}</strong>. O resumo total é sempre incluído.
+            </p>
+            {([
+              ['vendas', 'Vendas (PDV / Agenda)'],
+              ['movimentacoes', 'Movimentações (entradas e saídas)'],
+              ['salarios', 'Salários dos funcionários'],
+              ['vale', 'Vales / Adiantamentos'],
+              ['prestadores', 'Custo mensal de prestadores'],
+              ['despesasFixas', 'Despesas fixas (todas)'],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={csvFilters[k]}
+                  onCheckedChange={(v) => setCsvFilters((f) => ({ ...f, [k]: v === true }))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCsvDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleExportCsv} disabled={csvBusy}>
+              {csvBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+              Baixar CSV
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

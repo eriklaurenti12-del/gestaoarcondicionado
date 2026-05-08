@@ -1169,6 +1169,8 @@ export type Database = {
           notes: string | null
           other_expenses: number | null
           other_taxes: number | null
+          payroll_data: Json
+          provider_costs: Json
           record_date: string
           revenue_from_products: number | null
           revenue_from_services: number | null
@@ -1176,6 +1178,7 @@ export type Database = {
           total_revenue: number | null
           updated_at: string
           user_id: string
+          xml_imports: Json
         }
         Insert: {
           created_at?: string
@@ -1197,6 +1200,8 @@ export type Database = {
           notes?: string | null
           other_expenses?: number | null
           other_taxes?: number | null
+          payroll_data?: Json
+          provider_costs?: Json
           record_date?: string
           revenue_from_products?: number | null
           revenue_from_services?: number | null
@@ -1204,6 +1209,7 @@ export type Database = {
           total_revenue?: number | null
           updated_at?: string
           user_id: string
+          xml_imports?: Json
         }
         Update: {
           created_at?: string
@@ -1225,6 +1231,8 @@ export type Database = {
           notes?: string | null
           other_expenses?: number | null
           other_taxes?: number | null
+          payroll_data?: Json
+          provider_costs?: Json
           record_date?: string
           revenue_from_products?: number | null
           revenue_from_services?: number | null
@@ -1232,6 +1240,7 @@ export type Database = {
           total_revenue?: number | null
           updated_at?: string
           user_id?: string
+          xml_imports?: Json
         }
         Relationships: []
       }
