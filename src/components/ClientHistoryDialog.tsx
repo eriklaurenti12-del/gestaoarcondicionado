@@ -119,17 +119,19 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
   };
 
   const scheduleMaintenanceMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: { type?: string; intervalMonths?: number; date?: string }) => {
       const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Usuário não autenticado');
-      
-      const nextDate = maintDate || format(addMonths(new Date(), parseInt(maintInterval)), 'yyyy-MM-dd');
-      
+
+      const type = overrides?.type ?? maintType;
+      const interval = overrides?.intervalMonths ?? parseInt(maintInterval);
+      const nextDate = overrides?.date ?? (maintDate || format(addMonths(new Date(), interval), 'yyyy-MM-dd'));
+
       const { error } = await supabase.from('scheduled_maintenance').insert({
         user_id: session.user.id,
         client_id: client!.id,
-        maintenance_type: maintType,
-        interval_months: parseInt(maintInterval),
+        maintenance_type: type,
+        interval_months: interval,
         scheduled_date: nextDate,
         is_completed: false
       });
@@ -165,6 +167,36 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
   const totalSpent = history?.sales?.reduce((sum, s) => sum + Number(s.sale_price) * s.qty, 0) || 0;
   const totalAppointments = history?.appointments?.length || 0;
   const completedAppointments = history?.appointments?.filter(a => a.status === 'concluido').length || 0;
+
+  // Auto-suggest follow-up maintenance based on completed services
+  const intervalForService = (rawName: string): { type: string; months: number } => {
+    const name = (rawName || '').toLowerCase();
+    if (name.includes('higien')) return { type: 'Higienização', months: 6 };
+    if (name.includes('manuten') || name.includes('preventiv')) return { type: 'Manutenção Preventiva', months: 12 };
+    if (name.includes('limpeza') || name.includes('lavagem')) return { type: 'Limpeza', months: 6 };
+    if (name.includes('gas') || name.includes('carga')) return { type: 'Recarga de Gás', months: 12 };
+    if (name.includes('instal')) return { type: 'Revisão Pós-Instalação', months: 6 };
+    return { type: rawName || 'Manutenção', months: 6 };
+  };
+
+  const today = new Date();
+  const completed = (history?.appointments || []).filter((a: any) => a.status === 'concluido');
+  const suggestionsMap = new Map<string, { type: string; months: number; basedOn: Date; suggestedDate: Date }>();
+  completed.forEach((a: any) => {
+    const svc = a.products?.name || '';
+    const { type, months } = intervalForService(svc);
+    const base = parseISO(a.appointment_date);
+    const suggested = addMonths(base, months);
+    const existing = suggestionsMap.get(type);
+    if (!existing || base > existing.basedOn) {
+      suggestionsMap.set(type, { type, months, basedOn: base, suggestedDate: suggested });
+    }
+  });
+  // Drop suggestions already covered by a future scheduled_maintenance of same type
+  const activeMaint = (history?.maintenance || []).filter((m: any) => !m.is_completed);
+  const suggestions = Array.from(suggestionsMap.values())
+    .filter(s => !activeMaint.some((m: any) => (m.maintenance_type || '').toLowerCase() === s.type.toLowerCase() && parseISO(m.scheduled_date) >= today))
+    .sort((a, b) => a.suggestedDate.getTime() - b.suggestedDate.getTime());
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -346,30 +378,79 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
           </TabsContent>
 
           <TabsContent value="maintenance" className="mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[300px]">
-              {/* List */}
-              <ScrollArea className="pr-4 border-r">
-                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-amber-500" /> Vencimentos Programados
-                </h3>
-                {history?.maintenance?.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
-                    <CalendarRange className="w-8 h-8 mb-2 opacity-30" />
-                    <p className="text-sm">Nenhum vencimento</p>
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="space-y-4">
+                {/* Auto-suggestions from completed services */}
+                {suggestions.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-primary" /> Sugestões automáticas
+                      <Badge variant="secondary" className="text-[10px]">{suggestions.length}</Badge>
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground mb-2">
+                      Detectadas a partir de serviços já concluídos. Clique em <strong>Agendar</strong> para confirmar.
+                    </p>
+                    <div className="space-y-2">
+                      {suggestions.map((s) => (
+                        <Card key={s.type} className="border-primary/30 bg-primary/5">
+                          <CardContent className="p-3 flex justify-between items-center gap-3">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm flex items-center gap-1">
+                                <Wind className="w-3.5 h-3.5 text-primary shrink-0" />
+                                {s.type}
+                              </p>
+                              <p className="text-[11px] text-muted-foreground">
+                                Último: {format(s.basedOn, 'dd/MM/yyyy')} · sugerido para{' '}
+                                <strong className="text-amber-600">{format(s.suggestedDate, 'dd/MM/yyyy')}</strong> ({s.months}m)
+                              </p>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-8 text-xs shrink-0"
+                              onClick={() =>
+                                scheduleMaintenanceMutation.mutate({
+                                  type: s.type,
+                                  intervalMonths: s.months,
+                                  date: format(s.suggestedDate, 'yyyy-MM-dd'),
+                                })
+                              }
+                              disabled={scheduleMaintenanceMutation.isPending}
+                            >
+                              <Plus className="w-3 h-3 mr-1" /> Agendar
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-2">
-                    {history?.maintenance?.map((m: any) => (
-                      <Card key={m.id} className={`transition-all ${m.is_completed ? 'opacity-50' : 'hover:shadow-sm border-amber-200'}`}>
-                        <CardContent className="p-3">
-                          <div className="flex justify-between items-start">
+                )}
+
+                {/* Existing scheduled maintenance */}
+                <div>
+                  <h3 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                    <Bell className="w-4 h-4 text-amber-500" /> Vencimentos programados
+                    <Badge variant="secondary" className="text-[10px]">{history?.maintenance?.length || 0}</Badge>
+                  </h3>
+                  {!history?.maintenance?.length ? (
+                    <div className="flex flex-col items-center justify-center py-6 text-muted-foreground">
+                      <CalendarRange className="w-8 h-8 mb-2 opacity-30" />
+                      <p className="text-sm">Nenhum vencimento programado</p>
+                      {suggestions.length === 0 && completed.length === 0 && (
+                        <p className="text-[11px] mt-1 opacity-80">Conclua um serviço para ver sugestões automáticas.</p>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {history.maintenance.map((m: any) => (
+                        <Card key={m.id} className={`transition-all ${m.is_completed ? 'opacity-50' : 'hover:shadow-sm border-amber-200'}`}>
+                          <CardContent className="p-3 flex justify-between items-start">
                             <div>
                               <p className="font-medium text-sm flex items-center gap-1">
                                 {m.maintenance_type}
                                 {m.is_completed && <CheckCircle className="w-3 h-3 text-green-500 ml-1" />}
                               </p>
                               <p className={`text-xs ${m.is_completed ? 'text-muted-foreground' : 'text-amber-600 font-semibold'}`}>
-                                Data: {format(parseISO(m.scheduled_date), "dd/MM/yyyy")}
+                                {format(parseISO(m.scheduled_date), "dd/MM/yyyy")}
                               </p>
                             </div>
                             {!m.is_completed && (
@@ -377,56 +458,62 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
                                 Feito
                               </Button>
                             )}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </ScrollArea>
-              
-              {/* Form */}
-              <div className="pl-2 space-y-4">
-                <h3 className="text-sm font-semibold flex items-center gap-2">
-                  <Plus className="w-4 h-4 text-primary" /> Novo Vencimento
-                </h3>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Serviço</Label>
-                    <Select value={maintType} onValueChange={setMaintType}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Higienização">Higienização</SelectItem>
-                        <SelectItem value="Manutenção Preventiva">Manutenção Preventiva</SelectItem>
-                        <SelectItem value="Limpeza">Limpeza</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Intervalo Automático</Label>
-                    <Select value={maintInterval} onValueChange={setMaintInterval}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">Daqui 3 meses</SelectItem>
-                        <SelectItem value="6">Daqui 6 meses</SelectItem>
-                        <SelectItem value="12">Daqui 1 ano</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Ou Escolha Data Específica</Label>
-                    <Input type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} className="h-8 text-xs" />
-                  </div>
-                  <Button 
-                    className="w-full h-8 text-xs mt-2" 
-                    onClick={() => scheduleMaintenanceMutation.mutate()}
-                    disabled={scheduleMaintenanceMutation.isPending}
-                  >
-                    Salvar Vencimento
-                  </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
+
+                {/* Manual override (collapsible) */}
+                <details className="group rounded-lg border border-border/60 bg-muted/30">
+                  <summary className="cursor-pointer list-none p-3 text-sm font-medium flex items-center justify-between">
+                    <span className="flex items-center gap-2">
+                      <Plus className="w-4 h-4 text-primary" /> Adicionar manualmente
+                    </span>
+                    <span className="text-[10px] text-muted-foreground group-open:rotate-180 transition-transform">▾</span>
+                  </summary>
+                  <div className="p-3 pt-0 space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="space-y-1">
+                        <Label className="text-xs">Serviço</Label>
+                        <Select value={maintType} onValueChange={setMaintType}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Higienização">Higienização</SelectItem>
+                            <SelectItem value="Manutenção Preventiva">Manutenção Preventiva</SelectItem>
+                            <SelectItem value="Limpeza">Limpeza</SelectItem>
+                            <SelectItem value="Recarga de Gás">Recarga de Gás</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">Intervalo</Label>
+                        <Select value={maintInterval} onValueChange={setMaintInterval}>
+                          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="3">Daqui 3 meses</SelectItem>
+                            <SelectItem value="6">Daqui 6 meses</SelectItem>
+                            <SelectItem value="12">Daqui 1 ano</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Ou data específica</Label>
+                      <Input type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} className="h-8 text-xs" />
+                    </div>
+                    <Button
+                      className="w-full h-8 text-xs"
+                      onClick={() => scheduleMaintenanceMutation.mutate(undefined)}
+                      disabled={scheduleMaintenanceMutation.isPending}
+                    >
+                      Salvar Vencimento
+                    </Button>
+                  </div>
+                </details>
               </div>
-            </div>
+            </ScrollArea>
           </TabsContent>
 
           <TabsContent value="preferences" className="mt-4">
