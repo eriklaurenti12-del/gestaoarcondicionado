@@ -634,16 +634,16 @@ const AppointmentsTab: React.FC = () => {
       service_id: selectedServiceId ? parseInt(selectedServiceId) : null,
       appointment_date: dateTime.toISOString(),
       notes: fullNotes || null,
-      status: 'agendado',
+      status: 'pendente',
       payment_method: paymentMethod,
       installments: installments,
       first_due_date: firstDueDate || null,
       installment_amount: installmentAmount
     });
     
-    // Update quote/order status to "agendado"
+    // Update quote/order status to "pendente"
     if (sourceType === 'quote' && selectedQuoteId) {
-      await supabase.from('quotes').update({ status: 'agendado' }).eq('id', selectedQuoteId);
+      await supabase.from('quotes').update({ status: 'pendente' }).eq('id', selectedQuoteId);
       
       // Add a financial record for the scheduled quote
       if (selectedQuote) {
@@ -663,7 +663,7 @@ const AppointmentsTab: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
     }
     if (sourceType === 'order' && selectedOrderId) {
-      await supabase.from('service_orders').update({ status: 'agendado' }).eq('id', selectedOrderId);
+      await supabase.from('service_orders').update({ status: 'pendente' }).eq('id', selectedOrderId);
       
       // Add a financial record for the scheduled order
       if (selectedOrder) {
@@ -733,16 +733,12 @@ const AppointmentsTab: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { className: string; label: string }> = {
-      pendente: { className: "bg-slate-500/10 text-slate-500 border-slate-200", label: "Pendente" },
-      agendado: { className: "bg-amber-500/10 text-amber-600 border-amber-200", label: "Agendado" },
+      pendente: { className: "bg-amber-500/10 text-amber-600 border-amber-200", label: "Pendente" },
       confirmado: { className: "bg-blue-500/10 text-blue-600 border-blue-200", label: "Confirmado" },
-      enviado_prestador: { className: "bg-indigo-500/10 text-indigo-600 border-indigo-200", label: "C/ Prestador" },
-      em_rota: { className: "bg-cyan-500/10 text-cyan-600 border-cyan-200", label: "Em Rota" },
       concluido: { className: "bg-green-500/10 text-green-600 border-green-200", label: "Concluído" },
       cancelado: { className: "bg-red-500/10 text-red-600 border-red-200", label: "Cancelado" },
-      atrasado: { className: "bg-orange-500/10 text-orange-600 border-orange-200", label: "Atrasado" }
     };
-    const config = variants[status] || variants.agendado;
+    const config = variants[status] || variants.pendente;
     return <Badge variant="outline" className={`font-bold uppercase tracking-tighter text-[10px] ${config.className}`}>{config.label}</Badge>;
   };
 
@@ -1038,7 +1034,7 @@ const AppointmentsTab: React.FC = () => {
       a.clients?.name || '-',
       a.clients?.telefone || '-',
       a.products?.name || '-',
-      a.status === 'agendado' ? 'Agendado' : a.status === 'confirmado' ? 'Confirmado' : 'Concluído'
+      a.status === 'pendente' ? 'Agendado' : a.status === 'confirmado' ? 'Confirmado' : 'Concluído'
     ]);
 
     autoTable(doc, {
@@ -1273,7 +1269,7 @@ const AppointmentsTab: React.FC = () => {
           </CardHeader>
           <CardContent className="p-4 pt-2">
             <p className="text-2xl font-black text-green-600">
-              R$ {appointments?.filter(a => safeIsToday(a.appointment_date) && (a.status === 'concluido' || a.status === 'concluído')).reduce((sum, a) => sum + getAppointmentPrice(a), 0).toFixed(2)}
+              R$ {appointments?.filter(a => safeIsToday(a.appointment_date) && (a.status === 'concluido' || a.status === 'concluido')).reduce((sum, a) => sum + getAppointmentPrice(a), 0).toFixed(2)}
             </p>
             <p className="text-[10px] text-muted-foreground font-medium mt-1">Estimado total: R$ {appointments?.filter(a => safeIsToday(a.appointment_date) && a.status !== 'cancelado').reduce((sum, a) => sum + getAppointmentPrice(a), 0).toFixed(2)}</p>
           </CardContent>
@@ -1352,11 +1348,8 @@ const AppointmentsTab: React.FC = () => {
             <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar border-b border-white/5">
               {[
                 { id: 'todos', label: 'TODOS', color: 'bg-slate-500/10 text-slate-400 border-white/5' },
-                { id: 'pendente', label: 'PENDENTES', color: 'bg-slate-500/10 text-slate-500 border-slate-200' },
-                { id: 'agendado', label: 'AGENDADOS', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
+                { id: 'pendente', label: 'PENDENTES', color: 'bg-amber-500/10 text-amber-600 border-amber-200' },
                 { id: 'confirmado', label: 'CONFIRMADOS', color: 'bg-blue-500/10 text-blue-600 border-blue-200' },
-                { id: 'enviado_prestador', label: 'C/ PRESTADOR', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-200' },
-                { id: 'em_rota', label: 'EM ROTA', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-200' },
                 { id: 'concluido', label: 'CONCLUÍDOS', color: 'bg-green-500/10 text-green-600 border-green-200' },
                 { id: 'cancelado', label: 'CANCELADOS', color: 'bg-red-500/10 text-red-600 border-red-200' },
               ].map(status => (
@@ -1426,7 +1419,7 @@ const AppointmentsTab: React.FC = () => {
                       <TableCell className="py-4 text-right">
                         <div className="flex justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-all">
                           {/* Confirm Button - Prioritized */}
-                          {appointment.status === 'agendado' && (
+                          {appointment.status === 'pendente' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -1438,15 +1431,15 @@ const AppointmentsTab: React.FC = () => {
                           )}
                           
                           {/* Send to Provider - The Architectural Link */}
-                          {(appointment.status === 'confirmado' || appointment.status === 'agendado') && (
+                          {(appointment.status === 'confirmado' || appointment.status === 'pendente') && (
                             <Button 
                               size="sm" 
                               variant="outline" 
                               className="h-9 px-3 text-[10px] font-black uppercase bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500 hover:text-white"
                               onClick={() => {
                                 sendToProvider(appointment);
-                                if (appointment.status !== 'enviado_prestador') {
-                                  updateStatusMutation.mutate({ id: appointment.id, status: 'enviado_prestador' });
+                                if (appointment.status !== 'confirmado') {
+                                  updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado' });
                                 }
                               }}
                             >
@@ -1455,7 +1448,7 @@ const AppointmentsTab: React.FC = () => {
                           )}
 
                           {/* Quick Complete - 1 Click Concluir */}
-                          {(appointment.status === 'confirmado' || appointment.status === 'enviado_prestador') && (
+                          {appointment.status === 'confirmado' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -2128,7 +2121,7 @@ const AppointmentsTab: React.FC = () => {
                   client_id: completionAppointment.client_id,
                   service_id: completionAppointment.service_id,
                   appointment_date: futureDate.toISOString(),
-                  status: 'agendado', // Set as agendado but with a note for sales
+                  status: 'pendente', // Set as agendado but with a note for sales
                   notes: recurrenceNote,
                   location: completionAppointment.location
                 });

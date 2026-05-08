@@ -57,10 +57,10 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
       const labels: Record<string, string> = {
+        pendente: '📅 Reagendado',
         confirmado: '✓ Confirmado',
         concluido: '✅ Concluído',
         cancelado: '❌ Cancelado',
-        agendado: '📅 Reagendado'
       };
       toast.success(labels[status] || 'Status atualizado');
     }
@@ -114,7 +114,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   }, [selectedDate]);
 
   const canUseQuickDecision = (appointmentDate: string, status: string) => {
-    const isPendingStatus = status === 'agendado' || status === 'confirmado';
+    const isPendingStatus = status === 'pendente' || status === 'confirmado';
     return isPendingStatus && isBefore(parseISO(appointmentDate), new Date());
   };
 
@@ -137,12 +137,12 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      agendado: { variant: "secondary", label: "Agendado" },
+      pendente: { variant: "secondary", label: "Pendente" },
       confirmado: { variant: "default", label: "Confirmado" },
       concluido: { variant: "outline", label: "Concluído" },
       cancelado: { variant: "destructive", label: "Cancelado" }
     };
-    const config = variants[status] || variants.agendado;
+    const config = variants[status] || variants.pendente;
     return <Badge variant={config.variant} className="text-xs">{config.label}</Badge>;
   };
 
@@ -457,7 +457,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                 className="text-xs h-7 flex-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateStatusMutation.mutate({ id: apt.id, status: 'agendado' });
+                                  updateStatusMutation.mutate({ id: apt.id, status: 'pendente' });
                                 }}
                               >
                                 ↩️ Reabrir

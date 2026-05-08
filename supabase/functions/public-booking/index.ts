@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
         supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
-          .in('status', ['agendado', 'confirmado'])
+          .in('status', ['pendente', 'confirmado'])
           .gte('appointment_date', new Date().toISOString())
       ]);
 

@@ -88,7 +88,7 @@ const FinanceiroReportsTab: React.FC = () => {
     const salesProfit = (salesData || []).reduce((sum, s) => sum + Number(s.total_profit), 0);
     const salesCount = salesData?.length || 0;
 
-    const completedAppointments = (appointmentsData || []).filter(a => a.status === 'concluido' || a.status === 'concluído');
+    const completedAppointments = (appointmentsData || []).filter(a => a.status === 'concluido' || a.status === 'concluido');
     const servicesTotal = completedAppointments.reduce((sum, a) => sum + Number((a as any).products?.price || 0), 0);
     const servicesCount = completedAppointments.length;
 
@@ -110,7 +110,7 @@ const FinanceiroReportsTab: React.FC = () => {
       totalRevenue, netProfit,
       paymentBreakdown,
       totalAppointments: appointmentsData?.length || 0,
-      pendingAppointments: (appointmentsData || []).filter(a => a.status === 'agendado').length,
+      pendingAppointments: (appointmentsData || []).filter(a => a.status === 'pendente').length,
     };
   }, [salesData, appointmentsData, expensesData]);
 

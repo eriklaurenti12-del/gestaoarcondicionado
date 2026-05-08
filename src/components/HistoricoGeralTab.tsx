@@ -119,7 +119,7 @@ export default function HistoricoGeralTab() {
         client_id: vars.clientId,
         service_id: vars.serviceId,
         appointment_date: vars.date,
-        status: 'agendado',
+        status: 'pendente',
         notes: vars.notes
       });
       if (error) throw error;
@@ -277,9 +277,9 @@ export default function HistoricoGeralTab() {
 
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
-      concluido: 'bg-green-500/10 text-green-500 border-green-500/20',
       pendente: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
-      agendado: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+      confirmado: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+      concluido: 'bg-green-500/10 text-green-500 border-green-500/20',
       cancelado: 'bg-red-500/10 text-red-500 border-red-500/20',
       aprovado: 'bg-green-500/10 text-green-500 border-green-500/20',
       pago: 'bg-green-500/10 text-green-500 border-green-500/20',

@@ -71,7 +71,7 @@ const fetchNotificationCount = async () => {
     });
 
     appointments?.forEach((apt: any) => {
-      if (safeIsToday(apt.appointment_date) && apt.status !== 'concluído' && apt.status !== 'cancelado') {
+      if (safeIsToday(apt.appointment_date) && apt.status !== 'concluido' && apt.status !== 'cancelado') {
         count++;
       }
     });

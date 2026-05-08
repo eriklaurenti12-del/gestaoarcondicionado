@@ -89,7 +89,7 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       // 2. Update Appointment Statuses
       if (completedIds.length > 0) await supabase.from('appointments').update({ status: 'concluido' }).in('id', completedIds);
       if (canceledIds.length > 0) await supabase.from('appointments').update({ status: 'cancelado' }).in('id', canceledIds);
-      if (rescheduledIds.length > 0) await supabase.from('appointments').update({ status: 'agendado' }).in('id', rescheduledIds);
+      if (rescheduledIds.length > 0) await supabase.from('appointments').update({ status: 'pendente' }).in('id', rescheduledIds);
 
       // 3. Revenue Recognition (Inflow) — UMA entrada por agendamento, descrição padrão
       // (mesma chave usada em AppointmentsTab/FinanceiroTab → dedup automático)

@@ -59,7 +59,7 @@ const DummyDataSeeder: React.FC = () => {
             client_id: c.id,
             service_id: services[i % services.length].id,
             appointment_date: apptDate.toISOString(),
-            status: i < 2 ? 'agendado' : 'concluido',
+            status: i < 2 ? 'pendente' : 'concluido',
             notes: i < 2 ? `[DUMMY] Rota de teste. [PRESTADOR:${providers[i % 2].name}]` : `[DUMMY] Serviço passado.`,
             user_id: userId
           };
