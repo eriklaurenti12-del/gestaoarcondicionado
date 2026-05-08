@@ -168,6 +168,36 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
   const totalAppointments = history?.appointments?.length || 0;
   const completedAppointments = history?.appointments?.filter(a => a.status === 'concluido').length || 0;
 
+  // Auto-suggest follow-up maintenance based on completed services
+  const intervalForService = (rawName: string): { type: string; months: number } => {
+    const name = (rawName || '').toLowerCase();
+    if (name.includes('higien')) return { type: 'Higienização', months: 6 };
+    if (name.includes('manuten') || name.includes('preventiv')) return { type: 'Manutenção Preventiva', months: 12 };
+    if (name.includes('limpeza') || name.includes('lavagem')) return { type: 'Limpeza', months: 6 };
+    if (name.includes('gas') || name.includes('carga')) return { type: 'Recarga de Gás', months: 12 };
+    if (name.includes('instal')) return { type: 'Revisão Pós-Instalação', months: 6 };
+    return { type: rawName || 'Manutenção', months: 6 };
+  };
+
+  const today = new Date();
+  const completed = (history?.appointments || []).filter((a: any) => a.status === 'concluido');
+  const suggestionsMap = new Map<string, { type: string; months: number; basedOn: Date; suggestedDate: Date }>();
+  completed.forEach((a: any) => {
+    const svc = a.products?.name || '';
+    const { type, months } = intervalForService(svc);
+    const base = parseISO(a.appointment_date);
+    const suggested = addMonths(base, months);
+    const existing = suggestionsMap.get(type);
+    if (!existing || base > existing.basedOn) {
+      suggestionsMap.set(type, { type, months, basedOn: base, suggestedDate: suggested });
+    }
+  });
+  // Drop suggestions already covered by a future scheduled_maintenance of same type
+  const activeMaint = (history?.maintenance || []).filter((m: any) => !m.is_completed);
+  const suggestions = Array.from(suggestionsMap.values())
+    .filter(s => !activeMaint.some((m: any) => (m.maintenance_type || '').toLowerCase() === s.type.toLowerCase() && parseISO(m.scheduled_date) >= today))
+    .sort((a, b) => a.suggestedDate.getTime() - b.suggestedDate.getTime());
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
