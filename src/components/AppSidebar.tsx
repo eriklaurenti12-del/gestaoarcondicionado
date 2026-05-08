@@ -224,6 +224,33 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
     staleTime: 60 * 1000,
   });
 
+  // Lê o sidebar_config salvo pelo painel adm. Se houver, usa-o; senão, defaults.
+  const { data: customSidebar } = useQuery({
+    queryKey: ['sidebar-config'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'sidebar_config')
+        .maybeSingle();
+      if (data?.value) {
+        try {
+          const parsed = JSON.parse(data.value);
+          if (parsed?.sections && Array.isArray(parsed.sections)) {
+            // Map para o formato da sidebar (items: {id,title} -> {id,title}).
+            return parsed.sections.map((s: any) => ({
+              label: (s.label || '').toUpperCase(),
+              icon: s.icon || 'Snowflake',
+              items: (s.items || []).map((i: any) => ({ id: i.id, title: i.title })),
+            }));
+          }
+        } catch {}
+      }
+      return null;
+    },
+    staleTime: 30 * 1000,
+  });
+
   const filterSectionsByRole = (sections: any[]) => {
     if (!userRole || userRole === 'super_admin' || userRole === 'sistema') return sections;
     const roleTabAccess: Record<string, string[]> = {
@@ -240,7 +267,7 @@ export function AppSidebar({ activeTab, onTabChange, isSuperAdmin, userRole, onN
       .filter((section: any) => section.items.length > 0);
   };
 
-  const sections = filterSectionsByRole(defaultSections);
+  const sections = filterSectionsByRole(customSidebar && customSidebar.length > 0 ? customSidebar : defaultSections);
   const companyName = companyData?.company_name || systemName;
 
   return (
