@@ -700,6 +700,48 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Service completion summary */}
+      <Dialog open={!!serviceSummary} onOpenChange={(open) => !open && setServiceSummary(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <Check className="w-5 h-5" /> Serviço lançado com sucesso
+            </DialogTitle>
+            <DialogDescription>
+              Confira o que foi registrado em Vendas e no Financeiro.
+            </DialogDescription>
+          </DialogHeader>
+          {serviceSummary && (
+            <div className="space-y-3 text-sm">
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                <div className="flex justify-between"><span className="text-muted-foreground">Cliente</span><span className="font-medium">{serviceSummary.clientName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Serviço</span><span className="font-medium">{serviceSummary.serviceName}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Forma de pagamento</span><span className="font-medium">{serviceSummary.paymentMethod}</span></div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-lg border bg-green-50 p-3">
+                  <p className="text-[11px] text-green-700 uppercase font-semibold">Valor (Venda + Financeiro)</p>
+                  <p className="text-lg font-bold text-green-700">R$ {serviceSummary.salePrice.toFixed(2)}</p>
+                </div>
+                <div className="rounded-lg border bg-blue-50 p-3">
+                  <p className="text-[11px] text-blue-700 uppercase font-semibold">Lucro</p>
+                  <p className="text-lg font-bold text-blue-700">R$ {serviceSummary.profit.toFixed(2)}</p>
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground italic">
+                {serviceSummary.isUpdate
+                  ? '↻ Venda existente foi atualizada com a nova forma de pagamento.'
+                  : '✓ Nova venda criada e entrada lançada no Financeiro.'}
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                <span className="font-semibold">Descrição registrada:</span> {serviceSummary.description}
+              </p>
+              <Button className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
