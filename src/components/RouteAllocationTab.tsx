@@ -572,23 +572,62 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                     </Button>
                   </div>
 
-                  <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    {appts.map(a => (
-                      <div key={a.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/5 flex items-center justify-between group/item hover:bg-white/5 transition-colors">
-                        <div className="flex flex-col min-w-0">
-                          <span className="text-white text-[11px] font-black uppercase truncate">{a.clients?.name}</span>
-                          <span className="text-[9px] text-slate-500 font-bold uppercase truncate">{a.products?.name}</span>
+                  {(() => {
+                    const pending = appts.filter(a => !['concluido', 'cancelado'].includes(a.status));
+                    const completed = appts.filter(a => a.status === 'concluido');
+                    const canceled = appts.filter(a => a.status === 'cancelado');
+
+                    const updateStatus = async (id: string, status: string) => {
+                      const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
+                      if (error) { toast.error(error.message); return; }
+                      toast.success(status === 'concluido' ? 'Marcado como concluído' : status === 'cancelado' ? 'Cancelado' : 'Reaberto');
+                      queryClient.invalidateQueries({ queryKey: ['route-appointments'] });
+                    };
+
+                    const Group = ({ title, items, color, allowComplete, allowReopen }: any) => items.length === 0 ? null : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between px-1">
+                          <span className={`text-[9px] font-black uppercase tracking-widest ${color}`}>{title}</span>
+                          <span className="text-[9px] font-black text-slate-600">{items.length}</span>
                         </div>
-                        <Badge variant="outline" className={`text-[8px] font-black uppercase px-2 h-5 ${
-                          a.status === 'concluido' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                          a.status === 'cancelado' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
-                          'bg-blue-500/5 text-slate-500 border-white/10'
-                        }`}>
-                          {a.status}
-                        </Badge>
+                        {items.map((a: any) => (
+                          <div key={a.id} className="p-2.5 rounded-xl bg-white/[0.03] border border-white/5 flex items-center gap-2">
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="text-white text-[11px] font-black uppercase truncate">{a.clients?.name}</span>
+                              <span className="text-[9px] text-slate-500 font-bold uppercase truncate">
+                                {format(parseISO(a.appointment_date), 'HH:mm')} • {a.products?.name}
+                              </span>
+                            </div>
+                            <div className="flex gap-1 shrink-0">
+                              {allowComplete && (
+                                <>
+                                  <button onClick={() => updateStatus(a.id, 'concluido')} title="Concluir" className="w-7 h-7 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500/20 flex items-center justify-center transition-colors">
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button onClick={() => updateStatus(a.id, 'cancelado')} title="Cancelar" className="w-7 h-7 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 flex items-center justify-center transition-colors">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                              {allowReopen && (
+                                <button onClick={() => updateStatus(a.id, 'enviado_prestador')} title="Reabrir" className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-500 hover:bg-blue-500/20 flex items-center justify-center transition-colors">
+                                  <RefreshCw className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    );
+
+                    return (
+                      <div className="space-y-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
+                        <Group title="⏳ Pendentes" items={pending} color="text-amber-500" allowComplete />
+                        <Group title="✅ Concluídos" items={completed} color="text-green-500" allowReopen />
+                        <Group title="✕ Cancelados" items={canceled} color="text-red-500" allowReopen />
+                      </div>
+                    );
+                  })()}
 
                   <Button 
                     variant="ghost"
