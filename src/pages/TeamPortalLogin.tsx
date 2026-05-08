@@ -604,10 +604,11 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     vendedor: ["vendas", "cadastros", "suporte"],
   };
 
-  // Per-member permissions take precedence over role defaults
-  const visibleTabs = (session.permissions && session.permissions.length > 0)
-    ? session.permissions
-    : (roleTabPermissions[session.role] || ["agenda", "suporte"]);
+  // Strict per-member permissions: only what was explicitly granted in the member registration.
+  // Suporte is always available so the member can request help.
+  const explicitPerms = Array.isArray(session.permissions) ? session.permissions : null;
+  const baseTabs = explicitPerms ?? (roleTabPermissions[session.role] || ["agenda", "suporte"]);
+  const visibleTabs = Array.from(new Set([...baseTabs, "suporte"]));
 
   // Guard: if active tab not allowed for this role, redirect to first allowed
   useEffect(() => {
