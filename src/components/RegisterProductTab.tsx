@@ -15,6 +15,14 @@ import { TablesInsert } from '@/integrations/supabase/types';
 
 type Expense = { name: string; value: number };
 
+const validityOptions = [
+  { value: 0, label: 'Sem validade' },
+  { value: 3, label: '3 meses' },
+  { value: 6, label: '6 meses' },
+  { value: 12, label: '1 ano' },
+  { value: 24, label: '2 anos' },
+];
+
 const RegisterProductTab: React.FC = () => {
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -233,9 +241,9 @@ const RegisterProductTab: React.FC = () => {
   const isLoading = addMutation.isPending || uploading;
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardContent className="pt-6 space-y-6">
+    <div className="w-full min-w-0 space-y-6">
+      <Card className="w-full min-w-0">
+        <CardContent className="min-h-[calc(100vh-12rem)] pt-6 space-y-6">
           <div>
             <h2 className="text-lg font-semibold mb-1">Cadastrar Serviço ou Produto</h2>
             <p className="text-sm text-muted-foreground">Preencha os dados abaixo para adicionar ao catálogo</p>
@@ -382,16 +390,22 @@ const RegisterProductTab: React.FC = () => {
               </div>
               <div className="space-y-2 scroll-mt-24">
                 <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-500" /> Prazo de validade</Label>
-                <Select value={String(validityMonths)} onValueChange={(v) => setValidityMonths(parseInt(v))}>
-                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
-                  <SelectContent side="top" align="start">
-                    <SelectItem value="0">Sem validade</SelectItem>
-                    <SelectItem value="3">3 meses</SelectItem>
-                    <SelectItem value="6">6 meses</SelectItem>
-                    <SelectItem value="12">1 ano</SelectItem>
-                    <SelectItem value="24">2 anos</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {validityOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setValidityMonths(option.value)}
+                      className={`h-11 rounded-md border px-3 text-sm font-medium transition-colors ${
+                        validityMonths === option.value
+                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                          : 'border-border bg-background text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">Esse prazo será usado para gerar o vencimento automático no histórico do cliente após o serviço.</p>
               </div>
             </div>

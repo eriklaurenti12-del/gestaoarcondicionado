@@ -341,7 +341,7 @@ export default function Index() {
               </header>
 
               <main className="flex-1 min-h-0 p-4 overflow-y-auto overflow-x-hidden">
-                <div className="max-w-7xl mx-auto">
+                <div className="w-full max-w-7xl min-w-0 mx-auto">
                   <ErrorBoundary>
                     {renderContent()}
                   </ErrorBoundary>
