@@ -285,7 +285,7 @@ export default function EmployeesTab() {
 
       setShowAddDialog(false);
       setEditingMember(null);
-      setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário" });
+      setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário", permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] });
       loadTeamMembers();
     } catch (error: any) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
@@ -379,7 +379,7 @@ export default function EmployeesTab() {
           <h2 className="text-2xl font-bold tracking-tight">Funcionários e Acessos</h2>
           <p className="text-muted-foreground">Gerencie sua equipe, permissões e acesso ao portal.</p>
         </div>
-        <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário" }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
+        <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "", monthly_salary: "", vale_amount: "", expense_category: "Salário", permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
           <UserPlus className="w-4 h-4" /> Novo Funcionário
         </Button>
       </div>
