@@ -21,25 +21,40 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { buildMonthDataset, parseDanfeXml, type DanfeParsed, buildMonthCsv, downloadCsv } from '@/utils/financialExport';
 import {
-  Calculator,
-  TrendingUp,
-  FileText,
-  DollarSign,
-  Users,
-  Receipt,
-  Download,
-  Save,
-  RefreshCw,
-  Building2,
-  Briefcase,
-  Percent,
-  Fuel,
-  Package,
-  Wrench,
-  ChevronDown,
-  ChevronUp
+  Calculator, TrendingUp, FileText, DollarSign, Users, Receipt, Download, Save,
+  RefreshCw, Building2, Briefcase, Percent, Fuel, Package, Wrench, ChevronDown,
+  ChevronUp, Upload, Trash2, FileSpreadsheet, FilePlus, ArrowUpRight, ArrowDownRight,
+  Banknote
 } from 'lucide-react';
 import TabGuideCards from './TabGuideCards';
+
+interface PayrollRow {
+  member_id?: string;
+  name: string;
+  salary: number;
+  vale: number;
+  inss: number;
+  fgts: number;
+  expense_category?: string;
+}
+
+interface ProviderCostRow {
+  name: string;
+  monthly_cost: number;
+}
+
+interface XmlImport {
+  id: string;
+  chave?: string;
+  emitente?: string;
+  numero?: string;
+  data?: string;
+  valorProdutos: number;
+  valorImpostos: number;
+  valorTotal: number;
+  itensCount: number;
+  importedAt: string;
+}
 
 const ImpostosTab: React.FC = () => {
   const queryClient = useQueryClient();
