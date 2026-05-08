@@ -97,7 +97,7 @@ const FixedExpensesTab: React.FC = () => {
       if (!session) return;
       try {
         const inserted = await ensureMonthlyRecurringExpenses(session.user.id, filterMonth);
-        if (inserted > 0) {
+        if (inserted.count > 0) {
           queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
         }
       } catch (e) {

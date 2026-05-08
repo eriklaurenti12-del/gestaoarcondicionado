@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
+import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, type ReconcileResult } from '@/utils/recurringSync';
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet } from "lucide-react";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -77,6 +77,8 @@ export default function FinanceiroTab() {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvFilters, setCsvFilters] = useState<CsvFilters>(DEFAULT_CSV_FILTERS);
   const [csvBusy, setCsvBusy] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
+  const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
@@ -155,20 +157,29 @@ export default function FinanceiroTab() {
   // This avoids duplicates that previously appeared because two places
   // inserted the same row with slightly different descriptions/categories.
 
-  // Auto-ensure recurring expenses (employees + providers) for the selected month.
+  // Auto-reconcile whenever the selected month changes: removes orphans /
+  // duplicates and re-syncs recurring expenses (employees + providers) so the
+  // numbers stay consistent without the user having to click anything.
   useEffect(() => {
     (async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       if (!session) return;
       try {
-        await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+        await reconcileFinancialMonth(session.user.id, selectedMonth, 'auto');
         queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
         queryClient.invalidateQueries({ queryKey: ['fixed-expenses-summary', selectedMonth] });
+        queryClient.invalidateQueries({ queryKey: ['sales-financial', selectedMonth] });
       } catch (e) {
-        console.warn('ensureMonthlyRecurringExpenses failed', e);
+        console.warn('auto-reconcile failed', e);
+        // Fallback: at least ensure recurring rows exist.
+        try {
+          await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+          queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        } catch {}
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth]);
 
   const getAppointmentPrice = (apt: any) => {
@@ -308,13 +319,15 @@ export default function FinanceiroTab() {
     if (!session) return;
     setRefreshing(true);
     try {
-      const result = await reconcileFinancialMonth(session.user.id, selectedMonth);
+      const result = await reconcileFinancialMonth(session.user.id, selectedMonth, 'manual');
       await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
       queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      setReconcileResult(result);
+      setReconcileDialogOpen(true);
       const removed = result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales;
       toast({
         title: '✅ Mês reconciliado',
-        description: `${removed} duplicata(s)/órfão(s) removidos · ${result.insertedRecurring} despesa(s) recorrente(s) sincronizada(s).`,
+        description: `${removed} item(ns) removido(s) · ${result.insertedRecurring} recorrente(s) sincronizada(s).`,
       });
     } catch (e: any) {
       toast({ title: 'Erro ao reconciliar', description: e.message, variant: 'destructive' });
@@ -1031,6 +1044,90 @@ export default function FinanceiroTab() {
               {csvBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
               Baixar CSV
             </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reconciliation result panel */}
+      <Dialog open={reconcileDialogOpen} onOpenChange={setReconcileDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Reconciliação · {selectedMonth}
+            </DialogTitle>
+          </DialogHeader>
+          {reconcileResult && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Vendas órfãs removidas</div>
+                  <div className="text-2xl font-semibold text-rose-600">{reconcileResult.orphanSales}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Lançamentos órfãos removidos</div>
+                  <div className="text-2xl font-semibold text-rose-600">{reconcileResult.orphanRecords}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Vendas duplicadas removidas</div>
+                  <div className="text-2xl font-semibold text-amber-600">{reconcileResult.dupSales}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Lançamentos duplicados removidos</div>
+                  <div className="text-2xl font-semibold text-amber-600">{reconcileResult.dupRecords}</div>
+                </div>
+                <div className="rounded-md border p-3 col-span-2">
+                  <div className="text-xs text-muted-foreground">Despesas recorrentes inseridas</div>
+                  <div className="text-2xl font-semibold text-emerald-600">{reconcileResult.insertedRecurring}</div>
+                </div>
+              </div>
+
+              {reconcileResult.details.insertedRecurringRows.length > 0 && (
+                <div>
+                  <div className="font-medium mb-1">Recorrentes adicionadas</div>
+                  <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                    {reconcileResult.details.insertedRecurringRows.map((r, i) => (
+                      <li key={i} className="flex justify-between gap-2 border-b last:border-0 py-1">
+                        <span className="truncate">
+                          <span className="font-medium">{r.helper_name || r.category}</span>
+                          <span className="text-muted-foreground"> · {r.category}</span>
+                        </span>
+                        <span className="tabular-nums">R$ {r.amount.toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(reconcileResult.details.orphanSaleIds.length > 0 ||
+                reconcileResult.details.orphanRecordIds.length > 0 ||
+                reconcileResult.details.dupSaleIds.length > 0 ||
+                reconcileResult.details.dupRecordIds.length > 0) && (
+                <div>
+                  <div className="font-medium mb-1">IDs removidos</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    {reconcileResult.details.orphanSaleIds.length > 0 && (
+                      <div><strong>Vendas órfãs:</strong> {reconcileResult.details.orphanSaleIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.dupSaleIds.length > 0 && (
+                      <div><strong>Vendas dup.:</strong> {reconcileResult.details.dupSaleIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.orphanRecordIds.length > 0 && (
+                      <div className="break-all"><strong>Lanç. órfãos:</strong> {reconcileResult.details.orphanRecordIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.dupRecordIds.length > 0 && (
+                      <div className="break-all"><strong>Lanç. dup.:</strong> {reconcileResult.details.dupRecordIds.join(', ')}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                Registro salvo no log de auditoria (financial_reconciliation_log).
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setReconcileDialogOpen(false)}>Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>

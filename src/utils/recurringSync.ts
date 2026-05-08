@@ -117,7 +117,30 @@ export async function ensureMonthlyRecurringExpenses(
     await supabase.from('fixed_expenses').insert(rowsToInsert);
   }
 
-  return rowsToInsert.length;
+  return {
+    count: rowsToInsert.length,
+    rows: rowsToInsert.map((r) => ({
+      category: r.category as string,
+      helper_name: (r.helper_name as string) ?? null,
+      amount: Number(r.amount) || 0,
+      description: r.description as string,
+    })),
+  };
+}
+
+export interface ReconcileResult {
+  orphanSales: number;
+  orphanRecords: number;
+  dupRecords: number;
+  dupSales: number;
+  insertedRecurring: number;
+  details: {
+    orphanSaleIds: number[];
+    orphanRecordIds: string[];
+    dupRecordIds: string[];
+    dupSaleIds: number[];
+    insertedRecurringRows: Array<{ category: string; helper_name: string | null; amount: number; description: string }>;
+  };
 }
 
 /**
@@ -126,8 +149,15 @@ export async function ensureMonthlyRecurringExpenses(
  *    non-existing or non-concluido appointment in any month).
  *  - Removes duplicates by (appointment_id, type) keeping the oldest.
  *  - Re-runs ensureMonthlyRecurringExpenses for the month.
+ *  - Writes an audit row in financial_reconciliation_log.
+ *
+ * `triggeredBy` is stored in the audit log ('manual' | 'auto' | etc.).
  */
-export async function reconcileFinancialMonth(userId: string, monthYYYYMM: string) {
+export async function reconcileFinancialMonth(
+  userId: string,
+  monthYYYYMM: string,
+  triggeredBy: 'manual' | 'auto' = 'manual'
+): Promise<ReconcileResult> {
   const monthStart = `${monthYYYYMM}-01`;
   const [yr, mo] = monthYYYYMM.split('-').map(Number);
   const monthEnd = new Date(yr, mo, 0);
@@ -211,13 +241,39 @@ export async function reconcileFinancialMonth(userId: string, monthYYYYMM: strin
   }
 
   // e) Ensure recurring expenses for the month
-  const inserted = await ensureMonthlyRecurringExpenses(userId, monthYYYYMM);
+  const ensured = await ensureMonthlyRecurringExpenses(userId, monthYYYYMM);
 
-  return {
+  const result: ReconcileResult = {
     orphanSales: orphanSaleIds.length,
     orphanRecords: orphanRecordIds.length,
     dupRecords: dupRecordIds.length,
     dupSales: dupSaleIds.length,
-    insertedRecurring: inserted,
+    insertedRecurring: ensured.count,
+    details: {
+      orphanSaleIds,
+      orphanRecordIds,
+      dupRecordIds,
+      dupSaleIds,
+      insertedRecurringRows: ensured.rows,
+    },
   };
+
+  // f) Audit log (best-effort; never blocks the result)
+  try {
+    await supabase.from('financial_reconciliation_log').insert({
+      user_id: userId,
+      month_year: monthYYYYMM,
+      triggered_by: triggeredBy,
+      orphan_sales: result.orphanSales,
+      orphan_records: result.orphanRecords,
+      dup_records: result.dupRecords,
+      dup_sales: result.dupSales,
+      inserted_recurring: result.insertedRecurring,
+      details: result.details as any,
+    });
+  } catch (e) {
+    console.warn('reconciliation_log insert failed', e);
+  }
+
+  return result;
 }
