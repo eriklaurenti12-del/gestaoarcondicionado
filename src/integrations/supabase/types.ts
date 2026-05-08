@@ -277,6 +277,7 @@ export type Database = {
       financial_records: {
         Row: {
           amount: number
+          appointment_id: string | null
           category: string | null
           created_at: string
           description: string | null
@@ -290,6 +291,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          appointment_id?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
@@ -303,6 +305,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          appointment_id?: string | null
           category?: string | null
           created_at?: string
           description?: string | null
@@ -806,6 +809,7 @@ export type Database = {
       }
       sales: {
         Row: {
+          appointment_id: string | null
           client_id: number
           id: number
           payment_fee_percentage: number | null
@@ -818,6 +822,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          appointment_id?: string | null
           client_id: number
           id?: number
           payment_fee_percentage?: number | null
@@ -830,6 +835,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          appointment_id?: string | null
           client_id?: number
           id?: number
           payment_fee_percentage?: number | null

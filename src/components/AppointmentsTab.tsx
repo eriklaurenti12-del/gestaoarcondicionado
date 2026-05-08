@@ -345,57 +345,70 @@ const AppointmentsTab: React.FC = () => {
     mutationFn: async ({ id, status, appointment }: { id: string; status: string; appointment?: Appointment }) => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
-      
-      // If completing the appointment and has a service, register the sale AND financial record
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (!session) return;
+
+      // Reverse financial entries when leaving "concluido" (cancelled, edited back, etc.)
+      if (status !== 'concluido') {
+        await supabase.from('sales').delete()
+          .eq('user_id', session.user.id)
+          .eq('appointment_id', id);
+        await supabase.from('financial_records').delete()
+          .eq('user_id', session.user.id)
+          .eq('appointment_id', id);
+        return;
+      }
+
+      // Register sale + financial entry on completion
       if (status === 'concluido' && appointment?.client_id) {
-        const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
-        if (session) {
-          const salePrice = getAppointmentPrice(appointment);
-          if (salePrice <= 0) return; // Skip if no value found
+        const salePrice = getAppointmentPrice(appointment);
+        if (salePrice <= 0) return;
 
-          const { data: productData } = appointment.service_id ? await supabase
-            .from('products')
-            .select('cost_price')
-            .eq('id', appointment.service_id)
-            .maybeSingle() : { data: null };
-          
-          const actualCostPrice = productData?.cost_price || 0;
-          const profit = salePrice - Number(actualCostPrice);
-          
-          // Check if sale already exists for this appointment (avoid duplicates)
-          const { data: existingSale } = await supabase
-            .from('sales')
-            .select('id')
-            .eq('user_id', session.user.id)
-            .eq('client_id', appointment.client_id)
-            .eq('sale_date', appointment.appointment_date)
-            .maybeSingle();
+        const { data: productData } = appointment.service_id ? await supabase
+          .from('products')
+          .select('cost_price')
+          .eq('id', appointment.service_id)
+          .maybeSingle() : { data: null };
 
-          if (!existingSale) {
-            await supabase.from('sales').insert({
-              user_id: session.user.id,
-              client_id: appointment.client_id,
-              product_id: appointment.service_id || null, // Can be null now
-              qty: 1,
-              sale_price: salePrice,
-              total_profit: profit,
-              payment_method: 'Dinheiro' as const,
-              sale_date: appointment.appointment_date // Keep consistent with appointment date
-            });
+        const actualCostPrice = productData?.cost_price || 0;
+        const profit = salePrice - Number(actualCostPrice);
 
-            // Create financial record using helper
-            const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
-            await recordFinancialEntry({
-              userId: session.user.id,
-              type: 'entrada',
-              amount: salePrice,
-              description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
-              paymentMethod: 'Dinheiro',
-              category: 'Serviço',
-              providerName: provName,
-            });
-          }
+        // Idempotent: dedup by appointment_id
+        const { data: existingSale } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('user_id', session.user.id)
+          .eq('appointment_id', id)
+          .maybeSingle();
+
+        if (!existingSale) {
+          await supabase.from('sales').insert({
+            user_id: session.user.id,
+            client_id: appointment.client_id,
+            product_id: appointment.service_id || null,
+            qty: 1,
+            sale_price: salePrice,
+            total_profit: profit,
+            payment_method: 'Dinheiro' as const,
+            sale_date: appointment.appointment_date,
+            appointment_id: id,
+          } as any);
         }
+
+        const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
+        await recordFinancialEntry({
+          userId: session.user.id,
+          type: 'entrada',
+          amount: salePrice,
+          description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+          paymentMethod: 'Dinheiro',
+          category: 'Serviço',
+          providerName: provName,
+          appointmentId: id,
+          recordDate: appointment.appointment_date,
+        });
       }
     },
     onMutate: async ({ id, status }) => {
@@ -433,6 +446,13 @@ const AppointmentsTab: React.FC = () => {
 
   const deleteAppointmentMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (session) {
+        // Cleanup linked financial entries before removing the appointment
+        await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+      }
       const { error } = await supabase.from('appointments').delete().eq('id', id);
       if (error) throw error;
     },

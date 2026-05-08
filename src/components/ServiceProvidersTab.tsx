@@ -35,6 +35,7 @@ export interface ServiceProvider {
   technical_notes?: string;
   is_field_technician?: boolean;
   is_recurring_expenses?: boolean;
+  monthly_cost?: number;
   created_at: string;
   has_system_access?: boolean;
   team_member_id?: string;
@@ -101,8 +102,8 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '', 
-    is_field_technician: true, is_recurring_expenses: true,
+    food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '',
+    is_field_technician: true, is_recurring_expenses: true, monthly_cost: '',
     has_system_access: false, system_pin: ''
   });
 
@@ -145,10 +146,10 @@ export default function ServiceProvidersTab() {
   });
 
   const resetForm = () => {
-    setFormData({ 
-      name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6', 
+    setFormData({
+      name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
       food_allowance: '', fuel_allowance: '', technical_notes: '', daily_rate: '',
-      driver_cost: '', is_field_technician: true, is_recurring_expenses: true,
+      driver_cost: '', is_field_technician: true, is_recurring_expenses: true, monthly_cost: '',
       has_system_access: false, system_pin: ''
     });
     setEditingProvider(null);
@@ -211,6 +212,7 @@ export default function ServiceProvidersTab() {
         technical_notes: formData.technical_notes,
         is_field_technician: formData.is_field_technician,
         is_recurring_expenses: formData.is_recurring_expenses,
+        monthly_cost: parseFloat(formData.monthly_cost) || 0,
         has_system_access: formData.has_system_access,
         team_member_id: teamMemberId,
         color: formData.color,
@@ -226,8 +228,32 @@ export default function ServiceProvidersTab() {
         updated = [...providers, newProvider];
         toast.success('Novo profissional cadastrado!');
       }
-      
+
       saveMutation.mutate(updated);
+
+      // Sync provider monthly fixed cost into fixed_expenses (auto recurring) for current month
+      const monthlyCost = parseFloat(formData.monthly_cost) || 0;
+      if (formData.is_recurring_expenses && monthlyCost > 0) {
+        const tag = `auto:provider:${newProvider.id}`;
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString().slice(0, 10);
+        await supabase.from('fixed_expenses').delete()
+          .eq('user_id', session.user.id)
+          .ilike('description', `${tag}%`)
+          .gte('expense_date', monthStart);
+        await supabase.from('fixed_expenses').insert({
+          user_id: session.user.id,
+          category: 'pro-labore',
+          helper_name: newProvider.name,
+          amount: monthlyCost,
+          description: `${tag} | Custo mensal fixo de ${newProvider.name}`,
+          expense_date: monthStart,
+          is_recurring: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['expenses-for-providers'] });
+      }
+
       setDialogOpen(false);
       resetForm();
     } catch (error: any) {
@@ -258,6 +284,7 @@ export default function ServiceProvidersTab() {
       is_field_technician: provider.is_field_technician !== false,
       is_recurring_expenses: provider.is_recurring_expenses !== false,
       has_system_access: provider.has_system_access || false,
+      monthly_cost: String(provider.monthly_cost || ''),
       system_pin: '',
     });
     setDialogOpen(true);
@@ -505,6 +532,17 @@ export default function ServiceProvidersTab() {
                   <div className="space-y-2">
                     <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Aux. Motorista (R$)</Label>
                     <Input type="number" step="0.01" value={formData.driver_cost} onChange={e => setFormData({ ...formData, driver_cost: e.target.value })} className="op-input h-12 font-bold" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-emerald-400 uppercase ml-1">💼 Custo Mensal Fixo (R$)</Label>
+                    <Input
+                      type="number" step="0.01"
+                      placeholder="Ex: 3000"
+                      value={formData.monthly_cost}
+                      onChange={e => setFormData({ ...formData, monthly_cost: e.target.value })}
+                      className="op-input h-12 font-bold border-emerald-500/30"
+                    />
+                    <p className="text-[9px] font-bold text-slate-500 uppercase">Lança automaticamente em Gastos Fixos do mês</p>
                   </div>
                 </div>
               </div>

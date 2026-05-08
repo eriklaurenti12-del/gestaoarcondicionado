@@ -18,6 +18,7 @@ export async function recordFinancialEntry({
   memberName,
   installments,
   recordDate,
+  appointmentId,
 }: {
   userId: string;
   type: 'entrada' | 'saque' | 'reserva';
@@ -29,9 +30,10 @@ export async function recordFinancialEntry({
   memberName?: string;
   installments?: number;
   recordDate?: string;
+  appointmentId?: string;
 }) {
   let desc = providerName ? `${description} [Prestador: ${providerName}]` : description;
-  
+
   if (!memberName) {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -41,6 +43,20 @@ export async function recordFinancialEntry({
 
   if (memberName) {
     desc = `${desc} (Por: ${memberName})`;
+  }
+
+  // Idempotency: if linked to an appointment, never insert twice
+  if (appointmentId) {
+    const { data: existing } = await supabase
+      .from('financial_records')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('appointment_id', appointmentId)
+      .eq('type', type)
+      .maybeSingle();
+    if (existing) {
+      return { data: existing, error: null };
+    }
   }
 
   const { data, error } = await supabase.from('financial_records').insert([
@@ -53,6 +69,7 @@ export async function recordFinancialEntry({
       category,
       installments: installments || 1,
       record_date: recordDate || new Date().toISOString(),
+      appointment_id: appointmentId || null,
     },
   ]).select('id');
 
