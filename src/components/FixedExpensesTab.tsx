@@ -18,6 +18,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, addMonths, parseIS
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
 
 const categories = [
   { value: 'combustivel', label: 'Combustível', icon: Fuel, color: 'text-amber-500' },
