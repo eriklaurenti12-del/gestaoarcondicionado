@@ -237,6 +237,8 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
+
+      const now = new Date();
       const diffH = (dt.getTime() - now.getTime()) / 3600000;
       const diffD = (dt.getTime() - now.getTime()) / 86400000;
       if (diffH < (s.min_advance_hours ?? 0)) {
