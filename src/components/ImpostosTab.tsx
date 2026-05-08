@@ -86,6 +86,12 @@ const ImpostosTab: React.FC = () => {
     notes: ''
   });
 
+  const [payroll, setPayroll] = useState<PayrollRow[]>([]);
+  const [providerCosts, setProviderCosts] = useState<ProviderCostRow[]>([]);
+  const [xmlImports, setXmlImports] = useState<XmlImport[]>([]);
+  const [danfePreview, setDanfePreview] = useState<DanfeParsed | null>(null);
+  const xmlInputRef = useRef<HTMLInputElement>(null);
+  const [exporting, setExporting] = useState(false);
   // Generate last 12 months for selection
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(new Date(), i);
