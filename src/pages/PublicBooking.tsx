@@ -152,6 +152,8 @@ export default function PublicBooking() {
       if (data.company) setCompany(data.company);
       if (data.services) setServices(data.services);
       if (data.busySlots) setBusySlots(data.busySlots);
+      if (data.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+      if (data.server_time) setNow(new Date(data.server_time));
     } catch (e) {
       console.error('Error loading booking data:', e);
     } finally {
