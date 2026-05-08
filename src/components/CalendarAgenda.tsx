@@ -66,6 +66,39 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     queryFn: fetchAppointments
   });
 
+  const { data: providers = [] } = useQuery({
+    queryKey: ['calendar-providers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_providers' as any)
+        .select('id, name, color, active')
+        .eq('active', true)
+        .order('name');
+      if (error) return [];
+      return (data as any[]) || [];
+    },
+  });
+
+  const assignProviderMutation = useMutation({
+    mutationFn: async ({ apt, providerName }: { apt: any; providerName: string | null }) => {
+      const stripped = (apt.notes || '').replace(/\[PRESTADOR:[^\]]+\]\n?/g, '').trim();
+      const newNotes = providerName
+        ? (stripped ? `[PRESTADOR:${providerName}]\n${stripped}` : `[PRESTADOR:${providerName}]`)
+        : (stripped || null);
+      const updateData: any = { notes: newNotes };
+      if (providerName && apt.status === 'pendente') updateData.status = 'confirmado';
+      const { error } = await supabase.from('appointments').update(updateData).eq('id', apt.id);
+      if (error) throw error;
+      return { providerName };
+    },
+    onSuccess: ({ providerName }) => {
+      toast.success(providerName ? `Encaminhado para ${providerName} ✓` : 'Prestador removido');
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['route-appointments'] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, paymentMethod, appointment }: { id: string; status: string; paymentMethod?: string; appointment?: any }) => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
