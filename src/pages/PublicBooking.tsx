@@ -93,6 +93,15 @@ export default function PublicBooking() {
   const [company, setCompany] = useState<CompanyInfo>({ company_name: 'AC Service Pro' });
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [busySlots, setBusySlots] = useState<string[]>([]);
+  const [settings, setSettings] = useState<BookingSettings>(DEFAULT_SETTINGS);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Re-tick "now" every minute to keep slot blocking real-time
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<'agendar' | 'consultar'>('agendar');
 
