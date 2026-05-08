@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
+import { useBusinessHours } from '@/hooks/useBusinessHours';
 
 type OnlineBooking = {
   id: string;
