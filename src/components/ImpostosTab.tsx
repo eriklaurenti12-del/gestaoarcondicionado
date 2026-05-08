@@ -92,6 +92,9 @@ const ImpostosTab: React.FC = () => {
   const [danfePreview, setDanfePreview] = useState<DanfeParsed | null>(null);
   const xmlInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const autoPulledRef = useRef<string | null>(null);
   // Generate last 12 months for selection
   const monthOptions = Array.from({ length: 12 }, (_, i) => {
     const date = subMonths(new Date(), i);
@@ -236,10 +239,11 @@ const ImpostosTab: React.FC = () => {
     }
   }, [taxRecord]);
 
-  const pullMonthlyData = async () => {
+  const pullMonthlyData = async (silent = false) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
     if (!session) return;
+    setSyncing(true);
     try {
       const ds = await buildMonthDataset(session.user.id, selectedMonth);
       setFormData(prev => ({
@@ -266,11 +270,25 @@ const ImpostosTab: React.FC = () => {
         };
       }));
       setProviderCosts(ds.providerCosts);
-      toast.success('✅ Dados sincronizados', { description: `${ds.payroll.length} funcionário(s), ${ds.providerCosts.length} prestador(es).` });
+      setLastSyncedAt(new Date());
+      if (!silent) {
+        toast.success('✅ Dados sincronizados', { description: `${ds.payroll.length} funcionário(s), ${ds.providerCosts.length} prestador(es).` });
+      }
     } catch (e: any) {
-      toast.error('Erro ao sincronizar: ' + e.message);
+      if (!silent) toast.error('Erro ao sincronizar: ' + e.message);
+    } finally {
+      setSyncing(false);
     }
   };
+
+  // Auto-pull once per month when there's no saved tax record yet
+  React.useEffect(() => {
+    if (!taxRecord && monthlyRevenue && autoPulledRef.current !== selectedMonth) {
+      autoPulledRef.current = selectedMonth;
+      pullMonthlyData(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxRecord, monthlyRevenue, selectedMonth]);
 
   const handleXmlUpload = async (file: File) => {
     try {
@@ -547,9 +565,9 @@ const ImpostosTab: React.FC = () => {
           <p className="text-muted-foreground text-sm">Controle faturamento, impostos e gastos para declaração</p>
         </div>
         
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px]" aria-label="Selecionar mês de referência">
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
@@ -560,11 +578,23 @@ const ImpostosTab: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          
-          <Button variant="outline" onClick={pullMonthlyData}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Puxar Dados
+
+          <Button
+            variant="outline"
+            onClick={() => pullMonthlyData(false)}
+            disabled={syncing}
+            title="Sincronizar com Financeiro, Funcionários e Prestadores"
+            aria-label="Puxar dados do Financeiro, Funcionários e Prestadores"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Puxar Dados'}
           </Button>
+
+          {lastSyncedAt && (
+            <span className="text-[11px] text-muted-foreground" title={lastSyncedAt.toLocaleString('pt-BR')}>
+              Sincronizado às {format(lastSyncedAt, 'HH:mm')}
+            </span>
+          )}
         </div>
       </div>
 
