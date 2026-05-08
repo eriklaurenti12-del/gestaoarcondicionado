@@ -1063,6 +1063,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                       const { error } = await supabase.from('fixed_expenses').insert(rows);
                       if (error) throw error;
                       queryClient.invalidateQueries({ queryKey: ['fixed_expenses'] });
+                      queryClient.invalidateQueries({ queryKey: ['route-expenses-by-apt'] });
                       toast.success(`Despesas registradas (${items.length}) em ${assignDate}`);
                     }
                   }
