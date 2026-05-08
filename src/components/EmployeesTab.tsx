@@ -279,6 +279,8 @@ export default function EmployeesTab() {
     m.phone?.includes(search)
   );
 
+  const portalUrl = `${window.location.origin}/portal`;
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -286,15 +288,44 @@ export default function EmployeesTab() {
           <h2 className="text-2xl font-bold tracking-tight">Funcionários e Acessos</h2>
           <p className="text-muted-foreground">Gerencie sua equipe, permissões e acesso ao portal.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={copyPortalLink} className="gap-2">
-            <Copy className="w-4 h-4" /> Link do Portal
-          </Button>
-          <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "" }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
-            <UserPlus className="w-4 h-4" /> Novo Funcionário
-          </Button>
-        </div>
+        <Button onClick={() => { setEditingMember(null); setFormData({ name: "", phone: "", role: "tecnico", pin: "" }); setShowAddDialog(true); }} className="gap-2 shadow-lg shadow-primary/20">
+          <UserPlus className="w-4 h-4" /> Novo Funcionário
+        </Button>
       </div>
+
+      {/* Quick Access Link Card (matching attached screenshot style) */}
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 via-card to-card">
+        <CardContent className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ExternalLink className="w-4 h-4 text-primary" />
+            <span className="text-sm font-bold text-foreground">Link de Acesso da Equipe</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">Compartilhe com seus funcionários para que entrem com Nome + PIN.</p>
+          <div className="flex items-stretch gap-2">
+            <div className="flex-1 min-w-0 px-3 py-2 rounded-lg bg-muted/50 border border-border/50 font-mono text-xs text-muted-foreground truncate flex items-center">
+              {portalUrl}
+            </div>
+            <Button
+              variant="default"
+              size="icon"
+              className="h-auto px-3 shrink-0"
+              onClick={copyPortalLink}
+              title="Copiar link"
+            >
+              <Copy className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-auto px-3 shrink-0"
+              onClick={() => window.open(portalUrl, '_blank')}
+              title="Abrir portal"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border/50 bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-3">
