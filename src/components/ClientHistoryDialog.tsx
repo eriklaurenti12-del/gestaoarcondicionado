@@ -119,17 +119,19 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
   };
 
   const scheduleMaintenanceMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (overrides?: { type?: string; intervalMonths?: number; date?: string }) => {
       const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) throw new Error('Usuário não autenticado');
-      
-      const nextDate = maintDate || format(addMonths(new Date(), parseInt(maintInterval)), 'yyyy-MM-dd');
-      
+
+      const type = overrides?.type ?? maintType;
+      const interval = overrides?.intervalMonths ?? parseInt(maintInterval);
+      const nextDate = overrides?.date ?? (maintDate || format(addMonths(new Date(), interval), 'yyyy-MM-dd'));
+
       const { error } = await supabase.from('scheduled_maintenance').insert({
         user_id: session.user.id,
         client_id: client!.id,
-        maintenance_type: maintType,
-        interval_months: parseInt(maintInterval),
+        maintenance_type: type,
+        interval_months: interval,
         scheduled_date: nextDate,
         is_completed: false
       });
