@@ -48,6 +48,15 @@ const FinanceiroUnifiedTab: React.FC = () => {
       onClick: () => setActiveSubTab('gastos-rota'),
       isActive: activeSubTab === 'gastos-rota',
     },
+    {
+      icon: Activity,
+      title: 'Conciliação',
+      badge: 'Auditoria',
+      badgeColor: 'red',
+      description: <>Detecta <strong>duplicatas, vendas órfãs e divergências</strong> entre PDV e financeiro.</>,
+      onClick: () => setActiveSubTab('conciliacao'),
+      isActive: activeSubTab === 'conciliacao',
+    },
   ];
 
   return (
