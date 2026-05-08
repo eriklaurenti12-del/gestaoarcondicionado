@@ -1039,7 +1039,7 @@ export default function ServiceOrdersTab() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
-                            <SelectItem value="pendente">Agendado</SelectItem>
+                            <SelectItem value="agendado">Agendado</SelectItem>
                             <SelectItem value="em_andamento">Em Andamento</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
                             <SelectItem value="cancelado">Cancelado</SelectItem>
