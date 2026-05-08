@@ -61,6 +61,12 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     waMessage?: string;
     hasPhone?: boolean;
   } | null>(null);
+  const [routeProvider, setRouteProvider] = useState<any | null>(null);
+  const [pendingAssign, setPendingAssign] = useState<{ apt: any; provider: any } | null>(null);
+  const [assignFuel, setAssignFuel] = useState('');
+  const [assignFood, setAssignFood] = useState('');
+  const [assignDaily, setAssignDaily] = useState('');
+  const [assignDriver, setAssignDriver] = useState('');
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
