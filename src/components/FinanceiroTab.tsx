@@ -74,6 +74,9 @@ export default function FinanceiroTab() {
   const [selectedMonth, setSelectedMonth] = useState(() => safeFormat(new Date(), "yyyy-MM"));
   const [refreshing, setRefreshing] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvFilters, setCsvFilters] = useState<CsvFilters>(DEFAULT_CSV_FILTERS);
+  const [csvBusy, setCsvBusy] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
