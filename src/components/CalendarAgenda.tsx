@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "@/components/ui/calendar";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Check, X, Play, Phone } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, User, Wrench, AlertCircle, MapPin, Navigation, Check, X, Play, Phone, Truck, UserCheck } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday, addMonths, subMonths, startOfWeek, endOfWeek, addWeeks, subWeeks, parseISO, isBefore, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -63,6 +64,39 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const { data: appointments, isLoading } = useQuery({
     queryKey: ['calendar-appointments'],
     queryFn: fetchAppointments
+  });
+
+  const { data: providers = [] } = useQuery({
+    queryKey: ['calendar-providers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_providers' as any)
+        .select('id, name, color, active')
+        .eq('active', true)
+        .order('name');
+      if (error) return [];
+      return (data as any[]) || [];
+    },
+  });
+
+  const assignProviderMutation = useMutation({
+    mutationFn: async ({ apt, providerName }: { apt: any; providerName: string | null }) => {
+      const stripped = (apt.notes || '').replace(/\[PRESTADOR:[^\]]+\]\n?/g, '').trim();
+      const newNotes = providerName
+        ? (stripped ? `[PRESTADOR:${providerName}]\n${stripped}` : `[PRESTADOR:${providerName}]`)
+        : (stripped || null);
+      const updateData: any = { notes: newNotes };
+      if (providerName && apt.status === 'pendente') updateData.status = 'confirmado';
+      const { error } = await supabase.from('appointments').update(updateData).eq('id', apt.id);
+      if (error) throw error;
+      return { providerName };
+    },
+    onSuccess: ({ providerName }) => {
+      toast.success(providerName ? `Encaminhado para ${providerName} ✓` : 'Prestador removido');
+      queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['route-appointments'] });
+    },
+    onError: (err: any) => toast.error(err.message),
   });
 
   const updateStatusMutation = useMutation({
@@ -487,6 +521,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 <div className="space-y-3">
                   {selectedDayAppointments.map((apt: any) => {
                     const canQuickDecide = canUseQuickDecision(apt.appointment_date, apt.status);
+                    const prestadorMatch = apt.notes?.match(/\[PRESTADOR:([^\]]+)\]/);
+                    const assignedProvider = prestadorMatch ? prestadorMatch[1] : null;
+                    const assignedColor = assignedProvider
+                      ? (providers as any[]).find(p => p.name === assignedProvider)?.color || '#6366f1'
+                      : null;
 
                     return (
                       <Card
@@ -583,6 +622,73 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                               >
                                 ↩️ Reabrir
                               </Button>
+                            </div>
+                          )}
+
+                          {/* Encaminhar para prestador */}
+                          {apt.status !== 'concluido' && apt.status !== 'cancelado' && (
+                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
+                              {assignedProvider ? (
+                                <>
+                                  <Badge
+                                    className="text-[10px] gap-1 border-0 text-white"
+                                    style={{ backgroundColor: assignedColor || '#6366f1' }}
+                                  >
+                                    <UserCheck className="w-3 h-3" /> {assignedProvider}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive ml-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      assignProviderMutation.mutate({ apt, providerName: null });
+                                    }}
+                                  >
+                                    <X className="w-3 h-3" /> Remover
+                                  </Button>
+                                </>
+                              ) : (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-xs h-7 w-full border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                      onClick={(e) => e.stopPropagation()}
+                                      disabled={assignProviderMutation.isPending}
+                                    >
+                                      <Truck className="w-3 h-3 mr-1" /> Encaminhar para prestador
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuLabel className="text-xs">Selecione o prestador</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {(providers as any[]).length === 0 ? (
+                                      <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                                        Nenhum prestador ativo cadastrado
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      (providers as any[]).map((p: any) => (
+                                        <DropdownMenuItem
+                                          key={p.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            assignProviderMutation.mutate({ apt, providerName: p.name });
+                                          }}
+                                          className="text-sm gap-2"
+                                        >
+                                          <span
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: p.color || '#6366f1' }}
+                                          />
+                                          {p.name}
+                                        </DropdownMenuItem>
+                                      ))
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
                             </div>
                           )}
 
