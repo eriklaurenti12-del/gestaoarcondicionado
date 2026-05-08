@@ -1286,8 +1286,10 @@ export type Database = {
       team_members: {
         Row: {
           created_at: string
+          expense_category: string | null
           id: string
           is_active: boolean
+          monthly_salary: number | null
           name: string
           phone: string | null
           pin: string | null
@@ -1295,11 +1297,14 @@ export type Database = {
           role: string
           updated_at: string
           user_id: string
+          vale_amount: number | null
         }
         Insert: {
           created_at?: string
+          expense_category?: string | null
           id?: string
           is_active?: boolean
+          monthly_salary?: number | null
           name: string
           phone?: string | null
           pin?: string | null
@@ -1307,11 +1312,14 @@ export type Database = {
           role?: string
           updated_at?: string
           user_id: string
+          vale_amount?: number | null
         }
         Update: {
           created_at?: string
+          expense_category?: string | null
           id?: string
           is_active?: boolean
+          monthly_salary?: number | null
           name?: string
           phone?: string | null
           pin?: string | null
@@ -1319,6 +1327,7 @@ export type Database = {
           role?: string
           updated_at?: string
           user_id?: string
+          vale_amount?: number | null
         }
         Relationships: []
       }
