@@ -11,6 +11,7 @@ import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Faceb
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
 import { BusinessHoursCard } from "@/components/BusinessHoursCard";
+import { useBusinessHours } from "@/hooks/useBusinessHours";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
