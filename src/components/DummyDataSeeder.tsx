@@ -57,6 +57,10 @@ const DummyDataSeeder: React.FC = () => {
     if (picker.prestadores)  lines.push({ label: 'Prestadores',  count: 3, detail: 'Custo mensal recorrente' });
     if (picker.rotas)        lines.push({ label: 'Rotas',        count: 2, detail: 'Marca [PRESTADOR:nome] nos agendamentos' });
     if (picker.impostos)     lines.push({ label: 'Impostos',     count: 1, detail: 'Registro do mês corrente com folha' });
+    if (picker.fornecedores) lines.push({ label: 'Fornecedores', count: 3, detail: 'Distribuidoras com contato' });
+    if (picker.equipamentos) lines.push({ label: 'Equipamentos', count: 4, detail: 'AC vinculados ao cliente' });
+    if (picker.contratos)    lines.push({ label: 'Contratos',    count: 2, detail: 'Manutenção semestral ativa' });
+    if (picker.os)           lines.push({ label: 'O.S./Orçam.',  count: 2, detail: '1 orçamento + 1 ordem de serviço' });
     return lines;
   }, [picker]);
 
