@@ -625,6 +625,73 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             </div>
                           )}
 
+                          {/* Encaminhar para prestador */}
+                          {apt.status !== 'concluido' && apt.status !== 'cancelado' && (
+                            <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
+                              {assignedProvider ? (
+                                <>
+                                  <Badge
+                                    className="text-[10px] gap-1 border-0 text-white"
+                                    style={{ backgroundColor: assignedColor || '#6366f1' }}
+                                  >
+                                    <UserCheck className="w-3 h-3" /> {assignedProvider}
+                                  </Badge>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive ml-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      assignProviderMutation.mutate({ apt, providerName: null });
+                                    }}
+                                  >
+                                    <X className="w-3 h-3" /> Remover
+                                  </Button>
+                                </>
+                              ) : (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="text-xs h-7 w-full border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                      onClick={(e) => e.stopPropagation()}
+                                      disabled={assignProviderMutation.isPending}
+                                    >
+                                      <Truck className="w-3 h-3 mr-1" /> Encaminhar para prestador
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
+                                    <DropdownMenuLabel className="text-xs">Selecione o prestador</DropdownMenuLabel>
+                                    <DropdownMenuSeparator />
+                                    {(providers as any[]).length === 0 ? (
+                                      <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                                        Nenhum prestador ativo cadastrado
+                                      </DropdownMenuItem>
+                                    ) : (
+                                      (providers as any[]).map((p: any) => (
+                                        <DropdownMenuItem
+                                          key={p.id}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            assignProviderMutation.mutate({ apt, providerName: p.name });
+                                          }}
+                                          className="text-sm gap-2"
+                                        >
+                                          <span
+                                            className="w-3 h-3 rounded-full"
+                                            style={{ backgroundColor: p.color || '#6366f1' }}
+                                          />
+                                          {p.name}
+                                        </DropdownMenuItem>
+                                      ))
+                                    )}
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          )}
+
                           {/* Navigation + Contact */}
                           <div className="flex gap-1.5 mt-2">
                             {apt.clients?.address && (
