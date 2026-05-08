@@ -304,6 +304,7 @@ const PDVTab: React.FC = () => {
           payment_fee_percentage: null,
           sale_date: apt.appointment_date,
           user_id: apt.user_id,
+          appointment_id: apt.id,
           clients: apt.clients,
           products: apt.products ? { name: apt.products.name } : null,
         }));
