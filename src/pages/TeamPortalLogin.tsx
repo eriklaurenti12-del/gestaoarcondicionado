@@ -590,7 +590,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     vendedor: ["vendas", "cadastros", "suporte"],
   };
 
-  const visibleTabs = roleTabPermissions[session.role] || ["agenda", "suporte"];
+  // Per-member permissions take precedence over role defaults
+  const visibleTabs = (session.permissions && session.permissions.length > 0)
+    ? session.permissions
+    : (roleTabPermissions[session.role] || ["agenda", "suporte"]);
 
   // Guard: if active tab not allowed for this role, redirect to first allowed
   useEffect(() => {
