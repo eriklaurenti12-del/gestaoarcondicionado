@@ -40,6 +40,9 @@ export interface TeamMember {
   role: TeamRole;
   is_active: boolean;
   created_at: string;
+  monthly_salary?: number | null;
+  vale_amount?: number | null;
+  expense_category?: string | null;
   pin?: string; // Raw PIN is never returned from DB, only used in forms
 }
 
