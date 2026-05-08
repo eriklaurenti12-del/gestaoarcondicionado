@@ -591,17 +591,17 @@ const AppointmentsTab: React.FC = () => {
     const [hh, mm] = appointmentTime.split(':').map(Number);
     const dateTime = new Date(y, m - 1, d, hh, mm);
     
-    // ========== PAST DATE/TIME VALIDATION ==========
-    const now = new Date();
-    if (dateTime <= now) {
-      toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
+    // ========== BUSINESS-HOURS / VACATION / PAST VALIDATION ==========
+    const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
+    const duration = (selectedService as any)?.service_duration || 60; // exact cadastrado, sem arredondar
+    const validationError = validateSlot(dateTime, { durationMinutes: duration });
+    if (validationError) {
+      toast({ variant: "destructive", title: "Horário inválido", description: validationError });
       return;
     }
     // ===============================================
-    
+
     // ========== CONFLICT DETECTION ==========
-    const selectedService = selectedServiceId ? services?.find(s => s.id === parseInt(selectedServiceId)) : null;
-    const duration = (selectedService as any)?.service_duration || 60; // default 60 min
     const newStart = dateTime.getTime();
     const newEnd = newStart + duration * 60 * 1000;
     
