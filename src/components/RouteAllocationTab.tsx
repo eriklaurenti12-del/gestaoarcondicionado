@@ -143,40 +143,155 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
   });
 
   const exportRoutePDF = (provName: string, appts: any[]) => {
-    const doc = new jsPDF();
+    // A4 portrait: 210 x 297 mm
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
     const dateStr = format(new Date(), 'dd/MM/yyyy', { locale: ptBR });
+    const sortedAppts = [...appts].sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
 
-    appts.forEach((apt, index) => {
-      if (index > 0) doc.addPage();
-      doc.setFillColor(11, 17, 32); doc.rect(0, 0, 210, 45, 'F');
-      doc.setTextColor(255, 255, 255); doc.setFontSize(22); doc.setFont('helvetica', 'bold');
-      doc.text('ORDEM DE ROTA OPERACIONAL', 105, 20, { align: 'center' });
-      doc.setFontSize(10); doc.text(`HVAC CONTROL - ${dateStr}`, 105, 30, { align: 'center' });
-      doc.setFontSize(12); doc.text(`TÉCNICO: ${provName.toUpperCase()}`, 105, 38, { align: 'center' });
+    const totalValue = sortedAppts.reduce((sum, a) => {
+      const v = Number(a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(a.products?.price) || 0;
+      return sum + v;
+    }, 0);
 
-      doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.text('DADOS DO ATENDIMENTO', 20, 60);
-      doc.setDrawColor(200); doc.line(20, 62, 190, 62);
-      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
-      doc.text(`CLIENTE: ${apt.clients?.name || 'N/A'}`, 20, 72);
-      doc.text(`TEL: ${apt.clients?.telefone || 'N/A'}`, 20, 80);
-      doc.setFont('helvetica', 'bold'); doc.text('ENDEREÇO:', 20, 88); doc.setFont('helvetica', 'normal');
-      const addressLines = doc.splitTextToSize(apt.clients?.address || 'N/A', 160);
-      doc.text(addressLines, 20, 94);
+    // ============ COVER / SUMMARY PAGE ============
+    doc.setFillColor(11, 17, 32);
+    doc.rect(0, 0, 210, 50, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(22); doc.setFont('helvetica', 'bold');
+    doc.text('ROTA DO DIA', 105, 22, { align: 'center' });
+    doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+    doc.text(`Técnico: ${provName.toUpperCase()}  •  ${dateStr}`, 105, 32, { align: 'center' });
+    doc.setFontSize(9);
+    doc.text(`${sortedAppts.length} atendimento(s)  •  Total previsto: R$ ${totalValue.toFixed(2)}`, 105, 40, { align: 'center' });
 
-      doc.setFontSize(14); doc.setFont('helvetica', 'bold'); doc.text('DESCRIÇÃO DO SERVIÇO', 20, 120);
-      doc.line(20, 122, 190, 122);
-      doc.setFillColor(245, 245, 245); doc.rect(20, 128, 170, 30, 'F');
-      doc.setFontSize(12); doc.text(`${apt.products?.name || 'Serviço Personalizado'}`, 25, 138);
-      doc.setFontSize(10); doc.text(`HORÁRIO: ${format(parseISO(apt.appointment_date), 'HH:mm')}`, 25, 148);
-      const price = apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1] || apt.products?.price || '0.00';
-      doc.setFontSize(12); doc.text(`VALOR: R$ ${Number(price).toFixed(2)}`, 110, 148);
+    // Summary list
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+    doc.text('RESUMO DA ROTA', 15, 65);
+    doc.setDrawColor(180); doc.line(15, 67, 195, 67);
 
-      doc.line(20, 240, 100, 240); doc.text('Assinatura do Técnico', 60, 245, { align: 'center' });
-      doc.line(110, 240, 190, 240); doc.text('Visto do Cliente', 150, 245, { align: 'center' });
+    let y = 75;
+    doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+    doc.text('#', 15, y);
+    doc.text('HORA', 25, y);
+    doc.text('CLIENTE', 45, y);
+    doc.text('SERVIÇO', 105, y);
+    doc.text('VALOR', 175, y);
+    y += 2; doc.line(15, y, 195, y); y += 6;
+    doc.setFont('helvetica', 'normal');
+
+    sortedAppts.forEach((apt, idx) => {
+      if (y > 270) { doc.addPage(); y = 20; }
+      const hora = format(parseISO(apt.appointment_date), 'HH:mm');
+      const cliente = (apt.clients?.name || 'N/A').substring(0, 32);
+      const servico = (apt.products?.name || 'Serviço').substring(0, 38);
+      const price = Number(apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(apt.products?.price) || 0;
+      doc.text(String(idx + 1), 15, y);
+      doc.text(hora, 25, y);
+      doc.text(cliente, 45, y);
+      doc.text(servico, 105, y);
+      doc.text(`R$ ${price.toFixed(2)}`, 175, y);
+      y += 7;
     });
 
-    doc.save(`ROTA-${provName.toUpperCase()}-${format(new Date(), 'dd-MM')}.pdf`);
-    toast.success('Folha de Rota Gerada!');
+    // ============ ONE A4 SHEET PER SERVICE ============
+    sortedAppts.forEach((apt, index) => {
+      doc.addPage();
+      // Header bar
+      doc.setFillColor(11, 17, 32);
+      doc.rect(0, 0, 210, 35, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16); doc.setFont('helvetica', 'bold');
+      doc.text('ORDEM DE SERVIÇO', 15, 15);
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+      doc.text(`${dateStr}  •  Visita ${index + 1} de ${sortedAppts.length}`, 15, 23);
+      doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+      doc.text(`TÉCNICO: ${provName.toUpperCase()}`, 195, 15, { align: 'right' });
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+      doc.text(`HORA: ${format(parseISO(apt.appointment_date), 'HH:mm')}`, 195, 23, { align: 'right' });
+
+      doc.setTextColor(0, 0, 0);
+
+      // CLIENT BLOCK
+      let cy = 50;
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text('DADOS DO CLIENTE', 15, cy);
+      doc.setDrawColor(180); doc.line(15, cy + 2, 195, cy + 2);
+      cy += 9;
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Cliente: ${apt.clients?.name || '_____________________'}`, 15, cy); cy += 7;
+      doc.text(`Telefone: ${apt.clients?.telefone || '_____________________'}`, 15, cy); cy += 7;
+      doc.setFont('helvetica', 'bold'); doc.text('Endereço:', 15, cy); doc.setFont('helvetica', 'normal');
+      const addr = doc.splitTextToSize(apt.clients?.address || '____________________________________________________________', 165);
+      doc.text(addr, 38, cy);
+      cy += Math.max(7, addr.length * 5);
+
+      // SERVICE BLOCK
+      cy += 4;
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text('SERVIÇO A EXECUTAR', 15, cy);
+      doc.line(15, cy + 2, 195, cy + 2);
+      cy += 9;
+      doc.setFillColor(245, 247, 250);
+      doc.rect(15, cy - 4, 180, 24, 'F');
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+      doc.text(`${apt.products?.name || 'Serviço Personalizado'}`, 20, cy + 4);
+      const price = Number(apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(apt.products?.price) || 0;
+      doc.setFontSize(11); doc.setFont('helvetica', 'normal');
+      doc.text(`Valor: R$ ${price.toFixed(2)}`, 20, cy + 14);
+      // Forma de pagamento
+      doc.text('Pagamento: (  ) Dinheiro   (  ) PIX   (  ) Cartão   (  ) Outro:_______', 80, cy + 14);
+      cy += 28;
+
+      // OBSERVATIONS / CHECKLIST (filled by client/technician)
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text('OBSERVAÇÕES E EXECUÇÃO', 15, cy);
+      doc.line(15, cy + 2, 195, cy + 2);
+      cy += 8;
+      // Notas existentes (sem tags internas)
+      const cleanNotes = (apt.notes || '').replace(/\[(PRESTADOR|VALOR):[^\]]+\]/g, '').trim();
+      if (cleanNotes) {
+        doc.setFontSize(10); doc.setFont('helvetica', 'italic');
+        const noteLines = doc.splitTextToSize(`Obs do agendamento: ${cleanNotes}`, 180);
+        doc.text(noteLines, 15, cy);
+        cy += noteLines.length * 5 + 2;
+      }
+      doc.setFont('helvetica', 'normal');
+      // Linhas em branco para o cliente preencher
+      for (let i = 0; i < 6; i++) {
+        doc.setDrawColor(200);
+        doc.line(15, cy, 195, cy);
+        cy += 8;
+      }
+
+      // STATUS / EXECUTION
+      cy += 2;
+      doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+      doc.text('STATUS DA EXECUÇÃO', 15, cy);
+      doc.line(15, cy + 2, 195, cy + 2);
+      cy += 9;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+      doc.text('(  ) Concluído     (  ) Cancelado pelo cliente     (  ) Reagendado     (  ) Pendente', 15, cy);
+      cy += 7;
+      doc.text('Início: ____:____    Término: ____:____    Data: ____/____/______', 15, cy);
+
+      // SIGNATURES at bottom
+      const sigY = 265;
+      doc.setDrawColor(80);
+      doc.line(20, sigY, 95, sigY);
+      doc.line(115, sigY, 190, sigY);
+      doc.setFontSize(9);
+      doc.text('Assinatura do Técnico', 57, sigY + 5, { align: 'center' });
+      doc.text('Assinatura / Visto do Cliente', 152, sigY + 5, { align: 'center' });
+
+      // Footer
+      doc.setFontSize(7); doc.setTextColor(120);
+      doc.text(`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}  •  ${provName}`, 105, 290, { align: 'center' });
+      doc.setTextColor(0, 0, 0);
+    });
+
+    doc.save(`ROTA-${provName.toUpperCase()}-${format(new Date(), 'dd-MM-yyyy')}.pdf`);
+    toast.success(`PDF gerado: ${sortedAppts.length} folha(s) A4 + capa de resumo`);
   };
 
   return (
