@@ -229,7 +229,14 @@ Deno.serve(async (req) => {
         });
       }
 
-      const now = new Date();
+      // Vacations / folgas block
+      const vacations = Array.isArray(s.vacations) ? s.vacations : [];
+      const vac = vacations.find((v: any) => safeDate >= v.start_date && safeDate <= v.end_date);
+      if (vac) {
+        return new Response(JSON.stringify({ error: `Em férias/folga (${vac.start_date} → ${vac.end_date})${vac.reason ? ': ' + vac.reason : ''}.` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
       const diffH = (dt.getTime() - now.getTime()) / 3600000;
       const diffD = (dt.getTime() - now.getTime()) / 86400000;
       if (diffH < (s.min_advance_hours ?? 0)) {
