@@ -917,6 +917,88 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Roteiro Diário direto do cartão */}
+      <ProviderDailyRouteDialog
+        isOpen={!!routeProvider}
+        onOpenChange={(open) => { if (!open) setRouteProvider(null); }}
+        provider={routeProvider}
+        allAppointments={appointments || []}
+      />
+
+      {/* Diálogo de confirmação de encaminhamento com despesas opcionais */}
+      <Dialog open={!!pendingAssign} onOpenChange={(open) => { if (!open) setPendingAssign(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Encaminhar para {pendingAssign?.provider?.name}</DialogTitle>
+            <DialogDescription>
+              Preencha (opcional) os custos previstos da rota. Serão lançados como despesa vinculada ao agendamento.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-3 py-2">
+            <div className="space-y-1">
+              <Label className="text-xs">Combustível (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={assignFuel} onChange={(e) => setAssignFuel(e.target.value)} placeholder="0,00" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Alimentação (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={assignFood} onChange={(e) => setAssignFood(e.target.value)} placeholder="0,00" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Diária (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={assignDaily} onChange={(e) => setAssignDaily(e.target.value)} placeholder="0,00" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Motorista (R$)</Label>
+              <Input type="number" min="0" step="0.01" value={assignDriver} onChange={(e) => setAssignDriver(e.target.value)} placeholder="0,00" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setPendingAssign(null)}>Cancelar</Button>
+            <Button
+              onClick={async () => {
+                if (!pendingAssign) return;
+                const { apt, provider } = pendingAssign;
+                try {
+                  await assignProviderMutation.mutateAsync({ apt, providerName: provider.name });
+                  const { data: sessionData } = await supabase.auth.getSession();
+                  const session = sessionData?.session;
+                  if (session) {
+                    const today = new Date().toISOString().split('T')[0];
+                    const items = [
+                      { cat: 'Combustível', val: parseFloat(assignFuel) },
+                      { cat: 'Alimentação', val: parseFloat(assignFood) },
+                      { cat: 'Diária', val: parseFloat(assignDaily) },
+                      { cat: 'Motorista', val: parseFloat(assignDriver) },
+                    ].filter(i => !isNaN(i.val) && i.val > 0);
+                    if (items.length > 0) {
+                      const rows = items.map(i => ({
+                        user_id: session.user.id,
+                        appointment_id: apt.id,
+                        category: i.cat,
+                        amount: i.val,
+                        expense_date: today,
+                        description: `${i.cat} - Rota ${provider.name}`,
+                        helper_name: provider.name,
+                      }));
+                      const { error } = await supabase.from('fixed_expenses').insert(rows);
+                      if (error) throw error;
+                      queryClient.invalidateQueries({ queryKey: ['fixed_expenses'] });
+                      toast.success(`Despesas registradas (${items.length})`);
+                    }
+                  }
+                  setPendingAssign(null);
+                } catch (err: any) {
+                  toast.error(err.message || 'Erro ao encaminhar');
+                }
+              }}
+              disabled={assignProviderMutation.isPending}
+            >
+              {assignProviderMutation.isPending ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
