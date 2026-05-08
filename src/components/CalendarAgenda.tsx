@@ -667,12 +667,61 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                             <div className="flex items-center gap-1.5 mt-2 pt-2 border-t">
                               {assignedProvider ? (
                                 <>
-                                  <Badge
-                                    className="text-[10px] gap-1 border-0 text-white"
-                                    style={{ backgroundColor: assignedColor || '#6366f1' }}
-                                  >
-                                    <UserCheck className="w-3 h-3" /> {assignedProvider}
-                                  </Badge>
+                                  <TooltipProvider delayDuration={150}>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Badge
+                                          className="text-[10px] gap-1 border-0 text-white cursor-help"
+                                          style={{ backgroundColor: assignedColor || '#6366f1' }}
+                                        >
+                                          <UserCheck className="w-3 h-3" /> {assignedProvider}
+                                          {aptExpenses.length > 0 && (
+                                            <span className="ml-1 px-1 rounded bg-white/25 text-[9px] font-bold">
+                                              R$ {aptExpensesTotal.toFixed(0)}
+                                            </span>
+                                          )}
+                                        </Badge>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top" className="max-w-xs">
+                                        <div className="space-y-1.5 text-xs">
+                                          <p className="font-semibold flex items-center gap-1">
+                                            <UserCheck className="w-3 h-3" /> Encaminhado para {assignedProvider}
+                                          </p>
+                                          <p className="text-muted-foreground">
+                                            Status: <span className="font-medium text-foreground">{apt.status === 'confirmado' ? '✓ Confirmado' : apt.status}</span>
+                                          </p>
+                                          <p className="text-muted-foreground">
+                                            Roteiro: <span className="font-medium text-foreground">{safeFormat(apt.appointment_date, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                                          </p>
+                                          <div className="border-t pt-1.5 mt-1.5">
+                                            {aptExpenses.length === 0 ? (
+                                              <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                                ⚠ Nenhuma despesa lançada
+                                              </p>
+                                            ) : (
+                                              <>
+                                                <p className="font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                                                  ✓ Despesas contabilizadas {aptRouteDate ? `(${safeFormat(aptRouteDate, 'dd/MM/yyyy')})` : ''}
+                                                </p>
+                                                <ul className="space-y-0.5">
+                                                  {aptExpenses.map((e: any, i: number) => (
+                                                    <li key={i} className="flex justify-between gap-3">
+                                                      <span className="text-muted-foreground">{e.category}</span>
+                                                      <span className="font-medium">R$ {Number(e.amount).toFixed(2)}</span>
+                                                    </li>
+                                                  ))}
+                                                  <li className="flex justify-between gap-3 pt-1 mt-1 border-t font-bold">
+                                                    <span>Total</span>
+                                                    <span>R$ {aptExpensesTotal.toFixed(2)}</span>
+                                                  </li>
+                                                </ul>
+                                              </>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
                                   <Button
                                     size="sm"
                                     variant="outline"
