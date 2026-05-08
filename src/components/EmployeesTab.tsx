@@ -339,8 +339,8 @@ export default function EmployeesTab() {
                         </div>
                         <div>
                           <CardTitle className="text-base truncate max-w-[150px]">{member.name}</CardTitle>
-                          <Badge variant="outline" className={`text-[10px] mt-1 ${ROLE_LABELS[member.role].color}`}>
-                            {ROLE_LABELS[member.role].label}
+                          <Badge variant="outline" className={`text-[10px] mt-1 ${ROLE_LABELS[member.role]?.color || ''}`}>
+                            {ROLE_LABELS[member.role]?.label || member.role}
                           </Badge>
                         </div>
                       </div>
