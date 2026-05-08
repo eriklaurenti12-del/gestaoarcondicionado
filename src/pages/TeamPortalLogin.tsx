@@ -658,6 +658,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </div>
             </div>
             <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowFullSystem(true)}
+                title="Exibir Sistema Completo"
+                className="text-primary-foreground hover:bg-primary-foreground/20 h-9 gap-1.5 px-2 sm:px-3"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-semibold">Sistema</span>
+              </Button>
               <Button size="icon" variant="ghost" onClick={forceUpdateApp} title="Sincronizar Versão" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
                 <RefreshCw className="w-4 h-4" />
               </Button>
