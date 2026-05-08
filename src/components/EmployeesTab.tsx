@@ -602,7 +602,7 @@ export default function EmployeesTab() {
               <Label>Nível de Acesso (Função)</Label>
               <Select 
                 value={formData.role} 
-                onValueChange={(val: TeamRole) => setFormData({ ...formData, role: val })}
+                onValueChange={(val: TeamRole) => applyRoleDefaults(val)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma função" />
