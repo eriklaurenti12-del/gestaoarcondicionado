@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   Users, UserPlus, KeyRound, Phone, Shield, ShieldCheck, 
   Trash2, Edit2, UserX, UserCheck, ExternalLink, Copy,
-  Search, Loader2, DollarSign, Calendar, Lock, Link2
+  Search, Loader2, DollarSign, Calendar, Lock, Link2, CheckCircle2
 } from "lucide-react";
 import {
   Dialog,
