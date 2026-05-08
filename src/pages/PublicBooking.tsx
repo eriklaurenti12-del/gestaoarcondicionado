@@ -187,15 +187,18 @@ export default function PublicBooking() {
     const days: Date[] = [];
     const today = startOfDay(now);
     const maxDays = settings.max_advance_days ?? 30;
+    const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const vacations = settings.vacations || [];
     for (let i = 0; i < 14; i++) {
       const day = addDays(calendarStart, i);
       if (isBefore(day, today)) continue;
-      // skip days beyond max_advance_days
       const diffD = (day.getTime() - today.getTime()) / 86400000;
       if (diffD > maxDays) continue;
-      // skip weekdays disabled in settings
       const wkKey = WK_KEYS[day.getDay()];
       if (settings.weekdays && settings.weekdays[wkKey] === false) continue;
+      // skip vacation periods
+      const dStr = ymd(day);
+      if (vacations.some(v => dStr >= v.start_date && dStr <= v.end_date)) continue;
       days.push(day);
     }
     return days;
