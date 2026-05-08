@@ -109,12 +109,12 @@ const ClientHistoryDialog: React.FC<ClientHistoryDialogProps> = ({ client, isOpe
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string }> = {
-      agendado: { variant: "secondary", label: "Agendado" },
+      pendente: { variant: "secondary", label: "Pendente" },
       confirmado: { variant: "default", label: "Confirmado" },
       concluido: { variant: "outline", label: "Concluído" },
       cancelado: { variant: "destructive", label: "Cancelado" }
     };
-    const config = variants[status] || variants.agendado;
+    const config = variants[status] || variants.pendente;
     return <Badge variant={config.variant} className="text-xs">{config.label}</Badge>;
   };
 
