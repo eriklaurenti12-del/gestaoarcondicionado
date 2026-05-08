@@ -240,6 +240,7 @@ export default function EmployeesTab() {
             monthly_salary: salary,
             vale_amount: vale,
             expense_category: category,
+            permissions: formData.permissions as any,
           })
           .eq('id', editingMember.id);
         if (error) throw error;
