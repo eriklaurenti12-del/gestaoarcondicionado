@@ -239,10 +239,11 @@ const ImpostosTab: React.FC = () => {
     }
   }, [taxRecord]);
 
-  const pullMonthlyData = async () => {
+  const pullMonthlyData = async (silent = false) => {
     const { data: sessionData } = await supabase.auth.getSession();
     const session = sessionData?.session;
     if (!session) return;
+    setSyncing(true);
     try {
       const ds = await buildMonthDataset(session.user.id, selectedMonth);
       setFormData(prev => ({
@@ -269,11 +270,25 @@ const ImpostosTab: React.FC = () => {
         };
       }));
       setProviderCosts(ds.providerCosts);
-      toast.success('✅ Dados sincronizados', { description: `${ds.payroll.length} funcionário(s), ${ds.providerCosts.length} prestador(es).` });
+      setLastSyncedAt(new Date());
+      if (!silent) {
+        toast.success('✅ Dados sincronizados', { description: `${ds.payroll.length} funcionário(s), ${ds.providerCosts.length} prestador(es).` });
+      }
     } catch (e: any) {
-      toast.error('Erro ao sincronizar: ' + e.message);
+      if (!silent) toast.error('Erro ao sincronizar: ' + e.message);
+    } finally {
+      setSyncing(false);
     }
   };
+
+  // Auto-pull once per month when there's no saved tax record yet
+  React.useEffect(() => {
+    if (!taxRecord && monthlyRevenue && autoPulledRef.current !== selectedMonth) {
+      autoPulledRef.current = selectedMonth;
+      pullMonthlyData(true);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taxRecord, monthlyRevenue, selectedMonth]);
 
   const handleXmlUpload = async (file: File) => {
     try {
