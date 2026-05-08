@@ -368,6 +368,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                   );
                 })}
               </div>
+              </div>
             )}
 
             {/* Legend */}
