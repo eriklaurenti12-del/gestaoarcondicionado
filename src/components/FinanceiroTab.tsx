@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
+import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, type ReconcileResult } from '@/utils/recurringSync';
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet } from "lucide-react";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -77,6 +77,8 @@ export default function FinanceiroTab() {
   const [csvDialogOpen, setCsvDialogOpen] = useState(false);
   const [csvFilters, setCsvFilters] = useState<CsvFilters>(DEFAULT_CSV_FILTERS);
   const [csvBusy, setCsvBusy] = useState(false);
+  const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
+  const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
