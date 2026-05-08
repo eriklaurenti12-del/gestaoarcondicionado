@@ -63,6 +63,7 @@ export default function TeamPortalLogin() {
         memberName: data.member_name,
         role: data.role,
         ownerId: data.owner_id,
+        permissions: Array.isArray(data.permissions) ? data.permissions : null,
       };
 
       sessionStorage.setItem('portal_session', JSON.stringify(portalSession));
