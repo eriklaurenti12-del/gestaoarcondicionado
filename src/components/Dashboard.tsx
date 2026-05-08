@@ -1440,7 +1440,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
                           apt.status === 'concluido' ? 'outline' :
                           apt.status === 'cancelado' ? 'destructive' : 'secondary'
                         } className="text-xs">
-                          {apt.status === 'pendente' ? 'Agendado' :
+                          {apt.status === 'pendente' ? 'Pendente' :
                            apt.status === 'confirmado' ? 'Confirmado' :
                            apt.status === 'concluido' ? 'Concluído' :
                            apt.status === 'cancelado' ? 'Cancelado' : apt.status}
