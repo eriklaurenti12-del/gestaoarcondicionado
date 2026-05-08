@@ -88,6 +88,9 @@ export default function EmployeesTab() {
     phone: "",
     role: "tecnico" as TeamRole,
     pin: "",
+    monthly_salary: "",
+    vale_amount: "",
+    expense_category: "Salário",
   });
   
   // Financial modal state
