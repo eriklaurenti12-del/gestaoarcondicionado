@@ -171,7 +171,7 @@ const RegisterProductTab: React.FC = () => {
 
   const resetForm = () => {
     setName(""); setBarcode(""); setCostPrice(""); setPrice("");
-    setQty(1); setMinStock(5); setServiceDuration(60);
+    setQty(1); setMinStock(5); setServiceDuration(60); setValidityMonths(0);
     setImageFile(null); setImagePreview(null);
     setSelectedSupplierId(""); setStorageLocation(""); setStorageShelf(""); setStorageSection("");
     setExpenses([]); setShowExpenses(false);
@@ -375,16 +375,16 @@ const RegisterProductTab: React.FC = () => {
 
           {/* Service-only: duration + validity */}
           {registerType === 'service' && !isCombo && (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-lg border border-border/60 bg-muted/20 p-3">
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Duração (min)</Label>
                 <Input type="number" min={5} step={5} value={serviceDuration} onChange={(e) => setServiceDuration(Math.max(5, parseInt(e.target.value) || 60))} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 scroll-mt-24">
                 <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-500" /> Prazo de validade</Label>
                 <Select value={String(validityMonths)} onValueChange={(v) => setValidityMonths(parseInt(v))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="h-11"><SelectValue /></SelectTrigger>
+                  <SelectContent side="top" align="start">
                     <SelectItem value="0">Sem validade</SelectItem>
                     <SelectItem value="3">3 meses</SelectItem>
                     <SelectItem value="6">6 meses</SelectItem>
@@ -392,7 +392,7 @@ const RegisterProductTab: React.FC = () => {
                     <SelectItem value="24">2 anos</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-[10px] text-muted-foreground">Conta a partir da data de cada agendamento.</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">Esse prazo será usado para gerar o vencimento automático no histórico do cliente após o serviço.</p>
               </div>
             </div>
           )}
@@ -490,7 +490,7 @@ const RegisterProductTab: React.FC = () => {
           )}
 
           {/* Submit */}
-          <Button onClick={handleSubmit} disabled={isLoading} className="w-full" size="lg">
+          <Button onClick={handleSubmit} disabled={isLoading} className="sticky bottom-3 z-20 w-full shadow-lg" size="lg">
             {isLoading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Cadastrando...</>
             ) : (
