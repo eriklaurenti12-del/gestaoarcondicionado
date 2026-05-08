@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
+import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
@@ -144,58 +145,26 @@ export default function FinanceiroTab() {
     enabled: !!selectedMonth,
   });
 
-  // Track which appointments have been synced to avoid duplicates
-  const [syncedAppointmentIds, setSyncedAppointmentIds] = useState<Set<string>>(new Set());
+  // NOTE: Creation/removal of financial entries from concluded appointments
+  // is handled exclusively by AppointmentsTab (linked via appointment_id).
+  // This avoids duplicates that previously appeared because two places
+  // inserted the same row with slightly different descriptions/categories.
 
-  // Sync completed appointments to financial records
+  // Auto-ensure recurring expenses (employees + providers) for the selected month.
   useEffect(() => {
-    if (!completedAppointments) return;
-    const sync = async () => {
-      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
       if (!session) return;
-      
-      const newSynced = new Set<string>(syncedAppointmentIds);
-      
-      for (const apt of completedAppointments) {
-        if (newSynced.has(apt.id)) continue; 
-
-        const amount = getAppointmentPrice(apt);
-        if (amount <= 0) continue;
-
-        const description = `Serviço concluído: ${apt.products?.name || 'Serviço'} - ${apt.clients?.name || 'Cliente'}`;
-        
-        // Robust duplicate check in DB
-        const { data: existing } = await supabase
-          .from('financial_records')
-          .select('id')
-          .eq('description', description)
-          .maybeSingle();
-        
-        if (existing) {
-          newSynced.add(apt.id);
-          continue;
-        }
-
-        const provName = apt.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
-        
-        await recordFinancialEntry({
-          userId: session.user.id,
-          type: 'entrada',
-          amount,
-          description,
-          paymentMethod: 'Dinheiro',
-          category: 'Serviço Concluído',
-          providerName: provName,
-          recordDate: apt.appointment_date,
-        });
-        
-        newSynced.add(apt.id);
+      try {
+        await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses-summary', selectedMonth] });
+      } catch (e) {
+        console.warn('ensureMonthlyRecurringExpenses failed', e);
       }
-      setSyncedAppointmentIds(newSynced);
-      fetchRecords();
-    };
-    sync();
-  }, [completedAppointments]);
+    })();
+  }, [selectedMonth]);
 
   const getAppointmentPrice = (apt: any) => {
     if (apt.notes) {
@@ -308,6 +277,27 @@ export default function FinanceiroTab() {
       setRecords((data as FinancialRecord[]) || []);
     }
     setLoading(false);
+  };
+
+  const handleReconcile = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setRefreshing(true);
+    try {
+      const result = await reconcileFinancialMonth(session.user.id, selectedMonth);
+      await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      const removed = result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales;
+      toast({
+        title: '✅ Mês reconciliado',
+        description: `${removed} duplicata(s)/órfão(s) removidos · ${result.insertedRecurring} despesa(s) recorrente(s) sincronizada(s).`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Erro ao reconciliar', description: e.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const handleRefreshAll = async () => {
@@ -623,6 +613,10 @@ export default function FinanceiroTab() {
           <Button onClick={handleRefreshAll} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]">
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1">Atualizar</span>
+          </Button>
+          <Button onClick={handleReconcile} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]" title="Remove duplicatas, órfãos e ressincroniza o mês">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Reconciliar</span>
           </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
