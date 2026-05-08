@@ -626,12 +626,30 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-2">
+          <div className="grid gap-3">
+            <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+              <Label className="text-xs flex items-center gap-1">💳 Forma de Pagamento</Label>
+              <Select value={decisionPaymentMethod} onValueChange={setDecisionPaymentMethod}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                  <SelectItem value="PIX">📱 PIX</SelectItem>
+                  <SelectItem value="Débito">💳 Débito</SelectItem>
+                  <SelectItem value="Crédito">💳 Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">Será gravada na venda e no Financeiro.</p>
+            </div>
             <Button
               className="w-full"
               onClick={() => {
                 if (!decisionAppointment) return;
-                updateStatusMutation.mutate({ id: decisionAppointment.id, status: 'concluido' });
+                updateStatusMutation.mutate({
+                  id: decisionAppointment.id,
+                  status: 'concluido',
+                  paymentMethod: decisionPaymentMethod,
+                  appointment: decisionAppointment,
+                });
                 setDecisionAppointment(null);
               }}
             >
