@@ -770,7 +770,17 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-semibold">Descrição registrada:</span> {serviceSummary.description}
               </p>
-              <Button className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
+              {serviceSummary.hasPhone && serviceSummary.waLink ? (
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={() => window.open(serviceSummary.waLink!, '_blank', 'noopener')}
+                >
+                  <Phone className="w-4 h-4 mr-2" /> Reenviar mensagem no WhatsApp
+                </Button>
+              ) : (
+                <p className="text-[11px] text-amber-600 italic">⚠ Cliente sem telefone cadastrado — mensagem não enviada.</p>
+              )}
+              <Button variant="outline" className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
             </div>
           )}
         </DialogContent>
