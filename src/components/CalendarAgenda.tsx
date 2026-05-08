@@ -731,7 +731,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="text-[10px] h-6 px-2 ml-auto"
+                                    className="text-xs h-7 px-2.5 gap-1.5 ml-auto"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       const prov = (providers as any[]).find((p: any) => p.name === assignedProvider);
@@ -740,18 +740,19 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                     }}
                                     title="Abrir Roteiro Diário"
                                   >
-                                    <Navigation className="w-3 h-3 mr-1" /> Roteiro
+                                    <Navigation className="w-3.5 h-3.5" /> Roteiro
                                   </Button>
                                   <Button
                                     size="sm"
                                     variant="ghost"
-                                    className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive"
+                                    className="text-xs h-7 px-2.5 gap-1.5 text-muted-foreground hover:text-destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       assignProviderMutation.mutate({ apt, providerName: null });
                                     }}
+                                    title="Remover prestador"
                                   >
-                                    <X className="w-3 h-3" /> Remover
+                                    <X className="w-3.5 h-3.5" /> Remover
                                   </Button>
                                 </>
                               ) : (
