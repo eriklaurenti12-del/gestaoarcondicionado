@@ -279,6 +279,27 @@ export default function FinanceiroTab() {
     setLoading(false);
   };
 
+  const handleReconcile = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setRefreshing(true);
+    try {
+      const result = await reconcileFinancialMonth(session.user.id, selectedMonth);
+      await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      const removed = result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales;
+      toast({
+        title: '✅ Mês reconciliado',
+        description: `${removed} duplicata(s)/órfão(s) removidos · ${result.insertedRecurring} despesa(s) recorrente(s) sincronizada(s).`,
+      });
+    } catch (e: any) {
+      toast({ title: 'Erro ao reconciliar', description: e.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
