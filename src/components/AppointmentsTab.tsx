@@ -991,6 +991,12 @@ const AppointmentsTab: React.FC = () => {
     return new Date().toISOString().split('T')[0];
   };
 
+  const getEditMinDate = () => {
+    const today = getMinDate();
+    const currentDate = editingAppointment ? safeFormat(editingAppointment.appointment_date, 'yyyy-MM-dd') : today;
+    return currentDate !== '-' && currentDate < today ? currentDate : today;
+  };
+
   // Check if a time slot is in the past for today
   const isTimePast = (time: string, date: string) => {
     if (date !== getMinDate()) return false;
@@ -1955,7 +1961,7 @@ const AppointmentsTab: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nova Data</Label>
-                <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
+                <Input type="date" min={getEditMinDate()} value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
               </div>
               <div className="space-y-2">
                 <Label>Novo Horário</Label>
@@ -1964,7 +1970,11 @@ const AppointmentsTab: React.FC = () => {
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {timeSlots.filter(slot => !isTimePast(slot, editDate)).map((slot) => {
+                    {timeSlots.filter(slot => {
+                      const isSameAsCurrent = editDate === safeFormat(editingAppointment?.appointment_date, 'yyyy-MM-dd') && 
+                                             slot === safeFormat(editingAppointment?.appointment_date, 'HH:mm');
+                      return !isTimePast(slot, editDate) || isSameAsCurrent || slot === editTime;
+                    }).map((slot) => {
                       const isBooked = editDate ? getBookedTimes(editDate).includes(slot) : false;
                       // Don't mark the current slot as booked if it belongs to the appointment being edited
                       const isSameAsCurrent = editDate === safeFormat(editingAppointment?.appointment_date, 'yyyy-MM-dd') && 
@@ -2042,10 +2052,12 @@ const AppointmentsTab: React.FC = () => {
                 const [y, m, d] = editDate.split('-').map(Number);
                 const [hh, mm] = editTime.split(':').map(Number);
                 const newDateTimeObj = new Date(y, m - 1, d, hh, mm);
+                const isSameDateTimeAsCurrent = editDate === safeFormat(editingAppointment.appointment_date, 'yyyy-MM-dd') &&
+                  editTime === safeFormat(editingAppointment.appointment_date, 'HH:mm');
                 
                 // ========== PAST DATE/TIME VALIDATION ==========
                 const now = new Date();
-                if (newDateTimeObj <= now) {
+                if (!isSameDateTimeAsCurrent && newDateTimeObj <= now) {
                   toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
                   return;
                 }
