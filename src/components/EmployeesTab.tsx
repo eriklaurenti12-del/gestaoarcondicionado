@@ -445,7 +445,10 @@ export default function EmployeesTab() {
                               name: member.name,
                               phone: member.phone || "",
                               role: member.role,
-                              pin: "", // Don't show existing PIN
+                              pin: "",
+                              monthly_salary: member.monthly_salary != null ? String(member.monthly_salary) : "",
+                              vale_amount: member.vale_amount != null ? String(member.vale_amount) : "",
+                              expense_category: member.expense_category || "Salário",
                             });
                             setShowAddDialog(true);
                           }}
