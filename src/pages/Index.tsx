@@ -277,10 +277,10 @@ export default function Index() {
   return (
     <SubscriptionGate>
       <SidebarProvider defaultOpen={true}>
-        <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
+        <div className="h-screen flex w-full bg-background relative overflow-hidden">
           <ParticleBackground className="z-0 opacity-50 pointer-events-none" />
 
-          <div className="flex w-full relative z-10">
+          <div className="flex w-full h-full min-h-0 relative z-10">
             <AppSidebar
               activeTab={activeTab}
               onTabChange={(tab) => {
@@ -293,7 +293,7 @@ export default function Index() {
               onSignOut={handleSignOut}
             />
 
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
               <header className="h-14 border-b border-border/60 flex items-center px-3 sm:px-5 bg-card/80 backdrop-blur-xl sticky top-0 z-20 gap-2 shadow-sm">
                 <SidebarTrigger className="h-9 w-9 rounded-lg hover:bg-muted" />
                 <div className="hidden sm:block h-5 w-px bg-border/50" />
@@ -340,7 +340,7 @@ export default function Index() {
                 <UserProfileDropdown onSignOut={handleSignOut} onNavigateCompany={() => setActiveTab('company')} />
               </header>
 
-              <main className="flex-1 p-4 overflow-auto">
+              <main className="flex-1 min-h-0 p-4 overflow-y-auto overflow-x-hidden">
                 <div className="max-w-7xl mx-auto">
                   <ErrorBoundary>
                     {renderContent()}
