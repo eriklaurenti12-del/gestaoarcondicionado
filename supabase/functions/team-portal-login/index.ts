@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Look up active members
     const { data: members } = await supabase
       .from('team_members')
-      .select('id, name, phone, role, user_id, is_active')
+      .select('id, name, phone, role, user_id, is_active, permissions')
       .eq('is_active', true);
 
     const cleanInput = member_name.replace(/\D/g, '');
