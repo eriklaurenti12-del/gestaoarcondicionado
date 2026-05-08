@@ -452,7 +452,7 @@ export default function EmployeesTab() {
               </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
               {filteredMembers.map((member) => (
                 <Card key={member.id} className={`overflow-hidden border-border/40 hover:border-primary/30 transition-all duration-300 ${!member.is_active ? 'opacity-60 grayscale-[0.5]' : 'shadow-sm hover:shadow-md'}`}>
                   <CardHeader className="p-4 pb-2">
