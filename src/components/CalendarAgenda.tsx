@@ -320,7 +320,8 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                 }}
               />
             ) : (
-              <div className="grid grid-cols-7 gap-2">
+              <div className="overflow-x-auto -mx-2 px-2">
+              <div className="grid grid-cols-7 gap-1 sm:gap-2 min-w-[640px]">
                 {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(day => (
                   <div key={day} className="text-center text-sm font-medium text-muted-foreground py-2">
                     {day}
