@@ -632,7 +632,7 @@ export default function PublicBooking() {
                   className="w-full bg-slate-800 border-slate-700 rounded-md h-10 px-3 text-white"
                 >
                   <option value="">Selecione</option>
-                  {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {allSlots.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>
