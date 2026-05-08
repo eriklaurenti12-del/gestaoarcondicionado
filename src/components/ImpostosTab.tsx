@@ -321,23 +321,6 @@ const ImpostosTab: React.FC = () => {
     }
   };
 
-  const pullMonthlyData = () => {
-    if (monthlyRevenue) {
-      setFormData(prev => ({
-        ...prev,
-        total_revenue: monthlyRevenue.total,
-        revenue_from_services: monthlyRevenue.services,
-        revenue_from_products: monthlyRevenue.products,
-        total_expenses: monthlyRevenue.expenses.total,
-        fuel_expenses: monthlyRevenue.expenses.fuel,
-        material_expenses: monthlyRevenue.expenses.material,
-        equipment_expenses: monthlyRevenue.expenses.equipment,
-        other_expenses: monthlyRevenue.expenses.other
-      }));
-      toast.success('Dados do mês importados com sucesso!');
-    }
-  };
-
   const handleSave = async () => {
     setLoading(true);
     try {
