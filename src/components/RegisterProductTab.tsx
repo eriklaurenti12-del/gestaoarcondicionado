@@ -373,7 +373,29 @@ const RegisterProductTab: React.FC = () => {
             </div>
           )}
 
-          {/* Margin display */}
+          {/* Service-only: duration + validity */}
+          {registerType === 'service' && !isCombo && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Duração (min)</Label>
+                <Input type="number" min={5} step={5} value={serviceDuration} onChange={(e) => setServiceDuration(Math.max(5, parseInt(e.target.value) || 60))} />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-amber-500" /> Prazo de validade</Label>
+                <Select value={String(validityMonths)} onValueChange={(v) => setValidityMonths(parseInt(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Sem validade</SelectItem>
+                    <SelectItem value="3">3 meses</SelectItem>
+                    <SelectItem value="6">6 meses</SelectItem>
+                    <SelectItem value="12">1 ano</SelectItem>
+                    <SelectItem value="24">2 anos</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">Conta a partir da data de cada agendamento.</p>
+              </div>
+            </div>
+          )}
           {totalCost > 0 && parseFloat(price) > 0 && (
             <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted/60 text-sm">
               <span className="text-muted-foreground">Custo total:</span>
