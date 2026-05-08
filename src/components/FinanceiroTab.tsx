@@ -1047,6 +1047,90 @@ export default function FinanceiroTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reconciliation result panel */}
+      <Dialog open={reconcileDialogOpen} onOpenChange={setReconcileDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" /> Reconciliação · {selectedMonth}
+            </DialogTitle>
+          </DialogHeader>
+          {reconcileResult && (
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Vendas órfãs removidas</div>
+                  <div className="text-2xl font-semibold text-rose-600">{reconcileResult.orphanSales}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Lançamentos órfãos removidos</div>
+                  <div className="text-2xl font-semibold text-rose-600">{reconcileResult.orphanRecords}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Vendas duplicadas removidas</div>
+                  <div className="text-2xl font-semibold text-amber-600">{reconcileResult.dupSales}</div>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="text-xs text-muted-foreground">Lançamentos duplicados removidos</div>
+                  <div className="text-2xl font-semibold text-amber-600">{reconcileResult.dupRecords}</div>
+                </div>
+                <div className="rounded-md border p-3 col-span-2">
+                  <div className="text-xs text-muted-foreground">Despesas recorrentes inseridas</div>
+                  <div className="text-2xl font-semibold text-emerald-600">{reconcileResult.insertedRecurring}</div>
+                </div>
+              </div>
+
+              {reconcileResult.details.insertedRecurringRows.length > 0 && (
+                <div>
+                  <div className="font-medium mb-1">Recorrentes adicionadas</div>
+                  <ul className="space-y-1 text-xs max-h-40 overflow-y-auto">
+                    {reconcileResult.details.insertedRecurringRows.map((r, i) => (
+                      <li key={i} className="flex justify-between gap-2 border-b last:border-0 py-1">
+                        <span className="truncate">
+                          <span className="font-medium">{r.helper_name || r.category}</span>
+                          <span className="text-muted-foreground"> · {r.category}</span>
+                        </span>
+                        <span className="tabular-nums">R$ {r.amount.toFixed(2)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {(reconcileResult.details.orphanSaleIds.length > 0 ||
+                reconcileResult.details.orphanRecordIds.length > 0 ||
+                reconcileResult.details.dupSaleIds.length > 0 ||
+                reconcileResult.details.dupRecordIds.length > 0) && (
+                <div>
+                  <div className="font-medium mb-1">IDs removidos</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    {reconcileResult.details.orphanSaleIds.length > 0 && (
+                      <div><strong>Vendas órfãs:</strong> {reconcileResult.details.orphanSaleIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.dupSaleIds.length > 0 && (
+                      <div><strong>Vendas dup.:</strong> {reconcileResult.details.dupSaleIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.orphanRecordIds.length > 0 && (
+                      <div className="break-all"><strong>Lanç. órfãos:</strong> {reconcileResult.details.orphanRecordIds.join(', ')}</div>
+                    )}
+                    {reconcileResult.details.dupRecordIds.length > 0 && (
+                      <div className="break-all"><strong>Lanç. dup.:</strong> {reconcileResult.details.dupRecordIds.join(', ')}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <p className="text-xs text-muted-foreground">
+                Registro salvo no log de auditoria (financial_reconciliation_log).
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setReconcileDialogOpen(false)}>Fechar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
