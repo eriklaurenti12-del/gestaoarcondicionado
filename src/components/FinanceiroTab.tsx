@@ -427,10 +427,30 @@ export default function FinanceiroTab() {
   };
 
   // Financial calculations
+  // Normaliza categorias para evitar bugs de variantes ("Serviço", "Serviços",
+  // "Serviço Concluído", etc.) inseridas por diferentes fluxos do sistema.
+  const normalizeCat = (c: string | null) => (c || '').toString().trim().toLowerCase();
+  const isServicoCat = (c: string | null) => {
+    const n = normalizeCat(c);
+    return n.startsWith('serviç') || n.startsWith('servic') || n === 'service';
+  };
+  const isProdutoCat = (c: string | null) => {
+    const n = normalizeCat(c);
+    return n.startsWith('produto') || n === 'pdv' || n.startsWith('venda');
+  };
+
   const entradas = records.filter(r => r.type === "entrada");
-  const totalServicos = entradas.filter(r => r.category === "Serviço").reduce((acc, r) => acc + Number(r.amount), 0);
-  const totalProdutos = entradas.filter(r => r.category === "Produto").reduce((acc, r) => acc + Number(r.amount), 0);
-  const totalOutrasEntradas = entradas.filter(r => r.category !== "Serviço" && r.category !== "Produto").reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalServicos = entradas.filter(r => isServicoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
+  // Produtos: prioriza a tabela `sales` (fonte da verdade do PDV); soma também
+  // entradas manuais marcadas como Produto que não tenham vindo do PDV.
+  const totalProdutosSales = sales?.reduce((acc, s) => acc + Number(s.sale_price) * Number(s.qty || 1), 0) || 0;
+  const totalProdutosManual = entradas
+    .filter(r => isProdutoCat(r.category) && !(r.description || '').toLowerCase().includes('venda pdv'))
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalProdutos = totalProdutosSales + totalProdutosManual;
+  const totalOutrasEntradas = entradas
+    .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category))
+    .reduce((acc, r) => acc + Number(r.amount), 0);
   
   const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
