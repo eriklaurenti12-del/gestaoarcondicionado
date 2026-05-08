@@ -446,6 +446,13 @@ const AppointmentsTab: React.FC = () => {
 
   const deleteAppointmentMutation = useMutation({
     mutationFn: async (id: string) => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (session) {
+        // Cleanup linked financial entries before removing the appointment
+        await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+      }
       const { error } = await supabase.from('appointments').delete().eq('id', id);
       if (error) throw error;
     },
