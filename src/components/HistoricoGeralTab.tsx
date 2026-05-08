@@ -165,7 +165,7 @@ export default function HistoricoGeralTab() {
         provider: extractProvider(a.notes),
         serviceId: a.service_id,
         warrantyMonths: a.products?.warranty_months || 0,
-        isRecurring: a.products?.is_recurring || false,
+        isRecurring: !!(a.products?.warranty_months && a.products.warranty_months > 0),
       });
     });
 
