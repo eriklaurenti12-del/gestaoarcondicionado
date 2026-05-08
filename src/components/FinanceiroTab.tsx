@@ -593,6 +593,10 @@ export default function FinanceiroTab() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1">Atualizar</span>
           </Button>
+          <Button onClick={handleReconcile} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]" title="Remove duplicatas, órfãos e ressincroniza o mês">
+            <CheckCircle2 className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Reconciliar</span>
+          </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
