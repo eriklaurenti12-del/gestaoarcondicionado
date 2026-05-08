@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
+import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
