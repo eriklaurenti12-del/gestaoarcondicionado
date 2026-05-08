@@ -43,7 +43,8 @@ export interface TeamMember {
   monthly_salary?: number | null;
   vale_amount?: number | null;
   expense_category?: string | null;
-  pin?: string; // Raw PIN is never returned from DB, only used in forms
+  permissions?: string[] | null;
+  pin?: string;
 }
 
 const ROLE_LABELS: Record<TeamRole, { label: string, color: string, description: string }> = {
@@ -72,6 +73,23 @@ const ROLE_LABELS: Record<TeamRole, { label: string, color: string, description:
     color: "bg-pink-500/10 text-pink-500 border-pink-500/20",
     description: "Acesso ao PDV, vendas e cadastro de clientes."
   },
+};
+
+const ALL_PORTAL_TABS: { id: string; label: string; description: string }[] = [
+  { id: "agenda", label: "Agenda", description: "Ver e criar agendamentos do dia" },
+  { id: "cadastros", label: "Cadastros", description: "Listar e cadastrar clientes" },
+  { id: "vendas", label: "Vendas / PDV", description: "Registrar vendas e produtos" },
+  { id: "financeiro", label: "Financeiro", description: "Ver faturamento e relatórios" },
+  { id: "admin", label: "Admin", description: "Liberar/cancelar assinantes (super-admin)" },
+  { id: "suporte", label: "Suporte", description: "Atender solicitações da equipe" },
+];
+
+const ROLE_DEFAULT_PERMS: Record<TeamRole, string[]> = {
+  admin: ["agenda", "cadastros", "financeiro", "vendas", "admin", "suporte"],
+  gerente: ["agenda", "cadastros", "financeiro", "vendas", "suporte"],
+  atendimento: ["agenda", "cadastros", "suporte"],
+  tecnico: ["agenda", "suporte"],
+  vendedor: ["vendas", "cadastros", "suporte"],
 };
 
 export default function EmployeesTab() {
