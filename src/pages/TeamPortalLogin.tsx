@@ -703,7 +703,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsList>
 
           {/* ========== AGENDA ========== */}
-          <TabsContent value="agenda" className="mt-4 space-y-3">
+          {canAccess("agenda") && <TabsContent value="agenda" className="mt-4 space-y-3">
             <div className="flex gap-2">
               <Button className="flex-1 h-11 gap-2" onClick={() => setShowScheduleForm(!showScheduleForm)}>
                 <Plus className="w-4 h-4" /> Novo Agendamento
