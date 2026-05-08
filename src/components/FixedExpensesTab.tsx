@@ -88,6 +88,24 @@ const FixedExpensesTab: React.FC = () => {
     queryFn: fetchExpenses
   });
 
+  // Auto-ensure that every active employee + provider with monthly cost
+  // is present in fixed_expenses for the filtered month.
+  useEffect(() => {
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (!session) return;
+      try {
+        const inserted = await ensureMonthlyRecurringExpenses(session.user.id, filterMonth);
+        if (inserted > 0) {
+          queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        }
+      } catch (e) {
+        console.warn('ensureMonthlyRecurringExpenses failed', e);
+      }
+    })();
+  }, [filterMonth, queryClient]);
+
   const addMutation = useMutation({
     mutationFn: async (expense: any) => {
       const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
