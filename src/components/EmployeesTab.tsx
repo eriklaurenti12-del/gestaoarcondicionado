@@ -620,6 +620,41 @@ export default function EmployeesTab() {
               </Select>
             </div>
 
+            {/* Permissões granulares por funcionário */}
+            <div className="rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Shield className="w-4 h-4 text-blue-500" />
+                  <Label className="text-sm font-bold">Permissões do Portal</Label>
+                </div>
+                <Button type="button" variant="ghost" size="sm" className="h-7 text-[11px] gap-1" onClick={() => applyRoleDefaults(formData.role)}>
+                  <ShieldCheck className="w-3 h-3" /> Padrão da Função
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Marque apenas as áreas que este funcionário poderá acessar no portal <code className="text-foreground">/portal</code>.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {ALL_PORTAL_TABS.map((tab) => {
+                  const checked = formData.permissions.includes(tab.id);
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => togglePermission(tab.id)}
+                      className={`text-left rounded-md border px-2.5 py-2 transition-all ${checked ? 'border-blue-500/50 bg-blue-500/10' : 'border-border/40 bg-muted/30 opacity-70'}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${checked ? 'bg-blue-500 border-blue-500' : 'border-muted-foreground/30'}`}>
+                          {checked && <CheckCircle2 className="w-3 h-3 text-white" />}
+                        </div>
+                        <span className="text-xs font-semibold">{tab.label}</span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-1 ml-6 leading-tight">{tab.description}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
               <div className="flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
