@@ -10,7 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet } from "lucide-react";
+import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
+import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
 import { format, endOfMonth, isToday } from "date-fns";
