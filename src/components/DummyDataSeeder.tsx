@@ -338,6 +338,76 @@ const DummyDataSeeder: React.FC = () => {
         }
       }
 
+      // --- Fornecedores ---
+      if (picker.fornecedores) {
+        const sups = ['Distribuidora Frio Norte','AC Parts Brasil','Refricenter SP'].map((n) => ({
+          user_id: userId,
+          name: `${n} (TESTE)`,
+          contact: rand(FAKE_NAMES),
+          email: `contato${Math.floor(Math.random()*999)}@${n.toLowerCase().replace(/\s+/g,'')}.com.br`,
+          contact_person: rand(FAKE_NAMES),
+          payment_terms: rand(['30 dias','15 dias','À vista']),
+        }));
+        await supabase.from('suppliers').insert(sups);
+      }
+
+      // --- Equipamentos do cliente ---
+      if (picker.equipamentos && createdClients.length > 0) {
+        const eqs = createdClients.slice(0, 4).map((c) => ({
+          user_id: userId,
+          client_id: c.id,
+          brand: rand(['Samsung','LG','Electrolux','Midea','Springer']),
+          model: `Inverter ${rand(['9','12','18','24'])}.000`,
+          btus: rand([9000, 12000, 18000, 24000]),
+          serial_number: `SN${Math.floor(Math.random()*999999)}`,
+          location: rand(['Sala','Quarto','Escritório','Recepção']),
+          installation_date: new Date(now.getFullYear()-1, now.getMonth(), 1).toISOString().slice(0,10),
+        }));
+        await supabase.from('client_equipment').insert(eqs);
+      }
+
+      // --- Contratos de manutenção ---
+      if (picker.contratos && createdClients.length > 0) {
+        const contracts = createdClients.slice(0, 2).map((c, i) => ({
+          user_id: userId,
+          client_id: c.id,
+          title: `Contrato Manutenção ${c.name}`,
+          description: 'Limpeza preventiva semestral (TESTE)',
+          start_date: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10),
+          monthly_value: 150 + i * 50,
+          cleaning_interval_months: 6,
+          status: 'ativo',
+        }));
+        await supabase.from('maintenance_contracts').insert(contracts);
+      }
+
+      // --- O.S. / Orçamentos ---
+      if (picker.os && createdClients.length > 0) {
+        const c = createdClients[0];
+        const items = [
+          { name: 'Limpeza Completa', qty: 1, unit_price: 250, total: 250 },
+          { name: 'Filtro novo', qty: 2, unit_price: 45, total: 90 },
+        ];
+        await supabase.from('quotes').insert({
+          user_id: userId,
+          client_id: c.id,
+          title: 'Orçamento limpeza + filtros (TESTE)',
+          subtotal: 340, total: 340,
+          items: items as any,
+          validity_days: 15,
+          status: 'pendente',
+        } as any);
+        await supabase.from('service_orders').insert({
+          user_id: userId,
+          client_id: c.id,
+          title: 'O.S. Manutenção corretiva (TESTE)',
+          services: [{ name: 'Reparo placa', value: 320 }] as any,
+          parts: [{ name: 'Capacitor', qty: 1, value: 80 }] as any,
+          services_total: 320, parts_total: 80, total: 400,
+          status: 'pendente',
+        } as any);
+      }
+
       toast.success(`✅ Simulação aplicada (${preview.length} categoria(s)).`);
       queryClient.invalidateQueries();
     } catch (error: any) {
