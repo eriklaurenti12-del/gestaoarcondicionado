@@ -733,16 +733,12 @@ const AppointmentsTab: React.FC = () => {
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, { className: string; label: string }> = {
-      pendente: { className: "bg-slate-500/10 text-slate-500 border-slate-200", label: "Pendente" },
-      agendado: { className: "bg-amber-500/10 text-amber-600 border-amber-200", label: "Agendado" },
+      pendente: { className: "bg-amber-500/10 text-amber-600 border-amber-200", label: "Pendente" },
       confirmado: { className: "bg-blue-500/10 text-blue-600 border-blue-200", label: "Confirmado" },
-      enviado_prestador: { className: "bg-indigo-500/10 text-indigo-600 border-indigo-200", label: "C/ Prestador" },
-      em_rota: { className: "bg-cyan-500/10 text-cyan-600 border-cyan-200", label: "Em Rota" },
       concluido: { className: "bg-green-500/10 text-green-600 border-green-200", label: "Concluído" },
       cancelado: { className: "bg-red-500/10 text-red-600 border-red-200", label: "Cancelado" },
-      atrasado: { className: "bg-orange-500/10 text-orange-600 border-orange-200", label: "Atrasado" }
     };
-    const config = variants[status] || variants.agendado;
+    const config = variants[status] || variants.pendente;
     return <Badge variant="outline" className={`font-bold uppercase tracking-tighter text-[10px] ${config.className}`}>{config.label}</Badge>;
   };
 
