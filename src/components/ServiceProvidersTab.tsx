@@ -259,6 +259,7 @@ export default function ServiceProvidersTab() {
       is_field_technician: provider.is_field_technician !== false,
       is_recurring_expenses: provider.is_recurring_expenses !== false,
       has_system_access: provider.has_system_access || false,
+      monthly_cost: String(provider.monthly_cost || ''),
       system_pin: '',
     });
     setDialogOpen(true);
