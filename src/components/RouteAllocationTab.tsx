@@ -294,6 +294,47 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
     toast.success(`PDF gerado: ${sortedAppts.length} folha(s) A4 + capa de resumo`);
   };
 
+  const exportPendingCSV = (provName: string, appts: any[]) => {
+    const pending = appts.filter(a => !['concluido', 'cancelado'].includes(a.status));
+    if (pending.length === 0) { toast.info('Sem rotas pendentes para exportar'); return; }
+    const sorted = [...pending].sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['#', 'Data', 'Hora', 'Cliente', 'Telefone', 'Endereço', 'Serviço', 'Valor', 'Status', 'Observações'].join(';')
+    ];
+    sorted.forEach((a, i) => {
+      const price = Number(a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(a.products?.price) || 0;
+      const cleanNotes = (a.notes || '').replace(/\[(PRESTADOR|VALOR):[^\]]+\]/g, '').trim();
+      rows.push([
+        i + 1,
+        format(parseISO(a.appointment_date), 'dd/MM/yyyy'),
+        format(parseISO(a.appointment_date), 'HH:mm'),
+        esc(a.clients?.name || ''),
+        esc(a.clients?.telefone || ''),
+        esc(a.clients?.address || ''),
+        esc(a.products?.name || ''),
+        price.toFixed(2).replace('.', ','),
+        esc(a.status),
+        esc(cleanNotes),
+      ].join(';'));
+    });
+    const csv = '\uFEFF' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `PENDENTES-${provName.toUpperCase()}-${format(new Date(), 'dd-MM-yyyy')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`CSV gerado: ${pending.length} pendentes`);
+  };
+
+  const exportPendingPDF = (provName: string, appts: any[]) => {
+    const pending = appts.filter(a => !['concluido', 'cancelado'].includes(a.status));
+    if (pending.length === 0) { toast.info('Sem rotas pendentes para exportar'); return; }
+    exportRoutePDF(`${provName} (PENDENTES)`, pending);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-24">
       {/* Central Header */}
@@ -554,21 +595,37 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mb-8">
+                  <div className="grid grid-cols-2 gap-2 mb-3">
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="h-11 flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-[10px] font-black uppercase gap-2"
+                      className="h-10 bg-white/5 border-white/10 hover:bg-white/10 text-[10px] font-black uppercase gap-2"
                       onClick={() => exportRoutePDF(provName, appts)}
                     >
-                      <Printer className="w-4 h-4" /> IMPRIMIR
+                      <Printer className="w-3.5 h-3.5" /> PDF COMPLETO
                     </Button>
                     <Button 
                       size="sm" 
-                      className="h-11 flex-1 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] gap-2 shadow-lg shadow-green-500/10"
+                      className="h-10 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] gap-2 shadow-lg shadow-green-500/10"
                       onClick={() => setRouteProvider(provider || null)}
                     >
-                      <CheckCircle2 className="w-4 h-4" /> AUDITAR
+                      <CheckCircle2 className="w-3.5 h-3.5" /> AUDITAR
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-10 bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase gap-2"
+                      onClick={() => exportPendingPDF(provName, appts)}
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> PDF PENDENTES
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-10 bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase gap-2"
+                      onClick={() => exportPendingCSV(provName, appts)}
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> CSV PENDENTES
                     </Button>
                   </div>
 
