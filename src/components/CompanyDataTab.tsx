@@ -16,6 +16,7 @@ const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { settings: bizHours } = useBusinessHours();
   
   const [cnpjCpf, setCnpjCpf] = useState('');
   const [companyName, setCompanyName] = useState('');
