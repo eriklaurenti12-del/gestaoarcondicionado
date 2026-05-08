@@ -74,6 +74,20 @@ const DummyDataSeeder: React.FC = () => {
       const monthYYYYMM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const monthStart = `${monthYYYYMM}-01`;
 
+      // Helpers aleatórios
+      const rand = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+      const fakePhone = () => {
+        const ddd = rand(['11','21','16','19','27','31','41','47','51','61','71','81','85']);
+        const p1 = String(90000 + Math.floor(Math.random()*9999)).padStart(5,'0');
+        const p2 = String(Math.floor(Math.random()*9999)).padStart(4,'0');
+        return `${ddd}9${p1.slice(0,4)}${p2}`.slice(0,11);
+      };
+      const FAKE_NAMES = [
+        'Carlos Oliveira','Ana Beatriz','Roberto Santos','Juliana Costa','Pedro Almeida',
+        'Mariana Souza','Felipe Rocha','Camila Ribeiro','Lucas Ferreira','Patrícia Lima',
+        'Bruno Carvalho','Fernanda Martins','Rafael Mendes','Gabriela Pinto','Thiago Araújo'
+      ];
+
       // --- Prestadores (admin_settings JSON) ---
       const providers = [
         { id: crypto.randomUUID(), name: "Erik Laurenti (TESTE)", phone: "16992600631", specialty: "Geral",       cost_per_hour: 50, monthly_cost: 1200, is_recurring_expenses: true, color: "#3b82f6", active: true, created_at: new Date().toISOString() },
@@ -82,6 +96,36 @@ const DummyDataSeeder: React.FC = () => {
       ];
       if (picker.prestadores) {
         await supabase.from('admin_settings').upsert({ key: 'service_providers', value: JSON.stringify(providers), description: 'Simulação' }, { onConflict: 'key' });
+
+        // Gastos diários de combustível + alimentação por prestador (últimos 5 dias)
+        const dailyExpenses: any[] = [];
+        for (let d = 0; d < 5; d++) {
+          const day = new Date(now); day.setDate(now.getDate() - d);
+          const dateStr = day.toISOString().slice(0,10);
+          for (const p of providers) {
+            dailyExpenses.push({
+              user_id: userId,
+              category: 'Combustível',
+              description: `Combustível ${p.name}`,
+              amount: 30 + Math.floor(Math.random()*40),
+              expense_date: dateStr,
+              helper_name: p.name,
+              is_recurring: false,
+            });
+            dailyExpenses.push({
+              user_id: userId,
+              category: 'Alimentação',
+              description: `Alimentação ${p.name}`,
+              amount: 18 + Math.floor(Math.random()*22),
+              expense_date: dateStr,
+              helper_name: p.name,
+              is_recurring: false,
+            });
+          }
+        }
+        if (dailyExpenses.length) {
+          await supabase.from('fixed_expenses').insert(dailyExpenses);
+        }
       }
 
       // --- Funcionários ---
