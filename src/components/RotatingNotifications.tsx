@@ -5,6 +5,7 @@ import { X, Bell, Lightbulb, TrendingUp, Calendar, Shield, Zap, Heart, Star, Ale
 import { cn } from '@/lib/utils';
 import { differenceInDays, isToday, isTomorrow, format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getUserPref, setUserPref } from '@/utils/userPreferences';
 
 interface Notification {
   id: string;
@@ -97,14 +98,27 @@ const RotatingNotifications: React.FC = () => {
   const [isVisible, setIsVisible] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const [bannerEnabled, setBannerEnabled] = useState(true);
 
-  // Check settings from localStorage
-  const notifSettings = (() => {
-    try {
-      const saved = localStorage.getItem('notification_settings');
-      return saved ? JSON.parse(saved) : { enabled: true, rotatingBanner: true };
-    } catch { return { enabled: true, rotatingBanner: true }; }
-  })();
+  // Hydrate dismissal preference from DB (with localStorage fallback)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const dbHidden = await getUserPref<boolean>('rotating_banner_hidden');
+      if (cancelled) return;
+      try {
+        const saved = localStorage.getItem('notification_settings');
+        const ls = saved ? JSON.parse(saved) : null;
+        const enabled = !(dbHidden === true) && (ls ? ls.rotatingBanner !== false : true);
+        setBannerEnabled(enabled);
+      } catch {
+        setBannerEnabled(dbHidden !== true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const notifSettings = { enabled: true, rotatingBanner: bannerEnabled };
 
   // Fetch real data for dynamic notifications
   const { data: installments } = useQuery({
@@ -509,6 +523,8 @@ const RotatingNotifications: React.FC = () => {
                   settings.rotatingBanner = false;
                   localStorage.setItem('notification_settings', JSON.stringify(settings));
                 } catch {}
+                void setUserPref('rotating_banner_hidden', true);
+                setBannerEnabled(false);
                 setIsDismissed(true);
                 setIsVisible(false);
               }}

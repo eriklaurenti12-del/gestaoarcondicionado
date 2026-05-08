@@ -693,6 +693,7 @@ export type Database = {
           created_at: string
           id: string
           phone: string | null
+          preferences: Json
           user_id: string
           username: string
         }
@@ -700,6 +701,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone?: string | null
+          preferences?: Json
           user_id: string
           username: string
         }
@@ -707,6 +709,7 @@ export type Database = {
           created_at?: string
           id?: string
           phone?: string | null
+          preferences?: Json
           user_id?: string
           username?: string
         }

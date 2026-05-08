@@ -26,6 +26,7 @@ import NotificationSettings from "@/components/NotificationSettings";
 import LembretesTab from "@/components/LembretesTab";
 import EmployeesTab from "@/components/EmployeesTab";
 import OnboardingTour from "@/components/OnboardingTour";
+import { getUserPref, setUserPref } from "@/utils/userPreferences";
 import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -159,8 +160,9 @@ export default function Index() {
         const teamRole = teamInvite?.team_role || '';
         setUserRole(teamRole || (isSA ? 'super_admin' : ''));
 
-        const onboardingKey = `ac_onboarding_completed_${user.id}`;
-        if (!localStorage.getItem(onboardingKey)) setShowOnboarding(true);
+        const tourDone = await getUserPref<boolean>('onboarding_completed');
+        const legacy = localStorage.getItem(`ac_onboarding_completed_${user.id}`);
+        if (!tourDone && !legacy) setShowOnboarding(true);
         
         setLoading(false);
       } catch (error) {
@@ -183,6 +185,7 @@ export default function Index() {
     if (currentUserId) {
       localStorage.setItem(`ac_onboarding_completed_${currentUserId}`, 'true');
     }
+    void setUserPref('onboarding_completed', true);
     setShowOnboarding(false);
   };
 
