@@ -160,8 +160,9 @@ export default function Index() {
         const teamRole = teamInvite?.team_role || '';
         setUserRole(teamRole || (isSA ? 'super_admin' : ''));
 
-        const onboardingKey = `ac_onboarding_completed_${user.id}`;
-        if (!localStorage.getItem(onboardingKey)) setShowOnboarding(true);
+        const tourDone = await getUserPref<boolean>('onboarding_completed');
+        const legacy = localStorage.getItem(`ac_onboarding_completed_${user.id}`);
+        if (!tourDone && !legacy) setShowOnboarding(true);
         
         setLoading(false);
       } catch (error) {
