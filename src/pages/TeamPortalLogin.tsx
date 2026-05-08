@@ -15,13 +15,14 @@ import {
   Download, Package, Headphones, MessageCircle, ArrowLeft, Truck,
   UserCheck, UserX, Shield, CalendarPlus, CheckCircle2, Link2, 
   ExternalLink, Copy, AlertTriangle, Timer, ShoppingCart, Printer,
-  Send, LifeBuoy
+  Send, LifeBuoy, LayoutDashboard
 } from "lucide-react";
 import { format, addDays, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { forceUpdateApp } from "@/lib/updateApp";
+import PortalFullSystemView from "@/components/PortalFullSystemView";
 
 type PortalSession = {
   memberId: string;
@@ -252,6 +253,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("agenda");
+  const [showFullSystem, setShowFullSystem] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
@@ -619,6 +621,27 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     }
   }, [activeTab, visibleTabs.join(',')]);
 
+  if (showFullSystem) {
+    return (
+      <PortalFullSystemView
+        onBack={() => setShowFullSystem(false)}
+        memberName={session.memberName}
+        role={session.role}
+        canAccess={canAccess}
+        data={{
+          todayAppointments: todayAppointments as any[],
+          pendingBookings: pendingBookings as any[],
+          clients: portalClients as any[],
+          financial: portalFinancial as any[],
+          products: portalProducts as any[],
+          sales: portalSales as any[],
+          suppliers: portalSuppliers as any[],
+          subscribers: portalSubscribers as any[],
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Header - matching screenshot */}
@@ -635,6 +658,16 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
               </div>
             </div>
             <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowFullSystem(true)}
+                title="Exibir Sistema Completo"
+                className="text-primary-foreground hover:bg-primary-foreground/20 h-9 gap-1.5 px-2 sm:px-3"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-semibold">Sistema</span>
+              </Button>
               <Button size="icon" variant="ghost" onClick={forceUpdateApp} title="Sincronizar Versão" className="text-primary-foreground hover:bg-primary-foreground/20 h-9 w-9">
                 <RefreshCw className="w-4 h-4" />
               </Button>
