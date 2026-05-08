@@ -294,6 +294,47 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
     toast.success(`PDF gerado: ${sortedAppts.length} folha(s) A4 + capa de resumo`);
   };
 
+  const exportPendingCSV = (provName: string, appts: any[]) => {
+    const pending = appts.filter(a => !['concluido', 'cancelado'].includes(a.status));
+    if (pending.length === 0) { toast.info('Sem rotas pendentes para exportar'); return; }
+    const sorted = [...pending].sort((a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime());
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['#', 'Data', 'Hora', 'Cliente', 'Telefone', 'Endereço', 'Serviço', 'Valor', 'Status', 'Observações'].join(';')
+    ];
+    sorted.forEach((a, i) => {
+      const price = Number(a.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(a.products?.price) || 0;
+      const cleanNotes = (a.notes || '').replace(/\[(PRESTADOR|VALOR):[^\]]+\]/g, '').trim();
+      rows.push([
+        i + 1,
+        format(parseISO(a.appointment_date), 'dd/MM/yyyy'),
+        format(parseISO(a.appointment_date), 'HH:mm'),
+        esc(a.clients?.name || ''),
+        esc(a.clients?.telefone || ''),
+        esc(a.clients?.address || ''),
+        esc(a.products?.name || ''),
+        price.toFixed(2).replace('.', ','),
+        esc(a.status),
+        esc(cleanNotes),
+      ].join(';'));
+    });
+    const csv = '\uFEFF' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `PENDENTES-${provName.toUpperCase()}-${format(new Date(), 'dd-MM-yyyy')}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success(`CSV gerado: ${pending.length} pendentes`);
+  };
+
+  const exportPendingPDF = (provName: string, appts: any[]) => {
+    const pending = appts.filter(a => !['concluido', 'cancelado'].includes(a.status));
+    if (pending.length === 0) { toast.info('Sem rotas pendentes para exportar'); return; }
+    exportRoutePDF(`${provName} (PENDENTES)`, pending);
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-24">
       {/* Central Header */}
