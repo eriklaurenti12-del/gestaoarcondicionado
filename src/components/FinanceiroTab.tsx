@@ -681,6 +681,10 @@ export default function FinanceiroTab() {
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Reconciliar</span>
           </Button>
+          <Button onClick={handleSyncContracts} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px] border-blue-300 text-blue-700 hover:bg-blue-50" title="Força o lançamento mensal dos contratos ativos">
+            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline ml-1">🔄 Contratos do mês</span>
+          </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
