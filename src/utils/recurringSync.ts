@@ -148,7 +148,7 @@ export async function reconcileFinancialMonth(userId: string, monthYYYYMM: strin
   }
 
   // b) Remove orphans (appointment missing or not concluido)
-  const orphanSaleIds = (monthSales || [])
+  const orphanSaleIds: number[] = (monthSales || [])
     .filter((s: any) => !validIds.has(s.appointment_id))
     .map((s: any) => s.id);
   const orphanRecordIds = (monthRecords || [])
@@ -188,7 +188,7 @@ export async function reconcileFinancialMonth(userId: string, monthYYYYMM: strin
     if (!salesGroup.has(s.appointment_id)) salesGroup.set(s.appointment_id, []);
     salesGroup.get(s.appointment_id)!.push(s);
   }
-  const dupSaleIds: string[] = [];
+  const dupSaleIds: number[] = [];
   for (const arr of salesGroup.values()) {
     if (arr.length > 1) {
       dupSaleIds.push(...arr.slice(1).map((x) => x.id));
