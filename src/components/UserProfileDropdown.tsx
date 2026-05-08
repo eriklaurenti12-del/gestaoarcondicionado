@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Settings, LogOut, Building2, ChevronDown } from "lucide-react";
+import { Settings, LogOut, Building2, ChevronDown, Users } from "lucide-react";
 
 interface UserProfileDropdownProps {
   onSignOut: () => void;
@@ -61,6 +61,10 @@ export function UserProfileDropdown({ onSignOut, onNavigateCompany }: UserProfil
         <DropdownMenuItem onClick={onNavigateCompany} className="gap-2 cursor-pointer">
           <Building2 className="w-4 h-4" />
           Minha Empresa
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.open('/portal', '_blank')} className="gap-2 cursor-pointer">
+          <Users className="w-4 h-4" />
+          Portal da Equipe
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
