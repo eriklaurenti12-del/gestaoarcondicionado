@@ -342,7 +342,8 @@ const AppointmentsTab: React.FC = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status, appointment }: { id: string; status: string; appointment?: Appointment }) => {
+    mutationFn: async ({ id, status, appointment, paymentMethod: pm }: { id: string; status: string; appointment?: Appointment; paymentMethod?: string }) => {
+      const finalPm = pm || 'Dinheiro';
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
 
@@ -391,10 +392,14 @@ const AppointmentsTab: React.FC = () => {
             qty: 1,
             sale_price: salePrice,
             total_profit: profit,
-            payment_method: 'Dinheiro' as const,
+            payment_method: finalPm as any,
             sale_date: appointment.appointment_date,
             appointment_id: id,
           } as any);
+        } else {
+          // Keep stored payment method aligned with the user's choice
+          await supabase.from('sales').update({ payment_method: finalPm as any })
+            .eq('id', existingSale.id);
         }
 
         const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
@@ -403,7 +408,7 @@ const AppointmentsTab: React.FC = () => {
           type: 'entrada',
           amount: salePrice,
           description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
-          paymentMethod: 'Dinheiro',
+          paymentMethod: finalPm,
           category: 'Serviço',
           providerName: provName,
           appointmentId: id,

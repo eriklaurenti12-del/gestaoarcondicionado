@@ -84,7 +84,31 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     font-family: 'Inter', sans-serif;
-    background-color: #0B1120;
+  }
+  /* Light theme: keep blue brand but force readable surfaces and black text */
+  :root:not(.dark) body {
+    background-color: hsl(220 30% 96%);
+    color: hsl(222 47% 8%);
+  }
+  :root:not(.dark) .op-card,
+  :root:not(.dark) .premium-card {
+    background-color: #ffffff !important;
+    border-color: hsl(220 15% 88%) !important;
+    color: hsl(222 47% 8%);
+  }
+  :root:not(.dark) .op-input {
+    background-color: #ffffff !important;
+    color: hsl(222 47% 8%) !important;
+    border-color: hsl(220 15% 80%) !important;
+  }
+  :root:not(.dark) .op-btn-secondary {
+    background-color: hsl(220 15% 92%) !important;
+    color: hsl(222 47% 8%) !important;
+  }
+  :root:not(.dark) .glass-morphism {
+    background-color: rgba(255,255,255,0.85) !important;
+    border-color: hsl(220 15% 88%) !important;
+    color: hsl(222 47% 8%);
   }
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Outfit', sans-serif;
