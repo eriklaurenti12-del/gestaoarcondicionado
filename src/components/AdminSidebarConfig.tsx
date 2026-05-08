@@ -14,11 +14,14 @@ const defaultSections = [
     { id: "dashboard", title: "Painel" },
     { id: "cadastros", title: "Cadastros" },
     { id: "appointments", title: "Agenda" },
+    { id: "prestadores", title: "Prestadores" },
+    { id: "funcionarios", title: "Funcionários" },
     { id: "online-bookings", title: "Agendamento Online" },
   ]},
   { label: "Gestão", icon: "ClipboardList", items: [
     { id: "documents", title: "Orçamentos" },
     { id: "services", title: "Manutenções" },
+    { id: "historico", title: "Histórico Geral" },
     { id: "btu-calculator", title: "Medição BTUs" },
   ]},
   { label: "Vendas", icon: "ShoppingCart", items: [
@@ -33,6 +36,14 @@ const defaultSections = [
     { id: "notifications-settings", title: "Notificações" },
     { id: "backup", title: "Backup" },
   ]},
+];
+
+// Items garantidos: se não existirem em NENHUMA seção do config salvo,
+// são automaticamente adicionados na primeira seção compatível ao carregar.
+const REQUIRED_ITEMS: Array<{ id: string; title: string; sectionLabel: string }> = [
+  { id: "prestadores",  title: "Prestadores",     sectionLabel: "Principal" },
+  { id: "funcionarios", title: "Funcionários",    sectionLabel: "Principal" },
+  { id: "historico",    title: "Histórico Geral", sectionLabel: "Gestão" },
 ];
 
 type DragSource = {
@@ -59,11 +70,35 @@ const AdminSidebarConfig: React.FC = () => {
       .select('value')
       .eq('key', 'sidebar_config')
       .maybeSingle();
+    let loaded: typeof defaultSections = defaultSections;
     if (data?.value) {
       try {
         const parsed = JSON.parse(data.value);
-        if (parsed.sections) setSections(parsed.sections);
+        if (parsed.sections) loaded = parsed.sections;
       } catch {}
+    }
+    // Auto-merge: garante que itens obrigatórios estejam em alguma seção.
+    const flatIds = new Set(loaded.flatMap((s: any) => s.items.map((i: any) => i.id)));
+    const merged = loaded.map((s: any) => ({ ...s, items: [...s.items] }));
+    let changed = false;
+    for (const req of REQUIRED_ITEMS) {
+      if (!flatIds.has(req.id)) {
+        const target = merged.find((s: any) => s.label === req.sectionLabel) || merged[0];
+        if (target) {
+          target.items.push({ id: req.id, title: req.title });
+          changed = true;
+        }
+      }
+    }
+    setSections(merged);
+    if (changed) {
+      // Persiste silenciosamente para que da próxima carga já venha completo.
+      await supabase.from('admin_settings').upsert({
+        key: 'sidebar_config',
+        value: JSON.stringify({ sections: merged }),
+        description: 'Configuração do menu lateral',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'key' });
     }
   };
 
