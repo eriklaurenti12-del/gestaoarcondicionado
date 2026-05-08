@@ -777,7 +777,7 @@ export default function QuotesTab() {
                           <SelectContent>
                             <SelectItem value="pendente">Pendente</SelectItem>
                             <SelectItem value="aprovado">Aprovado</SelectItem>
-                            <SelectItem value="pendente">Agendado</SelectItem>
+                            <SelectItem value="agendado">Agendado</SelectItem>
                             <SelectItem value="concluido">Concluído</SelectItem>
                             <SelectItem value="recusado">Recusado</SelectItem>
                           </SelectContent>
