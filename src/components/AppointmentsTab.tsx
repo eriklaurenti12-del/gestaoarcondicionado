@@ -1448,7 +1448,7 @@ const AppointmentsTab: React.FC = () => {
                           )}
 
                           {/* Quick Complete - 1 Click Concluir */}
-                          {(appointment.status === 'confirmado' || appointment.status === 'confirmado') && (
+                          {appointment.status === 'confirmado' && (
                             <Button 
                               size="sm" 
                               variant="outline" 
