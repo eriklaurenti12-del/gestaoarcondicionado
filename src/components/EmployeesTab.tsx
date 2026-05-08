@@ -566,7 +566,7 @@ export default function EmployeesTab() {
                 : 'Defina o nome, função e senha de acesso do novo membro da equipe.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-3 py-2">
             <div className="grid gap-2">
               <Label htmlFor="name">Nome Completo</Label>
               <Input 
