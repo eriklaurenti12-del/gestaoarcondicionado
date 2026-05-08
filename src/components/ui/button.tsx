@@ -40,12 +40,18 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, title, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    // Auto-tooltip: if no title is provided but aria-label exists, use it as
+    // the native browser tooltip. This gives every labelled icon-button a
+    // hover hint without touching every call-site.
+    const ariaLabel = (props as { ["aria-label"]?: string })["aria-label"]
+    const computedTitle = title ?? ariaLabel
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
+        title={computedTitle}
         {...props}
       />
     )

@@ -1183,6 +1183,7 @@ const AppointmentsTab: React.FC = () => {
             size="sm"
             onClick={() => setViewMode('list')}
             className="rounded-none min-h-[44px] px-4"
+            aria-label="Visualizar como lista"
           >
             <List className="w-4 h-4 mr-2" />
             Lista
@@ -1192,6 +1193,7 @@ const AppointmentsTab: React.FC = () => {
             size="sm"
             onClick={() => setViewMode('board')}
             className="rounded-none min-h-[44px] px-4"
+            aria-label="Visualizar agrupado por horários"
           >
             <Clock className="w-4 h-4 mr-2" />
             Horários
@@ -1201,6 +1203,7 @@ const AppointmentsTab: React.FC = () => {
             size="sm"
             onClick={() => setViewMode('calendar')}
             className="rounded-none min-h-[44px] px-4"
+            aria-label="Visualizar em calendário mensal"
           >
             <CalendarRange className="w-4 h-4 mr-2" />
             Calendário
@@ -1494,6 +1497,7 @@ const AppointmentsTab: React.FC = () => {
                             size="sm" 
                             variant="ghost" 
                             className="h-9 w-9 p-0 text-slate-400 hover:text-white hover:bg-white/10"
+                            aria-label="Editar / Ver detalhes do agendamento"
                             onClick={() => {
                               setEditingAppointment(appointment);
                               setEditDate(appointment.appointment_date.split('T')[0]);
@@ -1522,6 +1526,7 @@ const AppointmentsTab: React.FC = () => {
                             size="sm" 
                             variant="ghost" 
                             className="h-9 w-9 p-0 text-red-500/50 hover:text-red-500 hover:bg-red-500/10"
+                            aria-label="Remover este agendamento"
                             onClick={() => {
                               if (window.confirm('Remover este agendamento?')) {
                                 deleteAppointmentMutation.mutate(appointment.id);
