@@ -128,48 +128,96 @@ const DummyDataSeeder: React.FC = () => {
         }
       }
 
-      // --- Funcionários ---
+      // --- Funcionários (3 com nomes/telefones aleatórios) ---
       if (picker.funcionarios) {
-        await supabase.from('team_members').insert({
+        const funcs = Array.from({ length: 3 }).map((_, i) => ({
           user_id: userId,
-          name: 'Funcionário TESTE',
-          phone: '11999990000',
-          role: 'sistema',
-          monthly_salary: 1800,
-          vale_amount: 200,
+          name: `${rand(FAKE_NAMES)} (TESTE)`,
+          phone: fakePhone(),
+          role: i === 0 ? 'gerente' : 'sistema',
+          monthly_salary: 1500 + Math.floor(Math.random()*1500),
+          vale_amount: 100 + Math.floor(Math.random()*200),
           expense_category: 'Salário',
           is_active: true,
-        });
+        }));
+        await supabase.from('team_members').insert(funcs);
       }
 
-      // --- Clientes ---
+      // --- Clientes (8 aleatórios) ---
       let createdClients: any[] = [];
       if (picker.clientes) {
-        const fakeClients = [
-          { name: "Carlos Oliveira (TESTE)", telefone: "11999990001", address: "Av. Paulista, 1000 - SP", user_id: userId },
-          { name: "Ana Beatriz (TESTE)",     telefone: "11999990002", address: "Rua Augusta, 500 - SP",   user_id: userId },
-          { name: "Roberto Santos (TESTE)",  telefone: "21988880001", address: "Av. Atlântica, 200 - RJ", user_id: userId },
-          { name: "Empresa ABC (TESTE)",     telefone: "11977770001", address: "Distrito Industrial - SP", is_company: true, user_id: userId },
-        ];
+        const used = new Set<string>();
+        const fakeClients = Array.from({ length: 8 }).map((_, i) => {
+          let n = rand(FAKE_NAMES); while (used.has(n)) n = rand(FAKE_NAMES); used.add(n);
+          return {
+            name: `${n} (TESTE)`,
+            telefone: fakePhone(),
+            address: rand(['Av. Paulista, 1000 - SP','Rua Augusta, 500 - SP','Av. Atlântica, 200 - RJ','Rua das Flores, 88 - SP','Av. Brasil, 1500 - RJ','Rua XV, 320 - PR']),
+            user_id: userId,
+            is_company: i === 7,
+          };
+        });
         const { data, error } = await supabase.from('clients').insert(fakeClients).select();
         if (error) throw error;
         createdClients = data || [];
       }
 
-      // --- Produtos / Serviços ---
+      // --- Produtos / Serviços (com imagens) ---
       let createdProducts: any[] = [];
       const wantProducts = picker.produtos || picker.servicos;
       if (wantProducts) {
         const rows: any[] = [];
-        if (picker.produtos) rows.push({ name: "Ar Split 12000 BTU (TESTE)", type: "piece", price: 2500, cost_price: 1800, qty: 10, user_id: userId, storage_location: "Câmara 1", min_stock: 2 });
+        if (picker.produtos) {
+          rows.push({ name: "Ar Split 12000 BTU (TESTE)", type: "piece", price: 2500, cost_price: 1800, qty: 10, user_id: userId, storage_location: "Câmara 1", min_stock: 2, image_url: 'https://images.unsplash.com/photo-1631545806609-cda3ecde29bc?w=400' });
+          rows.push({ name: "Ar Split 9000 BTU (TESTE)",  type: "piece", price: 1900, cost_price: 1300, qty: 6,  user_id: userId, storage_location: "Câmara 1", min_stock: 2, image_url: 'https://images.unsplash.com/photo-1605374551406-b8c5d7c5e2c1?w=400' });
+          rows.push({ name: "Suporte Inox (TESTE)",       type: "piece", price: 90,   cost_price: 35,   qty: 25, user_id: userId, storage_location: "Câmara 2", min_stock: 5, image_url: 'https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=400' });
+        }
         if (picker.servicos) {
-          rows.push({ name: "Limpeza Completa (TESTE)",   type: "service", price: 250, cost_price: 50,  user_id: userId, service_duration: 90,  warranty_months: 6,  qty: 0 });
-          rows.push({ name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12, qty: 0 });
+          rows.push({ name: "Limpeza Completa (TESTE)",   type: "service", price: 250, cost_price: 50,  user_id: userId, service_duration: 90,  warranty_months: 6,  qty: 0, image_url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400' });
+          rows.push({ name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12, qty: 0, image_url: 'https://images.unsplash.com/photo-1597149961419-cc6e095faf95?w=400' });
+          rows.push({ name: "Manutenção Preventiva (TESTE)", type: "service", price: 320, cost_price: 80, user_id: userId, service_duration: 60, warranty_months: 3, qty: 0, image_url: 'https://images.unsplash.com/photo-1607400201515-c2c41c07d307?w=400' });
         }
         const { data, error } = await supabase.from('products').insert(rows).select();
         if (error) throw error;
         createdProducts = data || [];
       }
+
+      // --- Configuração da Agenda Online (puxa horário da empresa) ---
+      if (picker.agendas) {
+        await supabase.from('online_booking_settings').upsert({
+          user_id: userId,
+          enabled: true,
+          weekdays: { sun: false, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true },
+          start_time: '08:00',
+          end_time: '18:00',
+          slot_minutes: 30,
+          lunch_start: '12:00',
+          lunch_end: '13:00',
+          min_advance_hours: 2,
+          max_advance_days: 30,
+          auto_confirm: false,
+        } as any, { onConflict: 'user_id' });
+
+        // Agendamentos online pendentes (vindos do PublicBooking)
+        const onlineRows = Array.from({ length: 3 }).map(() => {
+          const day = new Date(now); day.setDate(now.getDate() + 1 + Math.floor(Math.random()*5));
+          const hour = 9 + Math.floor(Math.random()*8);
+          return {
+            user_id: userId,
+            client_name: `${rand(FAKE_NAMES)} (ONLINE)`,
+            client_phone: fakePhone(),
+            client_email: null,
+            service_name: rand(['Limpeza Completa','Instalação Padrão','Manutenção Preventiva']),
+            preferred_date: day.toISOString().slice(0,10),
+            preferred_time: `${String(hour).padStart(2,'0')}:00`,
+            payment_method: rand(['pix','dinheiro','cartao_credito']),
+            notes: '[DUMMY] Solicitação online de teste',
+            status: 'pendente',
+          };
+        });
+        await supabase.from('online_bookings').insert(onlineRows);
+      }
+
 
       // --- Agendamentos (precisa de clientes + serviços) ---
       let createdAppts: any[] = [];
