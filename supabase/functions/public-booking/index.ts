@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
         min_advance_hours: 2,
         max_advance_days: 30,
         auto_confirm: false,
+        vacations: [],
       };
 
       return new Response(JSON.stringify({
