@@ -11,11 +11,13 @@ import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Faceb
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
 import { BusinessHoursCard } from "@/components/BusinessHoursCard";
+import { useBusinessHours } from "@/hooks/useBusinessHours";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { settings: bizHours } = useBusinessHours();
   
   const [cnpjCpf, setCnpjCpf] = useState('');
   const [companyName, setCompanyName] = useState('');
@@ -311,12 +313,22 @@ const CompanyDataTab: React.FC = () => {
       email ? `Email: ${email}` : ''
     ], y);
     
-    // Schedule
-    if (openingHours || closingHours || workDays) {
-      y = addSection('Horário de Atendimento', '🕐', [
-        `${workDays || 'Segunda a Sábado'} • ${openingHours || '08:00'} às ${closingHours || '18:00'}`
-      ], y);
-    }
+    // Schedule (puxa da configuração centralizada)
+    const wkLabels: Record<string, string> = { mon: 'Seg', tue: 'Ter', wed: 'Qua', thu: 'Qui', fri: 'Sex', sat: 'Sáb', sun: 'Dom' };
+    const activeDays = (['mon','tue','wed','thu','fri','sat','sun'] as const)
+      .filter(k => bizHours.weekdays[k])
+      .map(k => wkLabels[k])
+      .join(', ');
+    const lunchTxt = bizHours.lunch_start && bizHours.lunch_end
+      ? ` • Almoço: ${bizHours.lunch_start}–${bizHours.lunch_end}`
+      : '';
+    y = addSection('Horário de Atendimento', '🕐', [
+      `${activeDays || 'Segunda a Sábado'} • ${bizHours.start_time} às ${bizHours.end_time}${lunchTxt}`,
+      `Antecedência mínima: ${bizHours.min_advance_hours}h • Agenda até ${bizHours.max_advance_days} dias`,
+      ...(bizHours.vacations.length > 0
+        ? ['', '🏖️ Férias / Folgas:', ...bizHours.vacations.map(v => `  • ${v.start_date} → ${v.end_date}${v.reason ? ' — ' + v.reason : ''}`)]
+        : []),
+    ], y);
     
     // Social
     y = addSection('Redes Sociais', '🌐', [
