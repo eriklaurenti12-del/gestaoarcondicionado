@@ -590,6 +590,13 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
   const visibleTabs = roleTabPermissions[session.role] || ["agenda", "suporte"];
 
+  // Guard: if active tab not allowed for this role, redirect to first allowed
+  useEffect(() => {
+    if (!visibleTabs.includes(activeTab)) {
+      setActiveTab(visibleTabs[0] || "agenda");
+    }
+  }, [session.role, activeTab]);
+
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
       {/* Header - matching screenshot */}
