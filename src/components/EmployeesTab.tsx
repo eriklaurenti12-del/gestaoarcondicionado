@@ -639,7 +639,7 @@ export default function EmployeesTab() {
 
       {/* Finance Dialog */}
       <Dialog open={showFinanceDialog} onOpenChange={setShowFinanceDialog}>
-        <DialogContent className="sm:max-w-[400px]">
+        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Lançamento Financeiro</DialogTitle>
             <DialogDescription>
