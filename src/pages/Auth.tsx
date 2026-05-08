@@ -167,7 +167,6 @@ export default function Auth() {
 
   return (
     <div className={`min-h-screen ${bg} flex flex-col items-center justify-center p-4 relative overflow-hidden`}>
-      <AuthUpdateSpotlight />
       {isDark && <ParticleBackground className="z-0" />}
       {isDark && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
@@ -176,26 +175,26 @@ export default function Auth() {
         </div>
       )}
 
-      {/* Theme toggle */}
-      <div className="absolute top-4 right-4 z-50 flex gap-2">
+      {/* Theme toggle - HARDCODED colors to always be visible */}
+      <div className="fixed top-4 right-4 z-[9999] flex gap-2">
         <button
           onClick={toggleTheme}
-          className="p-2.5 rounded-full bg-card/80 border border-border backdrop-blur-sm hover:bg-muted transition-colors shadow-sm"
+          className="p-2.5 rounded-full bg-white/20 dark:bg-white/10 border border-white/30 dark:border-white/20 backdrop-blur-md hover:bg-white/30 dark:hover:bg-white/20 transition-colors shadow-lg"
           title={isDark ? 'Modo Claro' : 'Modo Escuro'}
         >
-          {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-foreground" />}
+          {isDark ? <Sun className="w-5 h-5 text-yellow-400" /> : <Moon className="w-5 h-5 text-slate-700" />}
         </button>
       </div>
 
-      {/* Force Update Button (Top Left) */}
-      <div className="absolute top-4 left-4 z-50">
+      {/* Force Update Button (Top Left) - HARDCODED colors, ALWAYS visible */}
+      <div className="fixed top-4 left-4 z-[9999]">
         <button
           onClick={forceUpdateApp}
-          className={`flex items-center gap-2 px-3 py-2 rounded-full bg-card/80 border border-border backdrop-blur-sm hover:bg-muted transition-all shadow-sm group active:scale-95`}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-cyan-600/90 hover:bg-cyan-500 border border-cyan-400/50 backdrop-blur-md transition-all shadow-lg shadow-cyan-500/30 group active:scale-95"
           title="Forçar Atualização do Sistema"
         >
-          <RefreshCw className="w-4 h-4 text-primary group-hover:rotate-180 transition-transform duration-500" />
-          <span className="text-[10px] font-bold uppercase tracking-wider hidden sm:inline text-muted-foreground group-hover:text-primary">Sincronizar Versão</span>
+          <RefreshCw className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-500" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">Sincronizar</span>
         </button>
       </div>
 
