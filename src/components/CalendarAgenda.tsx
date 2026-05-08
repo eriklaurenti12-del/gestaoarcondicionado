@@ -696,7 +696,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                           key={p.id}
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            assignProviderMutation.mutate({ apt, providerName: p.name });
+                                            setPendingAssign({ apt, provider: p });
+                                            setAssignFuel(p.fuel_allowance ? String(p.fuel_allowance) : '');
+                                            setAssignFood(p.food_allowance ? String(p.food_allowance) : '');
+                                            setAssignDaily(p.daily_rate ? String(p.daily_rate) : '');
+                                            setAssignDriver(p.driver_cost ? String(p.driver_cost) : '');
                                           }}
                                           className="text-sm gap-2"
                                         >
