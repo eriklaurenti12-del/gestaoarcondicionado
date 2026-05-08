@@ -54,6 +54,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     paymentMethod: string;
     description: string;
     isUpdate: boolean;
+    waLink?: string;
+    waMessage?: string;
+    hasPhone?: boolean;
   } | null>(null);
   const queryClient = useQueryClient();
 
@@ -118,6 +121,26 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
           recordDate: appointment.appointment_date,
         });
 
+        // Build WhatsApp confirmation message (link wa.me - same pattern as the rest of the system)
+        const { data: companyData } = await supabase
+          .from('company_data')
+          .select('company_name')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+        const companyName = companyData?.company_name || '';
+        const firstName = (appointment.clients?.name || 'Cliente').split(' ')[0];
+        const dateLabel = safeFormat(appointment.appointment_date, "dd/MM/yyyy 'às' HH:mm");
+        const waMessage =
+          `Olá ${firstName}! 👋\n\n` +
+          `Confirmamos a *conclusão* do serviço *${appointment.products?.name || 'Serviço'}* em ${dateLabel}.\n\n` +
+          `💰 Valor: R$ ${salePrice.toFixed(2)}\n` +
+          `💳 Forma de pagamento: ${finalPm}\n\n` +
+          `Muito obrigado pela preferência! 🙏${companyName ? `\n\n— ${companyName}` : ''}`;
+        const rawPhone = (appointment.clients?.telefone || '').replace(/\D/g, '');
+        const waLink = rawPhone
+          ? `https://wa.me/${rawPhone.startsWith('55') ? rawPhone : `55${rawPhone}`}?text=${encodeURIComponent(waMessage)}`
+          : '';
+
         return {
           status,
           summary: {
@@ -128,6 +151,9 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
             paymentMethod: finalPm,
             description,
             isUpdate: !!existingSale,
+            waLink,
+            waMessage,
+            hasPhone: !!rawPhone,
           },
         } as any;
       }
@@ -147,6 +173,13 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
       toast.success(labels[status] || 'Status atualizado');
       if (result?.summary) {
         setServiceSummary(result.summary);
+        // Auto-open WhatsApp confirmation message (same wa.me pattern used across the system)
+        if (result.summary.waLink) {
+          try {
+            window.open(result.summary.waLink, '_blank', 'noopener');
+            toast.success('💬 WhatsApp aberto com a mensagem de conclusão');
+          } catch {}
+        }
       }
     }
   });
@@ -737,7 +770,17 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               <p className="text-[11px] text-muted-foreground">
                 <span className="font-semibold">Descrição registrada:</span> {serviceSummary.description}
               </p>
-              <Button className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
+              {serviceSummary.hasPhone && serviceSummary.waLink ? (
+                <Button
+                  className="w-full bg-green-600 hover:bg-green-700"
+                  onClick={() => window.open(serviceSummary.waLink!, '_blank', 'noopener')}
+                >
+                  <Phone className="w-4 h-4 mr-2" /> Reenviar mensagem no WhatsApp
+                </Button>
+              ) : (
+                <p className="text-[11px] text-amber-600 italic">⚠ Cliente sem telefone cadastrado — mensagem não enviada.</p>
+              )}
+              <Button variant="outline" className="w-full" onClick={() => setServiceSummary(null)}>Fechar</Button>
             </div>
           )}
         </DialogContent>
