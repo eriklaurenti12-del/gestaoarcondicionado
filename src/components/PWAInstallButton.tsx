@@ -10,20 +10,22 @@ const PWAInstallButton: React.FC = () => {
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true) {
+    // Check if already installed (standalone, navigator.standalone, or local flag)
+    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+                       (window.navigator as any).standalone === true ||
+                       localStorage.getItem('pwa-installed') === 'true' ||
+                       localStorage.getItem('pwa-install-dismissed-forever') === 'true';
+    if (standalone) {
       setIsInstalled(true);
       return;
     }
 
-    // Check for IOS
     const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
     setIsIOS(ios);
 
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Show the prompt after a short delay to be "wow"
       setTimeout(() => setIsVisible(true), 3000);
     };
 
@@ -35,11 +37,6 @@ const PWAInstallButton: React.FC = () => {
 
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', installedHandler);
-
-    // Also check localStorage
-    if (localStorage.getItem('pwa-installed') === 'true') {
-      setIsInstalled(true);
-    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
