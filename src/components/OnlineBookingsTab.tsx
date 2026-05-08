@@ -56,6 +56,7 @@ const safeFormat = (date: any, formatStr: string, options?: any) => {
 const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { validateSlot, settings: bizHours } = useBusinessHours();
   const [bookings, setBookings] = useState<OnlineBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('futuras');
