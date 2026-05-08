@@ -99,6 +99,7 @@ Deno.serve(async (req) => {
           'Cache-Control': 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
         }
       });
+    }
 
     if (req.method === 'PUT') {
       const body = await req.json();
