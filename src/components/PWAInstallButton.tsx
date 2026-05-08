@@ -3,19 +3,22 @@ import { Button } from "@/components/ui/button";
 import { Download, X, Share } from "lucide-react";
 import { toast } from "sonner";
 
+const checkInstalled = () => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(display-mode: standalone)').matches ||
+    (window.navigator as any).standalone === true ||
+    localStorage.getItem('pwa-installed') === 'true' ||
+    localStorage.getItem('pwa-install-dismissed-forever') === 'true';
+};
+
 const PWAInstallButton: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => checkInstalled());
   const [isVisible, setIsVisible] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   useEffect(() => {
-    // Check if already installed (standalone, navigator.standalone, or local flag)
-    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-                       (window.navigator as any).standalone === true ||
-                       localStorage.getItem('pwa-installed') === 'true' ||
-                       localStorage.getItem('pwa-install-dismissed-forever') === 'true';
-    if (standalone) {
+    if (checkInstalled()) {
       setIsInstalled(true);
       return;
     }
