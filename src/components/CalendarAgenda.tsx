@@ -79,7 +79,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_providers' as any)
-        .select('id, name, color, active')
+        .select('*')
         .eq('active', true)
         .order('name');
       if (error) return [];
