@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { toast } from 'sonner';
 import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
   try {
