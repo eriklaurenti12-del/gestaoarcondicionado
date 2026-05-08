@@ -332,6 +332,28 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
   const handleEditSubmit = async () => {
     if (!editingBooking) return;
+
+    // Same locks as manual & online: weekday/hours/lunch/vacation/lead-time
+    if (!editDate || !editTime) {
+      toast({ title: 'Data/hora obrigatória', variant: 'destructive' });
+      return;
+    }
+    const dateTime = new Date(`${editDate}T${editTime}:00`);
+    // Look up service duration so end-of-window is enforced exactly
+    const { data: svc } = await supabase
+      .from('products').select('service_duration')
+      .eq('user_id', editingBooking.user_id)
+      .eq('type', 'service')
+      .ilike('name', `%${editService}%`)
+      .maybeSingle();
+    const duration = (svc as any)?.service_duration ?? bizHours.slot_minutes;
+
+    const err = validateSlot(dateTime, { durationMinutes: duration });
+    if (err) {
+      toast({ title: 'Horário inválido', description: err, variant: 'destructive' });
+      return;
+    }
+
     const { error } = await (supabase.from('online_bookings') as any)
       .update({
         preferred_date: editDate,
@@ -341,11 +363,11 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', editingBooking.id);
-      
+
     if (error) {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "✅ Agendamento alterado com sucesso" });
+      toast({ title: "✅ Agendamento alterado", description: 'Travas de horário/almoço/férias respeitadas.' });
       setEditingBooking(null);
       loadBookings();
     }
