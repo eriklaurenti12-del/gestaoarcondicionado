@@ -272,7 +272,7 @@ export default function Index() {
 
   return (
     <SubscriptionGate>
-      <SidebarProvider open={true} onOpenChange={() => {}} >
+      <SidebarProvider defaultOpen={true}>
         <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
           <ParticleBackground className="z-0 opacity-50 pointer-events-none" />
 
