@@ -761,11 +761,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                     <Button
                                       size="sm"
                                       variant="outline"
-                                      className="text-xs h-7 w-full border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                                      className="text-xs h-7 px-2.5 gap-1.5 w-full border-purple-500/30 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950/30"
                                       onClick={(e) => e.stopPropagation()}
                                       disabled={assignProviderMutation.isPending}
                                     >
-                                      <Truck className="w-3 h-3 mr-1" /> Encaminhar para prestador
+                                      <Truck className="w-3.5 h-3.5" /> Encaminhar para prestador
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-56" onClick={(e) => e.stopPropagation()}>
