@@ -53,26 +53,43 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get business info and available services
+      // Get business info, services, busy slots and online booking settings
       const [
         { data: company },
         { data: services },
-        { data: appointments }
+        { data: appointments },
+        { data: settings }
       ] = await Promise.all([
         supabase.from('company_data').select('company_name, whatsapp, address, logo_url, instagram').eq('user_id', userId).maybeSingle(),
         supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
           .in('status', ['pendente', 'confirmado'])
-          .gte('appointment_date', new Date().toISOString())
+          .gte('appointment_date', new Date().toISOString()),
+        supabase.from('online_booking_settings').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
       const busySlots = (appointments || []).map((a: any) => a.appointment_date);
 
+      const defaultSettings = {
+        enabled: true,
+        weekdays: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+        start_time: '08:00',
+        end_time: '18:00',
+        slot_minutes: 30,
+        lunch_start: '12:00',
+        lunch_end: '13:00',
+        min_advance_hours: 2,
+        max_advance_days: 30,
+        auto_confirm: false,
+      };
+
       return new Response(JSON.stringify({
         company: company || { company_name: 'AC Service Pro' },
         services: services || [],
-        busySlots
+        busySlots,
+        settings: settings || defaultSettings,
+        server_time: new Date().toISOString(),
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
