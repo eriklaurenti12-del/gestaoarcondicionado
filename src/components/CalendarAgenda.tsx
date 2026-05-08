@@ -1137,7 +1137,11 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
               }}
               disabled={assignProviderMutation.isPending}
             >
-              {assignProviderMutation.isPending ? 'Salvando...' : 'Confirmar'}
+              {assignProviderMutation.isPending ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Salvando...</>
+              ) : (
+                <><Check className="w-4 h-4" /> Confirmar</>
+              )}
             </Button>
           </div>
         </DialogContent>
