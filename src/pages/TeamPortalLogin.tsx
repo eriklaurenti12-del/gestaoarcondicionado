@@ -15,13 +15,14 @@ import {
   Download, Package, Headphones, MessageCircle, ArrowLeft, Truck,
   UserCheck, UserX, Shield, CalendarPlus, CheckCircle2, Link2, 
   ExternalLink, Copy, AlertTriangle, Timer, ShoppingCart, Printer,
-  Send, LifeBuoy
+  Send, LifeBuoy, LayoutDashboard
 } from "lucide-react";
 import { format, addDays, isToday, isTomorrow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { forceUpdateApp } from "@/lib/updateApp";
+import PortalFullSystemView from "@/components/PortalFullSystemView";
 
 type PortalSession = {
   memberId: string;
