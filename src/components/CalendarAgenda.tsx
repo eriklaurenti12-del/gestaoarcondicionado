@@ -11,6 +11,9 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isToday
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { toast } from 'sonner';
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
@@ -42,6 +45,7 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
   const [decisionAppointment, setDecisionAppointment] = useState<any | null>(null);
+  const [decisionPaymentMethod, setDecisionPaymentMethod] = useState<string>('Dinheiro');
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
@@ -50,12 +54,67 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, paymentMethod, appointment }: { id: string; status: string; paymentMethod?: string; appointment?: any }) => {
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (!session) return;
+
+      // Reverse financial entries when leaving "concluido"
+      if (status !== 'concluido') {
+        await supabase.from('sales').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        await supabase.from('financial_records').delete().eq('user_id', session.user.id).eq('appointment_id', id);
+        return;
+      }
+
+      if (status === 'concluido' && appointment?.client_id) {
+        const finalPm = paymentMethod || 'Dinheiro';
+        const salePrice = Number(appointment.products?.price) || 0;
+        if (salePrice <= 0) return;
+
+        const { data: productData } = appointment.service_id ? await supabase
+          .from('products').select('cost_price').eq('id', appointment.service_id).maybeSingle() : { data: null };
+        const profit = salePrice - Number(productData?.cost_price || 0);
+
+        const { data: existingSale } = await supabase
+          .from('sales').select('id')
+          .eq('user_id', session.user.id).eq('appointment_id', id).maybeSingle();
+
+        if (!existingSale) {
+          await supabase.from('sales').insert({
+            user_id: session.user.id,
+            client_id: appointment.client_id,
+            product_id: appointment.service_id || null,
+            qty: 1,
+            sale_price: salePrice,
+            total_profit: profit,
+            payment_method: finalPm as any,
+            sale_date: appointment.appointment_date,
+            appointment_id: id,
+          } as any);
+        } else {
+          await supabase.from('sales').update({ payment_method: finalPm as any }).eq('id', existingSale.id);
+        }
+
+        await recordFinancialEntry({
+          userId: session.user.id,
+          type: 'entrada',
+          amount: salePrice,
+          description: `Serviço concluído: ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
+          paymentMethod: finalPm,
+          category: 'Serviço',
+          appointmentId: id,
+          recordDate: appointment.appointment_date,
+        });
+      }
     },
     onSuccess: (_, { status }) => {
       queryClient.invalidateQueries({ queryKey: ['calendar-appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] });
       const labels: Record<string, string> = {
         pendente: '📅 Reagendado',
         confirmado: '✓ Confirmado',
@@ -431,7 +490,8 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                 className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  updateStatusMutation.mutate({ id: apt.id, status: 'concluido' });
+                                  setDecisionPaymentMethod('Dinheiro');
+                                  setDecisionAppointment(apt);
                                 }}
                               >
                                 <Check className="w-3 h-3 mr-1" /> Concluir
@@ -566,12 +626,30 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-2">
+          <div className="grid gap-3">
+            <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+              <Label className="text-xs flex items-center gap-1">💳 Forma de Pagamento</Label>
+              <Select value={decisionPaymentMethod} onValueChange={setDecisionPaymentMethod}>
+                <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                  <SelectItem value="PIX">📱 PIX</SelectItem>
+                  <SelectItem value="Débito">💳 Débito</SelectItem>
+                  <SelectItem value="Crédito">💳 Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">Será gravada na venda e no Financeiro.</p>
+            </div>
             <Button
               className="w-full"
               onClick={() => {
                 if (!decisionAppointment) return;
-                updateStatusMutation.mutate({ id: decisionAppointment.id, status: 'concluido' });
+                updateStatusMutation.mutate({
+                  id: decisionAppointment.id,
+                  status: 'concluido',
+                  paymentMethod: decisionPaymentMethod,
+                  appointment: decisionAppointment,
+                });
                 setDecisionAppointment(null);
               }}
             >
