@@ -1176,13 +1176,13 @@ const AppointmentsTab: React.FC = () => {
         },
       ]} />
       {/* View Toggle + Action Buttons */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div className="flex rounded-lg border overflow-hidden">
+      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-3 flex-wrap">
+        <div className="flex rounded-lg border overflow-hidden w-full lg:w-auto">
           <Button 
             variant={viewMode === 'list' ? 'default' : 'ghost'} 
             size="sm"
             onClick={() => setViewMode('list')}
-            className="rounded-none min-h-[44px] px-4"
+            className="rounded-none min-h-[44px] px-3 flex-1 lg:flex-none"
             aria-label="Visualizar como lista"
           >
             <List className="w-4 h-4 mr-2" />
@@ -1192,7 +1192,7 @@ const AppointmentsTab: React.FC = () => {
             variant={viewMode === 'board' ? 'default' : 'ghost'} 
             size="sm"
             onClick={() => setViewMode('board')}
-            className="rounded-none min-h-[44px] px-4"
+            className="rounded-none min-h-[44px] px-3 flex-1 lg:flex-none"
             aria-label="Visualizar agrupado por horários"
           >
             <Clock className="w-4 h-4 mr-2" />
@@ -1202,17 +1202,19 @@ const AppointmentsTab: React.FC = () => {
             variant={viewMode === 'calendar' ? 'default' : 'ghost'} 
             size="sm"
             onClick={() => setViewMode('calendar')}
-            className="rounded-none min-h-[44px] px-4"
+            className="rounded-none min-h-[44px] px-3 flex-1 lg:flex-none whitespace-nowrap"
             aria-label="Visualizar em calendário mensal"
           >
-            <CalendarRange className="w-4 h-4 mr-2" />
-            Calendário
+            <CalendarRange className="w-4 h-4 mr-2 shrink-0" />
+            <span className="hidden xs:inline">Calendário</span>
+            <span className="xs:hidden">Cal.</span>
           </Button>
         </div>
-        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-          <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 sm:flex-none">
+        <div className="flex flex-wrap gap-2 w-full lg:w-auto">
+          <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 lg:flex-none">
             <PlusCircle className="w-4 h-4 mr-2" />
-            Novo Agendamento
+            <span className="hidden sm:inline">Novo Agendamento</span>
+            <span className="sm:hidden">Novo</span>
           </Button>
           <Button onClick={exportScheduledPDF} variant="outline" className="min-h-[44px]">
             <FileDown className="w-4 h-4 mr-2" />
