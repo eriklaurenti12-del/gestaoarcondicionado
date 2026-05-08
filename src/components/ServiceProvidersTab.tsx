@@ -35,6 +35,7 @@ export interface ServiceProvider {
   technical_notes?: string;
   is_field_technician?: boolean;
   is_recurring_expenses?: boolean;
+  monthly_cost?: number;
   created_at: string;
   has_system_access?: boolean;
   team_member_id?: string;
