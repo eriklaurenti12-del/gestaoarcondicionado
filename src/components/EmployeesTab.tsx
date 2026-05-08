@@ -109,6 +109,7 @@ export default function EmployeesTab() {
     monthly_salary: "",
     vale_amount: "",
     expense_category: "Salário",
+    permissions: [...ROLE_DEFAULT_PERMS["tecnico"]] as string[],
   });
   
   // Financial modal state
@@ -120,6 +121,19 @@ export default function EmployeesTab() {
     category: "Salário",
     type: "saque" as "entrada" | "saque" | "reserva",
   });
+
+  const togglePermission = (id: string) => {
+    setFormData(fd => ({
+      ...fd,
+      permissions: fd.permissions.includes(id)
+        ? fd.permissions.filter(p => p !== id)
+        : [...fd.permissions, id],
+    }));
+  };
+
+  const applyRoleDefaults = (role: TeamRole) => {
+    setFormData(fd => ({ ...fd, role, permissions: [...ROLE_DEFAULT_PERMS[role]] }));
+  };
 
   const loadTeamMembers = async () => {
     setLoading(true);
