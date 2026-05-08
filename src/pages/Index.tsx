@@ -185,6 +185,7 @@ export default function Index() {
     if (currentUserId) {
       localStorage.setItem(`ac_onboarding_completed_${currentUserId}`, 'true');
     }
+    void setUserPref('onboarding_completed', true);
     setShowOnboarding(false);
   };
 
