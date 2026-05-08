@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, BarChart3, Wallet, Fuel } from "lucide-react";
+import { TrendingUp, BarChart3, Wallet, Fuel, Activity } from "lucide-react";
 import ChartsMetrics from './ChartsMetrics';
 import FinanceiroReportsTab from './FinanceiroReportsTab';
 import FinanceiroTab from './FinanceiroTab';
 import FixedExpensesTab from './FixedExpensesTab';
+import FinanceiroReconciliationTab from './FinanceiroReconciliationTab';
 import TabGuideCards from './TabGuideCards';
 
 const FinanceiroUnifiedTab: React.FC = () => {
