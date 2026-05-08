@@ -997,6 +997,43 @@ export default function FinanceiroTab() {
           )}
         </CardContent>
       </Card>
+      <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="w-5 h-5 text-emerald-600" /> Exportar CSV
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Selecione o que incluir no extrato do mês <strong>{selectedMonth}</strong>. O resumo total é sempre incluído.
+            </p>
+            {([
+              ['vendas', 'Vendas (PDV / Agenda)'],
+              ['movimentacoes', 'Movimentações (entradas e saídas)'],
+              ['salarios', 'Salários dos funcionários'],
+              ['vale', 'Vales / Adiantamentos'],
+              ['prestadores', 'Custo mensal de prestadores'],
+              ['despesasFixas', 'Despesas fixas (todas)'],
+            ] as const).map(([k, label]) => (
+              <label key={k} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={csvFilters[k]}
+                  onCheckedChange={(v) => setCsvFilters((f) => ({ ...f, [k]: v === true }))}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setCsvDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleExportCsv} disabled={csvBusy}>
+              {csvBusy ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <FileSpreadsheet className="w-4 h-4 mr-2" />}
+              Baixar CSV
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
