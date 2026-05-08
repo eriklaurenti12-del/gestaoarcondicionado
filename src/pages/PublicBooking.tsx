@@ -33,12 +33,48 @@ const PAYMENT_METHODS = [
   { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
 ];
 
-const TIME_SLOTS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00',
-];
+type BookingSettings = {
+  enabled: boolean;
+  weekdays: { sun: boolean; mon: boolean; tue: boolean; wed: boolean; thu: boolean; fri: boolean; sat: boolean };
+  start_time: string;
+  end_time: string;
+  slot_minutes: number;
+  lunch_start?: string | null;
+  lunch_end?: string | null;
+  min_advance_hours: number;
+  max_advance_days: number;
+};
+
+const DEFAULT_SETTINGS: BookingSettings = {
+  enabled: true,
+  weekdays: { sun: false, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true },
+  start_time: '08:00',
+  end_time: '18:00',
+  slot_minutes: 30,
+  lunch_start: '12:00',
+  lunch_end: '13:00',
+  min_advance_hours: 2,
+  max_advance_days: 30,
+};
+
+const WK_KEYS: Array<keyof BookingSettings['weekdays']> = ['sun','mon','tue','wed','thu','fri','sat'];
+
+const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const padHM = (mins: number) => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+
+const generateSlots = (s: BookingSettings): string[] => {
+  const slots: string[] = [];
+  const start = toMin(s.start_time);
+  const end = toMin(s.end_time);
+  const step = Math.max(5, s.slot_minutes || 30);
+  const lStart = s.lunch_start ? toMin(s.lunch_start) : null;
+  const lEnd = s.lunch_end ? toMin(s.lunch_end) : null;
+  for (let m = start; m < end; m += step) {
+    if (lStart !== null && lEnd !== null && m >= lStart && m < lEnd) continue;
+    slots.push(padHM(m));
+  }
+  return slots;
+};
 
 const formatWhatsAppUrl = (phone: string, message: string) => {
   const clean = phone.replace(/\D/g, '');
@@ -57,6 +93,15 @@ export default function PublicBooking() {
   const [company, setCompany] = useState<CompanyInfo>({ company_name: 'AC Service Pro' });
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [busySlots, setBusySlots] = useState<string[]>([]);
+  const [settings, setSettings] = useState<BookingSettings>(DEFAULT_SETTINGS);
+  const [now, setNow] = useState<Date>(new Date());
+
+  // Re-tick "now" every minute to keep slot blocking real-time
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<'agendar' | 'consultar'>('agendar');
 
@@ -107,6 +152,8 @@ export default function PublicBooking() {
       if (data.company) setCompany(data.company);
       if (data.services) setServices(data.services);
       if (data.busySlots) setBusySlots(data.busySlots);
+      if (data.settings) setSettings({ ...DEFAULT_SETTINGS, ...data.settings });
+      if (data.server_time) setNow(new Date(data.server_time));
     } catch (e) {
       console.error('Error loading booking data:', e);
     } finally {
@@ -130,36 +177,47 @@ export default function PublicBooking() {
     } catch { /* ignore */ } finally { setLoadingCep(false); }
   };
 
+  const allSlots = useMemo(() => generateSlots(settings), [settings]);
+
   const calendarDays = useMemo(() => {
     const days: Date[] = [];
+    const today = startOfDay(now);
+    const maxDays = settings.max_advance_days ?? 30;
     for (let i = 0; i < 14; i++) {
       const day = addDays(calendarStart, i);
-      if (!isBefore(day, startOfDay(new Date()))) {
-        days.push(day);
-      }
+      if (isBefore(day, today)) continue;
+      // skip days beyond max_advance_days
+      const diffD = (day.getTime() - today.getTime()) / 86400000;
+      if (diffD > maxDays) continue;
+      // skip weekdays disabled in settings
+      const wkKey = WK_KEYS[day.getDay()];
+      if (settings.weekdays && settings.weekdays[wkKey] === false) continue;
+      days.push(day);
     }
     return days;
-  }, [calendarStart]);
+  }, [calendarStart, settings, now]);
 
   const availableTimes = useMemo(() => {
-    if (!selectedDate) return TIME_SLOTS;
+    if (!selectedDate) return allSlots;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const busyTimes = busySlots
-      .filter(s => {
-        const d = new Date(s);
-        return format(d, 'yyyy-MM-dd') === dateStr;
-      })
+      .filter(s => format(new Date(s), 'yyyy-MM-dd') === dateStr)
       .map(s => format(new Date(s), 'HH:mm'));
 
-    return TIME_SLOTS.filter(t => {
-      if (isToday(selectedDate)) {
-        const now = new Date();
-        const [h, m] = t.split(':').map(Number);
-        if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) return false;
-      }
-      return !busyTimes.includes(t);
+    const minAdvanceMs = (settings.min_advance_hours ?? 0) * 3600000;
+    const cutoff = new Date(now.getTime() + minAdvanceMs);
+
+    return allSlots.filter(t => {
+      if (busyTimes.includes(t)) return false;
+      const [h, m] = t.split(':').map(Number);
+      const slotDt = new Date(selectedDate);
+      slotDt.setHours(h, m, 0, 0);
+      // Block past + min advance window (covers madrugada and "agora")
+      if (slotDt.getTime() < cutoff.getTime()) return false;
+      return true;
     });
-  }, [selectedDate, busySlots]);
+  }, [selectedDate, busySlots, allSlots, now, settings.min_advance_hours]);
+
 
   const handleSubmit = async () => {
     if (!userId || !selectedDate || !selectedTime || !selectedService) return;
@@ -574,7 +632,7 @@ export default function PublicBooking() {
                   className="w-full bg-slate-800 border-slate-700 rounded-md h-10 px-3 text-white"
                 >
                   <option value="">Selecione</option>
-                  {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  {allSlots.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
             </div>

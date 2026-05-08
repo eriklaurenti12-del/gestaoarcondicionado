@@ -53,26 +53,43 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Get business info and available services
+      // Get business info, services, busy slots and online booking settings
       const [
         { data: company },
         { data: services },
-        { data: appointments }
+        { data: appointments },
+        { data: settings }
       ] = await Promise.all([
         supabase.from('company_data').select('company_name, whatsapp, address, logo_url, instagram').eq('user_id', userId).maybeSingle(),
         supabase.from('products').select('id, name, price, service_duration, type, image_url').eq('user_id', userId).eq('type', 'service'),
         supabase.from('appointments').select('appointment_date, status')
           .eq('user_id', userId)
           .in('status', ['pendente', 'confirmado'])
-          .gte('appointment_date', new Date().toISOString())
+          .gte('appointment_date', new Date().toISOString()),
+        supabase.from('online_booking_settings').select('*').eq('user_id', userId).maybeSingle()
       ]);
 
       const busySlots = (appointments || []).map((a: any) => a.appointment_date);
 
+      const defaultSettings = {
+        enabled: true,
+        weekdays: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+        start_time: '08:00',
+        end_time: '18:00',
+        slot_minutes: 30,
+        lunch_start: '12:00',
+        lunch_end: '13:00',
+        min_advance_hours: 2,
+        max_advance_days: 30,
+        auto_confirm: false,
+      };
+
       return new Response(JSON.stringify({
         company: company || { company_name: 'AC Service Pro' },
         services: services || [],
-        busySlots
+        busySlots,
+        settings: settings || defaultSettings,
+        server_time: new Date().toISOString(),
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
@@ -163,6 +180,66 @@ Deno.serve(async (req) => {
         return new Response(JSON.stringify({ error: 'Formato de data/hora inválido' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Validate against online_booking_settings (real-time, server-side)
+      const { data: cfg } = await supabase
+        .from('online_booking_settings').select('*').eq('user_id', userId).maybeSingle();
+
+      const s: any = cfg || {
+        enabled: true,
+        weekdays: { mon: true, tue: true, wed: true, thu: true, fri: true, sat: true, sun: false },
+        start_time: '08:00', end_time: '18:00', slot_minutes: 30,
+        lunch_start: '12:00', lunch_end: '13:00',
+        min_advance_hours: 2, max_advance_days: 30,
+      };
+
+      if (s.enabled === false) {
+        return new Response(JSON.stringify({ error: 'Agendamento online desativado.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+      const slotMin = toMin(safeTime);
+      const startMin = toMin(s.start_time || '08:00');
+      const endMin = toMin(s.end_time || '18:00');
+
+      if (slotMin < startMin || slotMin >= endMin) {
+        return new Response(JSON.stringify({ error: `Horário fora do expediente (${s.start_time} - ${s.end_time}).` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      if (s.lunch_start && s.lunch_end) {
+        const lStart = toMin(s.lunch_start), lEnd = toMin(s.lunch_end);
+        if (slotMin >= lStart && slotMin < lEnd) {
+          return new Response(JSON.stringify({ error: 'Horário de almoço indisponível.' }), {
+            status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          });
+        }
+      }
+
+      const dt = new Date(`${safeDate}T${safeTime}:00`);
+      const wkKey = ['sun','mon','tue','wed','thu','fri','sat'][dt.getDay()];
+      if ((s.weekdays || {})[wkKey] === false) {
+        return new Response(JSON.stringify({ error: 'Dia da semana indisponível para agendamento.' }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      const now = new Date();
+      const diffH = (dt.getTime() - now.getTime()) / 3600000;
+      const diffD = (dt.getTime() - now.getTime()) / 86400000;
+      if (diffH < (s.min_advance_hours ?? 0)) {
+        return new Response(JSON.stringify({ error: `Antecedência mínima de ${s.min_advance_hours}h.` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      if (diffD > (s.max_advance_days ?? 365)) {
+        return new Response(JSON.stringify({ error: `Antecedência máxima de ${s.max_advance_days} dias.` }), {
+          status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
