@@ -342,7 +342,7 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     // Look up service duration so end-of-window is enforced exactly
     const { data: svc } = await supabase
       .from('products').select('service_duration')
-      .eq('user_id', editingBooking.user_id)
+      .eq('user_id', userId)
       .eq('type', 'service')
       .ilike('name', `%${editService}%`)
       .maybeSingle();
