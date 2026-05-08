@@ -81,12 +81,18 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     queryKey: ['calendar-providers'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('service_providers' as any)
-        .select('*')
-        .eq('active', true)
-        .order('name');
-      if (error) return [];
-      return (data as any[]) || [];
+        .from('admin_settings')
+        .select('value')
+        .eq('key', 'service_providers')
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') return [];
+      if (!data?.value) return [];
+      try {
+        const list = JSON.parse(data.value as string);
+        return (Array.isArray(list) ? list : []).filter((p: any) => p.active);
+      } catch {
+        return [];
+      }
     },
   });
 
