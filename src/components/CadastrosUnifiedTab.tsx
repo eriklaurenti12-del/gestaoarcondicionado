@@ -80,48 +80,33 @@ const CadastrosUnifiedTab: React.FC = () => {
       {isSuperAdmin && <DummyDataSeeder />}
       
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl h-auto flex-wrap">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
-            <Users className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Clientes</span>
+            <Users className="w-4 h-4" /><span className="truncate">Clientes</span>
           </TabsTrigger>
           <TabsTrigger value="register" className="flex items-center gap-1 px-2">
-            <PlusCircle className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Cadastrar</span>
+            <PlusCircle className="w-4 h-4" /><span className="truncate">Cadastrar</span>
           </TabsTrigger>
           <TabsTrigger value="products" className="flex items-center gap-1 px-2">
-            <Snowflake className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Catálogo</span>
+            <Snowflake className="w-4 h-4" /><span className="truncate">Serviços</span>
           </TabsTrigger>
           <TabsTrigger value="estoque" className="flex items-center gap-1 px-2">
-            <Package className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Estoque</span>
+            <Package className="w-4 h-4" /><span className="truncate">Estoque</span>
           </TabsTrigger>
           <TabsTrigger value="suppliers" className="flex items-center gap-1 px-2">
-            <Building2 className="w-4 h-4 flex-shrink-0" />
-            <span className="hidden sm:inline truncate">Fornecedores</span>
+            <Building2 className="w-4 h-4" /><span className="truncate">Fornec.</span>
+          </TabsTrigger>
+          <TabsTrigger value="online-booking" className="flex items-center gap-1 px-2">
+            <CalendarClock className="w-4 h-4" /><span className="truncate">Agenda Online</span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="clients" className="mt-4">
-          <ClientsTab />
-        </TabsContent>
-
-        <TabsContent value="products" className="mt-4">
-          <ProductsTab />
-        </TabsContent>
-
-        <TabsContent value="register" className="mt-4">
-          <RegisterProductTab />
-        </TabsContent>
-
-        <TabsContent value="estoque" className="mt-4">
-          <EstoqueTab />
-        </TabsContent>
-
-        <TabsContent value="suppliers" className="mt-4">
-          <SuppliersTab />
-        </TabsContent>
+        <TabsContent value="clients" className="mt-4"><ClientsTab /></TabsContent>
+        <TabsContent value="products" className="mt-4"><ProductsTab /></TabsContent>
+        <TabsContent value="register" className="mt-4"><RegisterProductTab /></TabsContent>
+        <TabsContent value="estoque" className="mt-4"><EstoqueTab /></TabsContent>
+        <TabsContent value="suppliers" className="mt-4"><SuppliersTab /></TabsContent>
+        <TabsContent value="online-booking" className="mt-4"><OnlineBookingConfigTab /></TabsContent>
       </Tabs>
     </div>
   );
