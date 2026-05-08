@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FileDown, Save, Building2, Phone, Mail, MapPin, Clock, Instagram, Facebook, Globe, Upload, X, Image } from "lucide-react";
 import jsPDF from 'jspdf';
 import { Skeleton } from "@/components/ui/skeleton";
+import { BusinessHoursCard } from "@/components/BusinessHoursCard";
 
 const CompanyDataTab: React.FC = () => {
   const { toast } = useToast();
