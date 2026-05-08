@@ -613,57 +613,57 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
 
                           {/* Status Action Buttons */}
                           {!canQuickDecide && apt.status !== 'concluido' && apt.status !== 'cancelado' && (
-                            <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                            <div className="flex gap-2 mt-3 pt-2 border-t">
                               {apt.status !== 'confirmado' && (
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="text-xs h-7 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                  className="text-xs h-7 px-2.5 gap-1.5 flex-1 border-blue-500/30 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     updateStatusMutation.mutate({ id: apt.id, status: 'confirmado' });
                                   }}
                                 >
-                                  <Play className="w-3 h-3 mr-1" /> Confirmar
+                                  <Play className="w-3.5 h-3.5" /> Confirmar
                                 </Button>
                               )}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs h-7 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
+                                className="text-xs h-7 px-2.5 gap-1.5 flex-1 border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-950/30"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDecisionPaymentMethod('Dinheiro');
                                   setDecisionAppointment(apt);
                                 }}
                               >
-                                <Check className="w-3 h-3 mr-1" /> Concluir
+                                <Check className="w-3.5 h-3.5" /> Concluir
                               </Button>
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs h-7 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                className="text-xs h-7 px-2.5 gap-1.5 flex-1 border-red-500/30 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateStatusMutation.mutate({ id: apt.id, status: 'cancelado' });
                                 }}
                               >
-                                <X className="w-3 h-3 mr-1" /> Cancelar
+                                <X className="w-3.5 h-3.5" /> Cancelar
                               </Button>
                             </div>
                           )}
                           {!canQuickDecide && (apt.status === 'concluido' || apt.status === 'cancelado') && (
-                            <div className="flex gap-1.5 mt-3 pt-2 border-t">
+                            <div className="flex gap-2 mt-3 pt-2 border-t">
                               <Button
                                 size="sm"
                                 variant="ghost"
-                                className="text-xs h-7 flex-1"
+                                className="text-xs h-7 px-2.5 gap-1.5 flex-1"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   updateStatusMutation.mutate({ id: apt.id, status: 'pendente' });
                                 }}
                               >
-                                ↩️ Reabrir
+                                <RotateCcw className="w-3.5 h-3.5" /> Reabrir
                               </Button>
                             </div>
                           )}
