@@ -212,6 +212,7 @@ export default function ServiceProvidersTab() {
         technical_notes: formData.technical_notes,
         is_field_technician: formData.is_field_technician,
         is_recurring_expenses: formData.is_recurring_expenses,
+        monthly_cost: parseFloat(formData.monthly_cost) || 0,
         has_system_access: formData.has_system_access,
         team_member_id: teamMemberId,
         color: formData.color,
@@ -227,8 +228,32 @@ export default function ServiceProvidersTab() {
         updated = [...providers, newProvider];
         toast.success('Novo profissional cadastrado!');
       }
-      
+
       saveMutation.mutate(updated);
+
+      // Sync provider monthly fixed cost into fixed_expenses (auto recurring) for current month
+      const monthlyCost = parseFloat(formData.monthly_cost) || 0;
+      if (formData.is_recurring_expenses && monthlyCost > 0) {
+        const tag = `auto:provider:${newProvider.id}`;
+        const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+          .toISOString().slice(0, 10);
+        await supabase.from('fixed_expenses').delete()
+          .eq('user_id', session.user.id)
+          .ilike('description', `${tag}%`)
+          .gte('expense_date', monthStart);
+        await supabase.from('fixed_expenses').insert({
+          user_id: session.user.id,
+          category: 'pro-labore',
+          helper_name: newProvider.name,
+          amount: monthlyCost,
+          description: `${tag} | Custo mensal fixo de ${newProvider.name}`,
+          expense_date: monthStart,
+          is_recurring: true,
+        });
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['expenses-for-providers'] });
+      }
+
       setDialogOpen(false);
       resetForm();
     } catch (error: any) {
