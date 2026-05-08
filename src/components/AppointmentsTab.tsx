@@ -120,6 +120,7 @@ const fetchPendingOrders = async (): Promise<ServiceOrder[]> => {
 const AppointmentsTab: React.FC = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { validateSlot } = useBusinessHours();
   const [search, setSearch] = useState("");
   const [selectedClientId, setSelectedClientId] = useState("");
   const [selectedServiceId, setSelectedServiceId] = useState("");
