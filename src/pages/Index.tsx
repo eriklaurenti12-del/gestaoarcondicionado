@@ -26,6 +26,7 @@ import NotificationSettings from "@/components/NotificationSettings";
 import LembretesTab from "@/components/LembretesTab";
 import EmployeesTab from "@/components/EmployeesTab";
 import OnboardingTour from "@/components/OnboardingTour";
+import SpotlightAtualizar from "@/components/SpotlightAtualizar";
 import { getUserPref, setUserPref } from "@/utils/userPreferences";
 import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
@@ -353,6 +354,7 @@ export default function Index() {
           <UpdateNotification />
           <RotatingNotifications />
           <OnboardingTour open={showOnboarding} onComplete={handleOnboardingComplete} />
+          <SpotlightAtualizar />
           <PWAInstallButton />
         </div>
       </SidebarProvider>
