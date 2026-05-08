@@ -251,7 +251,7 @@ const DummyDataSeeder: React.FC = () => {
   };
 
   const hardReset = async () => {
-    if (!window.confirm("⚠️ Apaga TUDO da sua conta. Continuar?")) return;
+    if (!window.confirm("⚠️ Apaga TUDO da sua conta (clientes, agenda, financeiro, prestadores, agenda online, configurações). Continuar?")) return;
     if (!window.confirm("Confirmação final: ação irreversível.")) return;
 
     setLoading(true);
@@ -261,21 +261,31 @@ const DummyDataSeeder: React.FC = () => {
       if (!session) return;
       const userId = session.user.id;
 
+      // Ordem importa: filhos antes dos pais
       await supabase.from('installments').delete().eq('user_id', userId);
       await supabase.from('sales').delete().eq('user_id', userId);
       await supabase.from('financial_records').delete().eq('user_id', userId);
+      await supabase.from('financial_audit_log').delete().eq('user_id', userId);
+      await supabase.from('financial_reconciliation_log').delete().eq('user_id', userId);
       await supabase.from('fixed_expenses').delete().eq('user_id', userId);
+      await supabase.from('scheduled_maintenance').delete().eq('user_id', userId);
+      await supabase.from('service_orders').delete().eq('user_id', userId);
       await supabase.from('appointments').delete().eq('user_id', userId);
+      await supabase.from('online_bookings').delete().eq('user_id', userId);
+      await supabase.from('online_booking_settings').delete().eq('user_id', userId);
       await supabase.from('quotes').delete().eq('user_id', userId);
+      await supabase.from('client_equipment').delete().eq('user_id', userId);
+      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       await supabase.from('products').delete().eq('user_id', userId);
       await supabase.from('clients').delete().eq('user_id', userId);
       await supabase.from('suppliers').delete().eq('user_id', userId);
-      await supabase.from('client_equipment').delete().eq('user_id', userId);
-      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       await supabase.from('tax_records').delete().eq('user_id', userId);
       await supabase.from('team_members').delete().eq('user_id', userId);
 
-      toast.success("Sistema limpo do zero.");
+      // Prestadores ficam em admin_settings (JSON global). Limpa apenas a chave.
+      await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+
+      toast.success("✅ Sistema limpo do zero (incluindo prestadores e agenda online).");
       queryClient.invalidateQueries();
     } catch (error: any) {
       toast.error("Erro ao resetar: " + error.message);
