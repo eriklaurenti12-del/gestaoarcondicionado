@@ -42,18 +42,30 @@ export async function ensureMonthlyRecurringExpenses(
   // 3) Fetch existing auto rows for the month so we can skip them
   const { data: existing } = await supabase
     .from('fixed_expenses')
-    .select('id, description, amount, helper_name')
+    .select('id, description, category, helper_name')
     .eq('user_id', userId)
     .gte('expense_date', monthStart)
     .lte('expense_date', monthEnd)
     .or('description.ilike.auto:team:%,description.ilike.auto:provider:%');
 
-  const existingTags = new Set(
-    (existing || [])
-      .map(r => (r.description || '').match(/^(auto:[a-z]+:[^|\s]+)(?:\s*\|\s*(salario|vale|monthly))?/i))
-      .filter(Boolean)
-      .map((m: any) => `${m[1]}|${(m[2] || '').toLowerCase()}`)
-  );
+  // Index existing rows per base tag, segregating salary vs vale for team rows.
+  const existingTeamSalary = new Set<string>();
+  const existingTeamVale = new Set<string>();
+  const existingProvider = new Set<string>();
+  for (const r of existing || []) {
+    const m = (r.description || '').match(/^(auto:(team|provider):[^|\s]+)/i);
+    if (!m) continue;
+    const tag = m[1];
+    const kind = m[2].toLowerCase();
+    if (kind === 'team') {
+      const isVale = (r.category || '').toLowerCase() === 'vale' ||
+        /\bvale\b/i.test(r.description || '');
+      if (isVale) existingTeamVale.add(tag);
+      else existingTeamSalary.add(tag);
+    } else {
+      existingProvider.add(tag);
+    }
+  }
 
   const rowsToInsert: any[] = [];
 
@@ -62,7 +74,7 @@ export async function ensureMonthlyRecurringExpenses(
     const vale = Number(m.vale_amount) || 0;
     const category = m.expense_category || 'Salário';
     const baseTag = `auto:team:${m.id}`;
-    if (salary > 0 && !existingTags.has(`${baseTag}|salario`)) {
+    if (salary > 0 && !existingTeamSalary.has(baseTag)) {
       rowsToInsert.push({
         user_id: userId,
         category,
@@ -73,7 +85,7 @@ export async function ensureMonthlyRecurringExpenses(
         is_recurring: true,
       });
     }
-    if (vale > 0 && !existingTags.has(`${baseTag}|vale`)) {
+    if (vale > 0 && !existingTeamVale.has(baseTag)) {
       rowsToInsert.push({
         user_id: userId,
         category: 'Vale',
@@ -88,7 +100,7 @@ export async function ensureMonthlyRecurringExpenses(
 
   for (const p of activeProviders) {
     const baseTag = `auto:provider:${p.id}`;
-    if (!existingTags.has(`${baseTag}|monthly`) && !existingTags.has(`${baseTag}|`)) {
+    if (!existingProvider.has(baseTag)) {
       rowsToInsert.push({
         user_id: userId,
         category: 'pro-labore',
