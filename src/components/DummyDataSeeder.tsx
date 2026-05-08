@@ -437,10 +437,10 @@ const DummyDataSeeder: React.FC = () => {
       await supabase.from('fixed_expenses').delete().eq('user_id', userId);
       await supabase.from('scheduled_maintenance').delete().eq('user_id', userId);
       await supabase.from('service_orders').delete().eq('user_id', userId);
+      await supabase.from('quotes').delete().eq('user_id', userId);
       await supabase.from('appointments').delete().eq('user_id', userId);
       await supabase.from('online_bookings').delete().eq('user_id', userId);
       await supabase.from('online_booking_settings').delete().eq('user_id', userId);
-      await supabase.from('quotes').delete().eq('user_id', userId);
       await supabase.from('client_equipment').delete().eq('user_id', userId);
       await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       await supabase.from('products').delete().eq('user_id', userId);
@@ -448,12 +448,24 @@ const DummyDataSeeder: React.FC = () => {
       await supabase.from('suppliers').delete().eq('user_id', userId);
       await supabase.from('tax_records').delete().eq('user_id', userId);
       await supabase.from('team_members').delete().eq('user_id', userId);
+      await supabase.from('team_online_status').delete().eq('owner_id', userId);
+      await supabase.from('team_invites').delete().eq('created_by', userId);
 
       // Prestadores ficam em admin_settings (JSON global). Limpa apenas a chave.
       await supabase.from('admin_settings').delete().eq('key', 'service_providers');
 
-      toast.success("✅ Sistema limpo do zero (incluindo prestadores e agenda online).");
-      queryClient.invalidateQueries();
+      // Força limpeza total de cache (React Query + storage local de prestadores/agenda)
+      try {
+        queryClient.clear();
+        Object.keys(localStorage).forEach((k) => {
+          if (/provider|prestador|agenda|appointment|financ|tax|client|product/i.test(k)) {
+            localStorage.removeItem(k);
+          }
+        });
+      } catch {}
+
+      toast.success("✅ Sistema limpo do zero. Recarregando…");
+      setTimeout(() => window.location.reload(), 600);
     } catch (error: any) {
       toast.error("Erro ao resetar: " + error.message);
     } finally {
