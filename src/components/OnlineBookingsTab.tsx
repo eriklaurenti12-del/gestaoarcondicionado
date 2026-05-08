@@ -681,9 +681,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               <>
                 <TabsContent value="futuras" className="mt-0">
                   {futureBookings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-10 text-muted-foreground">
                       <CalendarClock className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Nenhum agendamento futuro.</p>
+                      <p className="text-sm font-medium">Nenhum agendamento futuro</p>
+                      <p className="text-xs mt-1 opacity-80">Solicitações para os próximos dias aparecerão aqui.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -694,9 +695,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
                 <TabsContent value="hoje" className="mt-0">
                   {todayBookings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-10 text-muted-foreground">
                       <CalendarCheck className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Nenhum agendamento para hoje.</p>
+                      <p className="text-sm font-medium">Nada agendado para hoje</p>
+                      <p className="text-xs mt-1 opacity-80">Aproveite para revisar pendências ou enviar lembretes.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -707,9 +709,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
                 <TabsContent value="todos" className="mt-0">
                   {allBookings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Nenhum agendamento online ainda.</p>
+                    <div className="text-center py-10 text-muted-foreground">
+                      <List className="w-10 h-10 mx-auto mb-3 opacity-50" />
+                      <p className="text-sm font-medium">Nenhum agendamento online ainda</p>
+                      <p className="text-xs mt-1 opacity-80">Compartilhe o link público para começar a receber solicitações.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
@@ -720,9 +723,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
 
                 <TabsContent value="historico" className="mt-0">
                   {historyBookings.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
+                    <div className="text-center py-10 text-muted-foreground">
                       <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm">Nenhum histórico disponível.</p>
+                      <p className="text-sm font-medium">Nenhum histórico disponível</p>
+                      <p className="text-xs mt-1 opacity-80">Agendamentos passados, recusados ou cancelados ficam aqui.</p>
                     </div>
                   ) : (
                     <div className="space-y-3">
