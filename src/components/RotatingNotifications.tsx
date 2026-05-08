@@ -523,6 +523,8 @@ const RotatingNotifications: React.FC = () => {
                   settings.rotatingBanner = false;
                   localStorage.setItem('notification_settings', JSON.stringify(settings));
                 } catch {}
+                void setUserPref('rotating_banner_hidden', true);
+                setBannerEnabled(false);
                 setIsDismissed(true);
                 setIsVisible(false);
               }}
