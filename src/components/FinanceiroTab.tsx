@@ -432,7 +432,7 @@ export default function FinanceiroTab() {
   const normalizeCat = (c: string | null) => (c || '').toString().trim().toLowerCase();
   const isServicoCat = (c: string | null) => {
     const n = normalizeCat(c);
-    return n.startsWith('serviç') || n.startsWith('servic') || n === 'service';
+    return n.startsWith('serviç') || n.startsWith('servic');
   };
   const isProdutoCat = (c: string | null) => {
     const n = normalizeCat(c);
@@ -441,22 +441,24 @@ export default function FinanceiroTab() {
 
   const entradas = records.filter(r => r.type === "entrada");
   const totalServicos = entradas.filter(r => isServicoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
-  // Produtos: prioriza a tabela `sales` (fonte da verdade do PDV); soma também
-  // entradas manuais marcadas como Produto que não tenham vindo do PDV.
+  // Saldo: usa apenas financial_records (fonte da verdade do caixa)
+  const totalProdutosFR = entradas.filter(r => isProdutoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
+  // Card de Produtos: mostra o maior entre (vendas registradas no PDV) e
+  // (entradas manuais de produto), evitando aparecer R$ 0,00 quando há venda
+  // mas o registro financeiro ainda não foi sincronizado.
   const totalProdutosSales = sales?.reduce((acc, s) => acc + Number(s.sale_price) * Number(s.qty || 1), 0) || 0;
-  const totalProdutosManual = entradas
-    .filter(r => isProdutoCat(r.category) && !(r.description || '').toLowerCase().includes('venda pdv'))
-    .reduce((acc, r) => acc + Number(r.amount), 0);
-  const totalProdutos = totalProdutosSales + totalProdutosManual;
+  const totalProdutos = Math.max(totalProdutosFR, totalProdutosSales);
   const totalOutrasEntradas = entradas
     .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category))
     .reduce((acc, r) => acc + Number(r.amount), 0);
-  
-  const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
+
+  const totalEntradas = totalServicos + totalProdutosFR + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
-  
-  const totalGastosRotas = records.filter(r => r.type === "saque" && (r.category === "Alimentação" || r.category === "Combustível")).reduce((acc, r) => acc + Number(r.amount), 0);
+
+  const totalGastosRotas = records
+    .filter(r => r.type === "saque" && (normalizeCat(r.category) === 'alimentação' || normalizeCat(r.category) === 'alimentacao' || normalizeCat(r.category) === 'combustível' || normalizeCat(r.category) === 'combustivel'))
+    .reduce((acc, r) => acc + Number(r.amount), 0);
   
   // Total profit from sales table (business performance)
   const lucroProdutos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
