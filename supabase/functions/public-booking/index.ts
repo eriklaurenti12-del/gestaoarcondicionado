@@ -92,9 +92,13 @@ Deno.serve(async (req) => {
         settings: settings || defaultSettings,
         server_time: new Date().toISOString(),
       }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: {
+          ...corsHeaders,
+          'Content-Type': 'application/json',
+          // Edge cache: 30s shared CDN cache, 10s browser, allows stale while revalidating for snappier loads
+          'Cache-Control': 'public, max-age=10, s-maxage=30, stale-while-revalidate=60',
+        }
       });
-    }
 
     if (req.method === 'PUT') {
       const body = await req.json();
