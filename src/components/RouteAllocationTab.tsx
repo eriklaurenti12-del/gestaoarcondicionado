@@ -595,21 +595,37 @@ export default function RouteAllocationTab({ providers }: { providers: ServicePr
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mb-8">
+                  <div className="grid grid-cols-2 gap-2 mb-3">
                     <Button 
                       size="sm" 
                       variant="outline" 
-                      className="h-11 flex-1 bg-white/5 border-white/10 hover:bg-white/10 text-[10px] font-black uppercase gap-2"
+                      className="h-10 bg-white/5 border-white/10 hover:bg-white/10 text-[10px] font-black uppercase gap-2"
                       onClick={() => exportRoutePDF(provName, appts)}
                     >
-                      <Printer className="w-4 h-4" /> IMPRIMIR
+                      <Printer className="w-3.5 h-3.5" /> PDF COMPLETO
                     </Button>
                     <Button 
                       size="sm" 
-                      className="h-11 flex-1 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] gap-2 shadow-lg shadow-green-500/10"
+                      className="h-10 bg-green-600 hover:bg-green-700 text-white font-black uppercase text-[10px] gap-2 shadow-lg shadow-green-500/10"
                       onClick={() => setRouteProvider(provider || null)}
                     >
-                      <CheckCircle2 className="w-4 h-4" /> AUDITAR
+                      <CheckCircle2 className="w-3.5 h-3.5" /> AUDITAR
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-10 bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase gap-2"
+                      onClick={() => exportPendingPDF(provName, appts)}
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> PDF PENDENTES
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-10 bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10 text-amber-500 text-[10px] font-black uppercase gap-2"
+                      onClick={() => exportPendingCSV(provName, appts)}
+                    >
+                      <FileDown className="w-3.5 h-3.5" /> CSV PENDENTES
                     </Button>
                   </div>
 
