@@ -74,6 +74,20 @@ const DummyDataSeeder: React.FC = () => {
       const monthYYYYMM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
       const monthStart = `${monthYYYYMM}-01`;
 
+      // Helpers aleatórios
+      const rand = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+      const fakePhone = () => {
+        const ddd = rand(['11','21','16','19','27','31','41','47','51','61','71','81','85']);
+        const p1 = String(90000 + Math.floor(Math.random()*9999)).padStart(5,'0');
+        const p2 = String(Math.floor(Math.random()*9999)).padStart(4,'0');
+        return `${ddd}9${p1.slice(0,4)}${p2}`.slice(0,11);
+      };
+      const FAKE_NAMES = [
+        'Carlos Oliveira','Ana Beatriz','Roberto Santos','Juliana Costa','Pedro Almeida',
+        'Mariana Souza','Felipe Rocha','Camila Ribeiro','Lucas Ferreira','Patrícia Lima',
+        'Bruno Carvalho','Fernanda Martins','Rafael Mendes','Gabriela Pinto','Thiago Araújo'
+      ];
+
       // --- Prestadores (admin_settings JSON) ---
       const providers = [
         { id: crypto.randomUUID(), name: "Erik Laurenti (TESTE)", phone: "16992600631", specialty: "Geral",       cost_per_hour: 50, monthly_cost: 1200, is_recurring_expenses: true, color: "#3b82f6", active: true, created_at: new Date().toISOString() },
@@ -82,50 +96,128 @@ const DummyDataSeeder: React.FC = () => {
       ];
       if (picker.prestadores) {
         await supabase.from('admin_settings').upsert({ key: 'service_providers', value: JSON.stringify(providers), description: 'Simulação' }, { onConflict: 'key' });
+
+        // Gastos diários de combustível + alimentação por prestador (últimos 5 dias)
+        const dailyExpenses: any[] = [];
+        for (let d = 0; d < 5; d++) {
+          const day = new Date(now); day.setDate(now.getDate() - d);
+          const dateStr = day.toISOString().slice(0,10);
+          for (const p of providers) {
+            dailyExpenses.push({
+              user_id: userId,
+              category: 'Combustível',
+              description: `Combustível ${p.name}`,
+              amount: 30 + Math.floor(Math.random()*40),
+              expense_date: dateStr,
+              helper_name: p.name,
+              is_recurring: false,
+            });
+            dailyExpenses.push({
+              user_id: userId,
+              category: 'Alimentação',
+              description: `Alimentação ${p.name}`,
+              amount: 18 + Math.floor(Math.random()*22),
+              expense_date: dateStr,
+              helper_name: p.name,
+              is_recurring: false,
+            });
+          }
+        }
+        if (dailyExpenses.length) {
+          await supabase.from('fixed_expenses').insert(dailyExpenses);
+        }
       }
 
-      // --- Funcionários ---
+      // --- Funcionários (3 com nomes/telefones aleatórios) ---
       if (picker.funcionarios) {
-        await supabase.from('team_members').insert({
+        const funcs = Array.from({ length: 3 }).map((_, i) => ({
           user_id: userId,
-          name: 'Funcionário TESTE',
-          phone: '11999990000',
-          role: 'sistema',
-          monthly_salary: 1800,
-          vale_amount: 200,
+          name: `${rand(FAKE_NAMES)} (TESTE)`,
+          phone: fakePhone(),
+          role: i === 0 ? 'gerente' : 'sistema',
+          monthly_salary: 1500 + Math.floor(Math.random()*1500),
+          vale_amount: 100 + Math.floor(Math.random()*200),
           expense_category: 'Salário',
           is_active: true,
-        });
+        }));
+        await supabase.from('team_members').insert(funcs);
       }
 
-      // --- Clientes ---
+      // --- Clientes (8 aleatórios) ---
       let createdClients: any[] = [];
       if (picker.clientes) {
-        const fakeClients = [
-          { name: "Carlos Oliveira (TESTE)", telefone: "11999990001", address: "Av. Paulista, 1000 - SP", user_id: userId },
-          { name: "Ana Beatriz (TESTE)",     telefone: "11999990002", address: "Rua Augusta, 500 - SP",   user_id: userId },
-          { name: "Roberto Santos (TESTE)",  telefone: "21988880001", address: "Av. Atlântica, 200 - RJ", user_id: userId },
-          { name: "Empresa ABC (TESTE)",     telefone: "11977770001", address: "Distrito Industrial - SP", is_company: true, user_id: userId },
-        ];
+        const used = new Set<string>();
+        const fakeClients = Array.from({ length: 8 }).map((_, i) => {
+          let n = rand(FAKE_NAMES); while (used.has(n)) n = rand(FAKE_NAMES); used.add(n);
+          return {
+            name: `${n} (TESTE)`,
+            telefone: fakePhone(),
+            address: rand(['Av. Paulista, 1000 - SP','Rua Augusta, 500 - SP','Av. Atlântica, 200 - RJ','Rua das Flores, 88 - SP','Av. Brasil, 1500 - RJ','Rua XV, 320 - PR']),
+            user_id: userId,
+            is_company: i === 7,
+          };
+        });
         const { data, error } = await supabase.from('clients').insert(fakeClients).select();
         if (error) throw error;
         createdClients = data || [];
       }
 
-      // --- Produtos / Serviços ---
+      // --- Produtos / Serviços (com imagens) ---
       let createdProducts: any[] = [];
       const wantProducts = picker.produtos || picker.servicos;
       if (wantProducts) {
         const rows: any[] = [];
-        if (picker.produtos) rows.push({ name: "Ar Split 12000 BTU (TESTE)", type: "piece", price: 2500, cost_price: 1800, qty: 10, user_id: userId, storage_location: "Câmara 1", min_stock: 2 });
+        if (picker.produtos) {
+          rows.push({ name: "Ar Split 12000 BTU (TESTE)", type: "piece", price: 2500, cost_price: 1800, qty: 10, user_id: userId, storage_location: "Câmara 1", min_stock: 2, image_url: 'https://images.unsplash.com/photo-1631545806609-cda3ecde29bc?w=400' });
+          rows.push({ name: "Ar Split 9000 BTU (TESTE)",  type: "piece", price: 1900, cost_price: 1300, qty: 6,  user_id: userId, storage_location: "Câmara 1", min_stock: 2, image_url: 'https://images.unsplash.com/photo-1605374551406-b8c5d7c5e2c1?w=400' });
+          rows.push({ name: "Suporte Inox (TESTE)",       type: "piece", price: 90,   cost_price: 35,   qty: 25, user_id: userId, storage_location: "Câmara 2", min_stock: 5, image_url: 'https://images.unsplash.com/photo-1581094271901-8022df4466f9?w=400' });
+        }
         if (picker.servicos) {
-          rows.push({ name: "Limpeza Completa (TESTE)",   type: "service", price: 250, cost_price: 50,  user_id: userId, service_duration: 90,  warranty_months: 6,  qty: 0 });
-          rows.push({ name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12, qty: 0 });
+          rows.push({ name: "Limpeza Completa (TESTE)",   type: "service", price: 250, cost_price: 50,  user_id: userId, service_duration: 90,  warranty_months: 6,  qty: 0, image_url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400' });
+          rows.push({ name: "Instalação Padrão (TESTE)", type: "service", price: 650, cost_price: 200, user_id: userId, service_duration: 120, warranty_months: 12, qty: 0, image_url: 'https://images.unsplash.com/photo-1597149961419-cc6e095faf95?w=400' });
+          rows.push({ name: "Manutenção Preventiva (TESTE)", type: "service", price: 320, cost_price: 80, user_id: userId, service_duration: 60, warranty_months: 3, qty: 0, image_url: 'https://images.unsplash.com/photo-1607400201515-c2c41c07d307?w=400' });
         }
         const { data, error } = await supabase.from('products').insert(rows).select();
         if (error) throw error;
         createdProducts = data || [];
       }
+
+      // --- Configuração da Agenda Online (puxa horário da empresa) ---
+      if (picker.agendas) {
+        await supabase.from('online_booking_settings').upsert({
+          user_id: userId,
+          enabled: true,
+          weekdays: { sun: false, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true },
+          start_time: '08:00',
+          end_time: '18:00',
+          slot_minutes: 30,
+          lunch_start: '12:00',
+          lunch_end: '13:00',
+          min_advance_hours: 2,
+          max_advance_days: 30,
+          auto_confirm: false,
+        } as any, { onConflict: 'user_id' });
+
+        // Agendamentos online pendentes (vindos do PublicBooking)
+        const onlineRows = Array.from({ length: 3 }).map(() => {
+          const day = new Date(now); day.setDate(now.getDate() + 1 + Math.floor(Math.random()*5));
+          const hour = 9 + Math.floor(Math.random()*8);
+          return {
+            user_id: userId,
+            client_name: `${rand(FAKE_NAMES)} (ONLINE)`,
+            client_phone: fakePhone(),
+            client_email: null,
+            service_name: rand(['Limpeza Completa','Instalação Padrão','Manutenção Preventiva']),
+            preferred_date: day.toISOString().slice(0,10),
+            preferred_time: `${String(hour).padStart(2,'0')}:00`,
+            payment_method: rand(['pix','dinheiro','cartao_credito']),
+            notes: '[DUMMY] Solicitação online de teste',
+            status: 'pendente',
+          };
+        });
+        await supabase.from('online_bookings').insert(onlineRows);
+      }
+
 
       // --- Agendamentos (precisa de clientes + serviços) ---
       let createdAppts: any[] = [];
@@ -251,7 +343,7 @@ const DummyDataSeeder: React.FC = () => {
   };
 
   const hardReset = async () => {
-    if (!window.confirm("⚠️ Apaga TUDO da sua conta. Continuar?")) return;
+    if (!window.confirm("⚠️ Apaga TUDO da sua conta (clientes, agenda, financeiro, prestadores, agenda online, configurações). Continuar?")) return;
     if (!window.confirm("Confirmação final: ação irreversível.")) return;
 
     setLoading(true);
@@ -261,21 +353,31 @@ const DummyDataSeeder: React.FC = () => {
       if (!session) return;
       const userId = session.user.id;
 
+      // Ordem importa: filhos antes dos pais
       await supabase.from('installments').delete().eq('user_id', userId);
       await supabase.from('sales').delete().eq('user_id', userId);
       await supabase.from('financial_records').delete().eq('user_id', userId);
+      await supabase.from('financial_audit_log').delete().eq('user_id', userId);
+      await supabase.from('financial_reconciliation_log').delete().eq('user_id', userId);
       await supabase.from('fixed_expenses').delete().eq('user_id', userId);
+      await supabase.from('scheduled_maintenance').delete().eq('user_id', userId);
+      await supabase.from('service_orders').delete().eq('user_id', userId);
       await supabase.from('appointments').delete().eq('user_id', userId);
+      await supabase.from('online_bookings').delete().eq('user_id', userId);
+      await supabase.from('online_booking_settings').delete().eq('user_id', userId);
       await supabase.from('quotes').delete().eq('user_id', userId);
+      await supabase.from('client_equipment').delete().eq('user_id', userId);
+      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       await supabase.from('products').delete().eq('user_id', userId);
       await supabase.from('clients').delete().eq('user_id', userId);
       await supabase.from('suppliers').delete().eq('user_id', userId);
-      await supabase.from('client_equipment').delete().eq('user_id', userId);
-      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
       await supabase.from('tax_records').delete().eq('user_id', userId);
       await supabase.from('team_members').delete().eq('user_id', userId);
 
-      toast.success("Sistema limpo do zero.");
+      // Prestadores ficam em admin_settings (JSON global). Limpa apenas a chave.
+      await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+
+      toast.success("✅ Sistema limpo do zero (incluindo prestadores e agenda online).");
       queryClient.invalidateQueries();
     } catch (error: any) {
       toast.error("Erro ao resetar: " + error.message);
