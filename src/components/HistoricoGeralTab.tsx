@@ -249,6 +249,32 @@ export default function HistoricoGeralTab() {
     };
   }, [filtered]);
 
+  // Próximos Vencimentos por Cliente — usa último serviço CONCLUÍDO + warranty_months
+  const upcomingByClient = useMemo(() => {
+    const map = new Map<string, { client: string; clientObj?: any; service: string; lastDate: string; dueDate: Date; months: number; phone?: string }>();
+    (appointments || []).forEach((a: any) => {
+      if (a.status !== 'concluido') return;
+      const months = a.products?.warranty_months || 0;
+      if (months <= 0) return;
+      const clientName = a.clients?.name || '—';
+      const due = addMonths(new Date(a.appointment_date), months);
+      const existing = map.get(clientName);
+      // Mantém o serviço mais recente por cliente
+      if (!existing || new Date(a.appointment_date) > new Date(existing.lastDate)) {
+        map.set(clientName, {
+          client: clientName,
+          clientObj: a.clients,
+          service: a.products?.name || 'Serviço',
+          lastDate: a.appointment_date,
+          dueDate: due,
+          months,
+          phone: a.clients?.telefone,
+        });
+      }
+    });
+    return Array.from(map.values()).sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+  }, [appointments]);
+
   const getStatusBadge = (status: string) => {
     const map: Record<string, string> = {
       concluido: 'bg-green-500/10 text-green-500 border-green-500/20',
