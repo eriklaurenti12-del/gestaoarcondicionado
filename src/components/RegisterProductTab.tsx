@@ -216,7 +216,7 @@ const RegisterProductTab: React.FC = () => {
         image_url: imageUrl,
         supplier_id: selectedSupplierId && selectedSupplierId !== "none" ? parseInt(selectedSupplierId) : null,
         min_stock: isService ? 0 : minStock,
-        warranty_months: 12,
+        warranty_months: isService ? validityMonths : 12,
         storage_location: storageLocation.trim() || null,
         storage_shelf: storageShelf.trim() || null,
         storage_section: storageSection.trim() || null,
