@@ -194,7 +194,7 @@ const ImpostosTab: React.FC = () => {
     }
   }, [monthlyRevenue, taxRecord, selectedMonth]);
 
-  // Load form data when tax record changes
+  // Load form data + payroll/providers/xml when tax record changes
   React.useEffect(() => {
     if (taxRecord) {
       setFormData({
@@ -219,33 +219,107 @@ const ImpostosTab: React.FC = () => {
         other_expenses: Number(taxRecord.other_expenses) || 0,
         notes: taxRecord.notes || ''
       });
+      setPayroll(Array.isArray((taxRecord as any).payroll_data) ? (taxRecord as any).payroll_data : []);
+      setProviderCosts(Array.isArray((taxRecord as any).provider_costs) ? (taxRecord as any).provider_costs : []);
+      setXmlImports(Array.isArray((taxRecord as any).xml_imports) ? (taxRecord as any).xml_imports : []);
     } else {
-      // Reset form when no record exists
       setFormData(prev => ({
         ...prev,
-        total_revenue: 0,
-        revenue_from_services: 0,
-        revenue_from_products: 0,
-        das_value: 0,
-        inss_value: 0,
-        fgts_value: 0,
-        irrf_value: 0,
-        iss_value: 0,
-        other_taxes: 0,
-        employee_name: '',
-        employee_salary: 0,
-        employee_is_registered: false,
-        employee_inss: 0,
-        employee_fgts: 0,
-        total_expenses: 0,
-        fuel_expenses: 0,
-        material_expenses: 0,
-        equipment_expenses: 0,
-        other_expenses: 0,
+        total_revenue: 0, revenue_from_services: 0, revenue_from_products: 0,
+        das_value: 0, inss_value: 0, fgts_value: 0, irrf_value: 0, iss_value: 0, other_taxes: 0,
+        employee_name: '', employee_salary: 0, employee_is_registered: false,
+        employee_inss: 0, employee_fgts: 0,
+        total_expenses: 0, fuel_expenses: 0, material_expenses: 0, equipment_expenses: 0, other_expenses: 0,
         notes: ''
       }));
+      setPayroll([]); setProviderCosts([]); setXmlImports([]);
     }
   }, [taxRecord]);
+
+  const pullMonthlyData = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    try {
+      const ds = await buildMonthDataset(session.user.id, selectedMonth);
+      setFormData(prev => ({
+        ...prev,
+        total_revenue: ds.totals.receitaBruta,
+        revenue_from_services: ds.totals.receitaServicos,
+        revenue_from_products: ds.totals.receitaProdutos,
+        total_expenses: ds.totals.despesasTotais,
+        fuel_expenses: monthlyRevenue?.expenses.fuel || prev.fuel_expenses,
+        material_expenses: monthlyRevenue?.expenses.material || prev.material_expenses,
+        equipment_expenses: monthlyRevenue?.expenses.equipment || prev.equipment_expenses,
+        other_expenses: monthlyRevenue?.expenses.other || prev.other_expenses,
+      }));
+      // Merge payroll: keep manually-entered INSS/FGTS if member already there
+      setPayroll(prev => ds.payroll.map(p => {
+        const old = prev.find(x => x.name === p.name);
+        return {
+          name: p.name,
+          salary: p.salary,
+          vale: p.vale,
+          expense_category: p.expense_category,
+          inss: old?.inss || 0,
+          fgts: old?.fgts || 0,
+        };
+      }));
+      setProviderCosts(ds.providerCosts);
+      toast.success('✅ Dados sincronizados', { description: `${ds.payroll.length} funcionário(s), ${ds.providerCosts.length} prestador(es).` });
+    } catch (e: any) {
+      toast.error('Erro ao sincronizar: ' + e.message);
+    }
+  };
+
+  const handleXmlUpload = async (file: File) => {
+    try {
+      const text = await file.text();
+      const parsed = parseDanfeXml(text);
+      setDanfePreview(parsed);
+    } catch (e: any) {
+      toast.error('XML inválido: ' + e.message);
+    }
+  };
+
+  const confirmDanfeImport = (asMaterial: boolean) => {
+    if (!danfePreview) return;
+    const entry: XmlImport = {
+      id: crypto.randomUUID(),
+      chave: danfePreview.chave,
+      emitente: danfePreview.emitente?.nome,
+      numero: danfePreview.numero,
+      data: danfePreview.dataEmissao,
+      valorProdutos: danfePreview.valorProdutos,
+      valorImpostos: danfePreview.valorImpostos,
+      valorTotal: danfePreview.valorTotal,
+      itensCount: danfePreview.itens.length,
+      importedAt: new Date().toISOString(),
+    };
+    setXmlImports(prev => [...prev, entry]);
+    if (asMaterial) {
+      setFormData(prev => ({
+        ...prev,
+        material_expenses: prev.material_expenses + entry.valorProdutos,
+        total_expenses: prev.total_expenses + entry.valorTotal,
+      }));
+    }
+    setDanfePreview(null);
+    if (xmlInputRef.current) xmlInputRef.current.value = '';
+    toast.success('DANFE anexada!', { description: `Total R$ ${entry.valorTotal.toFixed(2)} registrado.` });
+  };
+
+  const removeXml = (id: string) => {
+    const x = xmlImports.find(i => i.id === id);
+    setXmlImports(prev => prev.filter(i => i.id !== id));
+    if (x) {
+      setFormData(prev => ({
+        ...prev,
+        material_expenses: Math.max(0, prev.material_expenses - x.valorProdutos),
+        total_expenses: Math.max(0, prev.total_expenses - x.valorTotal),
+      }));
+    }
+  };
 
   const pullMonthlyData = () => {
     if (monthlyRevenue) {
