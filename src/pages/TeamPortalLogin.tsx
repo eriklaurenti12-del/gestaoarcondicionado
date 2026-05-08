@@ -56,7 +56,21 @@ export default function TeamPortalLogin() {
         body: { member_name: nameOrPhone.trim(), pin: finalPin }
       });
 
-      if (error || data?.error) throw new Error(data?.error || error?.message || "PIN incorreto");
+      if (error || data?.error) {
+        // Extract real error message from edge function response body (non-2xx)
+        let msg = data?.error || error?.message || "PIN incorreto";
+        try {
+          const ctx = (error as any)?.context;
+          if (ctx && typeof ctx.json === 'function') {
+            const body = await ctx.json();
+            if (body?.error) msg = body.error;
+          } else if (ctx && typeof ctx.text === 'function') {
+            const txt = await ctx.text();
+            try { const parsed = JSON.parse(txt); if (parsed?.error) msg = parsed.error; } catch {}
+          }
+        } catch {}
+        throw new Error(msg);
+      }
 
       const portalSession: PortalSession = {
         memberId: data.member_id,
