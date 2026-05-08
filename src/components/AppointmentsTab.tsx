@@ -273,6 +273,10 @@ const AppointmentsTab: React.FC = () => {
   };
 
   const { data: pendingOrders } = useQuery({ queryKey: ['pending-orders'], queryFn: fetchPendingOrders });
+  const { data: appointments, isLoading: isLoadingAppointments } = useQuery<Appointment[]>({ queryKey: ['appointments'], queryFn: fetchAppointments });
+  const { data: clients = [] as any[] } = useQuery<any[]>({ queryKey: ['clients-list'], queryFn: fetchClients });
+  const { data: services = [] as any[] } = useQuery<any[]>({ queryKey: ['products-list'], queryFn: fetchServices });
+  const { data: pendingQuotes } = useQuery({ queryKey: ['pending-quotes'], queryFn: fetchPendingQuotes });
 
   // REALTIME SUBSCRIPTION
   useEffect(() => {

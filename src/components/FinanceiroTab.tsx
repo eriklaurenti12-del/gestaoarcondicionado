@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3 } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/hooks/use-toast";
 import { format, endOfMonth, isToday } from "date-fns";
@@ -213,7 +213,7 @@ export default function FinanceiroTab() {
       const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
       if (!session) return;
       
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('financial_locks')
         .select('*')
         .eq('user_id', session.user.id)
@@ -256,7 +256,7 @@ export default function FinanceiroTab() {
 
     if (isLocked) {
       // Unlock
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('financial_locks')
         .delete()
         .eq('user_id', session.user.id)
@@ -268,7 +268,7 @@ export default function FinanceiroTab() {
       }
     } else {
       // Lock
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('financial_locks')
         .insert({
           user_id: session.user.id,
