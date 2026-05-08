@@ -17,7 +17,7 @@ const SpotlightAtualizar: React.FC = () => {
     const tryFind = () => {
       // Locate the Atualizar button by visible label.
       const btn = Array.from(document.querySelectorAll("button")).find((b) =>
-        /atualizar/i.test(b.textContent || "")
+        /(atualizar|sincronizar)/i.test(b.textContent || "")
       ) as HTMLElement | undefined;
       if (btn) {
         setRect(btn.getBoundingClientRect());
