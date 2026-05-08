@@ -89,10 +89,13 @@ const PWAInstallButton: React.FC = () => {
               INSTALAR
             </Button>
             <button 
-              onClick={() => setIsVisible(false)}
+              onClick={() => {
+                setIsVisible(false);
+                localStorage.setItem('pwa-install-dismissed-forever', 'true');
+              }}
               className="text-[10px] text-muted-foreground hover:text-foreground underline transition-colors"
             >
-              Depois
+              Não mostrar
             </button>
           </div>
         </div>
