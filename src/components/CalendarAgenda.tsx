@@ -173,6 +173,13 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
       toast.success(labels[status] || 'Status atualizado');
       if (result?.summary) {
         setServiceSummary(result.summary);
+        // Auto-open WhatsApp confirmation message (same wa.me pattern used across the system)
+        if (result.summary.waLink) {
+          try {
+            window.open(result.summary.waLink, '_blank', 'noopener');
+            toast.success('💬 WhatsApp aberto com a mensagem de conclusão');
+          } catch {}
+        }
       }
     }
   });
