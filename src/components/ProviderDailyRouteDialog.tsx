@@ -91,13 +91,23 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
       if (canceledIds.length > 0) await supabase.from('appointments').update({ status: 'cancelado' }).in('id', canceledIds);
       if (rescheduledIds.length > 0) await supabase.from('appointments').update({ status: 'agendado' }).in('id', rescheduledIds);
 
-      // 3. Revenue Recognition (Inflow)
-      let totalRevenue = 0;
+      // 3. Revenue Recognition (Inflow) — UMA entrada por agendamento, descrição padrão
+      // (mesma chave usada em AppointmentsTab/FinanceiroTab → dedup automático)
       for (const apt of completedAppts) {
-        let price = Number(apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(apt.products?.price) || 0;
-        totalRevenue += price;
-        
-        // Create individual sale records for better tracking
+        const price = Number(apt.notes?.match(/\[VALOR:([\d.]+)\]/)?.[1]) || Number(apt.products?.price) || 0;
+        if (price <= 0) continue;
+
+        const description = `Serviço concluído: ${apt.products?.name || 'Serviço'} - ${apt.clients?.name || 'Cliente'}`;
+
+        // Skip if já lançado por outra via (agenda / auto-sync)
+        const { data: existing } = await supabase
+          .from('financial_records')
+          .select('id')
+          .eq('description', description)
+          .maybeSingle();
+        if (existing) continue;
+
+        // Sale record (cada serviço, com endereço/cliente preservado)
         await supabase.from('sales').insert({
           user_id: session.user.id,
           client_id: apt.client_id,
@@ -105,22 +115,19 @@ export default function ProviderDailyRouteDialog({ isOpen, onOpenChange, provide
           sale_price: price,
           qty: 1,
           total_profit: price,
-          sale_date: todayStr,
-          status: 'concluido',
+          sale_date: apt.appointment_date,
           payment_method: 'Dinheiro',
-          notes: `Auditado via Rota: ${provider.name}`
         });
-      }
 
-      if (totalRevenue > 0) {
         await recordFinancialEntry({
           userId: session.user.id,
           type: 'entrada',
-          amount: totalRevenue,
-          description: `RECEITA ROTA: ${provider.name} (${completedAppts.length} serv)`,
+          amount: price,
+          description,
           paymentMethod: 'Dinheiro',
-          category: 'Serviços',
-          providerName: provider.name
+          category: 'Serviço Concluído',
+          providerName: provider.name,
+          recordDate: apt.appointment_date,
         });
       }
     },
