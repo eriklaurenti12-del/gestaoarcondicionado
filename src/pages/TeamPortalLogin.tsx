@@ -684,7 +684,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
         {/* Single row of tabs - dynamically filtered */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`w-full grid h-10`} style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+          <TabsList className="w-full grid h-10 overflow-hidden" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}>
             {visibleTabs.includes("agenda") && <TabsTrigger value="agenda" className="text-xs gap-1"><CalendarDays className="w-3.5 h-3.5" /><span className="hidden sm:inline">Agenda</span></TabsTrigger>}
             {visibleTabs.includes("cadastros") && <TabsTrigger value="cadastros" className="text-xs gap-1"><Users className="w-3.5 h-3.5" /><span className="hidden sm:inline">Cadastros</span></TabsTrigger>}
             {visibleTabs.includes("financeiro") && <TabsTrigger value="financeiro" className="text-xs gap-1"><DollarSign className="w-3.5 h-3.5" /><span className="hidden sm:inline">Financeiro</span></TabsTrigger>}
