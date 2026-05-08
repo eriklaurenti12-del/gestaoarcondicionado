@@ -5,6 +5,7 @@ import { X, Bell, Lightbulb, TrendingUp, Calendar, Shield, Zap, Heart, Star, Ale
 import { cn } from '@/lib/utils';
 import { differenceInDays, isToday, isTomorrow, format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { getUserPref, setUserPref } from '@/utils/userPreferences';
 
 interface Notification {
   id: string;
