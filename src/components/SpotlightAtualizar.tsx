@@ -2,76 +2,80 @@ import React, { useEffect, useState } from "react";
 import { X, RefreshCw } from "lucide-react";
 
 const SESSION_KEY = "spotlight_atualizar_dismissed";
+const SELECTOR = '[data-spotlight-target="atualizar"]';
 
 /**
- * Renders a focus spotlight that highlights the "Atualizar" button on
- * every login until the user clicks the X. Dismissal is per session.
+ * Renders a focus spotlight that highlights the dashboard "Atualizar" button.
+ * - Targets ONLY the button with [data-spotlight-target="atualizar"]
+ * - Keeps the cutout in sync with scroll/resize/layout changes
+ * - Hides itself if the target is off-screen or not present
  */
 const SpotlightAtualizar: React.FC = () => {
-  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(
+    () => typeof window !== "undefined" && sessionStorage.getItem(SESSION_KEY) === "1"
+  );
   const [rect, setRect] = useState<DOMRect | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem(SESSION_KEY) === "1") return;
+    if (dismissed) return;
 
-    const tryFind = () => {
-      // Locate the Atualizar button by visible label.
-      const btn = Array.from(document.querySelectorAll("button")).find((b) =>
-        /(atualizar|sincronizar)/i.test(b.textContent || "")
-      ) as HTMLElement | undefined;
-      if (btn) {
-        setRect(btn.getBoundingClientRect());
-        setVisible(true);
-        return true;
-      }
-      return false;
+    let raf = 0;
+    const update = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const btn = document.querySelector(SELECTOR) as HTMLElement | null;
+        if (!btn) {
+          setRect(null);
+          return;
+        }
+        const r = btn.getBoundingClientRect();
+        // Hide if button not actually visible on screen
+        if (r.width === 0 || r.height === 0 || r.bottom < 0 || r.top > window.innerHeight) {
+          setRect(null);
+          return;
+        }
+        setRect(r);
+      });
     };
 
-    if (!tryFind()) {
-      const interval = setInterval(() => {
-        if (tryFind()) clearInterval(interval);
-      }, 400);
-      const stop = setTimeout(() => clearInterval(interval), 8000);
-      return () => {
-        clearInterval(interval);
-        clearTimeout(stop);
-      };
-    }
+    update();
+    const interval = setInterval(update, 500); // catch async-mounted buttons / layout shifts
+    window.addEventListener("resize", update);
+    window.addEventListener("scroll", update, true);
+    const ro = new ResizeObserver(update);
+    ro.observe(document.body);
 
-    const onResize = () => tryFind();
-    window.addEventListener("resize", onResize);
-    window.addEventListener("scroll", onResize, true);
     return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("scroll", onResize, true);
+      cancelAnimationFrame(raf);
+      clearInterval(interval);
+      window.removeEventListener("resize", update);
+      window.removeEventListener("scroll", update, true);
+      ro.disconnect();
     };
-  }, []);
+  }, [dismissed]);
 
-  if (!visible || !rect) return null;
+  if (dismissed || !rect) return null;
 
   const close = () => {
     sessionStorage.setItem(SESSION_KEY, "1");
-    setVisible(false);
+    setDismissed(true);
   };
 
-  // Padding around the button cutout
   const pad = 8;
   const x = Math.max(0, rect.left - pad);
   const y = Math.max(0, rect.top - pad);
   const w = rect.width + pad * 2;
   const h = rect.height + pad * 2;
 
-  // Tooltip below or above based on space
   const placeBelow = y + h + 200 < window.innerHeight;
-  const tipTop = placeBelow ? y + h + 12 : y - 180;
+  const tipTop = placeBelow ? y + h + 12 : Math.max(12, y - 190);
   const tipLeft = Math.min(
-    window.innerWidth - 320,
-    Math.max(12, x + w / 2 - 160)
+    window.innerWidth - 312,
+    Math.max(12, x + w / 2 - 150)
   );
 
   return (
     <div className="fixed inset-0 z-[9999]" aria-modal="true" role="dialog">
-      {/* SVG mask: dark backdrop with a transparent rounded cutout */}
       <svg className="absolute inset-0 w-full h-full pointer-events-auto" onClick={close}>
         <defs>
           <mask id="spotlight-mask">
@@ -85,7 +89,6 @@ const SpotlightAtualizar: React.FC = () => {
           fill="rgba(2, 6, 23, 0.78)"
           mask="url(#spotlight-mask)"
         />
-        {/* Glow ring */}
         <rect
           x={x - 2}
           y={y - 2}
@@ -100,7 +103,6 @@ const SpotlightAtualizar: React.FC = () => {
         />
       </svg>
 
-      {/* Tooltip card */}
       <div
         className="absolute w-[300px] rounded-2xl bg-slate-900 border border-blue-500/40 shadow-2xl p-4 text-white"
         style={{ top: tipTop, left: tipLeft }}
