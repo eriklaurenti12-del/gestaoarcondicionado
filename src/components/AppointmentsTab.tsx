@@ -1206,25 +1206,21 @@ const AppointmentsTab: React.FC = () => {
             aria-label="Visualizar em calendário mensal"
           >
             <CalendarRange className="w-4 h-4 mr-2 shrink-0" />
-            <span className="hidden sm:inline">Calendário</span>
-            <span className="sm:hidden">Cal.</span>
+            <span className="truncate">Calendário</span>
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 w-full lg:w-auto">
-          <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 lg:flex-none">
-            <PlusCircle className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Novo Agendamento</span>
-            <span className="sm:hidden">Novo</span>
+          <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 lg:flex-none" aria-label="Novo agendamento">
+            <PlusCircle className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">Novo Agendamento</span>
           </Button>
-          <Button onClick={exportScheduledPDF} variant="outline" className="min-h-[44px]">
-            <FileDown className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Exportar PDF</span>
-            <span className="sm:hidden">PDF</span>
+          <Button onClick={exportScheduledPDF} variant="outline" className="min-h-[44px] flex-1 lg:flex-none" aria-label="Exportar agendamentos em PDF">
+            <FileDown className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">Exportar PDF</span>
           </Button>
-          <Button onClick={exportRoutePDF} variant="outline" className="min-h-[44px] text-blue-600 border-blue-300 hover:bg-blue-50">
-            <Navigation className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Rota do Dia</span>
-            <span className="sm:hidden">Rota</span>
+          <Button onClick={exportRoutePDF} variant="outline" className="min-h-[44px] flex-1 lg:flex-none text-blue-600 border-blue-300 hover:bg-blue-50" aria-label="Gerar rota do dia">
+            <Navigation className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">Rota do Dia</span>
           </Button>
         </div>
       </div>
