@@ -253,7 +253,7 @@ export default function ScheduleBoard() {
                             </div>
                           </div>
                           <Badge variant="outline" className="text-xs flex-shrink-0">
-                            {appointment.status === 'pendente' ? 'Agendado' :
+                            {appointment.status === 'pendente' ? 'Pendente' :
                              appointment.status === 'confirmado' ? 'Confirmado' :
                              appointment.status === 'concluido' ? 'Concluído' : appointment.status}
                           </Badge>
