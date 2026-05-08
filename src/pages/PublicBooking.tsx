@@ -33,6 +33,8 @@ const PAYMENT_METHODS = [
   { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
 ];
 
+type Vacation = { start_date: string; end_date: string; reason?: string };
+
 type BookingSettings = {
   enabled: boolean;
   weekdays: { sun: boolean; mon: boolean; tue: boolean; wed: boolean; thu: boolean; fri: boolean; sat: boolean };
@@ -43,6 +45,7 @@ type BookingSettings = {
   lunch_end?: string | null;
   min_advance_hours: number;
   max_advance_days: number;
+  vacations?: Vacation[];
 };
 
 const DEFAULT_SETTINGS: BookingSettings = {
@@ -55,6 +58,7 @@ const DEFAULT_SETTINGS: BookingSettings = {
   lunch_end: '13:00',
   min_advance_hours: 2,
   max_advance_days: 30,
+  vacations: [],
 };
 
 const WK_KEYS: Array<keyof BookingSettings['weekdays']> = ['sun','mon','tue','wed','thu','fri','sat'];
