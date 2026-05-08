@@ -16,18 +16,23 @@ import { reconcileFinancialMonth } from "@/utils/recurringSync";
 // ---- Categories the user can select ----
 type Cat =
   | 'clientes' | 'produtos' | 'servicos' | 'agendas'
-  | 'financeiro' | 'funcionarios' | 'prestadores' | 'rotas' | 'impostos';
+  | 'financeiro' | 'funcionarios' | 'prestadores' | 'rotas' | 'impostos'
+  | 'fornecedores' | 'equipamentos' | 'contratos' | 'os';
 
 const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any> }> = [
-  { key: 'clientes',     label: 'Clientes',     desc: '4 clientes (PF + PJ) com endereço', icon: Users },
-  { key: 'produtos',     label: 'Produtos',     desc: '1 equipamento em estoque',          icon: Package },
-  { key: 'servicos',     label: 'Serviços',     desc: '2 serviços (limpeza + instalação)', icon: Wrench },
+  { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)', icon: Users },
+  { key: 'produtos',     label: 'Produtos',     desc: '3 itens em estoque',          icon: Package },
+  { key: 'servicos',     label: 'Serviços',     desc: '3 serviços com imagens', icon: Wrench },
   { key: 'agendas',      label: 'Agenda',       desc: '2 hoje + 1 passado concluído',      icon: CalendarDays },
-  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do agendamento concluído', icon: DollarSign },
-  { key: 'funcionarios', label: 'Funcionários', desc: '1 funcionário com salário/vale',     icon: UserCog },
-  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores com custo mensal',     icon: Truck },
+  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do concluído', icon: DollarSign },
+  { key: 'funcionarios', label: 'Funcionários', desc: '3 funcionários (salário/vale)',     icon: UserCog },
+  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores + gastos diários',     icon: Truck },
   { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',   icon: MapPin },
-  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês com folha + provedores', icon: FileText },
+  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText },
+  { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',         icon: Truck },
+  { key: 'equipamentos', label: 'Equipamentos', desc: 'Equipamentos vinculados ao cliente', icon: Wrench },
+  { key: 'contratos',    label: 'Contratos',    desc: '2 contratos de manutenção ativos',   icon: FileText },
+  { key: 'os',           label: 'O.S. / Orçam.',desc: '1 orçamento + 1 ordem de serviço',   icon: FileText },
 ];
 
 const ALL_ON: Record<Cat, boolean> = CATEGORIES.reduce((acc, c) => ({ ...acc, [c.key]: true }), {} as any);
