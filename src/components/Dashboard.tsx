@@ -1167,7 +1167,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
 
       {/* Appointment Statistics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-stagger">
-        <Card className="stat-card premium-card border-blue-500/30 card-gradient-blue animate-slide-up group">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateToTab?.('agenda')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onNavigateToTab?.('agenda')}
+          aria-label={`Atendimentos de hoje: ${appointmentStats.today}. Clique para abrir a Agenda.`}
+          title="Atendimentos de hoje — clique para abrir a Agenda"
+          className="stat-card premium-card border-blue-500/30 card-gradient-blue animate-slide-up group cursor-pointer hover:scale-[1.02] hover:border-blue-500/60 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-blue-500/10">
@@ -1176,11 +1184,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
               <span className="text-xs font-medium text-blue-700 dark:text-blue-300">Hoje</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-blue-600 animate-count-up">{appointmentStats.today}</div>
-            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
+            <p className="text-xs text-muted-foreground mt-1">atendimentos hoje</p>
           </CardContent>
         </Card>
 
-        <Card className="stat-card premium-card border-purple-500/30 card-gradient-purple animate-slide-up group [animation-delay:100ms]">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateToTab?.('agenda')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onNavigateToTab?.('agenda')}
+          aria-label={`Atendimentos da semana: ${appointmentStats.week}. Clique para abrir a Agenda.`}
+          title="Atendimentos previstos para os próximos 7 dias"
+          className="stat-card premium-card border-purple-500/30 card-gradient-purple animate-slide-up group cursor-pointer hover:scale-[1.02] hover:border-purple-500/60 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500/50 [animation-delay:100ms]"
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-purple-500/10">
@@ -1189,15 +1205,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
               <span className="text-xs font-medium text-purple-700 dark:text-purple-300">Semana</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-purple-600 animate-count-up">{appointmentStats.week}</div>
-            <p className="text-xs text-muted-foreground mt-1">atendimentos</p>
+            <p className="text-xs text-muted-foreground mt-1">próximos 7 dias</p>
           </CardContent>
         </Card>
 
-        <Card className="stat-card premium-card border-green-500/30 card-gradient-green animate-slide-up group [animation-delay:200ms]">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateToTab?.('agenda')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onNavigateToTab?.('agenda')}
+          aria-label={`Confirmados para hoje: ${appointmentStats.confirmedToday}. Clique para abrir a Agenda.`}
+          title="Serviços confirmados para hoje (cliente já confirmou presença)"
+          className="stat-card premium-card border-green-500/30 card-gradient-green animate-slide-up group cursor-pointer hover:scale-[1.02] hover:border-green-500/60 transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 [animation-delay:200ms]"
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-green-500/10">
-                <Clock className="w-4 h-4 text-green-600 animate-float" />
+                <CalendarCheck className="w-4 h-4 text-green-600 animate-float" />
               </div>
               <span className="text-xs font-medium text-green-700 dark:text-green-300">Confirmados</span>
             </div>
@@ -1206,7 +1230,15 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
           </CardContent>
         </Card>
 
-        <Card className="stat-card premium-card border-amber-500/30 card-gradient-amber animate-slide-up group [animation-delay:300ms]">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigateToTab?.('agenda')}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onNavigateToTab?.('agenda')}
+          aria-label={`Aguardando confirmação: ${appointmentStats.scheduledToday}. Clique para abrir a Agenda.`}
+          title="Aguardando confirmação do cliente para hoje"
+          className="stat-card premium-card border-amber-500/30 card-gradient-amber animate-slide-up group cursor-pointer hover:scale-[1.02] hover:border-amber-500/60 transition-all focus:outline-none focus:ring-2 focus:ring-amber-500/50 [animation-delay:300ms]"
+        >
           <CardContent className="p-3 sm:p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="icon-container p-1.5 rounded-lg bg-amber-500/10">
@@ -1215,7 +1247,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
               <span className="text-xs font-medium text-amber-700 dark:text-amber-300">Aguardando</span>
             </div>
             <div className="text-2xl sm:text-3xl font-bold text-amber-600 animate-count-up">{appointmentStats.scheduledToday}</div>
-            <p className="text-xs text-muted-foreground mt-1">aguardando</p>
+            <p className="text-xs text-muted-foreground mt-1">confirmação do cliente</p>
           </CardContent>
         </Card>
       </div>
