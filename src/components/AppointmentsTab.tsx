@@ -1895,15 +1895,15 @@ const AppointmentsTab: React.FC = () => {
     </Dialog>
       {/* Edit Appointment Dialog */}
       <Dialog open={!!editingAppointment} onOpenChange={(open) => !open && setEditingAppointment(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col p-0">
+          <DialogHeader className="p-6 pb-2 shrink-0 border-b">
             <DialogTitle>Editar Agendamento</DialogTitle>
             <DialogDescription>
               Altere os detalhes do serviço para {editingAppointment?.clients?.name}
             </DialogDescription>
           </DialogHeader>
           
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-4 px-6 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-2">
               <Label>Cliente</Label>
               <Select value={editClientId} onValueChange={setEditClientId}>
