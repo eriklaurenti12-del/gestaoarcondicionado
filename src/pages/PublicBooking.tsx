@@ -33,12 +33,48 @@ const PAYMENT_METHODS = [
   { id: 'cartao_debito', label: 'Cartão Débito', icon: '💳' },
 ];
 
-const TIME_SLOTS = [
-  '08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-  '14:00', '14:30', '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00',
-];
+type BookingSettings = {
+  enabled: boolean;
+  weekdays: { sun: boolean; mon: boolean; tue: boolean; wed: boolean; thu: boolean; fri: boolean; sat: boolean };
+  start_time: string;
+  end_time: string;
+  slot_minutes: number;
+  lunch_start?: string | null;
+  lunch_end?: string | null;
+  min_advance_hours: number;
+  max_advance_days: number;
+};
+
+const DEFAULT_SETTINGS: BookingSettings = {
+  enabled: true,
+  weekdays: { sun: false, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true },
+  start_time: '08:00',
+  end_time: '18:00',
+  slot_minutes: 30,
+  lunch_start: '12:00',
+  lunch_end: '13:00',
+  min_advance_hours: 2,
+  max_advance_days: 30,
+};
+
+const WK_KEYS: Array<keyof BookingSettings['weekdays']> = ['sun','mon','tue','wed','thu','fri','sat'];
+
+const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const padHM = (mins: number) => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+
+const generateSlots = (s: BookingSettings): string[] => {
+  const slots: string[] = [];
+  const start = toMin(s.start_time);
+  const end = toMin(s.end_time);
+  const step = Math.max(5, s.slot_minutes || 30);
+  const lStart = s.lunch_start ? toMin(s.lunch_start) : null;
+  const lEnd = s.lunch_end ? toMin(s.lunch_end) : null;
+  for (let m = start; m < end; m += step) {
+    if (lStart !== null && lEnd !== null && m >= lStart && m < lEnd) continue;
+    slots.push(padHM(m));
+  }
+  return slots;
+};
 
 const formatWhatsAppUrl = (phone: string, message: string) => {
   const clean = phone.replace(/\D/g, '');
