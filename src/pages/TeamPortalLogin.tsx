@@ -253,6 +253,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("agenda");
+  const [showFullSystem, setShowFullSystem] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
   const [newClientName, setNewClientName] = useState("");
   const [newClientPhone, setNewClientPhone] = useState("");
