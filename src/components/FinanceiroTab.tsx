@@ -145,58 +145,26 @@ export default function FinanceiroTab() {
     enabled: !!selectedMonth,
   });
 
-  // Track which appointments have been synced to avoid duplicates
-  const [syncedAppointmentIds, setSyncedAppointmentIds] = useState<Set<string>>(new Set());
+  // NOTE: Creation/removal of financial entries from concluded appointments
+  // is handled exclusively by AppointmentsTab (linked via appointment_id).
+  // This avoids duplicates that previously appeared because two places
+  // inserted the same row with slightly different descriptions/categories.
 
-  // Sync completed appointments to financial records
+  // Auto-ensure recurring expenses (employees + providers) for the selected month.
   useEffect(() => {
-    if (!completedAppointments) return;
-    const sync = async () => {
-      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
+    (async () => {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
       if (!session) return;
-      
-      const newSynced = new Set<string>(syncedAppointmentIds);
-      
-      for (const apt of completedAppointments) {
-        if (newSynced.has(apt.id)) continue; 
-
-        const amount = getAppointmentPrice(apt);
-        if (amount <= 0) continue;
-
-        const description = `Serviço concluído: ${apt.products?.name || 'Serviço'} - ${apt.clients?.name || 'Cliente'}`;
-        
-        // Robust duplicate check in DB
-        const { data: existing } = await supabase
-          .from('financial_records')
-          .select('id')
-          .eq('description', description)
-          .maybeSingle();
-        
-        if (existing) {
-          newSynced.add(apt.id);
-          continue;
-        }
-
-        const provName = apt.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
-        
-        await recordFinancialEntry({
-          userId: session.user.id,
-          type: 'entrada',
-          amount,
-          description,
-          paymentMethod: 'Dinheiro',
-          category: 'Serviço Concluído',
-          providerName: provName,
-          recordDate: apt.appointment_date,
-        });
-        
-        newSynced.add(apt.id);
+      try {
+        await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        queryClient.invalidateQueries({ queryKey: ['fixed-expenses-summary', selectedMonth] });
+      } catch (e) {
+        console.warn('ensureMonthlyRecurringExpenses failed', e);
       }
-      setSyncedAppointmentIds(newSynced);
-      fetchRecords();
-    };
-    sync();
-  }, [completedAppointments]);
+    })();
+  }, [selectedMonth]);
 
   const getAppointmentPrice = (apt: any) => {
     if (apt.notes) {
