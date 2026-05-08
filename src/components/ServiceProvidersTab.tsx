@@ -533,6 +533,17 @@ export default function ServiceProvidersTab() {
                     <Label className="text-[10px] font-black text-slate-500 uppercase ml-1">Aux. Motorista (R$)</Label>
                     <Input type="number" step="0.01" value={formData.driver_cost} onChange={e => setFormData({ ...formData, driver_cost: e.target.value })} className="op-input h-12 font-bold" />
                   </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black text-emerald-400 uppercase ml-1">💼 Custo Mensal Fixo (R$)</Label>
+                    <Input
+                      type="number" step="0.01"
+                      placeholder="Ex: 3000"
+                      value={formData.monthly_cost}
+                      onChange={e => setFormData({ ...formData, monthly_cost: e.target.value })}
+                      className="op-input h-12 font-bold border-emerald-500/30"
+                    />
+                    <p className="text-[9px] font-bold text-slate-500 uppercase">Lança automaticamente em Gastos Fixos do mês</p>
+                  </div>
                 </div>
               </div>
 
