@@ -1726,6 +1726,7 @@ const AppointmentsTab: React.FC = () => {
                 <Label>Data *</Label>
                 <Input 
                   type="date" 
+                  min={format(new Date(), 'yyyy-MM-dd')}
                   value={appointmentDate} 
                   onChange={(e) => setAppointmentDate(e.target.value)} 
                   className="min-h-[44px]"
