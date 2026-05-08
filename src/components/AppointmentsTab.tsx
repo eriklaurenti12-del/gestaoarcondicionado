@@ -1456,7 +1456,7 @@ const AppointmentsTab: React.FC = () => {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-9 px-3 text-[10px] font-black uppercase bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500 hover:text-white"
+                              className="h-9 px-2.5 text-[10px] font-black uppercase whitespace-nowrap shrink-0 bg-green-500/10 text-green-500 border-green-500/20 hover:bg-green-500 hover:text-white"
                               onClick={() => updateStatusMutation.mutate({ id: appointment.id, status: 'confirmado', appointment })}
                             >
                               <CheckCircle className="w-3.5 h-3.5 mr-1" /> Confirmar
@@ -1468,7 +1468,7 @@ const AppointmentsTab: React.FC = () => {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-9 px-3 text-[10px] font-black uppercase bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500 hover:text-white"
+                              className="h-9 px-2.5 text-[10px] font-black uppercase whitespace-nowrap shrink-0 bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500 hover:text-white"
                               onClick={() => {
                                 sendToProvider(appointment);
                                 if (appointment.status !== 'confirmado') {
@@ -1485,7 +1485,7 @@ const AppointmentsTab: React.FC = () => {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="h-9 px-3 text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
+                              className="h-9 px-2.5 text-[10px] font-black uppercase whitespace-nowrap shrink-0 bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
                               onClick={() => {
                                 setCompletionAppointment(appointment);
                                 setCompletionPaymentMethod('Dinheiro');
