@@ -2052,10 +2052,12 @@ const AppointmentsTab: React.FC = () => {
                 const [y, m, d] = editDate.split('-').map(Number);
                 const [hh, mm] = editTime.split(':').map(Number);
                 const newDateTimeObj = new Date(y, m - 1, d, hh, mm);
+                const isSameDateTimeAsCurrent = editDate === safeFormat(editingAppointment.appointment_date, 'yyyy-MM-dd') &&
+                  editTime === safeFormat(editingAppointment.appointment_date, 'HH:mm');
                 
                 // ========== PAST DATE/TIME VALIDATION ==========
                 const now = new Date();
-                if (newDateTimeObj <= now) {
+                if (!isSameDateTimeAsCurrent && newDateTimeObj <= now) {
                   toast({ variant: "destructive", title: "Horário inválido", description: "Não é possível agendar em datas/horários passados. Selecione um horário futuro." });
                   return;
                 }
