@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Snowflake, Building2, Package, PlusCircle } from "lucide-react";
+import { Users, Snowflake, Building2, Package, PlusCircle, CalendarClock } from "lucide-react";
 import ClientsTab from './ClientsTab';
 import ProductsTab from './ProductsTab';
 import SuppliersTab from './SuppliersTab';
 import EstoqueTab from './EstoqueTab';
 import RegisterProductTab from './RegisterProductTab';
+import OnlineBookingConfigTab from './OnlineBookingConfigTab';
 import TabGuideCards from './TabGuideCards';
 
 import { supabase } from '@/integrations/supabase/client';
