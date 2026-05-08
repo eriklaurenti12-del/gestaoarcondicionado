@@ -48,30 +48,34 @@ const AwaitingActivation: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
-      if (!session) {
-        navigate('/');
-        return;
-      }
-      setUserEmail(session.user.email || '');
+      try {
+        const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
+        if (!session) {
+          navigate('/');
+          return;
+        }
+        setUserEmail(session.user.email || '');
 
-      // Load settings
-      const { data: settings } = await supabase
-        .from('admin_settings')
-        .select('key, value')
-        .in('key', ['whatsapp_suporte', 'email_suporte', 'telefone_suporte', 'instagram_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'planos_visiveis_landing', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
-      
-      if (settings) {
-        settings.forEach(s => {
-          if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
-          if (s.key === 'email_suporte' && s.value) setEmailSuporte(s.value);
-          if (s.key === 'telefone_suporte' && s.value) setTelefoneSuporte(s.value);
-          if (s.key === 'instagram_suporte' && s.value) setInstagramSuporte(s.value);
-          if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
-          if (s.key === 'checkout_trimestral' && s.value) setCheckoutTrimestral(s.value);
-          if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
-          if (s.key === 'checkout_vitalicio' && s.value) setCheckoutVitalicio(s.value);
-        });
+        // Load settings
+        const { data: settings } = await supabase
+          .from('admin_settings')
+          .select('key, value')
+          .in('key', ['whatsapp_suporte', 'email_suporte', 'telefone_suporte', 'instagram_suporte', 'checkout_mensal', 'checkout_trimestral', 'checkout_semestral', 'checkout_anual', 'checkout_vitalicio', 'planos_visiveis_landing', 'preco_mensal', 'preco_trimestral', 'preco_semestral', 'preco_anual', 'preco_vitalicio']);
+        
+        if (settings) {
+          settings.forEach(s => {
+            if (s.key === 'whatsapp_suporte' && s.value) setWhatsappLink(s.value);
+            if (s.key === 'email_suporte' && s.value) setEmailSuporte(s.value);
+            if (s.key === 'telefone_suporte' && s.value) setTelefoneSuporte(s.value);
+            if (s.key === 'instagram_suporte' && s.value) setInstagramSuporte(s.value);
+            if (s.key === 'checkout_mensal' && s.value) setCheckoutMensal(s.value);
+            if (s.key === 'checkout_trimestral' && s.value) setCheckoutTrimestral(s.value);
+            if (s.key === 'checkout_anual' && s.value) setCheckoutAnual(s.value);
+            if (s.key === 'checkout_vitalicio' && s.value) setCheckoutVitalicio(s.value);
+          });
+        }
+      } catch (err) {
+        console.error('AwaitingActivation load error:', err);
       }
     };
 

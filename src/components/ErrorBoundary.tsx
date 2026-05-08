@@ -77,13 +77,29 @@ export class ErrorBoundary extends Component<Props, State> {
                 </p>
               </div>
 
-              <Button 
-                onClick={this.handleReset}
-                className="w-full bg-red-600 hover:bg-red-700 gap-2"
-              >
-                <RefreshCw className="w-4 h-4" />
-                Recarregar Página
-              </Button>
+              <div className="space-y-3">
+                <Button 
+                  onClick={this.handleReset}
+                  variant="outline"
+                  className="w-full gap-2 border-red-200 text-red-700 hover:bg-red-50"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Recarregar Página
+                </Button>
+
+                <Button 
+                  onClick={() => {
+                    // Manual clean if import fails
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    window.location.reload();
+                  }}
+                  className="w-full bg-red-600 hover:bg-red-700 gap-2 font-bold"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  LIMPAR CACHE E REPARAR TUDO
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>

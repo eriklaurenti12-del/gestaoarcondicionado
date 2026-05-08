@@ -68,18 +68,27 @@ export default function SubscriptionGate({ children }: { children: React.ReactNo
       } 
       // Check if it's a trial (pending status = 1 day trial from start_date or created_at)
       else if (subData?.status === 'pendente') {
-        const startDate = subData?.start_date ? new Date(subData.start_date) : new Date(subData?.created_at);
-        const trialEndDate = addDays(startDate, 1); // 1 day trial
-        const hoursLeft = differenceInHours(trialEndDate, now);
+        const rawDate = subData?.start_date || subData?.created_at;
+        const startDate = rawDate ? new Date(rawDate) : new Date();
         
-        setIsTrial(true);
-        setHoursRemaining(Math.max(0, hoursLeft));
-        
-        // Trial expired - block access
-        if (hoursLeft <= 0) {
-          setHasAccess(false);
+        // Ensure the date is valid
+        if (isNaN(startDate.getTime())) {
+          setHasAccess(true); // Default to allow if date is weird
+          setIsTrial(true);
+          setHoursRemaining(24);
         } else {
-          setHasAccess(true); // Allow trial access
+          const trialEndDate = addDays(startDate, 1); // 1 day trial
+          const hoursLeft = differenceInHours(trialEndDate, now);
+          
+          setIsTrial(true);
+          setHoursRemaining(Math.max(0, hoursLeft));
+          
+          // Trial expired - block access
+          if (hoursLeft <= 0) {
+            setHasAccess(false);
+          } else {
+            setHasAccess(true); // Allow trial access
+          }
         }
       } else {
         // Other statuses (vencido, cancelado) - no access

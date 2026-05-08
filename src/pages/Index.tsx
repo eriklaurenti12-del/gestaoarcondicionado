@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getSafeUser } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SupportButton from "@/components/SupportButton";
 import SubscriptionGate from "@/components/SubscriptionGate";
 import Dashboard from "@/components/Dashboard";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import CadastrosUnifiedTab from "@/components/CadastrosUnifiedTab";
 import CompanyDataTab from "@/components/CompanyDataTab";
 import AppointmentsTab from "@/components/AppointmentsTab";
@@ -33,15 +33,13 @@ import PWAInstallButton from "@/components/PWAInstallButton";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Zap, Moon, Sun } from "lucide-react";
+import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Moon, Sun } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useBetaMode } from "@/contexts/BetaModeContext";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { forceUpdateApp } from "@/lib/updateApp";
-
-declare const __APP_BUILD_ID__: string;
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const safeIsToday = (date: any) => {
   try {
@@ -57,7 +55,6 @@ const safeIsToday = (date: any) => {
 const fetchNotificationCount = async () => {
   try {
     const today = new Date();
-
     const [
       { data: installments },
       { data: appointments }
@@ -67,7 +64,6 @@ const fetchNotificationCount = async () => {
     ]);
 
     let count = 0;
-
     installments?.forEach((inst: any) => {
       const dueDate = new Date(inst.due_date);
       const daysUntil = differenceInDays(dueDate, today);
@@ -79,7 +75,6 @@ const fetchNotificationCount = async () => {
         count++;
       }
     });
-
     return count;
   } catch (error) {
     console.error('Error fetching notification count:', error);
@@ -110,149 +105,87 @@ export default function Index() {
     refetchInterval: 60000
   });
 
-  // Browser push notifications for appointments
   useEffect(() => {
-    if (!('Notification' in window)) return;
-    
-    const checkAndNotify = async () => {
-      if (Notification.permission !== 'granted') return;
-      
-      const today = new Date();
-      const { data: todayAppointments } = await supabase
-        .from('appointments')
-        .select('*, clients(name), products(name)')
-        .gte('appointment_date', today.toISOString().split('T')[0])
-        .lte('appointment_date', today.toISOString().split('T')[0] + 'T23:59:59')
-        .in('status', ['agendado', 'confirmado']);
-      
-      if (todayAppointments && todayAppointments.length > 0) {
-        const lastNotifKey = `push_notif_${today.toISOString().split('T')[0]}`;
-        if (!localStorage.getItem(lastNotifKey)) {
-          new Notification('📅 Agendamentos de Hoje', {
-            body: `Você tem ${todayAppointments.length} agendamento(s) hoje!`,
-            icon: '/icon-192x192.png',
-            tag: 'appointments-today'
-          });
-          localStorage.setItem(lastNotifKey, 'true');
-        }
-      }
-    };
-    
-    checkAndNotify();
-    const interval = setInterval(checkAndNotify, 5 * 60 * 1000); // Check every 5 min
-    return () => clearInterval(interval);
-  }, []);
+    let mounted = true;
 
-  useEffect(() => {
-    // Check for recovery tokens in URL FIRST - redirect to reset-password
+    // Check for recovery tokens in URL hash
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
-    
     if (accessToken) {
-      // Has token - redirect to reset-password with the hash
-      console.log('Recovery token detected, redirecting to reset-password');
       navigate(`/reset-password${window.location.hash}`);
       return;
     }
 
-    // Setup auth listener
+    // Stable Auth Listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Index auth event:', event);
+      if (!mounted) return;
+      console.log('[Index] Auth event:', event);
       
       if (event === 'PASSWORD_RECOVERY') {
         navigate("/reset-password");
         return;
       }
       
-      if (!session) {
+      if (event === 'SIGNED_OUT' || (!session && event !== 'INITIAL_SESSION')) {
         navigate("/");
       }
     });
 
+    const checkAuth = async () => {
+      try {
+        const { user } = await getSafeUser();
+        if (!mounted) return;
+
+        if (!user) {
+          navigate("/");
+          return;
+        }
+
+        // Cache cleanup for new user
+        const previousUserId = localStorage.getItem('current_user_id');
+        if (previousUserId && previousUserId !== user.id) {
+          queryClient.clear();
+          localStorage.removeItem('company_logo');
+          localStorage.removeItem('company_name');
+        }
+        localStorage.setItem('current_user_id', user.id);
+        setCurrentUserId(user.id);
+
+        const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id);
+        const isSA = roles?.some(r => r.role === 'super_admin') || false;
+        setIsSuperAdmin(isSA);
+
+        const { data: teamInvite } = await supabase.from('team_invites').select('team_role').eq('accepted_by', user.id).eq('status', 'accepted').maybeSingle();
+        const teamRole = teamInvite?.team_role || '';
+        setUserRole(teamRole || (isSA ? 'super_admin' : ''));
+
+        const onboardingKey = `ac_onboarding_completed_${user.id}`;
+        if (!localStorage.getItem(onboardingKey)) setShowOnboarding(true);
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('[Index] Auth check error:', error);
+        if (mounted) {
+          setLoading(false);
+          navigate("/");
+        }
+      }
+    };
+
     checkAuth();
+    return () => { 
+      mounted = false;
+      subscription.unsubscribe(); 
+    };
+  }, [navigate, queryClient]);
 
-    return () => subscription.unsubscribe();
-  }, [navigate]);
-
-  const checkAuth = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
-      if (!session) {
-        navigate("/");
-        return;
-      }
-
-      // CRITICAL: if a different user is now logged in on this browser,
-      // wipe all React Query cache + per-user localStorage to avoid showing
-      // the previous user's company name/logo (e.g. "Excelência" appearing for Erik).
-      const previousUserId = localStorage.getItem('current_user_id');
-      if (previousUserId && previousUserId !== session.user.id) {
-        queryClient.clear();
-        // Wipe per-browser branding leftovers from old account
-        localStorage.removeItem('company_logo');
-        localStorage.removeItem('company_name');
-        localStorage.removeItem('company_cnpj');
-        localStorage.removeItem('company_email');
-        localStorage.removeItem('company_whatsapp');
-        localStorage.removeItem('company_address');
-      }
-      localStorage.setItem('current_user_id', session.user.id);
-      lastUserIdRef.current = session.user.id;
-
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', session.user.id);
-
-      const isSA = roles?.some(r => r.role === 'super_admin') || false;
-      setIsSuperAdmin(isSA);
-      setCurrentUserId(session.user.id);
-
-      const { data: teamInvite } = await supabase
-        .from('team_invites')
-        .select('team_role')
-        .eq('accepted_by', session.user.id)
-        .eq('status', 'accepted')
-        .maybeSingle();
-      
-      const teamRole = teamInvite?.team_role || '';
-      if (teamRole) {
-        setUserRole(teamRole);
-        setIsSuperAdmin(false);
-      } else {
-        setUserRole(isSA ? 'super_admin' : '');
-      }
-      
-      const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
-      const onboardingCompleted = localStorage.getItem(onboardingKey);
-      
-      if (!onboardingCompleted) {
-        setShowOnboarding(true);
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error checking auth:', error);
-      setLoading(false);
-      navigate("/");
-    }
-  };
-
-  const handleOnboardingComplete = async () => {
-    const { data: sessionData } = await supabase.auth.getSession(); const session = sessionData?.session;
-    if (session) {
-      const onboardingKey = `ac_onboarding_completed_${session.user.id}`;
-      localStorage.setItem(onboardingKey, 'true');
+  const handleOnboardingComplete = () => {
+    if (currentUserId) {
+      localStorage.setItem(`ac_onboarding_completed_${currentUserId}`, 'true');
     }
     setShowOnboarding(false);
   };
 
-  const handleRestartOnboarding = () => {
-    setShowOnboarding(true);
-  };
-
-  // Aggressive update: clears app cache/PWA shells and reloads from the published source.
   const checkForUpdates = async () => {
     setIsCheckingUpdates(true);
     await forceUpdateApp();
@@ -261,20 +194,11 @@ export default function Index() {
 
   const handleSignOut = async () => {
     try {
-      // Clear React Query cache so next user doesn't see previous user's data
       queryClient.clear();
-      // Clear per-browser branding leftovers (logo / company name local cache)
-      localStorage.removeItem('company_logo');
-      localStorage.removeItem('company_name');
-      localStorage.removeItem('company_cnpj');
-      localStorage.removeItem('company_email');
-      localStorage.removeItem('company_whatsapp');
-      localStorage.removeItem('company_address');
       localStorage.removeItem('current_user_id');
       await supabase.auth.signOut();
       navigate("/");
-    } catch (error) {
-      console.error('Error signing out:', error);
+    } catch {
       navigate("/");
     }
   };
@@ -282,9 +206,9 @@ export default function Index() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <Wind className="w-12 h-12 text-primary animate-spin" style={{ animationDuration: '2s' }} />
-          <p className="text-muted-foreground text-sm">Carregando sistema...</p>
+        <div className="flex flex-col items-center gap-4">
+          <Wind className="w-12 h-12 text-primary animate-spin" />
+          <p className="text-muted-foreground text-sm font-medium">Iniciando painel...</p>
         </div>
       </div>
     );
@@ -295,53 +219,32 @@ export default function Index() {
     suporte: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'financeiro', 'pdv', 'documents', 'prestadores', 'historico', 'lembretes'],
     sistema: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico'],
     super_admin: ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico', 'funcionarios'],
-    '': ['dashboard', 'appointments', 'online-bookings', 'cadastros', 'documents', 'financeiro', 'services', 'btu-calculator', 'pdv', 'impostos', 'notifications-settings', 'lembretes', 'backup', 'company', 'prestadores', 'historico', 'funcionarios'],
   };
 
-  const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['']).includes(tab);
+  const canAccessTab = (tab: string) => (allowedTabsByRole[userRole] || allowedTabsByRole['super_admin']).includes(tab);
 
   const renderContent = () => {
-    if (!canAccessTab(activeTab)) {
-      return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
-    }
+    if (!canAccessTab(activeTab)) return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
 
     switch (activeTab) {
-      case "dashboard":
-        return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
-      case "appointments":
-        return <AppointmentsTab />;
-      case "online-bookings":
-        return currentUserId ? <OnlineBookingsTab userId={currentUserId} /> : null;
-      case "cadastros":
-        return <CadastrosUnifiedTab />;
-      case "documents":
-        return <DocumentsUnifiedTab />;
-      case "financeiro":
-        return <FinanceiroUnifiedTab />;
-      case "services":
-        return <ServicesUnifiedTab />;
-      case "btu-calculator":
-        return <BtuCalculator />;
-      case "pdv":
-        return <PDVTab />;
-      case "impostos":
-        return <ImpostosTab />;
-      case "notifications-settings":
-        return <NotificationSettings />;
-      case "lembretes":
-        return <LembretesTab />;
-      case "backup":
-        return <DataBackup />;
-      case "company":
-        return <CompanyDataTab />;
-      case "prestadores":
-        return <ServiceProvidersTab />;
-      case "historico":
-        return <HistoricoGeralTab />;
-      case "funcionarios":
-        return <EmployeesTab />;
-      default:
-        return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
+      case "dashboard": return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
+      case "appointments": return <AppointmentsTab />;
+      case "online-bookings": return <OnlineBookingsTab userId={currentUserId} />;
+      case "cadastros": return <CadastrosUnifiedTab />;
+      case "documents": return <DocumentsUnifiedTab />;
+      case "financeiro": return <FinanceiroUnifiedTab />;
+      case "services": return <ServicesUnifiedTab />;
+      case "btu-calculator": return <BtuCalculator />;
+      case "pdv": return <PDVTab />;
+      case "impostos": return <ImpostosTab />;
+      case "notifications-settings": return <NotificationSettings />;
+      case "lembretes": return <LembretesTab />;
+      case "backup": return <DataBackup />;
+      case "company": return <CompanyDataTab />;
+      case "prestadores": return <ServiceProvidersTab />;
+      case "historico": return <HistoricoGeralTab />;
+      case "funcionarios": return <EmployeesTab />;
+      default: return <Dashboard onNavigateToTab={setActiveTab} isSuperAdmin={isSuperAdmin} />;
     }
   };
 
@@ -373,7 +276,6 @@ export default function Index() {
         <div className="min-h-screen flex w-full bg-background relative overflow-hidden">
           <ParticleBackground className="z-0 opacity-50 pointer-events-none" />
 
-          {/* Main layout wrapper - z-index to sit above particles */}
           <div className="flex w-full relative z-10">
             <AppSidebar
               activeTab={activeTab}
@@ -388,141 +290,66 @@ export default function Index() {
             />
 
             <div className="flex-1 flex flex-col min-w-0">
-              {/* Header */}
-              <header className="h-14 border-b border-border/60 flex items-center px-3 sm:px-5 bg-card/80 backdrop-blur-xl sticky top-0 z-20 gap-2 shadow-[0_1px_3px_hsl(var(--primary)/0.04)]">
-                {/* Left: trigger + title */}
-                <SidebarTrigger className="h-9 w-9 flex-shrink-0 rounded-lg hover:bg-muted transition-colors" />
-                <div className="hidden sm:block h-5 w-px bg-border/50 flex-shrink-0" />
-                <h1 className="text-sm font-semibold text-foreground whitespace-nowrap overflow-hidden text-ellipsis mr-auto">{getPageTitle()}</h1>
+              <header className="h-14 border-b border-border/60 flex items-center px-3 sm:px-5 bg-card/80 backdrop-blur-xl sticky top-0 z-20 gap-2 shadow-sm">
+                <SidebarTrigger className="h-9 w-9 rounded-lg hover:bg-muted" />
+                <div className="hidden sm:block h-5 w-px bg-border/50" />
+                <h1 className="text-sm font-semibold text-foreground mr-auto">{getPageTitle()}</h1>
 
-                {/* Right: icon buttons */}
-                {/* Mobile-only dropdown */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10">
-                      <Lightbulb className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-52">
-                    <DropdownMenuItem onSelect={() => setTimeout(() => setShowTipsDialog(true), 100)} className="gap-2 cursor-pointer">
-                      <Lightbulb className="w-4 h-4 text-primary" /> Dicas AC
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => window.open("https://wa.me/5516992600631?text=Olá%2C+preciso+de+suporte", '_blank')} className="gap-2 cursor-pointer">
-                      <MessageCircle className="w-4 h-4 text-primary" /> Suporte WhatsApp
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={handleRestartOnboarding} className="gap-2 cursor-pointer">
-                      <HelpCircle className="w-4 h-4" /> Ver Tutorial
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={checkForUpdates} disabled={isCheckingUpdates} className="gap-2 cursor-pointer">
-                      <RefreshCw className={`w-4 h-4 ${isCheckingUpdates ? 'animate-spin' : ''}`} /> Sincronizar versão publicada
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Desktop action buttons */}
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10" onClick={() => setShowTipsDialog(true)} title="Dicas AC">
-                  <Lightbulb className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleRestartOnboarding} title="Tutorial">
-                  <HelpCircle className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shrink-0 font-semibold ml-1 mr-1 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates} title="Limpar cache e buscar a versão publicada mais recente">
+                <Button variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
                   {isCheckingUpdates ? 'Sincronizando...' : 'Atualizar'}
                 </Button>
 
                 <Dialog open={showUpdateModal} onOpenChange={setShowUpdateModal}>
-                  <DialogContent className="sm:max-w-[400px] bg-slate-900 border-slate-800 text-white p-6 rounded-2xl shadow-2xl">
-                    <DialogHeader className="space-y-3">
-                      <div className="flex items-center gap-2 text-primary">
-                        <RefreshCw className="w-5 h-5" />
-                        <DialogTitle className="text-xl font-bold text-white">Atualizar Sistema</DialogTitle>
-                      </div>
-                      <DialogDescription className="text-slate-400 text-sm leading-relaxed">
-                        Se a tela estiver preta, com erro de login ou lenta, clique no botão abaixo para atualizar e corrigir o sistema.
+                  <DialogContent className="bg-slate-900 border-slate-800 text-white rounded-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Atualizar Sistema</DialogTitle>
+                      <DialogDescription className="text-slate-400">
+                        Clique abaixo para forçar a sincronização com a versão mais recente e corrigir erros de exibição.
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="mt-6 flex flex-col gap-3">
-                      <div className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Passo 1 de 1</div>
-                      <Button 
-                        className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold text-base rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-                        onClick={() => {
-                          setShowUpdateModal(false);
-                          checkForUpdates();
-                        }}
-                      >
-                        Entendi — Atualizar Agora
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        className="w-full h-10 text-slate-500 hover:text-slate-300 hover:bg-white/5 text-sm"
-                        onClick={() => setShowUpdateModal(false)}
-                      >
-                        Fechar e não atualizar
+                    <div className="mt-4 flex flex-col gap-2">
+                      <Button className="w-full h-12 bg-blue-600 hover:bg-blue-700" onClick={() => { setShowUpdateModal(false); checkForUpdates(); }}>
+                        Sincronizar Agora
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
 
-                {/* Notification Bell */}
-                <Popover open={notificationsOpen} onOpenChange={(open) => {
-                  setNotificationsOpen(open);
-                  if (open && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission();
-                }}>
+                <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon" className={`relative h-9 w-9 flex-shrink-0 rounded-lg transition-colors ${notificationCount > 0 ? 'text-primary hover:bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-                      <Bell className={`h-4 w-4 ${notificationCount > 0 ? 'animate-[wiggle_1s_ease-in-out_infinite]' : ''}`} />
-                      {notificationCount > 0 && (
-                        <>
-                          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] flex items-center justify-center font-bold shadow-sm">{notificationCount > 99 ? '99' : notificationCount}</span>
-                          <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive animate-ping opacity-60" />
-                        </>
-                      )}
+                    <Button variant="ghost" size="icon" className="relative h-9 w-9">
+                      <Bell className={`h-4 w-4 ${notificationCount > 0 ? 'text-primary animate-pulse' : 'text-muted-foreground'}`} />
+                      {notificationCount > 0 && <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-destructive text-[9px] flex items-center justify-center font-bold text-white shadow-sm">{notificationCount}</span>}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[92vw] sm:w-[400px] max-w-[400px] p-0 shadow-2xl border-primary/20" align="end" sideOffset={8}>
+                  <PopoverContent className="w-[400px] p-0 shadow-2xl" align="end">
                     <NotificationsPanel onClose={() => setNotificationsOpen(false)} />
                   </PopoverContent>
                 </Popover>
 
-                {/* Theme toggle */}
-                <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted" onClick={toggleTheme} title={theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}>
+                <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleTheme}>
                   {theme === 'light' ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
                 </Button>
 
-                <div className="h-5 w-px bg-border flex-shrink-0" />
-
-                {/* User Profile */}
-                <UserProfileDropdown
-                  onSignOut={handleSignOut}
-                  onNavigateCompany={() => setActiveTab('company')}
-                />
+                <div className="h-5 w-px bg-border" />
+                <UserProfileDropdown onSignOut={handleSignOut} onNavigateCompany={() => setActiveTab('company')} />
               </header>
 
-              {/* Main Content */}
-              <main className="flex-1 p-2 sm:p-4 md:p-6 overflow-auto">
+              <main className="flex-1 p-4 overflow-auto">
                 <div className="max-w-7xl mx-auto">
-                  {renderContent()}
+                  <ErrorBoundary>
+                    {renderContent()}
+                  </ErrorBoundary>
                 </div>
               </main>
             </div>
           </div>
 
           <SupportButton tipsOpen={showTipsDialog} onTipsOpenChange={setShowTipsDialog} />
-          
-          {/* Update Notification */}
           <UpdateNotification />
-          
-          {/* Rotating Tips/Notifications */}
           <RotatingNotifications />
-          
-          {/* Onboarding Tour */}
-          <OnboardingTour 
-            open={showOnboarding} 
-            onComplete={handleOnboardingComplete}
-          />
-
-          {/* Automatic PWA Install Prompt */}
+          <OnboardingTour open={showOnboarding} onComplete={handleOnboardingComplete} />
           <PWAInstallButton />
         </div>
       </SidebarProvider>

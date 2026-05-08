@@ -5,7 +5,7 @@ import { toast } from "sonner";
  * - All CacheStorage entries (PWA precache, runtime cache, workbox)
  * - All Service Workers (unregister + force skip waiting)
  * - SessionStorage
- * - LocalStorage (except auth tokens)
+ * - LocalStorage (except auth tokens and vital user settings)
  * - IndexedDB databases
  * - Then does a hard reload bypassing all caches
  */
@@ -40,27 +40,42 @@ export const forceUpdateApp = async () => {
     // 3. CLEAR sessionStorage completely
     try { sessionStorage.clear(); } catch (e) { /* noop */ }
 
-    // 4. CLEAR localStorage — keep ONLY the absolute minimum for auth
+    // 4. CLEAR localStorage — preserve auth AND vital user settings
     try {
-      const authKeysToKeep: string[] = [];
-      // Find and preserve only Supabase auth keys
+      const keysToKeep: string[] = [
+        'theme',
+        'app_build_id',
+        'pwa-installed',
+        'last_global_force_update',
+        'last_user_force_update',
+        'nuclear_update_at'
+      ];
+      
+      const prefixesToKeep: string[] = [
+        'sb-', // Supabase Auth
+        'ac_onboarding_completed_', // User onboarding state
+        'notification_settings', // User notification preferences
+        'push_notif_' // Push notification state
+      ];
+
+      const backup: Record<string, string> = {};
+      
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('sb-')) {
-          authKeysToKeep.push(key);
+        if (key) {
+          const shouldKeep = keysToKeep.includes(key) || prefixesToKeep.some(p => key.startsWith(p));
+          if (shouldKeep) {
+            const val = localStorage.getItem(key);
+            if (val) backup[key] = val;
+          }
         }
       }
-      const authBackup: Record<string, string> = {};
-      authKeysToKeep.forEach(key => {
-        const val = localStorage.getItem(key);
-        if (val) authBackup[key] = val;
-      });
 
       // Nuke everything
       localStorage.clear();
 
-      // Restore only auth
-      Object.entries(authBackup).forEach(([key, val]) => {
+      // Restore backup
+      Object.entries(backup).forEach(([key, val]) => {
         localStorage.setItem(key, val);
       });
 

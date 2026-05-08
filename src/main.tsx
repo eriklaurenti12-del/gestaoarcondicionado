@@ -1,95 +1,69 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { registerSW } from 'virtual:pwa-register'
 
-declare const __APP_BUILD_ID__: string;
+// 1. Initial debug log
+console.log('[MAIN] Application entry point reached');
 
-// ============================================================
-// AUTO-CLEANUP: On every load, check if the build has changed.
-// If it has, nuke all caches and service workers BEFORE React mounts
-// so the user always sees the latest version.
-// ============================================================
-(function autoClearStaleCache() {
+// 2. Immediate auto-cleanup for stale cache
+try {
+  const currentBuild = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
+  const storedBuild = localStorage.getItem('app_build_id');
+
+  if (currentBuild && storedBuild && currentBuild !== storedBuild) {
+    console.log('[MAIN] Version change detected. Clearing session data...');
+    sessionStorage.clear();
+    // We keep localStorage for user settings, the ForceUpdateListener handles granular clearing
+  }
+  localStorage.setItem('app_build_id', currentBuild);
+} catch (e) {
+  console.warn('[MAIN] Cleanup check skipped:', e);
+}
+
+// 3. Mount the app with safety
+const rootElement = document.getElementById("root");
+
+if (rootElement) {
   try {
-    const currentBuild = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : null;
-    const storedBuild = localStorage.getItem('app_build_id');
-
-    if (currentBuild && storedBuild && currentBuild !== storedBuild) {
-      console.log('[AUTO-CLEAR] Build changed:', storedBuild, '->', currentBuild);
-
-      // Clear CacheStorage
-      if ('caches' in window) {
-        caches.keys().then(keys => {
-          keys.forEach(k => caches.delete(k));
-          console.log('[AUTO-CLEAR] Deleted', keys.length, 'cache entries');
-        });
-      }
-
-      // Unregister service workers
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(regs => {
-          regs.forEach(r => r.unregister());
-          console.log('[AUTO-CLEAR] Unregistered', regs.length, 'service workers');
-        });
-      }
-
-      // Clear sessionStorage
-      sessionStorage.clear();
-    }
-
-    // Always store current build
-    if (currentBuild) {
-      localStorage.setItem('app_build_id', currentBuild);
-    }
-  } catch (e) {
-    console.warn('[AUTO-CLEAR] Error:', e);
+    const root = createRoot(rootElement);
+    root.render(<App />);
+    console.log('[MAIN] Render successful');
+  } catch (err) {
+    console.error('[MAIN] Render crash:', err);
+    rootElement.innerHTML = `
+      <div style="min-h-screen; background:#0a1628; color:white; font-family:sans-serif; display:flex; align-items:center; justify-content:center; padding:20px; text-align:center;">
+        <div style="max-width:400px; background:#0d1f3c; padding:30px; border-radius:20px; border:1px solid #1e3a8a; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+          <div style="font-size:50px; margin-bottom:20px;">❄️</div>
+          <h1 style="font-size:24px; margin-bottom:10px;">Erro de Inicialização</h1>
+          <p style="color:#94a3b8; font-size:14px; margin-bottom:25px;">Ocorreu um erro ao carregar o sistema. Isso geralmente acontece devido a arquivos antigos no navegador.</p>
+          <button onclick="localStorage.clear(); sessionStorage.clear(); location.reload();" 
+            style="background:#2563eb; color:white; border:none; padding:12px 24px; border-radius:10px; font-weight:bold; cursor:pointer; width:100%; transition:all 0.2s;">
+            LIMPAR E REPARAR SISTEMA
+          </button>
+          <p style="margin-top:15px; font-size:10px; color:#475569; font-family:monospace;">${err}</p>
+        </div>
+      </div>
+    `;
   }
-})();
-
-// ============================================================
-// Mount React
-// ============================================================
-createRoot(document.getElementById("root")!).render(<App />);
-
-// ============================================================
-// PWA Registration — skip in iframe/preview hosts
-// ============================================================
-const isInIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-const isPreviewHost = window.location.hostname.includes('id-preview--') || window.location.hostname.includes('lovableproject.com');
-
-if (!isInIframe && !isPreviewHost) {
-  const manifestLink = document.createElement('link');
-  manifestLink.rel = 'manifest';
-  manifestLink.href = '/manifest.json';
-  document.head.appendChild(manifestLink);
-
-  // Register SW in PROMPT mode: shows banner so user can apply update
-  const updateSW = registerSW({
-    immediate: true,
-    onNeedRefresh() {
-      window.dispatchEvent(new CustomEvent('pwa:need-refresh', { detail: { updateSW } }));
-    },
-    onOfflineReady() {
-      window.dispatchEvent(new CustomEvent('pwa:offline-ready'));
-    },
-  });
-
-  // Poll registered SW every 60s for updates (works when installed as PWA)
-  if ('serviceWorker' in navigator) {
-    setInterval(async () => {
-      try {
-        const reg = await navigator.serviceWorker.getRegistration();
-        if (reg) await reg.update();
-      } catch { /* noop */ }
-    }, 60 * 1000);
-  }
-
-  // Allow any UI button to force a fresh update check
-  window.addEventListener('pwa:check-update', async () => {
-    try { await updateSW(false); } catch { /* noop */ }
-  });
 } else {
-  // Unregister any leftover SW inside iframe/preview to avoid stale shells
-  navigator.serviceWorker?.getRegistrations().then(regs => regs.forEach(r => r.unregister())).catch(() => {});
+  console.error('[MAIN] Root element not found');
+}
+
+// 4. Safe PWA Registration (Doesn't block the UI)
+if ('serviceWorker' in navigator && !window.location.hostname.includes('lovableproject.com')) {
+  window.addEventListener('load', async () => {
+    try {
+      // Use dynamic import for virtual module to avoid blocking the main bundle parsing
+      // @ts-ignore
+      const { registerSW } = await import('virtual:pwa-register');
+      registerSW({
+        immediate: true,
+        onNeedRefresh() {
+          console.log('[PWA] New version available');
+        }
+      });
+    } catch (e) {
+      console.log('[PWA] Registration skipped (Normal for dev):', e);
+    }
+  });
 }
