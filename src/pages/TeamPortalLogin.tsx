@@ -649,9 +649,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
-        {/* 4 Stat Cards */}
-        <div className="grid grid-cols-4 gap-3">
+      <div className="max-w-4xl mx-auto p-3 sm:p-4 space-y-4">
+        {/* 4 Stat Cards - 2 cols on phone, 4 from sm+ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="border-border/50">
             <CardContent className="pt-4 pb-3 text-center">
               <CalendarDays className="w-5 h-5 mx-auto mb-1 text-primary" />
@@ -669,7 +669,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <Card className="border-green-500/30">
             <CardContent className="pt-4 pb-3 text-center">
               <DollarSign className="w-5 h-5 mx-auto mb-1 text-green-500" />
-              <div className="text-2xl font-bold text-green-500">R$ {totalSales.toFixed(0)}</div>
+              <div className="text-2xl font-bold text-green-500 truncate">R$ {totalSales.toFixed(0)}</div>
               <div className="text-xs text-muted-foreground">Faturamento</div>
             </CardContent>
           </Card>
