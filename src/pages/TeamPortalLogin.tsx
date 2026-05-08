@@ -609,13 +609,15 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const explicitPerms = Array.isArray(session.permissions) ? session.permissions : null;
   const baseTabs = explicitPerms ?? (roleTabPermissions[session.role] || ["agenda", "suporte"]);
   const visibleTabs = Array.from(new Set([...baseTabs, "suporte"]));
+  const canAccess = (tab: string) => visibleTabs.includes(tab);
 
-  // Guard: if active tab not allowed for this role, redirect to first allowed
+  // Guard: if active tab not allowed, redirect to first allowed (defensive — also re-runs on perm change)
   useEffect(() => {
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab(visibleTabs[0] || "agenda");
+    if (!canAccess(activeTab)) {
+      setActiveTab(visibleTabs[0] || "suporte");
+      toast({ title: "Acesso restrito", description: "Você não tem permissão para essa área. Redirecionado.", variant: "destructive" });
     }
-  }, [session.role, activeTab]);
+  }, [activeTab, visibleTabs.join(',')]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
@@ -647,9 +649,9 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
-        {/* 4 Stat Cards */}
-        <div className="grid grid-cols-4 gap-3">
+      <div className="max-w-4xl mx-auto p-3 sm:p-4 space-y-4">
+        {/* 4 Stat Cards - 2 cols on phone, 4 from sm+ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
           <Card className="border-border/50">
             <CardContent className="pt-4 pb-3 text-center">
               <CalendarDays className="w-5 h-5 mx-auto mb-1 text-primary" />
@@ -667,7 +669,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           <Card className="border-green-500/30">
             <CardContent className="pt-4 pb-3 text-center">
               <DollarSign className="w-5 h-5 mx-auto mb-1 text-green-500" />
-              <div className="text-2xl font-bold text-green-500">R$ {totalSales.toFixed(0)}</div>
+              <div className="text-2xl font-bold text-green-500 truncate">R$ {totalSales.toFixed(0)}</div>
               <div className="text-xs text-muted-foreground">Faturamento</div>
             </CardContent>
           </Card>
@@ -682,7 +684,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
 
         {/* Single row of tabs - dynamically filtered */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`w-full grid h-10`} style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, 1fr)` }}>
+          <TabsList className="w-full grid h-10 overflow-hidden" style={{ gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))` }}>
             {visibleTabs.includes("agenda") && <TabsTrigger value="agenda" className="text-xs gap-1"><CalendarDays className="w-3.5 h-3.5" /><span className="hidden sm:inline">Agenda</span></TabsTrigger>}
             {visibleTabs.includes("cadastros") && <TabsTrigger value="cadastros" className="text-xs gap-1"><Users className="w-3.5 h-3.5" /><span className="hidden sm:inline">Cadastros</span></TabsTrigger>}
             {visibleTabs.includes("financeiro") && <TabsTrigger value="financeiro" className="text-xs gap-1"><DollarSign className="w-3.5 h-3.5" /><span className="hidden sm:inline">Financeiro</span></TabsTrigger>}
@@ -701,7 +703,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
           </TabsList>
 
           {/* ========== AGENDA ========== */}
-          <TabsContent value="agenda" className="mt-4 space-y-3">
+          {canAccess("agenda") && (<TabsContent value="agenda" className="mt-4 space-y-3">
             <div className="flex gap-2">
               <Button className="flex-1 h-11 gap-2" onClick={() => setShowScheduleForm(!showScheduleForm)}>
                 <Plus className="w-4 h-4" /> Novo Agendamento
@@ -816,10 +818,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))}
               </div>
             )}
-          </TabsContent>
+          </TabsContent>)}
 
           {/* ========== CADASTROS ========== */}
-          <TabsContent value="cadastros" className="mt-4 space-y-3">
+          {canAccess("cadastros") && (<TabsContent value="cadastros" className="mt-4 space-y-3">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -897,10 +899,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>)}
 
           {/* ========== FINANCEIRO ========== */}
-          <TabsContent value="financeiro" className="mt-4 space-y-3">
+          {canAccess("financeiro") && (<TabsContent value="financeiro" className="mt-4 space-y-3">
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1 h-11 gap-2" onClick={exportFinanceiroPDF}>
                 <Printer className="w-4 h-4" /> Imprimir Relatório PDF
@@ -974,10 +976,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>)}
 
           {/* ========== VENDAS (PDV) ========== */}
-          <TabsContent value="vendas" className="mt-4 space-y-3">
+          {canAccess("vendas") && (<TabsContent value="vendas" className="mt-4 space-y-3">
             <div className="space-y-3">
               <div>
                 <Label className="text-sm font-semibold">Cliente</Label>
@@ -1073,10 +1075,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 ))}
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>)}
 
           {/* ========== ADMIN ========== */}
-          <TabsContent value="admin" className="mt-4 space-y-4">
+          {canAccess("admin") && (<TabsContent value="admin" className="mt-4 space-y-4">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1155,10 +1157,10 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 );
               })}
             </div>
-          </TabsContent>
+          </TabsContent>)}
 
           {/* ========== SUPORTE ========== */}
-          <TabsContent value="suporte" className="mt-4 space-y-4">
+          {canAccess("suporte") && (<TabsContent value="suporte" className="mt-4 space-y-4">
             {/* Support request form */}
             <Card>
               <CardHeader className="pb-2 pt-4">
@@ -1275,7 +1277,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          </TabsContent>)}
         </Tabs>
       </div>
     </div>
