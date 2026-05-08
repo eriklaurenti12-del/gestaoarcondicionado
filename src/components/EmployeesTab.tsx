@@ -529,10 +529,12 @@ export default function EmployeesTab() {
                       </div>
                     </div>
                     {(() => {
-                      const perms = (member.permissions && member.permissions.length > 0) ? member.permissions : ROLE_DEFAULT_PERMS[member.role];
+                      const rawPerms = Array.isArray(member.permissions) ? member.permissions : [];
+                      const fallback = ROLE_DEFAULT_PERMS[member.role as TeamRole] || [];
+                      const perms = rawPerms.length > 0 ? rawPerms : fallback;
                       return (
                         <div className="flex flex-wrap gap-1 pt-1 border-t border-border/40">
-                          {perms.map(p => {
+                          {perms.map((p: string) => {
                             const tab = ALL_PORTAL_TABS.find(t => t.id === p);
                             return (
                               <Badge key={p} variant="secondary" className="text-[9px] py-0 px-1.5 h-4">
