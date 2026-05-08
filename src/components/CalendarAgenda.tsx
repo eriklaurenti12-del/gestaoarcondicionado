@@ -703,6 +703,21 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                             setAssignFood(p.food_allowance ? String(p.food_allowance) : '');
                                             setAssignDaily(p.daily_rate ? String(p.daily_rate) : '');
                                             setAssignDriver(p.driver_cost ? String(p.driver_cost) : '');
+                                            // Default expense date = appointment date, fallback = tomorrow
+                                            let defDate = '';
+                                            try {
+                                              if (apt.appointment_date) {
+                                                defDate = new Date(apt.appointment_date).toISOString().split('T')[0];
+                                              } else {
+                                                const t = new Date(); t.setDate(t.getDate() + 1);
+                                                defDate = t.toISOString().split('T')[0];
+                                              }
+                                            } catch {
+                                              const t = new Date(); t.setDate(t.getDate() + 1);
+                                              defDate = t.toISOString().split('T')[0];
+                                            }
+                                            setAssignDate(defDate);
+                                            setAssignErrors({});
                                           }}
                                           className="text-sm gap-2"
                                         >
