@@ -609,13 +609,15 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
   const explicitPerms = Array.isArray(session.permissions) ? session.permissions : null;
   const baseTabs = explicitPerms ?? (roleTabPermissions[session.role] || ["agenda", "suporte"]);
   const visibleTabs = Array.from(new Set([...baseTabs, "suporte"]));
+  const canAccess = (tab: string) => visibleTabs.includes(tab);
 
-  // Guard: if active tab not allowed for this role, redirect to first allowed
+  // Guard: if active tab not allowed, redirect to first allowed (defensive — also re-runs on perm change)
   useEffect(() => {
-    if (!visibleTabs.includes(activeTab)) {
-      setActiveTab(visibleTabs[0] || "agenda");
+    if (!canAccess(activeTab)) {
+      setActiveTab(visibleTabs[0] || "suporte");
+      toast({ title: "Acesso restrito", description: "Você não tem permissão para essa área. Redirecionado.", variant: "destructive" });
     }
-  }, [session.role, activeTab]);
+  }, [activeTab, visibleTabs.join(',')]);
 
   return (
     <div className="min-h-screen bg-[hsl(var(--background))]">
