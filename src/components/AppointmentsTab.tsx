@@ -1449,8 +1449,8 @@ const AppointmentsTab: React.FC = () => {
                       <TableCell className="py-4 text-center">
                         {getStatusBadge(appointment.status)}
                       </TableCell>
-                      <TableCell className="py-4 text-right">
-                        <div className="flex justify-end gap-1.5 opacity-80 group-hover:opacity-100 transition-all">
+                      <TableCell className="py-4 text-right min-w-[280px]">
+                        <div className="flex justify-end items-center gap-1.5 flex-nowrap whitespace-nowrap opacity-80 group-hover:opacity-100 transition-all">
                           {/* Confirm Button - Prioritized */}
                           {appointment.status === 'pendente' && (
                             <Button 
