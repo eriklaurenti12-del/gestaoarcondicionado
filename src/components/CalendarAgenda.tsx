@@ -90,6 +90,29 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
     },
   });
 
+  // Despesas por agendamento (para tooltip do badge do prestador)
+  const { data: routeExpenses = [] } = useQuery({
+    queryKey: ['route-expenses-by-apt'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('fixed_expenses')
+        .select('appointment_id, category, amount, expense_date, helper_name')
+        .not('appointment_id', 'is', null);
+      if (error) return [];
+      return data || [];
+    },
+  });
+
+  const expensesByApt = useMemo(() => {
+    const map: Record<string, any[]> = {};
+    (routeExpenses as any[]).forEach((e) => {
+      if (!e.appointment_id) return;
+      if (!map[e.appointment_id]) map[e.appointment_id] = [];
+      map[e.appointment_id].push(e);
+    });
+    return map;
+  }, [routeExpenses]);
+
   const assignProviderMutation = useMutation({
     mutationFn: async ({ apt, providerName }: { apt: any; providerName: string | null }) => {
       const stripped = (apt.notes || '').replace(/\[PRESTADOR:[^\]]+\]\n?/g, '').trim();
