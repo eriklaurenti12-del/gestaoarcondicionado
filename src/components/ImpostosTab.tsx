@@ -565,9 +565,9 @@ const ImpostosTab: React.FC = () => {
           <p className="text-muted-foreground text-sm">Controle faturamento, impostos e gastos para declaração</p>
         </div>
         
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px]" aria-label="Selecionar mês de referência">
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
@@ -578,11 +578,23 @@ const ImpostosTab: React.FC = () => {
               ))}
             </SelectContent>
           </Select>
-          
-          <Button variant="outline" onClick={pullMonthlyData}>
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Puxar Dados
+
+          <Button
+            variant="outline"
+            onClick={() => pullMonthlyData(false)}
+            disabled={syncing}
+            title="Sincronizar com Financeiro, Funcionários e Prestadores"
+            aria-label="Puxar dados do Financeiro, Funcionários e Prestadores"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
+            {syncing ? 'Sincronizando...' : 'Puxar Dados'}
           </Button>
+
+          {lastSyncedAt && (
+            <span className="text-[11px] text-muted-foreground" title={lastSyncedAt.toLocaleString('pt-BR')}>
+              Sincronizado às {format(lastSyncedAt, 'HH:mm')}
+            </span>
+          )}
         </div>
       </div>
 
