@@ -23,6 +23,7 @@ import RouteExpensesDialog from './RouteExpensesDialog';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useBusinessHours } from "@/hooks/useBusinessHours";
 
 type Appointment = {
   id: string;
