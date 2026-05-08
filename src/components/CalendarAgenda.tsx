@@ -14,8 +14,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { toast } from 'sonner';
+import ProviderDailyRouteDialog from './ProviderDailyRouteDialog';
 
 const safeFormat = (date: any, formatStr: string, options?: any) => {
   try {
