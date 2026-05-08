@@ -1206,8 +1206,8 @@ const AppointmentsTab: React.FC = () => {
             aria-label="Visualizar em calendário mensal"
           >
             <CalendarRange className="w-4 h-4 mr-2 shrink-0" />
-            <span className="hidden xs:inline">Calendário</span>
-            <span className="xs:hidden">Cal.</span>
+            <span className="hidden sm:inline">Calendário</span>
+            <span className="sm:hidden">Cal.</span>
           </Button>
         </div>
         <div className="flex flex-wrap gap-2 w-full lg:w-auto">
