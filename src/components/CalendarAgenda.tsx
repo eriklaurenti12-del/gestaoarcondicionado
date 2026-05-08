@@ -646,8 +646,22 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
                                   </Badge>
                                   <Button
                                     size="sm"
+                                    variant="outline"
+                                    className="text-[10px] h-6 px-2 ml-auto"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const prov = (providers as any[]).find((p: any) => p.name === assignedProvider);
+                                      if (prov) setRouteProvider(prov);
+                                      else toast.error('Prestador não encontrado no cadastro');
+                                    }}
+                                    title="Abrir Roteiro Diário"
+                                  >
+                                    <Navigation className="w-3 h-3 mr-1" /> Roteiro
+                                  </Button>
+                                  <Button
+                                    size="sm"
                                     variant="ghost"
-                                    className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive ml-auto"
+                                    className="text-[10px] h-6 px-2 text-muted-foreground hover:text-destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       assignProviderMutation.mutate({ apt, providerName: null });
