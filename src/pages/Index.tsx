@@ -88,6 +88,7 @@ export default function Index() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { theme, toggleTheme } = useTheme();
+  useGlobalShortcuts(); // Ctrl+Shift+R: limpa cache + reconcilia financeiro
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('');
