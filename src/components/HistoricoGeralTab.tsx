@@ -61,7 +61,7 @@ export default function HistoricoGeralTab() {
     queryKey: ['hist-appointments'],
     queryFn: async () => {
       const { data, error } = await supabase.from('appointments')
-        .select('*, clients(id, name, telefone, address), products(id, name, warranty_months, is_recurring)')
+        .select('*, clients(id, name, telefone, address), products(id, name, warranty_months)')
         .order('appointment_date', { ascending: false });
       if (error) throw error;
       return data || [];
