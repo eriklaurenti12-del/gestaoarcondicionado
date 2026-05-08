@@ -38,6 +38,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Bell, HelpCircle, Lightbulb, MessageCircle, RefreshCw, Wind, Moon, Sun } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
 import { differenceInDays, isToday } from "date-fns";
 import { ParticleBackground } from "@/components/ParticleBackground";
 import { forceUpdateApp } from "@/lib/updateApp";
