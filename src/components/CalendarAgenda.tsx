@@ -67,6 +67,8 @@ const CalendarAgenda: React.FC<CalendarAgendaProps> = ({ className }) => {
   const [assignFood, setAssignFood] = useState('');
   const [assignDaily, setAssignDaily] = useState('');
   const [assignDriver, setAssignDriver] = useState('');
+  const [assignDate, setAssignDate] = useState('');
+  const [assignErrors, setAssignErrors] = useState<{ fuel?: string; food?: string; daily?: string; driver?: string; date?: string }>({});
   const queryClient = useQueryClient();
 
   const { data: appointments, isLoading } = useQuery({
