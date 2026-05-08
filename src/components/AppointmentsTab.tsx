@@ -1933,7 +1933,7 @@ const AppointmentsTab: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Nova Data</Label>
-                <Input type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
+                <Input type="date" min={format(new Date(), 'yyyy-MM-dd')} value={editDate} onChange={(e) => setEditDate(e.target.value)} className="min-h-[44px]" />
               </div>
               <div className="space-y-2">
                 <Label>Novo Horário</Label>
