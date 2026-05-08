@@ -362,6 +362,8 @@ export default function FinanceiroTab() {
       setRefreshing(false);
     }
   };
+
+  const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
       await Promise.all([
