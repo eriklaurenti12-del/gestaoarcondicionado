@@ -15,6 +15,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useSystemBranding } from "@/hooks/useSystemBranding";
 import { forceUpdateApp } from "@/lib/updateApp";
 import { RefreshCw } from "lucide-react";
+import SpotlightAtualizar from "@/components/SpotlightAtualizar";
 
 const ROLE_INFO: Record<string, { label: string; desc: string; icon: any; color: string }> = {
   painel: { label: 'Painel Admin', desc: 'Acesso ao painel de administração', icon: Shield, color: 'text-cyan-400' },
@@ -199,6 +200,8 @@ export default function Auth() {
           <span className="text-[11px] font-bold uppercase tracking-wider text-white/90">Sincronizar</span>
         </button>
       </div>
+
+      <SpotlightAtualizar />
 
       <div className="relative z-10 w-full max-w-md space-y-4">
         {/* Branding */}
