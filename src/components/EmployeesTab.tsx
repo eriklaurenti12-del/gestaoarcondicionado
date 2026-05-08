@@ -584,6 +584,49 @@ export default function EmployeesTab() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-3">
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                <Label className="text-sm font-bold">Pagamento Mensal Recorrente</Label>
+              </div>
+              <p className="text-[11px] text-muted-foreground">Os valores abaixo entram automaticamente como <strong>Gasto Recorrente</strong> do mês. Você pode dividir entre Salário e Vale (adiantamento).</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="grid gap-1">
+                  <Label className="text-xs">Salário (R$)</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={formData.monthly_salary}
+                    onChange={(e) => setFormData({ ...formData, monthly_salary: e.target.value })}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <Label className="text-xs">Vale / Adiantamento (R$)</Label>
+                  <Input
+                    type="number" step="0.01" min="0"
+                    value={formData.vale_amount}
+                    onChange={(e) => setFormData({ ...formData, vale_amount: e.target.value })}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Categoria do Salário</Label>
+                <Select
+                  value={formData.expense_category}
+                  onValueChange={(val) => setFormData({ ...formData, expense_category: val })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Salário">Salário</SelectItem>
+                    <SelectItem value="Comissão">Comissão</SelectItem>
+                    <SelectItem value="Diária">Diária</SelectItem>
+                    <SelectItem value="Mão de Obra">Mão de Obra</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancelar</Button>
