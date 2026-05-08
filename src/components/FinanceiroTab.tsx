@@ -336,7 +336,32 @@ export default function FinanceiroTab() {
     }
   };
 
-  const handleRefreshAll = async () => {
+  const handleSyncContracts = async () => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const session = sessionData?.session;
+    if (!session) return;
+    setRefreshing(true);
+    try {
+      const result = await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+      const contractRows = (result?.rows || []).filter((r: any) => /^auto:contract:/i.test(r.description));
+      const contractCount = contractRows.length;
+      await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+      if (contractCount === 0) {
+        toast({ title: '🔄 Contratos já sincronizados', description: 'Nenhum contrato pendente para este mês.' });
+      } else {
+        toast({
+          title: `🔄 ${contractCount} contrato(s) sincronizado(s)`,
+          description: `Lançamento mensal criado em Receitas para o mês ${selectedMonth}.`,
+        });
+      }
+    } catch (e: any) {
+      toast({ title: 'Erro ao sincronizar contratos', description: e.message, variant: 'destructive' });
+    } finally {
+      setRefreshing(false);
+    }
+  };
     setRefreshing(true);
     try {
       await Promise.all([
