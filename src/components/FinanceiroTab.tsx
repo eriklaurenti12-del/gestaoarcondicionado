@@ -157,20 +157,29 @@ export default function FinanceiroTab() {
   // This avoids duplicates that previously appeared because two places
   // inserted the same row with slightly different descriptions/categories.
 
-  // Auto-ensure recurring expenses (employees + providers) for the selected month.
+  // Auto-reconcile whenever the selected month changes: removes orphans /
+  // duplicates and re-syncs recurring expenses (employees + providers) so the
+  // numbers stay consistent without the user having to click anything.
   useEffect(() => {
     (async () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       if (!session) return;
       try {
-        await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+        await reconcileFinancialMonth(session.user.id, selectedMonth, 'auto');
         queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
         queryClient.invalidateQueries({ queryKey: ['fixed-expenses-summary', selectedMonth] });
+        queryClient.invalidateQueries({ queryKey: ['sales-financial', selectedMonth] });
       } catch (e) {
-        console.warn('ensureMonthlyRecurringExpenses failed', e);
+        console.warn('auto-reconcile failed', e);
+        // Fallback: at least ensure recurring rows exist.
+        try {
+          await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
+          queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+        } catch {}
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMonth]);
 
   const getAppointmentPrice = (apt: any) => {
@@ -310,13 +319,15 @@ export default function FinanceiroTab() {
     if (!session) return;
     setRefreshing(true);
     try {
-      const result = await reconcileFinancialMonth(session.user.id, selectedMonth);
+      const result = await reconcileFinancialMonth(session.user.id, selectedMonth, 'manual');
       await Promise.all([fetchRecords(), refetchSales(), refetchExpenses()]);
       queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      setReconcileResult(result);
+      setReconcileDialogOpen(true);
       const removed = result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales;
       toast({
         title: '✅ Mês reconciliado',
-        description: `${removed} duplicata(s)/órfão(s) removidos · ${result.insertedRecurring} despesa(s) recorrente(s) sincronizada(s).`,
+        description: `${removed} item(ns) removido(s) · ${result.insertedRecurring} recorrente(s) sincronizada(s).`,
       });
     } catch (e: any) {
       toast({ title: 'Erro ao reconciliar', description: e.message, variant: 'destructive' });
