@@ -189,12 +189,12 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     [bookings]
   );
 
-  const updateStatus = async (id: string, status: string, booking?: OnlineBooking) => {
+  const updateStatus = async (id: string, status: string, booking?: OnlineBooking, silent = false) => {
     const { error } = await (supabase.from('online_bookings') as any)
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
-      toast({ title: "Erro", description: error.message, variant: "destructive" });
+      if (!silent) toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
     
@@ -202,10 +202,10 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       await syncToAgenda(booking);
     }
     
-    toast({ title: status === 'confirmado' ? "✅ Confirmado e adicionado à agenda!" : status === 'recusado' ? "❌ Recusado" : `Status: ${status}` });
+    if (!silent) toast({ title: status === 'confirmado' ? "✅ Confirmado e adicionado à agenda!" : status === 'recusado' ? "❌ Recusado" : `Status: ${status}` });
     loadBookings();
     
-    if (booking?.client_phone) {
+    if (!silent && booking?.client_phone) {
       const addressMatch = booking.notes?.match(/📍\s*([^|]+)/);
       const cepMatch = booking.notes?.match(/CEP:\s*(\S+)/);
       const addressLine = addressMatch ? `\n📍 Endereço: ${addressMatch[1].trim()}` : '';
