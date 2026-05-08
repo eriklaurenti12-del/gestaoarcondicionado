@@ -514,8 +514,8 @@ export default function EmployeesTab() {
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-4 pt-2 space-y-4">
-                    <div className="space-y-2 text-xs text-muted-foreground">
+                  <CardContent className="p-4 pt-2 space-y-3">
+                    <div className="space-y-1.5 text-xs text-muted-foreground">
                       {member.phone && (
                         <div className="flex items-center gap-2">
                           <Phone className="w-3 h-3" /> {member.phone}
@@ -528,6 +528,21 @@ export default function EmployeesTab() {
                         <Lock className="w-3 h-3" /> PIN Protegido
                       </div>
                     </div>
+                    {(() => {
+                      const perms = (member.permissions && member.permissions.length > 0) ? member.permissions : ROLE_DEFAULT_PERMS[member.role];
+                      return (
+                        <div className="flex flex-wrap gap-1 pt-1 border-t border-border/40">
+                          {perms.map(p => {
+                            const tab = ALL_PORTAL_TABS.find(t => t.id === p);
+                            return (
+                              <Badge key={p} variant="secondary" className="text-[9px] py-0 px-1.5 h-4">
+                                {tab?.label || p}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
 
                     <div className="flex gap-2 pt-2">
                       <Button 
