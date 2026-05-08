@@ -62,6 +62,10 @@ export function UserProfileDropdown({ onSignOut, onNavigateCompany }: UserProfil
           <Building2 className="w-4 h-4" />
           Minha Empresa
         </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => window.open('/portal', '_blank')} className="gap-2 cursor-pointer">
+          <Users className="w-4 h-4" />
+          Portal da Equipe
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={onSignOut} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
           <LogOut className="w-4 h-4" />
