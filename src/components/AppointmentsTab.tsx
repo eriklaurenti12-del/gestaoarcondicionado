@@ -2026,12 +2026,18 @@ const AppointmentsTab: React.FC = () => {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setEditingAppointment(null)}>Cancelar</Button>
+          <DialogFooter className="gap-2 p-4 border-t bg-background shrink-0 sticky bottom-0">
+            <Button variant="outline" onClick={() => setEditingAppointment(null)} className="min-h-[44px]">Cancelar</Button>
             <Button 
-              disabled={updateAppointmentMutation.isPending || !editReason.trim()}
+              className="min-h-[44px]"
+              disabled={updateAppointmentMutation.isPending}
               onClick={() => {
                 if (!editingAppointment) return;
+
+                if (!editReason.trim()) {
+                  toast({ variant: "destructive", title: "Motivo obrigatório", description: "Informe o motivo da alteração antes de salvar." });
+                  return;
+                }
                 
                 const [y, m, d] = editDate.split('-').map(Number);
                 const [hh, mm] = editTime.split(':').map(Number);
