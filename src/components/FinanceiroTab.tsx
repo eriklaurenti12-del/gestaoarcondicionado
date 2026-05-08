@@ -687,6 +687,20 @@ export default function FinanceiroTab() {
         <div>
           <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
           <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+            <span className="px-2 py-1 rounded-md bg-muted">
+              <strong>Atualizar</strong>: recarrega os dados sem alterar nada.
+            </span>
+            <span className="px-2 py-1 rounded-md bg-muted">
+              <strong>Reconciliar</strong>: remove duplicatas e órfãos do mês.
+            </span>
+            <span className="px-2 py-1 rounded-md bg-muted">
+              <strong>Contratos do mês</strong>: força lançamento dos recorrentes.
+            </span>
+            <span className="px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
+              <kbd className="font-mono">Ctrl+Shift+R</kbd>: limpa cache + corrige tudo.
+            </span>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input
