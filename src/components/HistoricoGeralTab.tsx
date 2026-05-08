@@ -383,6 +383,52 @@ export default function HistoricoGeralTab() {
         </div>
       </div>
 
+      {/* Próximos Vencimentos por Cliente */}
+      {upcomingByClient.length > 0 && (
+        <div className="op-card">
+          <div className="p-6 border-b border-white/5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-500/10 rounded-xl">
+                <Clock className="w-5 h-5 text-amber-500" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-white uppercase tracking-tight">Próximos Vencimentos por Cliente</h2>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Calculado a partir do último serviço + prazo de validade</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-[10px] font-black">{upcomingByClient.length} CLIENTES</Badge>
+          </div>
+          <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[420px] overflow-y-auto">
+            {upcomingByClient.map((u, idx) => {
+              const expired = isPast(u.dueDate);
+              const nearing = !expired && isBefore(u.dueDate, addDays(new Date(), 30));
+              const tone = expired ? 'border-red-500/30 bg-red-500/5' : nearing ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/5 bg-white/[0.02]';
+              const dot = expired ? 'text-red-500' : nearing ? 'text-amber-500' : 'text-green-500';
+              return (
+                <div key={idx} className={`p-4 rounded-2xl border ${tone} hover:border-white/20 transition cursor-pointer`} onClick={() => u.clientObj?.id && setSelectedClientHistory(u.clientObj)}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <span className="text-sm font-black text-white truncate">{u.client}</span>
+                    <Clock className={`w-3.5 h-3.5 shrink-0 ${dot}`} />
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase truncate mb-2">{u.service}</p>
+                  <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                    <span className="text-slate-500">Último: {safeFormat(u.lastDate, 'dd/MM/yy')}</span>
+                    <span className={dot}>
+                      {expired ? 'Vencido' : 'Vence'} {safeFormat(u.dueDate, 'dd/MM/yy')}
+                    </span>
+                  </div>
+                  {u.phone && (
+                    <Button size="sm" variant="ghost" className="w-full mt-3 h-8 bg-green-500/5 hover:bg-green-500/10 text-green-500 text-[10px] font-black uppercase gap-1" onClick={(e) => { e.stopPropagation(); window.open(`https://wa.me/55${u.phone!.replace(/\D/g, '')}?text=${encodeURIComponent(`Olá ${u.client}, está chegando a hora da próxima manutenção do seu serviço (${u.service}). Vamos agendar?`)}`, '_blank'); }}>
+                      <MessageSquare className="w-3 h-3" /> Lembrar via WhatsApp
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Main Ledger Control */}
       <div className="op-card">
         <div className="p-6 border-b border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-4">
