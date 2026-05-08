@@ -334,7 +334,10 @@ const ImpostosTab: React.FC = () => {
         ...formData,
         user_id: session.user.id,
         month_year: selectedMonth,
-        record_date: `${selectedMonth}-01`
+        record_date: `${selectedMonth}-01`,
+        payroll_data: payroll as any,
+        provider_costs: providerCosts as any,
+        xml_imports: xmlImports as any,
       };
 
       if (taxRecord?.id) {
