@@ -605,26 +605,69 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Tabs at top */}
           <div className="border-b border-border px-2 sm:px-4 pt-3 pb-2">
-            <TabsList className="w-full flex h-auto gap-1 bg-transparent">
-              <TabsTrigger value="futuras" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                <CalendarClock className="w-3 h-3 hidden sm:inline" />
-                Futuros
-                {futureBookings.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{futureBookings.length}</Badge>
-                )}
+            <TabsList
+              className="w-full grid grid-cols-4 h-auto gap-1 bg-muted/40 p-1 rounded-xl"
+              aria-label="Filtrar agendamentos por período"
+            >
+              <TabsTrigger
+                value="hoje"
+                aria-label="Hoje — agendamentos confirmados ou pendentes para hoje"
+                title="Hoje — agendamentos confirmados ou pendentes para hoje"
+                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
+              >
+                <CalendarCheck className="w-3.5 h-3.5" />
+                <span className="truncate">Hoje</span>
+                <Badge
+                  variant={todayBookings.length > 0 ? "default" : "secondary"}
+                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
+                >
+                  {todayBookings.length}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="hoje" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                <Clock className="w-3 h-3 hidden sm:inline" />
-                Hoje
-                {todayBookings.length > 0 && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 ml-0.5">{todayBookings.length}</Badge>
-                )}
+              <TabsTrigger
+                value="futuras"
+                aria-label="Futuros — próximos agendamentos a partir de amanhã"
+                title="Futuros — próximos agendamentos a partir de amanhã"
+                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
+              >
+                <CalendarClock className="w-3.5 h-3.5" />
+                <span className="truncate">Futuros</span>
+                <Badge
+                  variant={futureBookings.length > 0 ? "default" : "secondary"}
+                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
+                >
+                  {futureBookings.length}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="todos" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                Todos
+              <TabsTrigger
+                value="historico"
+                aria-label="Histórico — agendamentos passados, recusados ou cancelados"
+                title="Histórico — agendamentos passados, recusados ou cancelados"
+                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span className="truncate">Histórico</span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
+                >
+                  {historyBookings.length}
+                </Badge>
               </TabsTrigger>
-              <TabsTrigger value="historico" className="flex-1 min-w-0 text-xs sm:text-sm gap-1 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-lg">
-                Histórico
+              <TabsTrigger
+                value="todos"
+                aria-label="Todos — lista completa de agendamentos do mais recente ao mais antigo"
+                title="Todos — lista completa de agendamentos"
+                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
+              >
+                <List className="w-3.5 h-3.5" />
+                <span className="truncate">Todos</span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
+                >
+                  {allBookings.length}
+                </Badge>
               </TabsTrigger>
             </TabsList>
           </div>
