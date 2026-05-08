@@ -177,36 +177,47 @@ export default function PublicBooking() {
     } catch { /* ignore */ } finally { setLoadingCep(false); }
   };
 
+  const allSlots = useMemo(() => generateSlots(settings), [settings]);
+
   const calendarDays = useMemo(() => {
     const days: Date[] = [];
+    const today = startOfDay(now);
+    const maxDays = settings.max_advance_days ?? 30;
     for (let i = 0; i < 14; i++) {
       const day = addDays(calendarStart, i);
-      if (!isBefore(day, startOfDay(new Date()))) {
-        days.push(day);
-      }
+      if (isBefore(day, today)) continue;
+      // skip days beyond max_advance_days
+      const diffD = (day.getTime() - today.getTime()) / 86400000;
+      if (diffD > maxDays) continue;
+      // skip weekdays disabled in settings
+      const wkKey = WK_KEYS[day.getDay()];
+      if (settings.weekdays && settings.weekdays[wkKey] === false) continue;
+      days.push(day);
     }
     return days;
-  }, [calendarStart]);
+  }, [calendarStart, settings, now]);
 
   const availableTimes = useMemo(() => {
-    if (!selectedDate) return TIME_SLOTS;
+    if (!selectedDate) return allSlots;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     const busyTimes = busySlots
-      .filter(s => {
-        const d = new Date(s);
-        return format(d, 'yyyy-MM-dd') === dateStr;
-      })
+      .filter(s => format(new Date(s), 'yyyy-MM-dd') === dateStr)
       .map(s => format(new Date(s), 'HH:mm'));
 
-    return TIME_SLOTS.filter(t => {
-      if (isToday(selectedDate)) {
-        const now = new Date();
-        const [h, m] = t.split(':').map(Number);
-        if (h < now.getHours() || (h === now.getHours() && m <= now.getMinutes())) return false;
-      }
-      return !busyTimes.includes(t);
+    const minAdvanceMs = (settings.min_advance_hours ?? 0) * 3600000;
+    const cutoff = new Date(now.getTime() + minAdvanceMs);
+
+    return allSlots.filter(t => {
+      if (busyTimes.includes(t)) return false;
+      const [h, m] = t.split(':').map(Number);
+      const slotDt = new Date(selectedDate);
+      slotDt.setHours(h, m, 0, 0);
+      // Block past + min advance window (covers madrugada and "agora")
+      if (slotDt.getTime() < cutoff.getTime()) return false;
+      return true;
     });
-  }, [selectedDate, busySlots]);
+  }, [selectedDate, busySlots, allSlots, now, settings.min_advance_hours]);
+
 
   const handleSubmit = async () => {
     if (!userId || !selectedDate || !selectedTime || !selectedService) return;
