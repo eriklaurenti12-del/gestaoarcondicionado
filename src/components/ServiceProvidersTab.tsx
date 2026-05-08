@@ -102,8 +102,8 @@ export default function ServiceProvidersTab() {
 
   const [formData, setFormData] = useState({
     name: '', phone: '', specialty: 'Geral', cost_per_hour: '', color: '#3b82f6',
-    food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '', 
-    is_field_technician: true, is_recurring_expenses: true,
+    food_allowance: '', fuel_allowance: '', daily_rate: '', driver_cost: '', technical_notes: '',
+    is_field_technician: true, is_recurring_expenses: true, monthly_cost: '',
     has_system_access: false, system_pin: ''
   });
 
