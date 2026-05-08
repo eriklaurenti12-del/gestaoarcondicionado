@@ -189,6 +189,7 @@ const AppointmentsTab: React.FC = () => {
   const [selectedProvider, setSelectedProvider] = useState<string>("");
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [completionAppointment, setCompletionAppointment] = useState<Appointment | null>(null);
+  const [completionPaymentMethod, setCompletionPaymentMethod] = useState<string>("Dinheiro");
   const [completionFeedback, setCompletionFeedback] = useState("");
   const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
   const [customPrice, setCustomPrice] = useState("");
@@ -1479,9 +1480,9 @@ const AppointmentsTab: React.FC = () => {
                               variant="outline" 
                               className="h-9 px-3 text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-500 border-emerald-500/20 hover:bg-emerald-500 hover:text-white"
                               onClick={() => {
-                                if (window.confirm('Marcar este serviço como CONCLUÍDO e gerar financeiro?')) {
-                                  updateStatusMutation.mutate({ id: appointment.id, status: 'concluido', appointment });
-                                }
+                                setCompletionAppointment(appointment);
+                                setCompletionPaymentMethod('Dinheiro');
+                                setShowCompletionDialog(true);
                               }}
                             >
                               <Check className="w-3.5 h-3.5 mr-1" /> Baixa
@@ -2115,6 +2116,26 @@ const AppointmentsTab: React.FC = () => {
                 Baseado na periodicidade de {(completionAppointment?.products as any)?.warranty_months || 6} meses do serviço.
               </p>
             </div>
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                💳 Forma de Pagamento
+              </Label>
+              <Select value={completionPaymentMethod} onValueChange={setCompletionPaymentMethod}>
+                <SelectTrigger className="min-h-[44px]">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                  <SelectItem value="PIX">📱 PIX</SelectItem>
+                  <SelectItem value="Débito">💳 Débito</SelectItem>
+                  <SelectItem value="Crédito">💳 Crédito</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Esta forma será gravada na venda e no Financeiro.
+              </p>
+            </div>
           </div>
           
           <DialogFooter>
@@ -2155,7 +2176,8 @@ const AppointmentsTab: React.FC = () => {
                 updateStatusMutation.mutate({ 
                   id: completionAppointment.id, 
                   status: 'concluido', 
-                  appointment: { ...completionAppointment, notes: updatedNotes } 
+                  appointment: { ...completionAppointment, notes: updatedNotes },
+                  paymentMethod: completionPaymentMethod,
                 });
 
                 // 4. Autonomous Communication (Satisfaction Survey)
