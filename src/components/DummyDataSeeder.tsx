@@ -384,37 +384,58 @@ const DummyDataSeeder: React.FC = () => {
     if (!window.confirm("Confirmação final: ação irreversível.")) return;
 
     setLoading(true);
+    setResetReport(null);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       if (!session) return;
       const userId = session.user.id;
 
-      // Ordem importa: filhos antes dos pais
-      await supabase.from('installments').delete().eq('user_id', userId);
-      await supabase.from('sales').delete().eq('user_id', userId);
-      await supabase.from('financial_records').delete().eq('user_id', userId);
-      await supabase.from('financial_audit_log').delete().eq('user_id', userId);
-      await supabase.from('financial_reconciliation_log').delete().eq('user_id', userId);
-      await supabase.from('fixed_expenses').delete().eq('user_id', userId);
-      await supabase.from('scheduled_maintenance').delete().eq('user_id', userId);
-      await supabase.from('service_orders').delete().eq('user_id', userId);
-      await supabase.from('quotes').delete().eq('user_id', userId);
-      await supabase.from('appointments').delete().eq('user_id', userId);
-      await supabase.from('online_bookings').delete().eq('user_id', userId);
-      await supabase.from('online_booking_settings').delete().eq('user_id', userId);
-      await supabase.from('client_equipment').delete().eq('user_id', userId);
-      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
-      await supabase.from('products').delete().eq('user_id', userId);
-      await supabase.from('clients').delete().eq('user_id', userId);
-      await supabase.from('suppliers').delete().eq('user_id', userId);
-      await supabase.from('tax_records').delete().eq('user_id', userId);
-      await supabase.from('team_members').delete().eq('user_id', userId);
-      await supabase.from('team_online_status').delete().eq('owner_id', userId);
-      await supabase.from('team_invites').delete().eq('created_by', userId);
+      // Lista oficial de tabelas a limpar (todas existem no schema atual).
+      const targets: Array<{ table: string; userCol?: string }> = [
+        { table: 'installments' }, { table: 'sales' },
+        { table: 'financial_records' }, { table: 'financial_audit_log' },
+        { table: 'financial_reconciliation_log' }, { table: 'fixed_expenses' },
+        { table: 'scheduled_maintenance' }, { table: 'service_orders' },
+        { table: 'quotes' }, { table: 'appointments' },
+        { table: 'online_bookings' }, { table: 'online_booking_settings' },
+        { table: 'client_equipment' }, { table: 'maintenance_contracts' },
+        { table: 'products' }, { table: 'clients' }, { table: 'suppliers' },
+        { table: 'tax_records' }, { table: 'team_members' },
+        { table: 'team_online_status', userCol: 'owner_id' },
+        { table: 'team_invites', userCol: 'created_by' },
+      ];
+
+      const report: Array<{ table: string; deleted: number; status: 'ok' | 'empty' | 'error'; message?: string }> = [];
+
+      for (const t of targets) {
+        const col = t.userCol || 'user_id';
+        try {
+          const { count: before } = await (supabase.from(t.table as any) as any)
+            .select('*', { count: 'exact', head: true }).eq(col, userId);
+          if (!before) {
+            report.push({ table: t.table, deleted: 0, status: 'empty', message: 'sem dados' });
+            continue;
+          }
+          const { error } = await (supabase.from(t.table as any) as any).delete().eq(col, userId);
+          if (error) {
+            report.push({ table: t.table, deleted: 0, status: 'error', message: error.message });
+          } else {
+            report.push({ table: t.table, deleted: before, status: 'ok' });
+          }
+        } catch (e: any) {
+          report.push({ table: t.table, deleted: 0, status: 'error', message: e?.message || 'falhou' });
+        }
+      }
 
       // Prestadores ficam em admin_settings (JSON global). Limpa apenas a chave.
-      await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+      const { error: provErr } = await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+      report.push({
+        table: 'admin_settings/service_providers',
+        deleted: provErr ? 0 : 1,
+        status: provErr ? 'error' : 'ok',
+        message: provErr?.message,
+      });
 
       // Força limpeza total de cache (React Query + storage local de prestadores/agenda)
       try {
@@ -426,8 +447,12 @@ const DummyDataSeeder: React.FC = () => {
         });
       } catch {}
 
-      toast.success("✅ Sistema limpo do zero. Recarregando…");
-      setTimeout(() => window.location.reload(), 600);
+      const totalDeleted = report.reduce((s, r) => s + r.deleted, 0);
+      const empties = report.filter((r) => r.status === 'empty').length;
+      const errors = report.filter((r) => r.status === 'error').length;
+
+      setResetReport(report);
+      toast.success(`✅ Reset concluído — ${totalDeleted} registros apagados · ${empties} já vazias · ${errors} erros`);
     } catch (error: any) {
       toast.error("Erro ao resetar: " + error.message);
     } finally {
