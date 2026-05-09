@@ -17,7 +17,7 @@ import { reconcileFinancialMonth } from "@/utils/recurringSync";
 type Cat =
   | 'clientes' | 'produtos' | 'servicos' | 'agendas'
   | 'financeiro' | 'funcionarios' | 'prestadores' | 'rotas' | 'impostos'
-  | 'fornecedores' | 'equipamentos' | 'contratos' | 'os';
+  | 'fornecedores';
 
 const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any> }> = [
   { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)', icon: Users },
@@ -30,9 +30,6 @@ const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.Com
   { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',   icon: MapPin },
   { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText },
   { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',         icon: Truck },
-  { key: 'equipamentos', label: 'Equipamentos', desc: 'Equipamentos vinculados ao cliente', icon: Wrench },
-  { key: 'contratos',    label: 'Contratos',    desc: '2 contratos de manutenção ativos',   icon: FileText },
-  { key: 'os',           label: 'O.S. / Orçam.',desc: '1 orçamento + 1 ordem de serviço',   icon: FileText },
 ];
 
 const ALL_ON: Record<Cat, boolean> = CATEGORIES.reduce((acc, c) => ({ ...acc, [c.key]: true }), {} as any);
@@ -58,9 +55,6 @@ const DummyDataSeeder: React.FC = () => {
     if (picker.rotas)        lines.push({ label: 'Rotas',        count: 2, detail: 'Marca [PRESTADOR:nome] nos agendamentos' });
     if (picker.impostos)     lines.push({ label: 'Impostos',     count: 1, detail: 'Registro do mês corrente com folha' });
     if (picker.fornecedores) lines.push({ label: 'Fornecedores', count: 3, detail: 'Distribuidoras com contato' });
-    if (picker.equipamentos) lines.push({ label: 'Equipamentos', count: 4, detail: 'AC vinculados ao cliente' });
-    if (picker.contratos)    lines.push({ label: 'Contratos',    count: 2, detail: 'Manutenção semestral ativa' });
-    if (picker.os)           lines.push({ label: 'O.S./Orçam.',  count: 2, detail: '1 orçamento + 1 ordem de serviço' });
     return lines;
   }, [picker]);
 
@@ -353,63 +347,6 @@ const DummyDataSeeder: React.FC = () => {
           payment_terms: rand(['30 dias','15 dias','À vista']),
         }));
         await supabase.from('suppliers').insert(sups);
-      }
-
-      // --- Equipamentos do cliente ---
-      if (picker.equipamentos && createdClients.length > 0) {
-        const eqs = createdClients.slice(0, 4).map((c) => ({
-          user_id: userId,
-          client_id: c.id,
-          brand: rand(['Samsung','LG','Electrolux','Midea','Springer']),
-          model: `Inverter ${rand(['9','12','18','24'])}.000`,
-          btus: rand([9000, 12000, 18000, 24000]),
-          serial_number: `SN${Math.floor(Math.random()*999999)}`,
-          location: rand(['Sala','Quarto','Escritório','Recepção']),
-          installation_date: new Date(now.getFullYear()-1, now.getMonth(), 1).toISOString().slice(0,10),
-        }));
-        await supabase.from('client_equipment').insert(eqs);
-      }
-
-      // --- Contratos de manutenção ---
-      if (picker.contratos && createdClients.length > 0) {
-        const contracts = createdClients.slice(0, 2).map((c, i) => ({
-          user_id: userId,
-          client_id: c.id,
-          title: `Contrato Manutenção ${c.name}`,
-          description: 'Limpeza preventiva semestral (TESTE)',
-          start_date: new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0,10),
-          monthly_value: 150 + i * 50,
-          cleaning_interval_months: 6,
-          status: 'ativo',
-        }));
-        await supabase.from('maintenance_contracts').insert(contracts);
-      }
-
-      // --- O.S. / Orçamentos ---
-      if (picker.os && createdClients.length > 0) {
-        const c = createdClients[0];
-        const items = [
-          { name: 'Limpeza Completa', qty: 1, unit_price: 250, total: 250 },
-          { name: 'Filtro novo', qty: 2, unit_price: 45, total: 90 },
-        ];
-        await supabase.from('quotes').insert({
-          user_id: userId,
-          client_id: c.id,
-          title: 'Orçamento limpeza + filtros (TESTE)',
-          subtotal: 340, total: 340,
-          items: items as any,
-          validity_days: 15,
-          status: 'pendente',
-        } as any);
-        await supabase.from('service_orders').insert({
-          user_id: userId,
-          client_id: c.id,
-          title: 'O.S. Manutenção corretiva (TESTE)',
-          services: [{ name: 'Reparo placa', value: 320 }] as any,
-          parts: [{ name: 'Capacitor', qty: 1, value: 80 }] as any,
-          services_total: 320, parts_total: 80, total: 400,
-          status: 'pendente',
-        } as any);
       }
 
       toast.success(`✅ Simulação aplicada (${preview.length} categoria(s)).`);
