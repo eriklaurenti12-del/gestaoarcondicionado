@@ -473,12 +473,12 @@ const DummyDataSeeder: React.FC = () => {
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
-        Marque o que deseja gerar. Use <strong>Visualizar pré-simulação</strong> para conferir antes de aplicar.
+        Marque o que deseja gerar. Apenas categorias com aba real estão listadas — sua seleção é salva automaticamente.
       </p>
 
       {/* Picker */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {CATEGORIES.map(({ key, label, desc, icon: Icon }) => (
+        {CATEGORIES.map(({ key, label, desc, icon: Icon, tab }) => (
           <label
             key={key}
             className={`flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition ${
@@ -490,8 +490,10 @@ const DummyDataSeeder: React.FC = () => {
               <div className="flex items-center gap-1 text-xs font-semibold">
                 <Icon className="w-3.5 h-3.5" />
                 {label}
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" aria-label="Categoria validada" />
               </div>
               <div className="text-[10px] text-muted-foreground leading-tight">{desc}</div>
+              <div className="text-[9px] text-primary/70 mt-0.5 font-medium truncate">{tab}</div>
             </div>
           </label>
         ))}
