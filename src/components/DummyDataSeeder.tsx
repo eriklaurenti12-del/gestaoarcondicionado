@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,39 +6,60 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Database, Trash2, PlusCircle, AlertTriangle, Loader2, Eye,
+  Database, PlusCircle, AlertTriangle, Loader2, Eye, CheckCircle2,
   Users, Package, Wrench, CalendarDays, DollarSign, UserCog, Truck, MapPin, FileText
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { recordFinancialEntry } from "@/utils/financialHelpers";
 import { reconcileFinancialMonth } from "@/utils/recurringSync";
+import { getUserPref, setUserPref } from "@/utils/userPreferences";
 
 // ---- Categories the user can select ----
+// Cada categoria abaixo está mapeada a uma aba/funcionalidade REAL existente no sistema.
+// `tab` = onde a aba aparece para o usuário. `tables` = tabelas reais que o reset varre.
 type Cat =
   | 'clientes' | 'produtos' | 'servicos' | 'agendas'
   | 'financeiro' | 'funcionarios' | 'prestadores' | 'rotas' | 'impostos'
   | 'fornecedores';
 
-const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any> }> = [
-  { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)', icon: Users },
-  { key: 'produtos',     label: 'Produtos',     desc: '3 itens em estoque',          icon: Package },
-  { key: 'servicos',     label: 'Serviços',     desc: '3 serviços com imagens', icon: Wrench },
-  { key: 'agendas',      label: 'Agenda',       desc: '2 hoje + 1 passado concluído',      icon: CalendarDays },
-  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do concluído', icon: DollarSign },
-  { key: 'funcionarios', label: 'Funcionários', desc: '3 funcionários (salário/vale)',     icon: UserCog },
-  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores + gastos diários',     icon: Truck },
-  { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',   icon: MapPin },
-  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText },
-  { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',         icon: Truck },
+const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any>; tab: string; tables: string[] }> = [
+  { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)',                  icon: Users,        tab: 'Cadastros › Clientes',       tables: ['clients'] },
+  { key: 'produtos',     label: 'Produtos',     desc: '3 itens em estoque',                    icon: Package,      tab: 'Cadastros › Estoque',        tables: ['products'] },
+  { key: 'servicos',     label: 'Serviços',     desc: '3 serviços com imagens',                icon: Wrench,       tab: 'Cadastros › Serviços',       tables: ['products'] },
+  { key: 'agendas',      label: 'Agenda',       desc: '2 hoje + 1 passado concluído',          icon: CalendarDays, tab: 'Agenda + Agenda Online',     tables: ['appointments','online_bookings','online_booking_settings'] },
+  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do concluído',          icon: DollarSign,   tab: 'Financeiro',                 tables: ['sales','financial_records','installments'] },
+  { key: 'funcionarios', label: 'Funcionários', desc: '3 funcionários (salário/vale)',         icon: UserCog,      tab: 'Equipe › Funcionários',      tables: ['team_members'] },
+  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores + gastos diários',        icon: Truck,        tab: 'Equipe › Prestadores',       tables: ['fixed_expenses'] },
+  { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',      icon: MapPin,       tab: 'Agenda › Rotas',             tables: ['appointments'] },
+  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText,     tab: 'Financeiro › Impostos',      tables: ['tax_records'] },
+  { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',            icon: Truck,        tab: 'Cadastros › Fornecedores',   tables: ['suppliers'] },
 ];
 
 const ALL_ON: Record<Cat, boolean> = CATEGORIES.reduce((acc, c) => ({ ...acc, [c.key]: true }), {} as any);
+const PREF_KEY = 'seeder_categories';
 
 const DummyDataSeeder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [picker, setPicker] = useState<Record<Cat, boolean>>(ALL_ON);
+  const [resetReport, setResetReport] = useState<Array<{ table: string; deleted: number; status: 'ok' | 'empty' | 'error'; message?: string }> | null>(null);
   const queryClient = useQueryClient();
+
+  // Carrega preferência salva
+  useEffect(() => {
+    (async () => {
+      const saved = await getUserPref<Record<Cat, boolean>>(PREF_KEY);
+      if (saved && typeof saved === 'object') {
+        setPicker({ ...ALL_ON, ...saved });
+      }
+    })();
+  }, []);
+
+  // Salva preferência sempre que mudar (debounced via microtask)
+  useEffect(() => {
+    const t = setTimeout(() => { setUserPref(PREF_KEY, picker); }, 400);
+    return () => clearTimeout(t);
+  }, [picker]);
 
   const toggle = (k: Cat) => setPicker((p) => ({ ...p, [k]: !p[k] }));
   const setAll = (v: boolean) => setPicker(CATEGORIES.reduce((a, c) => ({ ...a, [c.key]: v }), {} as Record<Cat, boolean>));
