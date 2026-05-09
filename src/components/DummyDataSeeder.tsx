@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,39 +6,60 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Database, Trash2, PlusCircle, AlertTriangle, Loader2, Eye,
+  Database, PlusCircle, AlertTriangle, Loader2, Eye, CheckCircle2,
   Users, Package, Wrench, CalendarDays, DollarSign, UserCog, Truck, MapPin, FileText
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { recordFinancialEntry } from "@/utils/financialHelpers";
 import { reconcileFinancialMonth } from "@/utils/recurringSync";
+import { getUserPref, setUserPref } from "@/utils/userPreferences";
 
 // ---- Categories the user can select ----
+// Cada categoria abaixo está mapeada a uma aba/funcionalidade REAL existente no sistema.
+// `tab` = onde a aba aparece para o usuário. `tables` = tabelas reais que o reset varre.
 type Cat =
   | 'clientes' | 'produtos' | 'servicos' | 'agendas'
   | 'financeiro' | 'funcionarios' | 'prestadores' | 'rotas' | 'impostos'
   | 'fornecedores';
 
-const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any> }> = [
-  { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)', icon: Users },
-  { key: 'produtos',     label: 'Produtos',     desc: '3 itens em estoque',          icon: Package },
-  { key: 'servicos',     label: 'Serviços',     desc: '3 serviços com imagens', icon: Wrench },
-  { key: 'agendas',      label: 'Agenda',       desc: '2 hoje + 1 passado concluído',      icon: CalendarDays },
-  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do concluído', icon: DollarSign },
-  { key: 'funcionarios', label: 'Funcionários', desc: '3 funcionários (salário/vale)',     icon: UserCog },
-  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores + gastos diários',     icon: Truck },
-  { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',   icon: MapPin },
-  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText },
-  { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',         icon: Truck },
+const CATEGORIES: Array<{ key: Cat; label: string; desc: string; icon: React.ComponentType<any>; tab: string; tables: string[] }> = [
+  { key: 'clientes',     label: 'Clientes',     desc: '8 clientes (PF + PJ)',                  icon: Users,        tab: 'Cadastros › Clientes',       tables: ['clients'] },
+  { key: 'produtos',     label: 'Produtos',     desc: '3 itens em estoque',                    icon: Package,      tab: 'Cadastros › Estoque',        tables: ['products'] },
+  { key: 'servicos',     label: 'Serviços',     desc: '3 serviços com imagens',                icon: Wrench,       tab: 'Cadastros › Serviços',       tables: ['products'] },
+  { key: 'agendas',      label: 'Agenda',       desc: '2 hoje + 1 passado concluído',          icon: CalendarDays, tab: 'Agenda + Agenda Online',     tables: ['appointments','online_bookings','online_booking_settings'] },
+  { key: 'financeiro',   label: 'Financeiro',   desc: 'Venda + entrada do concluído',          icon: DollarSign,   tab: 'Financeiro',                 tables: ['sales','financial_records','installments'] },
+  { key: 'funcionarios', label: 'Funcionários', desc: '3 funcionários (salário/vale)',         icon: UserCog,      tab: 'Equipe › Funcionários',      tables: ['team_members'] },
+  { key: 'prestadores',  label: 'Prestadores',  desc: '3 prestadores + gastos diários',        icon: Truck,        tab: 'Equipe › Prestadores',       tables: ['fixed_expenses'] },
+  { key: 'rotas',        label: 'Rotas',        desc: 'Marca prestador nos agendamentos',      icon: MapPin,       tab: 'Agenda › Rotas',             tables: ['appointments'] },
+  { key: 'impostos',     label: 'Impostos',     desc: 'Registro do mês + folha + provedores', icon: FileText,     tab: 'Financeiro › Impostos',      tables: ['tax_records'] },
+  { key: 'fornecedores', label: 'Fornecedores', desc: '3 fornecedores cadastrados',            icon: Truck,        tab: 'Cadastros › Fornecedores',   tables: ['suppliers'] },
 ];
 
 const ALL_ON: Record<Cat, boolean> = CATEGORIES.reduce((acc, c) => ({ ...acc, [c.key]: true }), {} as any);
+const PREF_KEY = 'seeder_categories';
 
 const DummyDataSeeder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [picker, setPicker] = useState<Record<Cat, boolean>>(ALL_ON);
+  const [resetReport, setResetReport] = useState<Array<{ table: string; deleted: number; status: 'ok' | 'empty' | 'error'; message?: string }> | null>(null);
   const queryClient = useQueryClient();
+
+  // Carrega preferência salva
+  useEffect(() => {
+    (async () => {
+      const saved = await getUserPref<Record<Cat, boolean>>(PREF_KEY);
+      if (saved && typeof saved === 'object') {
+        setPicker({ ...ALL_ON, ...saved });
+      }
+    })();
+  }, []);
+
+  // Salva preferência sempre que mudar (debounced via microtask)
+  useEffect(() => {
+    const t = setTimeout(() => { setUserPref(PREF_KEY, picker); }, 400);
+    return () => clearTimeout(t);
+  }, [picker]);
 
   const toggle = (k: Cat) => setPicker((p) => ({ ...p, [k]: !p[k] }));
   const setAll = (v: boolean) => setPicker(CATEGORIES.reduce((a, c) => ({ ...a, [c.key]: v }), {} as Record<Cat, boolean>));
@@ -363,37 +384,58 @@ const DummyDataSeeder: React.FC = () => {
     if (!window.confirm("Confirmação final: ação irreversível.")) return;
 
     setLoading(true);
+    setResetReport(null);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       if (!session) return;
       const userId = session.user.id;
 
-      // Ordem importa: filhos antes dos pais
-      await supabase.from('installments').delete().eq('user_id', userId);
-      await supabase.from('sales').delete().eq('user_id', userId);
-      await supabase.from('financial_records').delete().eq('user_id', userId);
-      await supabase.from('financial_audit_log').delete().eq('user_id', userId);
-      await supabase.from('financial_reconciliation_log').delete().eq('user_id', userId);
-      await supabase.from('fixed_expenses').delete().eq('user_id', userId);
-      await supabase.from('scheduled_maintenance').delete().eq('user_id', userId);
-      await supabase.from('service_orders').delete().eq('user_id', userId);
-      await supabase.from('quotes').delete().eq('user_id', userId);
-      await supabase.from('appointments').delete().eq('user_id', userId);
-      await supabase.from('online_bookings').delete().eq('user_id', userId);
-      await supabase.from('online_booking_settings').delete().eq('user_id', userId);
-      await supabase.from('client_equipment').delete().eq('user_id', userId);
-      await supabase.from('maintenance_contracts').delete().eq('user_id', userId);
-      await supabase.from('products').delete().eq('user_id', userId);
-      await supabase.from('clients').delete().eq('user_id', userId);
-      await supabase.from('suppliers').delete().eq('user_id', userId);
-      await supabase.from('tax_records').delete().eq('user_id', userId);
-      await supabase.from('team_members').delete().eq('user_id', userId);
-      await supabase.from('team_online_status').delete().eq('owner_id', userId);
-      await supabase.from('team_invites').delete().eq('created_by', userId);
+      // Lista oficial de tabelas a limpar (todas existem no schema atual).
+      const targets: Array<{ table: string; userCol?: string }> = [
+        { table: 'installments' }, { table: 'sales' },
+        { table: 'financial_records' }, { table: 'financial_audit_log' },
+        { table: 'financial_reconciliation_log' }, { table: 'fixed_expenses' },
+        { table: 'scheduled_maintenance' }, { table: 'service_orders' },
+        { table: 'quotes' }, { table: 'appointments' },
+        { table: 'online_bookings' }, { table: 'online_booking_settings' },
+        { table: 'client_equipment' }, { table: 'maintenance_contracts' },
+        { table: 'products' }, { table: 'clients' }, { table: 'suppliers' },
+        { table: 'tax_records' }, { table: 'team_members' },
+        { table: 'team_online_status', userCol: 'owner_id' },
+        { table: 'team_invites', userCol: 'created_by' },
+      ];
+
+      const report: Array<{ table: string; deleted: number; status: 'ok' | 'empty' | 'error'; message?: string }> = [];
+
+      for (const t of targets) {
+        const col = t.userCol || 'user_id';
+        try {
+          const { count: before } = await (supabase.from(t.table as any) as any)
+            .select('*', { count: 'exact', head: true }).eq(col, userId);
+          if (!before) {
+            report.push({ table: t.table, deleted: 0, status: 'empty', message: 'sem dados' });
+            continue;
+          }
+          const { error } = await (supabase.from(t.table as any) as any).delete().eq(col, userId);
+          if (error) {
+            report.push({ table: t.table, deleted: 0, status: 'error', message: error.message });
+          } else {
+            report.push({ table: t.table, deleted: before, status: 'ok' });
+          }
+        } catch (e: any) {
+          report.push({ table: t.table, deleted: 0, status: 'error', message: e?.message || 'falhou' });
+        }
+      }
 
       // Prestadores ficam em admin_settings (JSON global). Limpa apenas a chave.
-      await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+      const { error: provErr } = await supabase.from('admin_settings').delete().eq('key', 'service_providers');
+      report.push({
+        table: 'admin_settings/service_providers',
+        deleted: provErr ? 0 : 1,
+        status: provErr ? 'error' : 'ok',
+        message: provErr?.message,
+      });
 
       // Força limpeza total de cache (React Query + storage local de prestadores/agenda)
       try {
@@ -405,8 +447,12 @@ const DummyDataSeeder: React.FC = () => {
         });
       } catch {}
 
-      toast.success("✅ Sistema limpo do zero. Recarregando…");
-      setTimeout(() => window.location.reload(), 600);
+      const totalDeleted = report.reduce((s, r) => s + r.deleted, 0);
+      const empties = report.filter((r) => r.status === 'empty').length;
+      const errors = report.filter((r) => r.status === 'error').length;
+
+      setResetReport(report);
+      toast.success(`✅ Reset concluído — ${totalDeleted} registros apagados · ${empties} já vazias · ${errors} erros`);
     } catch (error: any) {
       toast.error("Erro ao resetar: " + error.message);
     } finally {
@@ -427,12 +473,12 @@ const DummyDataSeeder: React.FC = () => {
       </div>
 
       <p className="text-xs text-muted-foreground leading-relaxed max-w-lg">
-        Marque o que deseja gerar. Use <strong>Visualizar pré-simulação</strong> para conferir antes de aplicar.
+        Marque o que deseja gerar. Apenas categorias com aba real estão listadas — sua seleção é salva automaticamente.
       </p>
 
       {/* Picker */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {CATEGORIES.map(({ key, label, desc, icon: Icon }) => (
+        {CATEGORIES.map(({ key, label, desc, icon: Icon, tab }) => (
           <label
             key={key}
             className={`flex items-start gap-2 p-2 rounded-lg border cursor-pointer transition ${
@@ -444,8 +490,10 @@ const DummyDataSeeder: React.FC = () => {
               <div className="flex items-center gap-1 text-xs font-semibold">
                 <Icon className="w-3.5 h-3.5" />
                 {label}
+                <CheckCircle2 className="w-3 h-3 text-emerald-500" aria-label="Categoria validada" />
               </div>
               <div className="text-[10px] text-muted-foreground leading-tight">{desc}</div>
+              <div className="text-[9px] text-primary/70 mt-0.5 font-medium truncate">{tab}</div>
             </div>
           </label>
         ))}
@@ -518,6 +566,54 @@ const DummyDataSeeder: React.FC = () => {
             <Button onClick={seed} disabled={loading}>
               {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <PlusCircle className="w-4 h-4 mr-2" />}
               Aplicar agora
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Report Dialog */}
+      <Dialog open={!!resetReport} onOpenChange={(o) => !o && setResetReport(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" /> Relatório de Reset
+            </DialogTitle>
+          </DialogHeader>
+          {resetReport && (
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-emerald-500">{resetReport.filter(r => r.status === 'ok').length}</div>
+                  <div className="text-muted-foreground">limpas</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-amber-500">{resetReport.filter(r => r.status === 'empty').length}</div>
+                  <div className="text-muted-foreground">já vazias</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-red-500">{resetReport.filter(r => r.status === 'error').length}</div>
+                  <div className="text-muted-foreground">erros</div>
+                </div>
+              </div>
+              <div className="max-h-72 overflow-auto rounded-md border divide-y">
+                {resetReport.map((r) => (
+                  <div key={r.table} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                    <code className="text-[11px]">{r.table}</code>
+                    {r.status === 'ok' && <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">−{r.deleted}</Badge>}
+                    {r.status === 'empty' && <Badge variant="outline" className="text-muted-foreground">ignorada (vazia)</Badge>}
+                    {r.status === 'error' && <Badge variant="destructive" title={r.message}>erro</Badge>}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Categorias marcadas como <strong>ignoradas</strong> não tinham dados para apagar — não são inconsistência, apenas estavam vazias. Erros indicam tabelas que falharam (clique para ver o motivo no console).
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setResetReport(null)}>Fechar</Button>
+            <Button onClick={() => { setResetReport(null); window.location.reload(); }}>
+              Recarregar app
             </Button>
           </div>
         </DialogContent>
