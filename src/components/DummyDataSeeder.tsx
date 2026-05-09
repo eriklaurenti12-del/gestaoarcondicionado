@@ -570,6 +570,54 @@ const DummyDataSeeder: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reset Report Dialog */}
+      <Dialog open={!!resetReport} onOpenChange={(o) => !o && setResetReport(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" /> Relatório de Reset
+            </DialogTitle>
+          </DialogHeader>
+          {resetReport && (
+            <div className="space-y-2 text-sm">
+              <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-emerald-500">{resetReport.filter(r => r.status === 'ok').length}</div>
+                  <div className="text-muted-foreground">limpas</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-amber-500">{resetReport.filter(r => r.status === 'empty').length}</div>
+                  <div className="text-muted-foreground">já vazias</div>
+                </div>
+                <div className="rounded-md border p-2">
+                  <div className="font-bold text-red-500">{resetReport.filter(r => r.status === 'error').length}</div>
+                  <div className="text-muted-foreground">erros</div>
+                </div>
+              </div>
+              <div className="max-h-72 overflow-auto rounded-md border divide-y">
+                {resetReport.map((r) => (
+                  <div key={r.table} className="flex items-center justify-between px-3 py-1.5 text-xs">
+                    <code className="text-[11px]">{r.table}</code>
+                    {r.status === 'ok' && <Badge className="bg-emerald-500/15 text-emerald-600 border-emerald-500/30">−{r.deleted}</Badge>}
+                    {r.status === 'empty' && <Badge variant="outline" className="text-muted-foreground">ignorada (vazia)</Badge>}
+                    {r.status === 'error' && <Badge variant="destructive" title={r.message}>erro</Badge>}
+                  </div>
+                ))}
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Categorias marcadas como <strong>ignoradas</strong> não tinham dados para apagar — não são inconsistência, apenas estavam vazias. Erros indicam tabelas que falharam (clique para ver o motivo no console).
+              </p>
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setResetReport(null)}>Fechar</Button>
+            <Button onClick={() => { setResetReport(null); window.location.reload(); }}>
+              Recarregar app
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
