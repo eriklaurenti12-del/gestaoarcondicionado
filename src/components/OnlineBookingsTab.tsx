@@ -149,20 +149,8 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     };
   }, [userId, notificationsEnabled, loadBookings]);
 
-  // Auto-approve pending bookings (keeps manual edit available)
-  const autoApprovedRef = React.useRef<Set<string>>(new Set());
-  useEffect(() => {
-    const pendings = bookings.filter(b => b.status === 'pendente' && !autoApprovedRef.current.has(b.id));
-    if (pendings.length === 0) return;
-    (async () => {
-      for (const b of pendings) {
-        autoApprovedRef.current.add(b.id);
-        await updateStatus(b.id, 'confirmado', b, true);
-      }
-      toast({ title: `✅ ${pendings.length} reserva(s) auto-aprovada(s)`, description: 'Adicionadas automaticamente à agenda' });
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookings]);
+  // Aceite/recusa é manual — o usuário clica em Confirmar/Recusar em cada solicitação.
+
 
   // Categorize bookings
   const today = startOfDay(new Date());
