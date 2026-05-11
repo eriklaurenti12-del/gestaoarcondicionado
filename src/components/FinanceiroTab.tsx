@@ -955,7 +955,7 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Vendas de Serviços - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
@@ -965,14 +965,16 @@ export default function FinanceiroTab() {
                   <TableRow>
                     <TableHead className="text-xs">Data</TableHead>
                     <TableHead className="text-xs">Cliente</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">Serviço</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Item</TableHead>
                     <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs text-right">Lucro</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.map((sale) => (
+                  {sales.map((sale) => {
+                    const hasLinkedRecord = linkedSaleIds.has(sale.id);
+                    return (
                     <TableRow key={sale.id}>
                       <TableCell className="text-xs sm:text-sm py-2">{safeFormat(sale.sale_date, "dd/MM", { locale: ptBR })}</TableCell>
                       <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || "-"}</TableCell>
@@ -985,12 +987,13 @@ export default function FinanceiroTab() {
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-green-500 py-2">
                         {formatCurrency(Number(sale.sale_price) * sale.qty)}
+                        {!hasLinkedRecord && <div className="text-[9px] text-amber-600">incluído no total</div>}
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-emerald-500 py-2">
                         {formatCurrency(Number(sale.total_profit))}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );})}
                 </TableBody>
               </Table>
             </div>
