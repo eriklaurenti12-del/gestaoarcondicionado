@@ -1352,6 +1352,110 @@ export default function FinanceiroTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Help dialog: Saldo em Caixa formula */}
+      <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <HelpCircle className="h-5 w-5 text-primary" />
+              Como o Saldo em Caixa é calculado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-sm">
+            <div className="rounded-lg border bg-muted/30 p-3 font-mono text-xs leading-relaxed">
+              Saldo em Caixa = <span className="text-green-600">Entradas</span> − <span className="text-red-600">Despesas</span>
+              <br />
+              <span className="text-muted-foreground">
+                Entradas = Serviços + Produtos + Contratos/Outras
+                <br />
+                Despesas = Saques + Reservas + Gastos Fixos
+              </span>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-2">📥 De onde vem cada valor (mês selecionado):</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-blue-500/5 border border-blue-500/20">
+                  <div>
+                    <p className="font-medium text-blue-700">Serviços</p>
+                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Vendas Registradas"</strong>. Baixas de agendamento + PDV (tipo serviço).</p>
+                  </div>
+                  <span className="font-bold text-blue-600 whitespace-nowrap">{formatCurrency(totalServicos)}</span>
+                </div>
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-green-500/5 border border-green-500/20">
+                  <div>
+                    <p className="font-medium text-green-700">Produtos</p>
+                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Vendas Registradas"</strong>. Vendas do PDV (tipo produto).</p>
+                  </div>
+                  <span className="font-bold text-green-600 whitespace-nowrap">{formatCurrency(totalProdutos)}</span>
+                </div>
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-teal-500/5 border border-teal-500/20">
+                  <div>
+                    <p className="font-medium text-teal-700">Contratos/Outras</p>
+                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Contratos Recorrentes"</strong> + <strong>"Registros Manuais"</strong> (entradas digitadas por você).</p>
+                  </div>
+                  <span className="font-bold text-teal-600 whitespace-nowrap">{formatCurrency(totalOutrasEntradas)}</span>
+                </div>
+                <div className="flex justify-between items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/30 font-semibold">
+                  <span>Total Entradas</span>
+                  <span className="text-emerald-700 whitespace-nowrap">{formatCurrency(totalEntradas)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-semibold mb-2">📤 Despesas descontadas:</p>
+              <div className="space-y-2">
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-red-500/5 border border-red-500/20">
+                  <div>
+                    <p className="font-medium text-red-700">Saques</p>
+                    <p className="text-[11px] text-muted-foreground">Lançamentos do tipo <em>saque</em> (saídas manuais).</p>
+                  </div>
+                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques)}</span>
+                </div>
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-indigo-500/5 border border-indigo-500/20">
+                  <div>
+                    <p className="font-medium text-indigo-700">Reservas</p>
+                    <p className="text-[11px] text-muted-foreground">Valor separado/guardado (não está disponível em caixa).</p>
+                  </div>
+                  <span className="font-bold text-indigo-600 whitespace-nowrap">{formatCurrency(totalReservas)}</span>
+                </div>
+                <div className="flex justify-between items-start gap-2 p-2 rounded bg-orange-500/5 border border-orange-500/20">
+                  <div>
+                    <p className="font-medium text-orange-700">Gastos Fixos</p>
+                    <p className="text-[11px] text-muted-foreground">Salários, vales, custo de prestadores e despesas fixas do mês.</p>
+                  </div>
+                  <span className="font-bold text-orange-600 whitespace-nowrap">{formatCurrency(totalGastosFixos)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-lg border-2 border-primary/40 bg-primary/10 p-3">
+              <div className="flex justify-between items-center font-bold">
+                <span>Saldo em Caixa</span>
+                <span className={saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}>
+                  {formatCurrency(saldoDisponivel)}
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = {formatCurrency(saldoDisponivel)}
+              </p>
+            </div>
+
+            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
+              <p className="font-semibold flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Sobre os botões</p>
+              <p><strong>Atualizar</strong> (deste painel): recarrega os dados do mês sem alterar nada. Use sempre que lançar algo novo.</p>
+              <p><strong>Reconciliar</strong>: limpa duplicatas/órfãs do mês e força a entrada dos contratos recorrentes. Use se a soma parecer estranha.</p>
+              <p><strong>Contratos do mês</strong>: lança manualmente as mensalidades ativas (caso ainda não tenham caído).</p>
+              <p className="text-muted-foreground pt-1 border-t">O botão "Atualizar" no topo do sistema é diferente — ele atualiza a versão do app (PWA), não os dados financeiros.</p>
+            </div>
+          </div>
+          <div className="flex justify-end pt-2">
+            <Button onClick={() => setHelpOpen(false)}>Entendi</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
