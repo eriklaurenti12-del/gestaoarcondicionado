@@ -353,6 +353,9 @@ export default function Index() {
 
               <main className="flex-1 min-h-0 p-4 overflow-y-auto overflow-x-hidden">
                 <div className="w-full max-w-7xl min-w-0 mx-auto">
+                  <div className="flex justify-end mb-2">
+                    <TabHelpButton tab={activeTab} />
+                  </div>
                   <ErrorBoundary>
                     {renderContent()}
                   </ErrorBoundary>
