@@ -33,6 +33,7 @@ import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
 import PWAInstallButton from "@/components/PWAInstallButton";
 import TabHelpButton from "@/components/TabHelpButton";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -109,6 +110,9 @@ export default function Index() {
     enabled: !!currentUserId,
     refetchInterval: 60000
   });
+
+  // Global cross-tab realtime sync — keeps every tab fresh automatically.
+  useRealtimeSync(currentUserId);
 
   useEffect(() => {
     let mounted = true;
