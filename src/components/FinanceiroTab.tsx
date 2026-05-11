@@ -720,23 +720,21 @@ export default function FinanceiroTab() {
 
       {/* Header */}
       <div className="flex flex-col gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
-          <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Atualizar</strong>: recarrega tudo e já reconcilia o mês (remove duplicatas/órfãos e sincroniza recorrentes).
-            </span>
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Reconciliar</strong>: remove duplicatas e órfãos do mês.
-            </span>
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Contratos do mês</strong>: força lançamento dos recorrentes.
-            </span>
-            <span className="px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-              <kbd className="font-mono">Ctrl+Shift+R</kbd>: limpa cache + corrige tudo.
-            </span>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
+            <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHelpOpen(true)}
+            className="shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+            title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Ajuda</span>
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input
