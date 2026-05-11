@@ -1006,9 +1006,21 @@ export default function FinanceiroTab() {
               <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
                 {formatCurrency(saldoDisponivel)}
               </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5 truncate underline decoration-dotted">
-                Como calculamos?
-              </p>
+              {(() => {
+                const conf = checkHistory.find((h) => h.month === selectedMonth);
+                if (!conf) {
+                  return (
+                    <p className="text-[9px] text-muted-foreground mt-0.5 truncate underline decoration-dotted">
+                      Como calculamos?
+                    </p>
+                  );
+                }
+                return (
+                  <p className={`text-[9px] mt-0.5 truncate ${conf.matched ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {conf.matched ? '✅ Conferido' : '⚠️ Não bateu'} · {safeFormat(conf.date, 'dd/MM')}
+                  </p>
+                );
+              })()}
             </button>
           </CardContent>
         </Card>
