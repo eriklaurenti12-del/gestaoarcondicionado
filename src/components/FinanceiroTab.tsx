@@ -965,7 +965,10 @@ export default function FinanceiroTab() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 col-span-2 sm:col-span-1">
+        <Card
+          className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 col-span-2 sm:col-span-1"
+          title={`Entradas ${formatCurrency(totalEntradas)} − Saques ${formatCurrency(totalSaques)} − Reservas ${formatCurrency(totalReservas)} − Gastos Fixos ${formatCurrency(totalGastosFixos)} = ${formatCurrency(saldoDisponivel)}`}
+        >
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-primary flex-shrink-0" />
@@ -975,6 +978,9 @@ export default function FinanceiroTab() {
           <CardContent className="p-3 pt-0">
             <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
               {formatCurrency(saldoDisponivel)}
+            </p>
+            <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
+              Entradas − Despesas
             </p>
           </CardContent>
         </Card>
