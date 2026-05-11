@@ -16,11 +16,23 @@ const formatBRL = (v: number) => `R$ ${(Number(v) || 0).toFixed(2)}`;
 
 export default function FinanceiroReconciliationTab() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [busy, setBusy] = useState(false);
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [repairing, setRepairing] = useState(false);
   const autoRepairRan = useRef(false);
+
+  // Invalida todas as queries que dependem desses dados — sincroniza Agenda,
+  // Dashboard, Financeiro, PDV, Clientes, etc. sem o usuário precisar atualizar.
+  const broadcastUpdates = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => {
+        const k = JSON.stringify(q.queryKey).toLowerCase();
+        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-/.test(k);
+      },
+    });
+  };
 
   const monthStart = `${selectedMonth}-01`;
   const monthEndDate = (() => {
