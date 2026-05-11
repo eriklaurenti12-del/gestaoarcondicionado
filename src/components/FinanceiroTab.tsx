@@ -894,6 +894,9 @@ export default function FinanceiroTab() {
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <p className="text-sm sm:text-lg font-bold text-blue-600 truncate">{formatCurrency(totalServicos)}</p>
+            {lucroServicos > 0 && (
+              <p className="text-[9px] text-blue-600/80 mt-0.5">Lucro: {formatCurrency(lucroServicos)}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -906,7 +909,11 @@ export default function FinanceiroTab() {
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <p className="text-sm sm:text-lg font-bold text-green-600 truncate">{formatCurrency(totalProdutos)}</p>
-            <p className="text-[9px] text-emerald-600 mt-0.5">Lucro: {formatCurrency(lucroProdutos)}</p>
+            {totalProdutos > 0 ? (
+              <p className="text-[9px] text-emerald-600 mt-0.5">Lucro: {formatCurrency(lucroProdutos)}</p>
+            ) : (
+              <p className="text-[9px] text-muted-foreground mt-0.5">Sem vendas de produtos</p>
+            )}
           </CardContent>
         </Card>
 
