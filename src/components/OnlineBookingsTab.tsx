@@ -618,21 +618,6 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
               Atualizar
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                if (!confirm('Resetar lista local e recarregar do servidor?\n\nUse para resolver casos difíceis quando os agendamentos parecem dessincronizados.')) return;
-                setBookings([]);
-                setLoading(true);
-                await loadBookings();
-                toast({ title: 'Lista recarregada', description: 'Agendamentos foram baixados novamente do servidor.' });
-              }}
-              disabled={loading}
-              title="Apaga a lista local e baixa novamente do servidor"
-            >
-              <RefreshCw className="w-3 h-3 mr-1" /> Resetar
-            </Button>
             <Button size="sm" variant="outline" onClick={exportBookingsPDF} disabled={bookings.length === 0}>
               <FileDown className="w-3 h-3 mr-1" /> PDF
             </Button>
