@@ -1467,6 +1467,40 @@ export default function FinanceiroTab() {
               <p><strong>Contratos do mês</strong>: lança manualmente as mensalidades ativas (caso ainda não tenham caído).</p>
               <p className="text-muted-foreground pt-1 border-t">O botão "Atualizar" no topo do sistema é diferente — ele atualiza a versão do app (PWA), não os dados financeiros.</p>
             </div>
+
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-xs space-y-2">
+              <p className="font-semibold flex items-center gap-1 text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Checklist: conferindo se a soma está certa
+              </p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Selecione o mês no campo de data acima.</li>
+                <li>Clique em <strong>Atualizar</strong> para garantir dados frescos.</li>
+                <li>Veja o valor do <strong>Saldo em Caixa</strong> e anote.</li>
+                <li>Some: <em>Serviços + Produtos + Contratos/Outras</em> = Total Entradas.</li>
+                <li>Subtraia: <em>Saques + Reservas + Gastos Fixos</em>.</li>
+                <li>Compare com o Saldo. Se bater, pronto! ✅</li>
+                <li>Se não bater, clique em <strong>Reconciliar</strong> (limpa duplicatas/órfãs).</li>
+                <li>Repita a conta. O sistema mostra um resumo do que corrigiu.</li>
+                <li>Ainda não bateu? Volte aqui e confira valor a valor nos blocos acima.</li>
+              </ol>
+            </div>
+
+            <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/5 p-3 flex items-center justify-between gap-3">
+              <div className="text-xs">
+                <p className="font-semibold flex items-center gap-1 text-primary">
+                  <FileDown className="h-3.5 w-3.5" /> Guia oficial em PDF
+                </p>
+                <p className="text-muted-foreground mt-0.5">Versão completa com exemplos, fórmula e checklist para imprimir.</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button asChild size="sm" variant="outline">
+                  <a href="/guia-financeiro.pdf" target="_blank" rel="noopener noreferrer">Abrir</a>
+                </Button>
+                <Button asChild size="sm">
+                  <a href="/guia-financeiro.pdf" download="Guia-Financeiro.pdf">Baixar</a>
+                </Button>
+              </div>
+            </div>
           </div>
           <div className="flex justify-end pt-2">
             <Button onClick={() => setHelpOpen(false)}>Entendi</Button>
