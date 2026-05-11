@@ -187,6 +187,155 @@ export async function ensureMonthlyRecurringExpenses(
   };
 }
 
+export interface RepairResult {
+  appointmentsRepaired: number;
+  salesRepaired: number;
+  skipped: number;
+  errors: number;
+  details: {
+    appointmentRows: Array<{ appointment_id: string; amount: number; description: string }>;
+    saleRows: Array<{ sale_id: number; amount: number; description: string }>;
+  };
+}
+
+/**
+ * Repara dados antigos criando os `financial_records` que faltam para:
+ *  - Appointments com status 'concluido' sem lançamento de entrada;
+ *  - Sales sem lançamento financeiro correspondente.
+ *
+ * Idempotente: o trigger `prevent_financial_duplicate` bloqueia inserts
+ * que já existem (por appointment_id / sale_id / janela de 5min).
+ *
+ * Por padrão varre os últimos 12 meses; passe `sinceISO` para limitar.
+ */
+export async function repairMissingFinancialRecords(
+  userId: string,
+  sinceISO?: string
+): Promise<RepairResult> {
+  const since = sinceISO || new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString();
+  const result: RepairResult = {
+    appointmentsRepaired: 0,
+    salesRepaired: 0,
+    skipped: 0,
+    errors: 0,
+    details: { appointmentRows: [], saleRows: [] },
+  };
+
+  // 1) Appointments concluídos sem financial_record (type='entrada')
+  const { data: concluded } = await supabase
+    .from('appointments')
+    .select('id, appointment_date, service_id, client_id, notes, products:service_id(name, price), clients:client_id(name)')
+    .eq('user_id', userId)
+    .eq('status', 'concluido')
+    .gte('appointment_date', since);
+
+  if (concluded && concluded.length > 0) {
+    const aptIds = concluded.map((a: any) => a.id);
+    const { data: existingRecs } = await supabase
+      .from('financial_records')
+      .select('appointment_id')
+      .eq('user_id', userId)
+      .eq('type', 'entrada')
+      .in('appointment_id', aptIds);
+    const have = new Set((existingRecs || []).map((r: any) => r.appointment_id));
+
+    for (const apt of concluded) {
+      if (have.has(apt.id)) continue;
+      const price = Number((apt as any).products?.price) || 0;
+      if (price <= 0) { result.skipped++; continue; }
+      const serviceName = (apt as any).products?.name || 'Serviço';
+      const clientName = (apt as any).clients?.name || 'Cliente';
+      try {
+        const { error } = await supabase.from('financial_records').insert({
+          user_id: userId,
+          type: 'entrada',
+          amount: price,
+          description: `[auto-reparo] ${serviceName} - ${clientName}`,
+          payment_method: 'PIX',
+          category: 'Serviço',
+          record_date: apt.appointment_date,
+          appointment_id: apt.id,
+        });
+        if (error) {
+          if ((error as any).code === '23505' || /duplicate/i.test(error.message)) {
+            result.skipped++;
+          } else {
+            result.errors++;
+            console.warn('repair appointment failed', apt.id, error);
+          }
+        } else {
+          result.appointmentsRepaired++;
+          result.details.appointmentRows.push({
+            appointment_id: apt.id,
+            amount: price,
+            description: `${serviceName} - ${clientName}`,
+          });
+        }
+      } catch (e) {
+        result.errors++;
+        console.warn('repair appointment exception', apt.id, e);
+      }
+    }
+  }
+
+  // 2) Sales sem financial_record correspondente
+  const { data: monthSales } = await supabase
+    .from('sales')
+    .select('id, sale_price, qty, sale_date, payment_method, product_id, products:product_id(name)')
+    .eq('user_id', userId)
+    .gte('sale_date', since);
+
+  if (monthSales && monthSales.length > 0) {
+    const saleIds = monthSales.map((s: any) => s.id);
+    const { data: linkedRecs } = await supabase
+      .from('financial_records')
+      .select('sale_id')
+      .eq('user_id', userId)
+      .eq('type', 'entrada')
+      .in('sale_id', saleIds);
+    const haveSales = new Set((linkedRecs || []).map((r: any) => r.sale_id));
+
+    for (const s of monthSales as any[]) {
+      if (haveSales.has(s.id)) continue;
+      const amount = Number(s.sale_price) * Number(s.qty || 1);
+      if (amount <= 0) { result.skipped++; continue; }
+      const productName = s.products?.name || 'Item';
+      try {
+        const { error } = await supabase.from('financial_records').insert({
+          user_id: userId,
+          type: 'entrada',
+          amount,
+          description: `[auto-reparo] Venda PDV: ${productName} (${s.qty}x)`,
+          payment_method: s.payment_method || 'Dinheiro',
+          category: 'Produto',
+          record_date: s.sale_date,
+          sale_id: s.id,
+        });
+        if (error) {
+          if ((error as any).code === '23505' || /duplicate/i.test(error.message)) {
+            result.skipped++;
+          } else {
+            result.errors++;
+            console.warn('repair sale failed', s.id, error);
+          }
+        } else {
+          result.salesRepaired++;
+          result.details.saleRows.push({
+            sale_id: s.id,
+            amount,
+            description: `${productName} (${s.qty}x)`,
+          });
+        }
+      } catch (e) {
+        result.errors++;
+        console.warn('repair sale exception', s.id, e);
+      }
+    }
+  }
+
+  return result;
+}
+
 export interface ReconcileResult {
   orphanSales: number;
   orphanRecords: number;
