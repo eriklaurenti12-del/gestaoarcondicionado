@@ -368,14 +368,45 @@ export default function FinanceiroTab() {
   const handleRefreshAll = async () => {
     setRefreshing(true);
     try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+
+      // 1) Hard fix: remove duplicates/orphans and ensure recurring rows for the month.
+      let reconcile: ReconcileResult | null = null;
+      if (session) {
+        try {
+          reconcile = await reconcileFinancialMonth(session.user.id, selectedMonth, 'manual');
+        } catch (e) {
+          console.warn('refresh reconcile failed', e);
+        }
+      }
+
+      // 2) Invalidate every related cache so the UI shows fresh numbers.
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['fixed-expenses-summary', selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ['sales-financial', selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+      queryClient.invalidateQueries({ queryKey: ['completed-appointments-financial', selectedMonth] });
+      queryClient.invalidateQueries({ queryKey: ['pending-appointments-financial', selectedMonth] });
+
+      // 3) Refetch source-of-truth datasets used by the totals on screen.
       await Promise.all([
         fetchRecords(),
         refetchSales(),
         refetchExpenses(),
       ]);
-      toast({ title: "✅ Dados atualizados!", description: "Todos os dados financeiros foram recarregados." });
+
+      const removed = reconcile
+        ? reconcile.dupRecords + reconcile.dupSales + reconcile.orphanRecords + reconcile.orphanSales
+        : 0;
+      toast({
+        title: '✅ Dados atualizados!',
+        description: reconcile
+          ? `${removed} duplicata(s)/órfão(s) removido(s) · ${reconcile.insertedRecurring} recorrente(s) sincronizada(s).`
+          : 'Todos os dados financeiros foram recarregados.',
+      });
     } catch {
-      toast({ title: "Erro ao atualizar", variant: "destructive" });
+      toast({ title: 'Erro ao atualizar', variant: 'destructive' });
     }
     setRefreshing(false);
   };
