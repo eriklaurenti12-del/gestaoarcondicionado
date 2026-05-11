@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Trash2, Activity, Search } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Trash2, Activity, Search, Wrench, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { reconcileFinancialMonth } from '@/utils/recurringSync';
+import { reconcileFinancialMonth, repairMissingFinancialRecords, type RepairResult } from '@/utils/recurringSync';
 
 const formatBRL = (v: number) => `R$ ${(Number(v) || 0).toFixed(2)}`;
 
@@ -18,6 +18,9 @@ export default function FinanceiroReconciliationTab() {
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [busy, setBusy] = useState(false);
+  const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const autoRepairRan = useRef(false);
 
   const monthStart = `${selectedMonth}-01`;
   const monthEndDate = (() => {
@@ -169,7 +172,40 @@ export default function FinanceiroReconciliationTab() {
     }
   };
 
+  const handleRepair = async (silent = false) => {
+    setRepairing(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) return;
+      const result = await repairMissingFinancialRecords(sess.session.user.id);
+      setRepairResult(result);
+      const total = result.appointmentsRepaired + result.salesRepaired;
+      if (!silent || total > 0) {
+        toast({
+          title: total > 0 ? '🛠️ Reparo concluído' : 'Nada a reparar',
+          description: total > 0
+            ? `${result.appointmentsRepaired} agendamento(s) e ${result.salesRepaired} venda(s) reparados.`
+            : 'Todos os agendamentos concluídos e vendas já têm lançamento.',
+        });
+      }
+      await refreshAll();
+    } catch (e: any) {
+      if (!silent) toast({ title: 'Erro no reparo', description: e.message, variant: 'destructive' });
+    } finally {
+      setRepairing(false);
+    }
+  };
+
+  // Auto-reparo: roda 1x por sessão ao montar
+  useEffect(() => {
+    if (autoRepairRan.current) return;
+    autoRepairRan.current = true;
+    handleRepair(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const totalIssues = orphanSales.length + orphanRecords.length + duplicates.length;
+  const repairTotal = (repairResult?.appointmentsRepaired || 0) + (repairResult?.salesRepaired || 0);
 
   return (
     <div className="space-y-4">
@@ -181,14 +217,71 @@ export default function FinanceiroReconciliationTab() {
           onChange={(e) => setSelectedMonth(e.target.value)}
           className="w-44"
         />
-        <Button variant="outline" onClick={refreshAll} disabled={busy} className="gap-2">
+        <Button variant="outline" onClick={refreshAll} disabled={busy || repairing} className="gap-2">
           <RefreshCw className={`w-4 h-4 ${busy ? 'animate-spin' : ''}`} /> Atualizar
         </Button>
-        <Button onClick={handleFullReconcile} disabled={busy} className="gap-2">
+        <Button onClick={() => handleRepair(false)} disabled={busy || repairing} variant="secondary" className="gap-2">
+          {repairing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wrench className="w-4 h-4" />}
+          Reparar lançamentos faltantes
+        </Button>
+        <Button onClick={handleFullReconcile} disabled={busy || repairing} className="gap-2">
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Activity className="w-4 h-4" />}
           Reconciliar mês
         </Button>
       </div>
+
+      {/* Resumo do reparo automático */}
+      {repairResult && (
+        <Card className={repairTotal > 0 ? 'border-blue-500/40 bg-blue-500/5' : 'border-green-500/30 bg-green-500/5'}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500" />
+              {repairTotal > 0 ? 'Reparo automático aplicado' : 'Reparo automático — sem pendências'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <div className="rounded-lg border p-2">
+                <div className="text-xs text-muted-foreground">Agendamentos reparados</div>
+                <div className="text-xl font-bold">{repairResult.appointmentsRepaired}</div>
+              </div>
+              <div className="rounded-lg border p-2">
+                <div className="text-xs text-muted-foreground">Vendas reparadas</div>
+                <div className="text-xl font-bold">{repairResult.salesRepaired}</div>
+              </div>
+              <div className="rounded-lg border p-2">
+                <div className="text-xs text-muted-foreground">Ignorados (já ok)</div>
+                <div className="text-xl font-bold">{repairResult.skipped}</div>
+              </div>
+              <div className="rounded-lg border p-2">
+                <div className="text-xs text-muted-foreground">Erros</div>
+                <div className={`text-xl font-bold ${repairResult.errors > 0 ? 'text-red-500' : ''}`}>{repairResult.errors}</div>
+              </div>
+            </div>
+            {repairTotal > 0 && (
+              <details className="text-xs">
+                <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+                  Ver detalhes dos {repairTotal} lançamento(s) criado(s)
+                </summary>
+                <div className="mt-2 space-y-1 max-h-60 overflow-y-auto">
+                  {repairResult.details.appointmentRows.map((r) => (
+                    <div key={r.appointment_id} className="flex justify-between border-b border-border/40 py-1">
+                      <span className="truncate">📅 {r.description}</span>
+                      <span className="font-mono">{formatBRL(r.amount)}</span>
+                    </div>
+                  ))}
+                  {repairResult.details.saleRows.map((r) => (
+                    <div key={r.sale_id} className="flex justify-between border-b border-border/40 py-1">
+                      <span className="truncate">🛒 {r.description}</span>
+                      <span className="font-mono">{formatBRL(r.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
