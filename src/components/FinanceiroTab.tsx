@@ -720,23 +720,21 @@ export default function FinanceiroTab() {
 
       {/* Header */}
       <div className="flex flex-col gap-3">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
-          <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Atualizar</strong>: recarrega tudo e já reconcilia o mês (remove duplicatas/órfãos e sincroniza recorrentes).
-            </span>
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Reconciliar</strong>: remove duplicatas e órfãos do mês.
-            </span>
-            <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Contratos do mês</strong>: força lançamento dos recorrentes.
-            </span>
-            <span className="px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-              <kbd className="font-mono">Ctrl+Shift+R</kbd>: limpa cache + corrige tudo.
-            </span>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
+            <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHelpOpen(true)}
+            className="shrink-0 border-primary/30 text-primary hover:bg-primary/10"
+            title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
+          >
+            <HelpCircle className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Ajuda</span>
+          </Button>
         </div>
         <div className="flex flex-wrap gap-2">
           <Input
@@ -1397,6 +1395,25 @@ export default function FinanceiroTab() {
                   </div>
                   <span className="font-bold text-teal-600 whitespace-nowrap">{formatCurrency(totalOutrasEntradas)}</span>
                 </div>
+                {(() => {
+                  const orfasServicos = sumSales(serviceSalesWithoutRecord);
+                  const orfasProdutos = sumSales(productSalesWithoutRecord);
+                  const orfasTotal = orfasServicos + orfasProdutos;
+                  if (orfasTotal === 0) return null;
+                  return (
+                    <div className="flex justify-between items-start gap-2 p-2 rounded bg-amber-500/5 border border-amber-500/30 border-dashed">
+                      <div>
+                        <p className="font-medium text-amber-700 flex items-center gap-1">
+                          <Info className="h-3 w-3" /> Vendas órfãs (incluídas)
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Vendas do PDV/Agenda sem linha espelho em Registros Manuais. <strong>Já estão somadas</strong> dentro de Serviços/Produtos acima — aparecem em <strong>"Vendas Registradas"</strong> marcadas como <em>"incluído no total"</em>. Clique em <strong>Reconciliar</strong> para criar a linha espelho.
+                        </p>
+                      </div>
+                      <span className="font-bold text-amber-700 whitespace-nowrap">{formatCurrency(orfasTotal)}</span>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/30 font-semibold">
                   <span>Total Entradas</span>
                   <span className="text-emerald-700 whitespace-nowrap">{formatCurrency(totalEntradas)}</span>
@@ -1449,6 +1466,40 @@ export default function FinanceiroTab() {
               <p><strong>Reconciliar</strong>: limpa duplicatas/órfãs do mês e força a entrada dos contratos recorrentes. Use se a soma parecer estranha.</p>
               <p><strong>Contratos do mês</strong>: lança manualmente as mensalidades ativas (caso ainda não tenham caído).</p>
               <p className="text-muted-foreground pt-1 border-t">O botão "Atualizar" no topo do sistema é diferente — ele atualiza a versão do app (PWA), não os dados financeiros.</p>
+            </div>
+
+            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-xs space-y-2">
+              <p className="font-semibold flex items-center gap-1 text-primary">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Checklist: conferindo se a soma está certa
+              </p>
+              <ol className="list-decimal pl-5 space-y-1">
+                <li>Selecione o mês no campo de data acima.</li>
+                <li>Clique em <strong>Atualizar</strong> para garantir dados frescos.</li>
+                <li>Veja o valor do <strong>Saldo em Caixa</strong> e anote.</li>
+                <li>Some: <em>Serviços + Produtos + Contratos/Outras</em> = Total Entradas.</li>
+                <li>Subtraia: <em>Saques + Reservas + Gastos Fixos</em>.</li>
+                <li>Compare com o Saldo. Se bater, pronto! ✅</li>
+                <li>Se não bater, clique em <strong>Reconciliar</strong> (limpa duplicatas/órfãs).</li>
+                <li>Repita a conta. O sistema mostra um resumo do que corrigiu.</li>
+                <li>Ainda não bateu? Volte aqui e confira valor a valor nos blocos acima.</li>
+              </ol>
+            </div>
+
+            <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/5 p-3 flex items-center justify-between gap-3">
+              <div className="text-xs">
+                <p className="font-semibold flex items-center gap-1 text-primary">
+                  <FileDown className="h-3.5 w-3.5" /> Guia oficial em PDF
+                </p>
+                <p className="text-muted-foreground mt-0.5">Versão completa com exemplos, fórmula e checklist para imprimir.</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button asChild size="sm" variant="outline">
+                  <a href="/guia-financeiro.pdf" target="_blank" rel="noopener noreferrer">Abrir</a>
+                </Button>
+                <Button asChild size="sm">
+                  <a href="/guia-financeiro.pdf" download="Guia-Financeiro.pdf">Baixar</a>
+                </Button>
+              </div>
             </div>
           </div>
           <div className="flex justify-end pt-2">
