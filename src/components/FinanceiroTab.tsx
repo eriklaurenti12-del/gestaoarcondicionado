@@ -1968,9 +1968,20 @@ export default function FinanceiroTab() {
                             {safeFormat(h.date, "dd/MM/yyyy HH:mm")} · Saldo {formatCurrency(h.saldo)}
                           </div>
                         </div>
-                        <Badge variant={h.matched ? 'default' : 'destructive'} className={h.matched ? 'bg-emerald-600' : ''}>
-                          {h.matched ? 'Bateu ✅' : 'Não bateu ⚠️'}
-                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Badge variant={h.matched ? 'default' : 'destructive'} className={h.matched ? 'bg-emerald-600' : ''}>
+                            {h.matched ? 'Bateu ✅' : 'Não bateu ⚠️'}
+                          </Badge>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                            title={`Resetar conferência de ${h.month} (apaga local + remoto e recarrega)`}
+                            onClick={() => resetMonthCheck(h.month)}
+                          >
+                            <RefreshCw className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
