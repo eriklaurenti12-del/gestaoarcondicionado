@@ -32,6 +32,7 @@ import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import TabHelpButton from "@/components/TabHelpButton";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -308,6 +309,8 @@ export default function Index() {
                 <SidebarTrigger className="h-9 w-9 rounded-lg hover:bg-muted" />
                 <div className="hidden sm:block h-5 w-px bg-border/50" />
                 <h1 className="text-sm font-semibold text-foreground mr-auto">{getPageTitle()}</h1>
+
+                <TabHelpButton tab={activeTab} />
 
                 <Button data-spotlight-target="atualizar" variant="outline" size="sm" className="hidden sm:inline-flex h-9 rounded-lg border-primary/40 text-primary hover:bg-primary/10 shadow-sm" onClick={() => setShowUpdateModal(true)} disabled={isCheckingUpdates}>
                   <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
