@@ -496,8 +496,15 @@ export default function FinanceiroTab() {
     .filter(r => r.type === "saque" && (normalizeCat(r.category) === 'alimentação' || normalizeCat(r.category) === 'alimentacao' || normalizeCat(r.category) === 'combustível' || normalizeCat(r.category) === 'combustivel'))
     .reduce((acc, r) => acc + Number(r.amount), 0);
   
-  // Total profit from sales table (business performance)
-  const lucroProdutos = sales?.reduce((acc, s) => acc + Number(s.total_profit), 0) || 0;
+  // Lucro somente de produtos reais (products.type !== 'service').
+  // Antes somava o profit de TODAS as vendas, inflando o card "Produtos" mesmo
+  // quando o usuário só vendia serviços.
+  const lucroProdutos = (sales || [])
+    .filter((s) => (s.products?.type || 'service') !== 'service')
+    .reduce((acc, s) => acc + Number(s.total_profit || 0), 0);
+  const lucroServicos = (sales || [])
+    .filter((s) => (s.products?.type || 'service') === 'service')
+    .reduce((acc, s) => acc + Number(s.total_profit || 0), 0);
   
   // Balance calculation (Source of truth: financial_records + fixed_expenses)
   const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
@@ -887,6 +894,9 @@ export default function FinanceiroTab() {
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <p className="text-sm sm:text-lg font-bold text-blue-600 truncate">{formatCurrency(totalServicos)}</p>
+            {lucroServicos > 0 && (
+              <p className="text-[9px] text-blue-600/80 mt-0.5">Lucro: {formatCurrency(lucroServicos)}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -899,7 +909,11 @@ export default function FinanceiroTab() {
           </CardHeader>
           <CardContent className="p-3 pt-0">
             <p className="text-sm sm:text-lg font-bold text-green-600 truncate">{formatCurrency(totalProdutos)}</p>
-            <p className="text-[9px] text-emerald-600 mt-0.5">Lucro: {formatCurrency(lucroProdutos)}</p>
+            {totalProdutos > 0 ? (
+              <p className="text-[9px] text-emerald-600 mt-0.5">Lucro: {formatCurrency(lucroProdutos)}</p>
+            ) : (
+              <p className="text-[9px] text-muted-foreground mt-0.5">Sem vendas de produtos</p>
+            )}
           </CardContent>
         </Card>
 
