@@ -749,9 +749,14 @@ export default function FinanceiroTab() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1">Atualizar</span>
           </Button>
-          <Button onClick={handleReconcile} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]" title="Remove duplicatas, órfãos e ressincroniza o mês">
+          <Button onClick={handleReconcile} variant={(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'default' : 'outline'} size="sm" disabled={refreshing} className={`min-w-[44px] relative ${(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title="Remove duplicatas, órfãos e ressincroniza o mês">
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Reconciliar</span>
+            {(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
+                {serviceSalesWithoutRecord.length + productSalesWithoutRecord.length}
+              </span>
+            )}
           </Button>
           <Button onClick={handleSyncContracts} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px] border-blue-300 text-blue-700 hover:bg-blue-50" title="Força o lançamento mensal dos contratos ativos">
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
