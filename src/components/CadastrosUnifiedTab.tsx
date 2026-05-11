@@ -80,7 +80,7 @@ const CadastrosUnifiedTab: React.FC = () => {
       {isSuperAdmin && <DummyDataSeeder />}
       
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 max-w-3xl h-auto flex-wrap">
+        <TabsList className="grid w-full grid-cols-5 max-w-3xl h-auto flex-wrap">
           <TabsTrigger value="clients" className="flex items-center gap-1 px-2">
             <Users className="w-4 h-4" /><span className="truncate">Clientes</span>
           </TabsTrigger>
@@ -96,9 +96,6 @@ const CadastrosUnifiedTab: React.FC = () => {
           <TabsTrigger value="suppliers" className="flex items-center gap-1 px-2">
             <Building2 className="w-4 h-4" /><span className="truncate">Fornec.</span>
           </TabsTrigger>
-          <TabsTrigger value="online-booking" className="flex items-center gap-1 px-2">
-            <CalendarClock className="w-4 h-4" /><span className="truncate">Agenda Online</span>
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="clients" className="mt-4"><ClientsTab /></TabsContent>
@@ -106,7 +103,6 @@ const CadastrosUnifiedTab: React.FC = () => {
         <TabsContent value="register" className="mt-4"><RegisterProductTab /></TabsContent>
         <TabsContent value="estoque" className="mt-4"><EstoqueTab /></TabsContent>
         <TabsContent value="suppliers" className="mt-4"><SuppliersTab /></TabsContent>
-        <TabsContent value="online-booking" className="mt-4"><OnlineBookingConfigTab /></TabsContent>
       </Tabs>
     </div>
   );
