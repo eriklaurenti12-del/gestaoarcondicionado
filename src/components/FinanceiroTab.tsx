@@ -81,6 +81,7 @@ export default function FinanceiroTab() {
   const [csvBusy, setCsvBusy] = useState(false);
   const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
