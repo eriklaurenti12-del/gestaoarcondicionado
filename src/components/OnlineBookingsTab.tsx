@@ -564,23 +564,15 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         },
       ]} />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-primary">{todayBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Hoje</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-primary">{futureBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Futuros</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-green-500">{confirmedBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Confirmados</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+      {/* Resumo simples */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-center">
           <p className="text-2xl sm:text-3xl font-bold text-amber-500">{pendingBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Pendentes</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Aguardando sua resposta</p>
+        </div>
+        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-green-500">{confirmedBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Aceitos (na agenda)</p>
         </div>
       </div>
 
