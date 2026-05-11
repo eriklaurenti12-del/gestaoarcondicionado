@@ -1832,6 +1832,32 @@ export default function FinanceiroTab() {
               </div>
 
               <div>
+                {(syncStatus !== 'idle' || lastSyncAt) && (
+                  <div className={`mb-2 rounded-md border px-2 py-1.5 text-[11px] flex items-center gap-2 ${
+                    syncStatus === 'error' ? 'border-destructive/40 bg-destructive/10 text-destructive' :
+                    syncStatus === 'done' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' :
+                    syncStatus === 'idle' ? 'border-muted bg-muted/30 text-muted-foreground' :
+                    'border-primary/40 bg-primary/10 text-primary'
+                  }`}>
+                    {syncStatus === 'sending' || syncStatus === 'downloading' || syncStatus === 'merging' ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : syncStatus === 'done' ? (
+                      <CheckCircle2 className="h-3 w-3" />
+                    ) : syncStatus === 'error' ? (
+                      <Info className="h-3 w-3" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    <span className="font-medium">
+                      {syncStatus === 'sending' && 'Enviando alterações…'}
+                      {syncStatus === 'downloading' && 'Baixando da nuvem…'}
+                      {syncStatus === 'merging' && 'Mesclando alterações…'}
+                      {syncStatus === 'done' && 'Sincronizado ✓'}
+                      {syncStatus === 'error' && (syncMessage || 'Erro ao sincronizar')}
+                      {syncStatus === 'idle' && lastSyncAt && `Última sincronização: ${safeFormat(lastSyncAt, 'dd/MM HH:mm')}`}
+                    </span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between mb-2 gap-2">
                   <p className="font-semibold text-xs">Histórico ({checkHistory.length})</p>
                   <div className="flex gap-1">
