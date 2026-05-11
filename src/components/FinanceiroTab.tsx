@@ -1722,6 +1722,17 @@ export default function FinanceiroTab() {
                 <div className="flex items-center justify-between mb-2 gap-2">
                   <p className="font-semibold text-xs">Histórico ({checkHistory.length})</p>
                   <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[11px]"
+                      onClick={syncCheckHistory}
+                      disabled={syncingHistory}
+                      title="Sincronizar histórico com a nuvem"
+                    >
+                      {syncingHistory ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
+                      Sincronizar
+                    </Button>
                     {checkHistory.length > 0 && (
                       <>
                         <Button
