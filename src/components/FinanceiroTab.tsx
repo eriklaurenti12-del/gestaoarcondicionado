@@ -745,45 +745,34 @@ export default function FinanceiroTab() {
             onChange={(e) => setSelectedMonth(e.target.value)}
             className="w-auto min-w-[140px]"
           />
-          <Button onClick={handleRefreshAll} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]">
+          {/* Botão único "Sincronizar": atualiza dados, força contratos do mês
+              e, se houver órfãs, executa reconciliação automaticamente. */}
+          <Button
+            onClick={async () => {
+              await handleSyncContracts();
+              await handleRefreshAll();
+              if ((serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0) {
+                await handleReconcile();
+              }
+            }}
+            variant={(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'default' : 'outline'}
+            size="sm"
+            disabled={refreshing}
+            className={`min-w-[44px] relative ${(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`}
+            title="Atualiza os dados, lança contratos do mês e corrige órfãs/duplicatas se houver"
+          >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline ml-1">Atualizar</span>
-          </Button>
-          <Button onClick={handleReconcile} variant={(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'default' : 'outline'} size="sm" disabled={refreshing} className={`min-w-[44px] relative ${(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title="Remove duplicatas, órfãos e ressincroniza o mês">
-            <CheckCircle2 className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Reconciliar</span>
+            <span className="hidden sm:inline ml-1">Sincronizar</span>
             {(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 && (
               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
                 {serviceSalesWithoutRecord.length + productSalesWithoutRecord.length}
               </span>
             )}
           </Button>
-          <Button onClick={handleSyncContracts} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px] border-blue-300 text-blue-700 hover:bg-blue-50" title="Força o lançamento mensal dos contratos ativos">
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline ml-1">🔄 Contratos do mês</span>
-          </Button>
           <Button onClick={exportStatementPDF} variant="outline" size="sm" className="min-w-[44px]">
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
           </Button>
-          <Button onClick={() => setCsvDialogOpen(true)} variant="outline" size="sm" className="min-w-[44px]" title="Exportar CSV (Excel) com filtros">
-            <FileSpreadsheet className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">CSV</span>
-          </Button>
-          
-          {/* Lock Button - Only for Owners */}
-          {!localStorage.getItem('portal_member_name') && (
-            <Button 
-              variant={isLocked ? "destructive" : "outline"} 
-              size="sm" 
-              onClick={() => handleToggleLock()}
-              disabled={refreshing}
-              className="gap-2"
-            >
-              {isLocked ? <Wrench className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-              <span className="hidden sm:inline">{isLocked ? "Mês Bloqueado" : "Bloquear Mês"}</span>
-            </Button>
-          )}
 
           <Dialog open={dialogOpen} onOpenChange={(open) => !isLocked && setDialogOpen(open)}>
             <DialogTrigger asChild>
