@@ -145,6 +145,7 @@ export default function FinanceiroReconciliationTab() {
         toast({ title: '✅ Venda sincronizada' });
       }
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro ao sincronizar', description: e.message, variant: 'destructive' });
     } finally {
@@ -159,6 +160,7 @@ export default function FinanceiroReconciliationTab() {
       if (error) throw error;
       toast({ title: '🗑️ Duplicata removida' });
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
     } finally {
@@ -177,6 +179,7 @@ export default function FinanceiroReconciliationTab() {
         description: `${result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales} item(ns) ajustado(s).`,
       });
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro na conciliação', description: e.message, variant: 'destructive' });
     } finally {
@@ -201,6 +204,7 @@ export default function FinanceiroReconciliationTab() {
         });
       }
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       if (!silent) toast({ title: 'Erro no reparo', description: e.message, variant: 'destructive' });
     } finally {
