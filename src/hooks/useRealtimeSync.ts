@@ -1,16 +1,15 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { TABLE_TO_KEYS } from '@/lib/queryKeys';
+import { TABLE_TO_TOKENS, keyMatchesTokens } from '@/lib/queryKeys';
 
 /**
- * Subscribes once to Supabase Realtime for every table that drives the UI.
- * On any INSERT/UPDATE/DELETE we invalidate every queryKey that depends on
- * that table — so all tabs of the app refresh themselves without the user
- * having to click "Atualizar". Works across multiple devices and browser tabs.
+ * Global cross-tab realtime sync. Subscribes to every business table and
+ * invalidates every queryKey whose first segments contain a matching token,
+ * so every tab refreshes automatically without a manual click.
  *
- * Falls back to a lightweight 30s polling refresh in case the realtime
- * websocket gets disconnected (mobile background, captive portals, etc.).
+ * Falls back to 30s polling when realtime is disconnected, and refreshes
+ * everything when the browser regains focus or comes back online.
  */
 export function useRealtimeSync(userId: string | null | undefined) {
   const queryClient = useQueryClient();
@@ -18,57 +17,50 @@ export function useRealtimeSync(userId: string | null | undefined) {
   useEffect(() => {
     if (!userId) return;
 
-    const tables = Object.keys(TABLE_TO_KEYS);
+    const invalidateForTable = (table: string) => {
+      const tokens = TABLE_TO_TOKENS[table];
+      if (!tokens) return;
+      queryClient.invalidateQueries({
+        predicate: (q) => keyMatchesTokens(q.queryKey, tokens),
+      });
+    };
+
+    const invalidateAll = () => {
+      const allTokens = Object.values(TABLE_TO_TOKENS).flat();
+      queryClient.invalidateQueries({
+        predicate: (q) => keyMatchesTokens(q.queryKey, allTokens),
+      });
+    };
+
+    const tables = Object.keys(TABLE_TO_TOKENS);
     const channel = supabase.channel(`global-sync-${userId}`);
 
     for (const table of tables) {
       channel.on(
         'postgres_changes' as any,
         { event: '*', schema: 'public', table },
-        (_payload: any) => {
-          const keys = TABLE_TO_KEYS[table] || [];
-          for (const key of keys) {
-            queryClient.invalidateQueries({ queryKey: key as unknown as string[] });
-          }
-        }
+        () => invalidateForTable(table),
       );
     }
 
     let pollInterval: ReturnType<typeof setInterval> | undefined;
     channel.subscribe((status) => {
       if (status !== 'SUBSCRIBED') {
-        // Fallback polling — invalidate everything periodically
-        if (!pollInterval) {
-          pollInterval = setInterval(() => {
-            for (const keys of Object.values(TABLE_TO_KEYS)) {
-              for (const key of keys) {
-                queryClient.invalidateQueries({ queryKey: key as unknown as string[] });
-              }
-            }
-          }, 30000);
-        }
+        if (!pollInterval) pollInterval = setInterval(invalidateAll, 30000);
       } else if (pollInterval) {
         clearInterval(pollInterval);
         pollInterval = undefined;
       }
     });
 
-    // Also refresh everything when the window regains focus or comes back online
-    const refreshAll = () => {
-      for (const keys of Object.values(TABLE_TO_KEYS)) {
-        for (const key of keys) {
-          queryClient.invalidateQueries({ queryKey: key as unknown as string[] });
-        }
-      }
-    };
-    window.addEventListener('focus', refreshAll);
-    window.addEventListener('online', refreshAll);
+    window.addEventListener('focus', invalidateAll);
+    window.addEventListener('online', invalidateAll);
 
     return () => {
       supabase.removeChannel(channel);
       if (pollInterval) clearInterval(pollInterval);
-      window.removeEventListener('focus', refreshAll);
-      window.removeEventListener('online', refreshAll);
+      window.removeEventListener('focus', invalidateAll);
+      window.removeEventListener('online', invalidateAll);
     };
   }, [userId, queryClient]);
 }
