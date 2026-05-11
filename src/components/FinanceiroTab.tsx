@@ -1397,159 +1397,286 @@ export default function FinanceiroTab() {
         </DialogContent>
       </Dialog>
 
-      {/* Help dialog: Saldo em Caixa formula */}
+      {/* Help dialog: aba "Ajuda" do Financeiro */}
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
-        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5 text-primary" />
-              Como o Saldo em Caixa é calculado
+              Ajuda do Financeiro
             </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Mês em foco: <strong>{safeFormat(new Date(selectedMonth + '-01'), 'MMMM yyyy', { locale: ptBR })}</strong>
+            </p>
           </DialogHeader>
-          <div className="space-y-4 text-sm">
-            <div className="rounded-lg border bg-muted/30 p-3 font-mono text-xs leading-relaxed">
-              Saldo em Caixa = <span className="text-green-600">Entradas</span> − <span className="text-red-600">Despesas</span>
-              <br />
-              <span className="text-muted-foreground">
-                Entradas = Serviços + Produtos + Contratos/Outras
-                <br />
-                Despesas = Saques + Reservas + Gastos Fixos
-              </span>
-            </div>
 
-            <div>
-              <p className="font-semibold mb-2">📥 De onde vem cada valor (mês selecionado):</p>
+          <Tabs defaultValue="resumo" className="mt-2">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="resumo" className="text-[11px] sm:text-xs">Resumo</TabsTrigger>
+              <TabsTrigger value="blocos" className="text-[11px] sm:text-xs">Blocos</TabsTrigger>
+              <TabsTrigger value="orfas" className="text-[11px] sm:text-xs">Órfãs</TabsTrigger>
+              <TabsTrigger value="historico" className="text-[11px] sm:text-xs">Histórico</TabsTrigger>
+            </TabsList>
+
+            {/* ===== Resumo ===== */}
+            <TabsContent value="resumo" className="space-y-3 text-sm mt-3">
+              <div className="rounded-lg border bg-muted/30 p-3 font-mono text-xs leading-relaxed">
+                Saldo em Caixa = <span className="text-green-600">Entradas</span> − <span className="text-red-600">Despesas</span>
+                <br />
+                <span className="text-muted-foreground">
+                  Entradas = Serviços + Produtos + Contratos/Outras
+                  <br />
+                  Despesas = Saques + Reservas + Gastos Fixos
+                </span>
+              </div>
+
+              <div className="rounded-lg border-2 border-primary/40 bg-primary/10 p-3">
+                <div className="flex justify-between items-center font-bold">
+                  <span>Saldo em Caixa do mês</span>
+                  <span className={saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}>
+                    {formatCurrency(saldoDisponivel)}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = {formatCurrency(saldoDisponivel)}
+                </p>
+              </div>
+
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs space-y-1.5">
+                <p className="font-semibold flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Botões</p>
+                <p><strong>Atualizar</strong>: recarrega os dados do mês. Não altera nada.</p>
+                <p><strong>Reconciliar</strong>: limpa duplicatas e órfãs e ressincroniza contratos.</p>
+                <p><strong>Contratos do mês</strong>: força o lançamento das mensalidades ativas.</p>
+                <p className="text-muted-foreground pt-1 border-t">"Atualizar" no topo do sistema atualiza a <em>versão</em> do app (PWA) — não é o mesmo botão.</p>
+              </div>
+
+              <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/5 p-3 flex items-center justify-between gap-3">
+                <div className="text-xs">
+                  <p className="font-semibold text-primary flex items-center gap-1"><FileDown className="h-3.5 w-3.5" /> Guia em PDF</p>
+                  <p className="text-muted-foreground mt-0.5">Versão completa com fórmula, exemplos e checklist.</p>
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <Button asChild size="sm" variant="outline">
+                    <a href="/guia-financeiro.pdf" target="_blank" rel="noopener noreferrer">Abrir</a>
+                  </Button>
+                  <Button asChild size="sm">
+                    <a href="/guia-financeiro.pdf" download="Guia-Financeiro.pdf">Baixar</a>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* ===== Blocos ===== */}
+            <TabsContent value="blocos" className="space-y-3 text-sm mt-3">
+              <p className="text-xs text-muted-foreground">
+                Cada bloco abaixo aparece em uma seção específica da tela. Os valores não se misturam.
+              </p>
+
               <div className="space-y-2">
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-blue-500/5 border border-blue-500/20">
+                <div className="p-2 rounded bg-blue-500/5 border border-blue-500/20 flex justify-between gap-2">
                   <div>
                     <p className="font-medium text-blue-700">Serviços</p>
-                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Vendas Registradas"</strong>. Baixas de agendamento + PDV (tipo serviço).</p>
+                    <p className="text-[11px] text-muted-foreground">Baixas de agendamento + PDV (tipo serviço). Seção: <strong>Vendas de Serviços</strong>.</p>
                   </div>
                   <span className="font-bold text-blue-600 whitespace-nowrap">{formatCurrency(totalServicos)}</span>
                 </div>
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-green-500/5 border border-green-500/20">
+
+                <div className="p-2 rounded bg-green-500/5 border border-green-500/20 flex justify-between gap-2">
                   <div>
-                    <p className="font-medium text-green-700">Produtos</p>
-                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Vendas Registradas"</strong>. Vendas do PDV (tipo produto).</p>
+                    <p className="font-medium text-green-700">Produtos / Peças</p>
+                    <p className="text-[11px] text-muted-foreground">Vendas de PDV onde o cadastro do produto é do tipo <em>produto</em>. Seção: <strong>Vendas de Produtos</strong>.</p>
                   </div>
                   <span className="font-bold text-green-600 whitespace-nowrap">{formatCurrency(totalProdutos)}</span>
                 </div>
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-teal-500/5 border border-teal-500/20">
+
+                <div className="p-2 rounded bg-teal-500/5 border border-teal-500/20 flex justify-between gap-2">
                   <div>
-                    <p className="font-medium text-teal-700">Contratos/Outras</p>
-                    <p className="text-[11px] text-muted-foreground">Aparece em <strong>"Contratos Recorrentes"</strong> + <strong>"Registros Manuais"</strong> (entradas digitadas por você).</p>
+                    <p className="font-medium text-teal-700">Contratos recorrentes</p>
+                    <p className="text-[11px] text-muted-foreground">Mensalidades automáticas (categoria <em>Contrato</em>). Seção: <strong>Contratos Recorrentes</strong>.</p>
                   </div>
-                  <span className="font-bold text-teal-600 whitespace-nowrap">{formatCurrency(totalOutrasEntradas)}</span>
+                  <span className="font-bold text-teal-600 whitespace-nowrap">
+                    {formatCurrency(entradas.filter(r => normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:')).reduce((a, r) => a + Number(r.amount), 0))}
+                  </span>
                 </div>
-                {(() => {
-                  const orfasServicos = sumSales(serviceSalesWithoutRecord);
-                  const orfasProdutos = sumSales(productSalesWithoutRecord);
-                  const orfasTotal = orfasServicos + orfasProdutos;
-                  if (orfasTotal === 0) return null;
+
+                <div className="p-2 rounded bg-purple-500/5 border border-purple-500/20 flex justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-purple-700">Lançamentos manuais</p>
+                    <p className="text-[11px] text-muted-foreground">Entradas digitadas por você (não vêm do PDV nem de contrato). Seção: <strong>Registros Manuais</strong>.</p>
+                  </div>
+                  <span className="font-bold text-purple-600 whitespace-nowrap">
+                    {formatCurrency(totalOutrasEntradas - entradas.filter(r => normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:')).reduce((a, r) => a + Number(r.amount), 0))}
+                  </span>
+                </div>
+
+                <div className="p-2 rounded bg-red-500/5 border border-red-500/20 flex justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-red-700">Saques / Reservas / Gastos Fixos</p>
+                    <p className="text-[11px] text-muted-foreground">Saídas. Saques são saídas manuais, Reservas é dinheiro guardado, Gastos Fixos são despesas do mês.</p>
+                  </div>
+                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques + totalReservas + totalGastosFixos)}</span>
+                </div>
+              </div>
+
+              <div className="rounded-lg border-2 border-emerald-500/30 bg-emerald-500/10 p-3 text-xs">
+                <p className="font-semibold mb-1">Por que não há confusão entre eles?</p>
+                <p className="text-muted-foreground">
+                  Cada bloco usa um <em>filtro diferente</em> (categoria/tipo). Uma mesma venda nunca cai em dois lugares —
+                  ela é classificada pelo cadastro do produto (serviço ou produto) e, se for digitada por você, vai para "Manuais".
+                </p>
+              </div>
+            </TabsContent>
+
+            {/* ===== Vendas órfãs ===== */}
+            <TabsContent value="orfas" className="space-y-3 text-sm mt-3">
+              <div className="rounded-lg border bg-muted/20 p-3 text-xs">
+                <p className="font-semibold mb-1">O que é "venda órfã"?</p>
+                <p className="text-muted-foreground">
+                  É uma venda criada no PDV ou ao concluir um agendamento que <strong>não criou a linha espelho</strong> em "Registros Manuais"
+                  (geralmente por erro de rede ou versão antiga do app). Ela <strong>já entra no Saldo</strong> pelo bloco Serviços/Produtos —
+                  só não aparece duplicada no extrato.
+                </p>
+              </div>
+
+              {(() => {
+                const orfasServicos = sumSales(serviceSalesWithoutRecord);
+                const orfasProdutos = sumSales(productSalesWithoutRecord);
+                const orfasTotal = orfasServicos + orfasProdutos;
+                if (orfasTotal === 0) {
                   return (
-                    <div className="flex justify-between items-start gap-2 p-2 rounded bg-amber-500/5 border border-amber-500/30 border-dashed">
-                      <div>
-                        <p className="font-medium text-amber-700 flex items-center gap-1">
-                          <Info className="h-3 w-3" /> Vendas órfãs (incluídas)
-                        </p>
-                        <p className="text-[11px] text-muted-foreground">
-                          Vendas do PDV/Agenda sem linha espelho em Registros Manuais. <strong>Já estão somadas</strong> dentro de Serviços/Produtos acima — aparecem em <strong>"Vendas Registradas"</strong> marcadas como <em>"incluído no total"</em>. Clique em <strong>Reconciliar</strong> para criar a linha espelho.
-                        </p>
-                      </div>
-                      <span className="font-bold text-amber-700 whitespace-nowrap">{formatCurrency(orfasTotal)}</span>
+                    <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 text-xs flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span>Este mês <strong>não tem vendas órfãs</strong>. Tudo está espelhado corretamente.</span>
                     </div>
                   );
-                })()}
-                <div className="flex justify-between items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/30 font-semibold">
-                  <span>Total Entradas</span>
-                  <span className="text-emerald-700 whitespace-nowrap">{formatCurrency(totalEntradas)}</span>
-                </div>
-              </div>
-            </div>
+                }
+                return (
+                  <>
+                    <div className="rounded-lg border-2 border-amber-500/40 bg-amber-500/10 p-3 text-xs space-y-2">
+                      <p className="font-semibold text-amber-700">Exemplo deste mês:</p>
+                      <div className="font-mono text-[11px] space-y-0.5">
+                        <div>Órfãs de Serviço: <strong>{formatCurrency(orfasServicos)}</strong> ({serviceSalesWithoutRecord.length} venda(s))</div>
+                        <div>Órfãs de Produto: <strong>{formatCurrency(orfasProdutos)}</strong> ({productSalesWithoutRecord.length} venda(s))</div>
+                        <div className="pt-1 border-t border-amber-500/30">
+                          Total órfão somado no Saldo: <strong>{formatCurrency(orfasTotal)}</strong>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground">
+                        Esse valor <strong>já está dentro</strong> dos cards "Serviços" ({formatCurrency(totalServicos)}) e "Produtos" ({formatCurrency(totalProdutos)}) — não é somado duas vezes.
+                      </p>
+                    </div>
 
-            <div>
-              <p className="font-semibold mb-2">📤 Despesas descontadas:</p>
-              <div className="space-y-2">
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-red-500/5 border border-red-500/20">
-                  <div>
-                    <p className="font-medium text-red-700">Saques</p>
-                    <p className="text-[11px] text-muted-foreground">Lançamentos do tipo <em>saque</em> (saídas manuais).</p>
-                  </div>
-                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques)}</span>
-                </div>
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-indigo-500/5 border border-indigo-500/20">
-                  <div>
-                    <p className="font-medium text-indigo-700">Reservas</p>
-                    <p className="text-[11px] text-muted-foreground">Valor separado/guardado (não está disponível em caixa).</p>
-                  </div>
-                  <span className="font-bold text-indigo-600 whitespace-nowrap">{formatCurrency(totalReservas)}</span>
-                </div>
-                <div className="flex justify-between items-start gap-2 p-2 rounded bg-orange-500/5 border border-orange-500/20">
-                  <div>
-                    <p className="font-medium text-orange-700">Gastos Fixos</p>
-                    <p className="text-[11px] text-muted-foreground">Salários, vales, custo de prestadores e despesas fixas do mês.</p>
-                  </div>
-                  <span className="font-bold text-orange-600 whitespace-nowrap">{formatCurrency(totalGastosFixos)}</span>
-                </div>
-              </div>
-            </div>
+                    {serviceSalesWithoutRecord.length + productSalesWithoutRecord.length > 0 && (
+                      <div className="rounded-lg border bg-card p-3 text-xs">
+                        <p className="font-semibold mb-2">Vendas órfãs detectadas:</p>
+                        <ul className="space-y-1">
+                          {[...serviceSalesWithoutRecord, ...productSalesWithoutRecord].slice(0, 8).map((s) => (
+                            <li key={s.id} className="flex justify-between gap-2">
+                              <span className="truncate">
+                                {(s.products?.name || 'Item')} — {(s.clients?.name || 'cliente')}
+                              </span>
+                              <span className="font-mono whitespace-nowrap">{formatCurrency(Number(s.sale_price) * Number(s.qty || 1))}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
 
-            <div className="rounded-lg border-2 border-primary/40 bg-primary/10 p-3">
-              <div className="flex justify-between items-center font-bold">
-                <span>Saldo em Caixa</span>
-                <span className={saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}>
-                  {formatCurrency(saldoDisponivel)}
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = {formatCurrency(saldoDisponivel)}
-              </p>
-            </div>
+                    <Button size="sm" onClick={() => { setHelpOpen(false); handleReconcile(); }} className="w-full">
+                      <CheckCircle2 className="h-4 w-4 mr-1" /> Reconciliar agora (cria as linhas espelho)
+                    </Button>
+                  </>
+                );
+              })()}
+            </TabsContent>
 
-            <div className="rounded-lg border bg-muted/30 p-3 text-xs space-y-2">
-              <p className="font-semibold flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Sobre os botões</p>
-              <p><strong>Atualizar</strong> (deste painel): recarrega os dados do mês sem alterar nada. Use sempre que lançar algo novo.</p>
-              <p><strong>Reconciliar</strong>: limpa duplicatas/órfãs do mês e força a entrada dos contratos recorrentes. Use se a soma parecer estranha.</p>
-              <p><strong>Contratos do mês</strong>: lança manualmente as mensalidades ativas (caso ainda não tenham caído).</p>
-              <p className="text-muted-foreground pt-1 border-t">O botão "Atualizar" no topo do sistema é diferente — ele atualiza a versão do app (PWA), não os dados financeiros.</p>
-            </div>
-
-            <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-xs space-y-2">
-              <p className="font-semibold flex items-center gap-1 text-primary">
-                <CheckCircle2 className="h-3.5 w-3.5" /> Checklist: conferindo se a soma está certa
-              </p>
-              <ol className="list-decimal pl-5 space-y-1">
-                <li>Selecione o mês no campo de data acima.</li>
-                <li>Clique em <strong>Atualizar</strong> para garantir dados frescos.</li>
-                <li>Veja o valor do <strong>Saldo em Caixa</strong> e anote.</li>
-                <li>Some: <em>Serviços + Produtos + Contratos/Outras</em> = Total Entradas.</li>
-                <li>Subtraia: <em>Saques + Reservas + Gastos Fixos</em>.</li>
-                <li>Compare com o Saldo. Se bater, pronto! ✅</li>
-                <li>Se não bater, clique em <strong>Reconciliar</strong> (limpa duplicatas/órfãs).</li>
-                <li>Repita a conta. O sistema mostra um resumo do que corrigiu.</li>
-                <li>Ainda não bateu? Volte aqui e confira valor a valor nos blocos acima.</li>
-              </ol>
-            </div>
-
-            <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/10 to-accent/5 p-3 flex items-center justify-between gap-3">
-              <div className="text-xs">
+            {/* ===== Histórico de conferências ===== */}
+            <TabsContent value="historico" className="space-y-3 text-sm mt-3">
+              <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-3 text-xs space-y-2">
                 <p className="font-semibold flex items-center gap-1 text-primary">
-                  <FileDown className="h-3.5 w-3.5" /> Guia oficial em PDF
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Marcar conferência do mês
                 </p>
-                <p className="text-muted-foreground mt-0.5">Versão completa com exemplos, fórmula e checklist para imprimir.</p>
+                <p className="text-muted-foreground">
+                  Confira: <em>Serviços + Produtos + Contratos + Manuais − Saques − Reservas − Gastos Fixos</em> bate com o Saldo em Caixa?
+                </p>
+                <div className="font-mono text-[11px] bg-muted/30 p-2 rounded">
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = <strong>{formatCurrency(saldoDisponivel)}</strong>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    className="flex-1 min-w-[120px] bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => {
+                      saveCheckEntry({
+                        month: selectedMonth,
+                        date: new Date().toISOString(),
+                        matched: true,
+                        saldo: saldoDisponivel,
+                        totalEntradas,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                      });
+                      toast({ title: 'Conferência salva', description: 'Soma marcada como conferida ✅' });
+                    }}
+                  >
+                    ✅ Bateu
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="flex-1 min-w-[120px] border-red-300 text-red-600"
+                    onClick={() => {
+                      saveCheckEntry({
+                        month: selectedMonth,
+                        date: new Date().toISOString(),
+                        matched: false,
+                        saldo: saldoDisponivel,
+                        totalEntradas,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                      });
+                      toast({ title: 'Conferência salva', description: 'Marcada como não conferida ⚠️', variant: 'destructive' });
+                    }}
+                  >
+                    ⚠️ Não bateu
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <Button asChild size="sm" variant="outline">
-                  <a href="/guia-financeiro.pdf" target="_blank" rel="noopener noreferrer">Abrir</a>
-                </Button>
-                <Button asChild size="sm">
-                  <a href="/guia-financeiro.pdf" download="Guia-Financeiro.pdf">Baixar</a>
-                </Button>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-semibold text-xs">Histórico ({checkHistory.length})</p>
+                  {checkHistory.length > 0 && (
+                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground" onClick={clearCheckHistory}>
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+                {checkHistory.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">Nenhuma conferência salva ainda.</p>
+                ) : (
+                  <div className="rounded-lg border divide-y max-h-[260px] overflow-y-auto">
+                    {checkHistory.map((h) => (
+                      <div key={h.month + h.date} className="flex items-center justify-between gap-2 p-2 text-xs">
+                        <div className="min-w-0">
+                          <div className="font-medium">
+                            {safeFormat(new Date(h.month + '-01'), 'MMMM yyyy', { locale: ptBR })}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground">
+                            {safeFormat(h.date, "dd/MM/yyyy HH:mm")} · Saldo {formatCurrency(h.saldo)}
+                          </div>
+                        </div>
+                        <Badge variant={h.matched ? 'default' : 'destructive'} className={h.matched ? 'bg-emerald-600' : ''}>
+                          {h.matched ? 'Bateu ✅' : 'Não bateu ⚠️'}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-          <div className="flex justify-end pt-2">
-            <Button onClick={() => setHelpOpen(false)}>Entendi</Button>
+            </TabsContent>
+          </Tabs>
+
+          <div className="flex justify-end pt-3">
+            <Button onClick={() => setHelpOpen(false)}>Fechar</Button>
           </div>
         </DialogContent>
       </Dialog>
