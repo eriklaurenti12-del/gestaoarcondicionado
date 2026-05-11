@@ -301,6 +301,42 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_check_history: {
+        Row: {
+          checked_at: string
+          created_at: string
+          id: string
+          matched: boolean
+          month: string
+          saldo: number
+          total_despesas: number
+          total_entradas: number
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          matched?: boolean
+          month: string
+          saldo?: number
+          total_despesas?: number
+          total_entradas?: number
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          id?: string
+          matched?: boolean
+          month?: string
+          saldo?: number
+          total_despesas?: number
+          total_entradas?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_reconciliation_log: {
         Row: {
           created_at: string
