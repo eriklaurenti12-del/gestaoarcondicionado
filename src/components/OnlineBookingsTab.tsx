@@ -195,6 +195,9 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   );
 
   const updateStatus = async (id: string, status: string, booking?: OnlineBooking, silent = false) => {
+    // Snapshot previous status for accurate rollback
+    const previous = bookings.find(b => b.id === id)?.status ?? 'pendente';
+
     // Optimistic: remove instantly from pending list / update card status
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
 
@@ -202,15 +205,34 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
-      // rollback
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'pendente' } : b));
-      if (!silent) toast({ title: "Erro", description: error.message, variant: "destructive" });
+      // rollback to previous state
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: previous } : b));
+      if (!silent) toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
       return;
     }
 
     if (status === 'confirmado' && booking) {
-      await syncToAgenda(booking);
+      const ok = await syncToAgenda(booking);
+      if (!ok) {
+        // Rollback both DB and UI if agenda sync fails — keep the request pending
+        await (supabase.from('online_bookings') as any)
+          .update({ status: previous, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        setBookings(prev => prev.map(b => b.id === id ? { ...b, status: previous } : b));
+        if (!silent) toast({
+          title: "Falha ao criar na agenda",
+          description: "Solicitação mantida como pendente. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
+
+    // Cross-tab refresh (agenda, financeiro, dashboard, clientes)
+    queryClient.invalidateQueries({ predicate: (q) => {
+      const k = JSON.stringify(q.queryKey).toLowerCase();
+      return /appointment|agenda|calendar|dashboard|online-booking|client|financial/.test(k);
+    }});
 
     if (!silent) toast({ title: status === 'confirmado' ? "✅ Confirmado e adicionado à agenda!" : status === 'recusado' ? "❌ Recusado" : `Status: ${status}` });
     loadBookings();
@@ -233,50 +255,64 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
     }
   };
 
-  const syncToAgenda = async (booking: OnlineBooking) => {
+  const syncToAgenda = async (booking: OnlineBooking): Promise<boolean> => {
     try {
+      // Resolve the owner (prestador) strictly from the booking row to avoid
+      // mismatches if a stale userId prop is cached after a provider switch.
+      const { data: bookingRow, error: bErr } = await (supabase.from('online_bookings') as any)
+        .select('user_id')
+        .eq('id', booking.id)
+        .maybeSingle();
+      if (bErr) {
+        console.error('syncToAgenda: failed to resolve booking owner', bErr);
+        return false;
+      }
+      const providerId: string = bookingRow?.user_id || userId;
+
       let clientId: number | null = null;
       const cleanPhone = booking.client_phone.replace(/\D/g, '');
-      
+
       const { data: existingClients } = await supabase
         .from('clients')
         .select('id')
-        .eq('user_id', userId)
+        .eq('user_id', providerId)
         .or(`telefone.ilike.%${cleanPhone.slice(-8)}%,name.ilike.%${booking.client_name}%`)
         .limit(1);
-      
+
       if (existingClients && existingClients.length > 0) {
         clientId = existingClients[0].id;
       } else {
-        const { data: newClient } = await supabase
+        const { data: newClient, error: cErr } = await supabase
           .from('clients')
-          .insert({ user_id: userId, name: booking.client_name, telefone: booking.client_phone })
+          .insert({ user_id: providerId, name: booking.client_name, telefone: booking.client_phone })
           .select('id')
           .single();
+        if (cErr) {
+          console.error('syncToAgenda: failed to create client', cErr);
+          return false;
+        }
         if (newClient) clientId = newClient.id;
       }
 
       let serviceId: number | null = null;
       let servicePrice = 0;
-      let serviceCost = 0;
       const { data: serviceData } = await supabase
         .from('products')
         .select('id, price, cost_price')
-        .eq('user_id', userId)
+        .eq('user_id', providerId)
         .ilike('name', `%${booking.service_name}%`)
         .limit(1);
       if (serviceData && serviceData.length > 0) {
         serviceId = serviceData[0].id;
         servicePrice = Number(serviceData[0].price);
-        serviceCost = Number(serviceData[0].cost_price);
       }
 
       const [year, month, day] = booking.preferred_date.split('-').map(Number);
       const [hour, minute] = booking.preferred_time.split(':').map(Number);
       const dateTime = new Date(year, month - 1, day, hour, minute);
 
-      const { error } = await supabase.from('appointments').insert({
-        user_id: userId,
+      const { error: aErr } = await supabase.from('appointments').insert({
+        user_id: providerId,
         client_id: clientId,
         service_id: serviceId,
         appointment_date: dateTime.toISOString(),
@@ -284,9 +320,12 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         notes: `Agendamento Online - ${booking.payment_method ? `Pagamento: ${booking.payment_method}` : ''}${booking.notes ? ` | ${booking.notes}` : ''}`
       });
 
-      if (!error) {
-        queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      if (aErr) {
+        console.error('syncToAgenda: failed to insert appointment', aErr);
+        return false;
       }
+
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
 
       if (clientId && serviceId && servicePrice > 0) {
         const paymentMap: Record<string, string> = {
@@ -296,21 +335,28 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         const rawPayment = (booking.payment_method || 'PIX').toLowerCase();
         const mappedPayment = paymentMap[rawPayment] || 'PIX';
 
-        await recordFinancialEntry({
-          userId: userId,
-          type: 'entrada',
-          amount: servicePrice,
-          description: `Venda Online: ${booking.service_name} - ${booking.client_name}`,
-          paymentMethod: mappedPayment as any,
-          category: 'Serviço',
-          recordDate: dateTime.toISOString()
-        });
-
-        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
-        queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        try {
+          await recordFinancialEntry({
+            userId: providerId,
+            type: 'entrada',
+            amount: servicePrice,
+            description: `Venda Online: ${booking.service_name} - ${booking.client_name}`,
+            paymentMethod: mappedPayment as any,
+            category: 'Serviço',
+            recordDate: dateTime.toISOString()
+          });
+          queryClient.invalidateQueries({ queryKey: ['financial-records'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+        } catch (finErr) {
+          // Financial entry is best-effort: do not roll back the agenda.
+          console.error('syncToAgenda: financial entry failed (non-blocking)', finErr);
+        }
       }
+
+      return true;
     } catch (e) {
       console.error('Error syncing to agenda:', e);
+      return false;
     }
   };
 
