@@ -1395,6 +1395,25 @@ export default function FinanceiroTab() {
                   </div>
                   <span className="font-bold text-teal-600 whitespace-nowrap">{formatCurrency(totalOutrasEntradas)}</span>
                 </div>
+                {(() => {
+                  const orfasServicos = sumSales(serviceSalesWithoutRecord);
+                  const orfasProdutos = sumSales(productSalesWithoutRecord);
+                  const orfasTotal = orfasServicos + orfasProdutos;
+                  if (orfasTotal === 0) return null;
+                  return (
+                    <div className="flex justify-between items-start gap-2 p-2 rounded bg-amber-500/5 border border-amber-500/30 border-dashed">
+                      <div>
+                        <p className="font-medium text-amber-700 flex items-center gap-1">
+                          <Info className="h-3 w-3" /> Vendas órfãs (incluídas)
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Vendas do PDV/Agenda sem linha espelho em Registros Manuais. <strong>Já estão somadas</strong> dentro de Serviços/Produtos acima — aparecem em <strong>"Vendas Registradas"</strong> marcadas como <em>"incluído no total"</em>. Clique em <strong>Reconciliar</strong> para criar a linha espelho.
+                        </p>
+                      </div>
+                      <span className="font-bold text-amber-700 whitespace-nowrap">{formatCurrency(orfasTotal)}</span>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/30 font-semibold">
                   <span>Total Entradas</span>
                   <span className="text-emerald-700 whitespace-nowrap">{formatCurrency(totalEntradas)}</span>
