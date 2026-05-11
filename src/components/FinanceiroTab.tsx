@@ -84,7 +84,37 @@ export default function FinanceiroTab() {
   const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  
+
+  // Histórico de conferências (checklist concluído) salvo localmente.
+  // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
+  type CheckEntry = {
+    month: string;
+    date: string; // ISO
+    matched: boolean;
+    saldo: number;
+    totalEntradas: number;
+    totalDespesas: number;
+  };
+  const CHECK_KEY = 'financeiro_checklist_history_v1';
+  const [checkHistory, setCheckHistory] = useState<CheckEntry[]>(() => {
+    try {
+      const raw = localStorage.getItem(CHECK_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
+  const saveCheckEntry = (entry: CheckEntry) => {
+    setCheckHistory((prev) => {
+      const filtered = prev.filter((e) => e.month !== entry.month);
+      const next = [entry, ...filtered].slice(0, 36);
+      try { localStorage.setItem(CHECK_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  };
+  const clearCheckHistory = () => {
+    try { localStorage.removeItem(CHECK_KEY); } catch {}
+    setCheckHistory([]);
+  };
+
   const [formData, setFormData] = useState({
     type: "entrada" as "entrada" | "saque" | "reserva",
     amount: "",
