@@ -111,6 +111,9 @@ export default function Index() {
     refetchInterval: 60000
   });
 
+  // Global cross-tab realtime sync — keeps every tab fresh automatically.
+  useRealtimeSync(currentUserId);
+
   useEffect(() => {
     let mounted = true;
 
