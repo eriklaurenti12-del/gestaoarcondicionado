@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,11 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
-import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Trash2, Activity, Search } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, RefreshCw, Trash2, Activity, Search, Wrench, Sparkles } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { reconcileFinancialMonth } from '@/utils/recurringSync';
+import { reconcileFinancialMonth, repairMissingFinancialRecords, type RepairResult } from '@/utils/recurringSync';
 
 const formatBRL = (v: number) => `R$ ${(Number(v) || 0).toFixed(2)}`;
 
@@ -18,6 +18,9 @@ export default function FinanceiroReconciliationTab() {
   const { toast } = useToast();
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [busy, setBusy] = useState(false);
+  const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const autoRepairRan = useRef(false);
 
   const monthStart = `${selectedMonth}-01`;
   const monthEndDate = (() => {
