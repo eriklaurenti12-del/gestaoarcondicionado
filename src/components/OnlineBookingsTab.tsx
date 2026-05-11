@@ -207,18 +207,23 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   );
 
   const updateStatus = async (id: string, status: string, booking?: OnlineBooking, silent = false) => {
+    // Optimistic: remove instantly from pending list / update card status
+    setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
+
     const { error } = await (supabase.from('online_bookings') as any)
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
+      // rollback
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'pendente' } : b));
       if (!silent) toast({ title: "Erro", description: error.message, variant: "destructive" });
       return;
     }
-    
+
     if (status === 'confirmado' && booking) {
       await syncToAgenda(booking);
     }
-    
+
     if (!silent) toast({ title: status === 'confirmado' ? "✅ Confirmado e adicionado à agenda!" : status === 'recusado' ? "❌ Recusado" : `Status: ${status}` });
     loadBookings();
     
