@@ -102,17 +102,125 @@ export default function FinanceiroTab() {
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   });
-  const saveCheckEntry = (entry: CheckEntry) => {
+  const [syncingHistory, setSyncingHistory] = useState(false);
+
+  // Carrega histórico do banco (sincroniza entre dispositivos)
+  useEffect(() => {
+    (async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) return;
+      const { data, error } = await (supabase as any)
+        .from('financial_check_history')
+        .select('*')
+        .eq('user_id', session.session.user.id)
+        .order('checked_at', { ascending: false })
+        .limit(36);
+      if (error || !data) return;
+      const remote: CheckEntry[] = data.map((r: any) => ({
+        month: r.month,
+        date: r.checked_at,
+        matched: r.matched,
+        saldo: Number(r.saldo) || 0,
+        totalEntradas: Number(r.total_entradas) || 0,
+        totalDespesas: Number(r.total_despesas) || 0,
+      }));
+      // merge com local (banco prevalece por mês)
+      setCheckHistory((prev) => {
+        const map = new Map<string, CheckEntry>();
+        prev.forEach((e) => map.set(e.month, e));
+        remote.forEach((e) => map.set(e.month, e));
+        const merged = Array.from(map.values())
+          .sort((a, b) => (b.date > a.date ? 1 : -1))
+          .slice(0, 36);
+        try { localStorage.setItem(CHECK_KEY, JSON.stringify(merged)); } catch {}
+        return merged;
+      });
+    })();
+  }, []);
+
+  const saveCheckEntry = async (entry: CheckEntry) => {
     setCheckHistory((prev) => {
       const filtered = prev.filter((e) => e.month !== entry.month);
       const next = [entry, ...filtered].slice(0, 36);
       try { localStorage.setItem(CHECK_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) return;
+      await (supabase as any)
+        .from('financial_check_history')
+        .upsert({
+          user_id: session.session.user.id,
+          month: entry.month,
+          matched: entry.matched,
+          saldo: entry.saldo,
+          total_entradas: entry.totalEntradas,
+          total_despesas: entry.totalDespesas,
+          checked_at: entry.date,
+        }, { onConflict: 'user_id,month' });
+    } catch (e) { console.warn('sync check history failed', e); }
   };
-  const clearCheckHistory = () => {
+
+  const clearCheckHistory = async () => {
     try { localStorage.removeItem(CHECK_KEY); } catch {}
     setCheckHistory([]);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) return;
+      await (supabase as any)
+        .from('financial_check_history')
+        .delete()
+        .eq('user_id', session.session.user.id);
+    } catch {}
+  };
+
+  const syncCheckHistory = async () => {
+    setSyncingHistory(true);
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.user) {
+        toast({ title: 'Sem sessão', description: 'Entre na conta para sincronizar.', variant: 'destructive' });
+        return;
+      }
+      // envia tudo do local
+      const local = checkHistory;
+      if (local.length) {
+        await (supabase as any)
+          .from('financial_check_history')
+          .upsert(local.map((e) => ({
+            user_id: session.session!.user.id,
+            month: e.month,
+            matched: e.matched,
+            saldo: e.saldo,
+            total_entradas: e.totalEntradas,
+            total_despesas: e.totalDespesas,
+            checked_at: e.date,
+          })), { onConflict: 'user_id,month' });
+      }
+      // re-baixa
+      const { data } = await (supabase as any)
+        .from('financial_check_history')
+        .select('*')
+        .eq('user_id', session.session.user.id)
+        .order('checked_at', { ascending: false })
+        .limit(36);
+      if (data) {
+        const remote: CheckEntry[] = data.map((r: any) => ({
+          month: r.month, date: r.checked_at, matched: r.matched,
+          saldo: Number(r.saldo) || 0,
+          totalEntradas: Number(r.total_entradas) || 0,
+          totalDespesas: Number(r.total_despesas) || 0,
+        }));
+        setCheckHistory(remote);
+        try { localStorage.setItem(CHECK_KEY, JSON.stringify(remote)); } catch {}
+      }
+      toast({ title: 'Histórico sincronizado', description: 'Conferências salvas na nuvem.' });
+    } catch (e: any) {
+      toast({ title: 'Erro ao sincronizar', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+    } finally {
+      setSyncingHistory(false);
+    }
   };
 
   const [formData, setFormData] = useState({
