@@ -51,6 +51,8 @@ interface FinancialRecord {
   installments: number | null;
   category: string | null;
   record_date: string;
+  appointment_id?: string | null;
+  sale_id?: number | null;
 }
 
 interface Sale {
