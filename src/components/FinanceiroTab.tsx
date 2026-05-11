@@ -1839,12 +1839,12 @@ export default function FinanceiroTab() {
                       size="sm"
                       variant="outline"
                       className="h-7 text-[11px]"
-                      onClick={syncCheckHistory}
+                      onClick={() => syncCheckHistory(false)}
                       disabled={syncingHistory}
-                      title="Sincronizar histórico com a nuvem"
+                      title={syncMessage || 'Sincronizar histórico com a nuvem'}
                     >
                       {syncingHistory ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-1" />}
-                      Sincronizar
+                      {syncingHistory && syncMessage ? syncMessage : 'Sincronizar'}
                     </Button>
                     {checkHistory.length > 0 && (
                       <>
