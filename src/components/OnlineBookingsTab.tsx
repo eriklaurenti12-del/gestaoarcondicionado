@@ -564,23 +564,15 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         },
       ]} />
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-primary">{todayBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Hoje</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-primary">{futureBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Futuros</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
-          <p className="text-2xl sm:text-3xl font-bold text-green-500">{confirmedBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Confirmados</p>
-        </div>
-        <div className="rounded-xl border border-border bg-card p-3 sm:p-4 text-center">
+      {/* Resumo simples */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 sm:p-4 text-center">
           <p className="text-2xl sm:text-3xl font-bold text-amber-500">{pendingBookings.length}</p>
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Pendentes</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Aguardando sua resposta</p>
+        </div>
+        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-3 sm:p-4 text-center">
+          <p className="text-2xl sm:text-3xl font-bold text-green-500">{confirmedBookings.length}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Aceitos (na agenda)</p>
         </div>
       </div>
 
@@ -618,21 +610,6 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
               {loading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-1" />}
               Atualizar
             </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={async () => {
-                if (!confirm('Resetar lista local e recarregar do servidor?\n\nUse para resolver casos difíceis quando os agendamentos parecem dessincronizados.')) return;
-                setBookings([]);
-                setLoading(true);
-                await loadBookings();
-                toast({ title: 'Lista recarregada', description: 'Agendamentos foram baixados novamente do servidor.' });
-              }}
-              disabled={loading}
-              title="Apaga a lista local e baixa novamente do servidor"
-            >
-              <RefreshCw className="w-3 h-3 mr-1" /> Resetar
-            </Button>
             <Button size="sm" variant="outline" onClick={exportBookingsPDF} disabled={bookings.length === 0}>
               <FileDown className="w-3 h-3 mr-1" /> PDF
             </Button>
@@ -640,144 +617,60 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
         </CardContent>
       </Card>
 
-      {/* Tabbed Bookings — tabs at top below stats */}
-      <Card>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          {/* Tabs at top */}
-          <div className="border-b border-border px-2 sm:px-4 pt-3 pb-2">
-            <TabsList
-              className="w-full grid grid-cols-4 h-auto gap-1 bg-muted/40 p-1 rounded-xl"
-              aria-label="Filtrar agendamentos por período"
-            >
-              <TabsTrigger
-                value="hoje"
-                aria-label="Hoje — agendamentos confirmados ou pendentes para hoje"
-                title="Hoje — agendamentos confirmados ou pendentes para hoje"
-                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
-              >
-                <CalendarCheck className="w-3.5 h-3.5" />
-                <span className="truncate">Hoje</span>
-                <Badge
-                  variant={todayBookings.length > 0 ? "default" : "secondary"}
-                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
-                >
-                  {todayBookings.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="futuras"
-                aria-label="Futuros — próximos agendamentos a partir de amanhã"
-                title="Futuros — próximos agendamentos a partir de amanhã"
-                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
-              >
-                <CalendarClock className="w-3.5 h-3.5" />
-                <span className="truncate">Futuros</span>
-                <Badge
-                  variant={futureBookings.length > 0 ? "default" : "secondary"}
-                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
-                >
-                  {futureBookings.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="historico"
-                aria-label="Histórico — agendamentos passados, recusados ou cancelados"
-                title="Histórico — agendamentos passados, recusados ou cancelados"
-                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span className="truncate">Histórico</span>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
-                >
-                  {historyBookings.length}
-                </Badge>
-              </TabsTrigger>
-              <TabsTrigger
-                value="todos"
-                aria-label="Todos — lista completa de agendamentos do mais recente ao mais antigo"
-                title="Todos — lista completa de agendamentos"
-                className="flex-col sm:flex-row min-w-0 text-[11px] sm:text-sm gap-0.5 sm:gap-1.5 py-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md rounded-lg transition-all"
-              >
-                <List className="w-3.5 h-3.5" />
-                <span className="truncate">Todos</span>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] px-1.5 py-0 h-4 ml-0.5 bg-background/20 text-current border-0"
-                >
-                  {allBookings.length}
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <CardContent className="pt-4 pb-4">
-            {loading ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
-              </div>
-            ) : (
-              <>
-                <TabsContent value="futuras" className="mt-0">
-                  {futureBookings.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <CalendarClock className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm font-medium">Nenhum agendamento futuro</p>
-                      <p className="text-xs mt-1 opacity-80">Solicitações para os próximos dias aparecerão aqui.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {futureBookings.map(b => renderBookingCard(b))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="hoje" className="mt-0">
-                  {todayBookings.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <CalendarCheck className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm font-medium">Nada agendado para hoje</p>
-                      <p className="text-xs mt-1 opacity-80">Aproveite para revisar pendências ou enviar lembretes.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {todayBookings.map(b => renderBookingCard(b))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="todos" className="mt-0">
-                  {allBookings.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <List className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm font-medium">Nenhum agendamento online ainda</p>
-                      <p className="text-xs mt-1 opacity-80">Compartilhe o link público para começar a receber solicitações.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {allBookings.map(b => renderBookingCard(b))}
-                    </div>
-                  )}
-                </TabsContent>
-
-                <TabsContent value="historico" className="mt-0">
-                  {historyBookings.length === 0 ? (
-                    <div className="text-center py-10 text-muted-foreground">
-                      <Clock className="w-10 h-10 mx-auto mb-3 opacity-50" />
-                      <p className="text-sm font-medium">Nenhum histórico disponível</p>
-                      <p className="text-xs mt-1 opacity-80">Agendamentos passados, recusados ou cancelados ficam aqui.</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {historyBookings.map(b => renderBookingCard(b, false))}
-                    </div>
-                  )}
-                </TabsContent>
-              </>
+      {/* Solicitações pendentes — aguardando aceitar/recusar */}
+      <Card className="border-amber-500/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+            <Bell className="w-4 h-4 text-amber-500" />
+            Solicitações para você responder
+            {pendingBookings.length > 0 && (
+              <Badge className="bg-amber-500 text-white animate-pulse ml-1">{pendingBookings.length}</Badge>
             )}
-          </CardContent>
-        </Tabs>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-2 pb-4">
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : pendingBookings.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <CalendarCheck className="w-10 h-10 mx-auto mb-2 opacity-50" />
+              <p className="text-sm font-medium">Nenhuma solicitação pendente</p>
+              <p className="text-xs mt-1 opacity-80">Quando um cliente agendar, aparece aqui para você aceitar ou recusar.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingBookings
+                .sort((a, b) => new Date(a.preferred_date + 'T' + a.preferred_time).getTime() - new Date(b.preferred_date + 'T' + b.preferred_time).getTime())
+                .map(b => renderBookingCard(b))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Aceitos — já estão na agenda do prestador */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm sm:text-base flex items-center gap-2">
+            <CalendarCheck className="w-4 h-4 text-green-500" />
+            Aceitos · já na agenda
+            <Badge variant="secondary" className="ml-1">{confirmedBookings.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-2 pb-4">
+          {confirmedBookings.length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground">
+              <p className="text-xs opacity-80">Os agendamentos aceitos aparecem aqui e vão automaticamente para o prestador.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {confirmedBookings
+                .sort((a, b) => new Date(a.preferred_date + 'T' + a.preferred_time).getTime() - new Date(b.preferred_date + 'T' + b.preferred_time).getTime())
+                .map(b => renderBookingCard(b))}
+            </div>
+          )}
+        </CardContent>
       </Card>
 
       {/* Edit Booking Dialog */}
