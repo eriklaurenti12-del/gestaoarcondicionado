@@ -1065,18 +1065,22 @@ export default function FinanceiroTab() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           {(() => {
-            // Show only TRULY manual entries here. Records auto-criados pela
-            // conclusão de agendamento (appointment_id) ou pelo PDV (sale_id)
-            // já aparecem em "Vendas de Serviços" / PDV — listá-los aqui
-            // duplica visualmente o mesmo valor e confunde o cliente.
-            const manualRecords = records.filter((r) => {
-              if (r.appointment_id) return false;
-              if (r.sale_id) return false;
-              const d = (r.description || '').toLowerCase();
-              if (d.startsWith('serviço concluído') || d.startsWith('servico concluido')) return false;
-              if (d.startsWith('auto:')) return false;
-              return true;
-            });
+            // Mostrar APENAS lançamentos verdadeiramente manuais.
+            // Tudo que é gerado automaticamente (baixa de agendamento, PDV,
+            // contrato recorrente, despesas auto) tem seu próprio bloco acima
+            // e deve ser ocultado aqui para não confundir o cliente.
+            const isAuto = (r: FinancialRecord) => {
+              if (r.appointment_id) return true;
+              if (r.sale_id) return true;
+              const d = (r.description || '').toLowerCase().trim();
+              const c = (r.category || '').toLowerCase().trim();
+              if (d.startsWith('auto:')) return true;
+              if (d.includes('serviço concluído') || d.includes('servico concluido')) return true;
+              if (c.startsWith('serviç') || c.startsWith('servic')) return true;
+              if (c === 'contrato') return true;
+              return false;
+            };
+            const manualRecords = records.filter((r) => !isAuto(r));
             if (loading) {
               return (
                 <div className="flex justify-center py-8">
