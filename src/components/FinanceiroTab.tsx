@@ -1009,16 +1009,36 @@ export default function FinanceiroTab() {
           </div>
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
-          {loading ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : records.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Wallet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
-              <p className="text-sm">Nenhum registro manual encontrado para este mês</p>
-            </div>
-          ) : (
+          {(() => {
+            // Show only TRULY manual entries here. Records auto-criados pela
+            // conclusão de agendamento (appointment_id) ou pelo PDV (sale_id)
+            // já aparecem em "Vendas de Serviços" / PDV — listá-los aqui
+            // duplica visualmente o mesmo valor e confunde o cliente.
+            const manualRecords = records.filter((r) => {
+              if (r.appointment_id) return false;
+              if (r.sale_id) return false;
+              const d = (r.description || '').toLowerCase();
+              if (d.startsWith('serviço concluído') || d.startsWith('servico concluido')) return false;
+              if (d.startsWith('auto:')) return false;
+              return true;
+            });
+            if (loading) {
+              return (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              );
+            }
+            if (manualRecords.length === 0) {
+              return (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Wallet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Nenhum registro manual encontrado para este mês</p>
+                  <p className="text-[10px] mt-1 opacity-70">Lançamentos automáticos de agendamentos/PDV aparecem nas seções acima.</p>
+                </div>
+              );
+            }
+            return (
             <div className="overflow-x-auto -mx-3 sm:mx-0">
               <Table>
                 <TableHeader>
@@ -1033,7 +1053,7 @@ export default function FinanceiroTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {records.map((record) => (
+                  {manualRecords.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="py-2">
                         <div className="flex items-center gap-1">
@@ -1076,7 +1096,8 @@ export default function FinanceiroTab() {
                 </TableBody>
               </Table>
             </div>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
       <Dialog open={csvDialogOpen} onOpenChange={setCsvDialogOpen}>
