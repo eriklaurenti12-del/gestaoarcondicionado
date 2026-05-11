@@ -1622,13 +1622,36 @@ export default function FinanceiroTab() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 gap-2">
                   <p className="font-semibold text-xs">Histórico ({checkHistory.length})</p>
-                  {checkHistory.length > 0 && (
-                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground" onClick={clearCheckHistory}>
-                      Limpar
-                    </Button>
-                  )}
+                  <div className="flex gap-1">
+                    {checkHistory.length > 0 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          onClick={() => {
+                            const header = 'Mês;Data;Resultado;Saldo;Entradas;Despesas';
+                            const lines = checkHistory.map((h) =>
+                              [h.month, safeFormat(h.date, 'dd/MM/yyyy HH:mm'), h.matched ? 'Bateu' : 'Não bateu', h.saldo.toFixed(2), h.totalEntradas.toFixed(2), h.totalDespesas.toFixed(2)].join(';')
+                            );
+                            const csv = '\uFEFF' + [header, ...lines].join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = `conferencias-financeiro.csv`;
+                            a.click(); URL.revokeObjectURL(url);
+                          }}
+                        >
+                          <FileSpreadsheet className="h-3 w-3 mr-1" /> CSV
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground" onClick={clearCheckHistory}>
+                          Limpar
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {checkHistory.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">Nenhuma conferência salva ainda.</p>
