@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2 } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from '@/components/ui/skeleton';
@@ -1221,6 +1221,37 @@ const AppointmentsTab: React.FC = () => {
           <Button onClick={() => setShowAddDialog(true)} className="min-h-[44px] flex-1 lg:flex-none" aria-label="Novo agendamento">
             <PlusCircle className="w-4 h-4 mr-2 shrink-0" />
             <span className="truncate">Novo Agendamento</span>
+          </Button>
+          <Button
+            onClick={() => {
+              queryClient.invalidateQueries({ queryKey: ['appointments'] });
+              queryClient.invalidateQueries({ queryKey: ['clients-list'] });
+              queryClient.invalidateQueries({ queryKey: ['products-list'] });
+              toast({ title: 'Atualizado', description: 'Lista da agenda recarregada.' });
+            }}
+            variant="outline"
+            className="min-h-[44px] flex-1 lg:flex-none"
+            aria-label="Atualizar agenda"
+            disabled={isLoadingAppointments}
+          >
+            {isLoadingAppointments ? <Loader2 className="w-4 h-4 mr-2 shrink-0 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2 shrink-0" />}
+            <span className="truncate">Atualizar</span>
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!confirm('Resetar e recarregar a agenda do servidor?\n\nUsa para resolver casos difíceis quando a agenda parece dessincronizada.')) return;
+              queryClient.removeQueries({ queryKey: ['appointments'] });
+              queryClient.removeQueries({ queryKey: ['clients-list'] });
+              await queryClient.refetchQueries({ queryKey: ['appointments'] });
+              toast({ title: 'Agenda recarregada', description: 'Dados baixados novamente do servidor.' });
+            }}
+            variant="outline"
+            className="min-h-[44px] flex-1 lg:flex-none"
+            aria-label="Resetar e recarregar agenda"
+            title="Apaga o cache local e baixa novamente do servidor"
+          >
+            <RefreshCw className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">Resetar</span>
           </Button>
           <Button onClick={exportScheduledPDF} variant="outline" className="min-h-[44px] flex-1 lg:flex-none" aria-label="Exportar agendamentos em PDF">
             <FileDown className="w-4 h-4 mr-2 shrink-0" />
