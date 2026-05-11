@@ -257,7 +257,59 @@ export default function FinanceiroTab() {
     } catch {}
   };
 
-  const syncCheckHistory = async (silent = false) => {
+  // Reset do histórico de UM mês: apaga local + remoto, depois recarrega do banco.
+  const resetMonthCheck = async (month: string) => {
+    if (!confirm(`Resetar a conferência de ${month}?\n\nIsso apaga local e remoto e recarrega o que estiver no banco. Use para resolver casos difíceis.`)) return;
+    try {
+      setSyncStatus('sending');
+      setSyncMessage(`Apagando ${month}…`);
+      // remove local
+      setCheckHistory((prev) => {
+        const next = prev.filter((e) => e.month !== month);
+        try { localStorage.setItem(CHECK_KEY, JSON.stringify(next)); } catch {}
+        return next;
+      });
+      // remove remoto
+      const { data: session } = await supabase.auth.getSession();
+      if (session.session?.user) {
+        await (supabase as any)
+          .from('financial_check_history')
+          .delete()
+          .eq('user_id', session.session.user.id)
+          .eq('month', month);
+      }
+      // recarrega banco completo
+      setSyncStatus('downloading');
+      setSyncMessage('Recarregando do banco…');
+      if (session.session?.user) {
+        const { data } = await (supabase as any)
+          .from('financial_check_history')
+          .select('*')
+          .eq('user_id', session.session.user.id)
+          .order('checked_at', { ascending: false })
+          .limit(36);
+        if (data) {
+          const remote: CheckEntry[] = data.map((r: any) => ({
+            month: r.month, date: r.checked_at, matched: r.matched,
+            saldo: Number(r.saldo) || 0,
+            totalEntradas: Number(r.total_entradas) || 0,
+            totalDespesas: Number(r.total_despesas) || 0,
+          }));
+          setCheckHistory(remote);
+          try { localStorage.setItem(CHECK_KEY, JSON.stringify(remote)); } catch {}
+        }
+      }
+      setSyncStatus('done');
+      setSyncMessage('Mês resetado ✓');
+      toast({ title: 'Mês resetado', description: `${month} foi apagado e o histórico recarregado.` });
+      setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 2500);
+    } catch (e: any) {
+      setSyncStatus('error');
+      setSyncMessage('Falha ao resetar');
+      toast({ title: 'Erro ao resetar mês', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+      setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 3000);
+    }
+  };
     if (syncingHistory) return; // evita cliques repetidos
     setSyncingHistory(true);
     try {
