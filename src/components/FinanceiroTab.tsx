@@ -717,45 +717,8 @@ export default function FinanceiroTab() {
         },
       ]} />
 
-      {/* Quick Actions Bar for Agility */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Combustível', 50, 'Abastecimento rápido')}
-          className="h-16 flex flex-col gap-1 border-blue-500/30 hover:bg-blue-500/5 text-blue-600"
-          disabled={saving || isLocked}
-        >
-          <Fuel className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Combustível R$50</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Alimentação', 30, 'Refeição rápida')}
-          className="h-16 flex flex-col gap-1 border-orange-500/30 hover:bg-orange-500/5 text-orange-600"
-          disabled={saving || isLocked}
-        >
-          <Utensils className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Almoço R$30</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Peças', 100, 'Compra de material/peças')}
-          className="h-16 flex flex-col gap-1 border-emerald-500/30 hover:bg-emerald-500/5 text-emerald-600"
-          disabled={saving || isLocked}
-        >
-          <Package className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Peças R$100</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => setDialogOpen(true)}
-          className="h-16 flex flex-col gap-1 border-primary/30 hover:bg-primary/5 text-primary"
-          disabled={saving || isLocked}
-        >
-          <Plus className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Novo Personalizado</span>
-        </Button>
-      </div>
+      {/* Quick Actions removidas — botão "Novo" do toolbar cobre o lançamento manual. */}
+
 
       {/* Header */}
       <div className="flex flex-col gap-3">
