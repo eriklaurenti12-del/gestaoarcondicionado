@@ -724,7 +724,7 @@ export default function FinanceiroTab() {
           <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
             <span className="px-2 py-1 rounded-md bg-muted">
-              <strong>Atualizar</strong>: recarrega os dados sem alterar nada.
+              <strong>Atualizar</strong>: recarrega tudo e já reconcilia o mês (remove duplicatas/órfãos e sincroniza recorrentes).
             </span>
             <span className="px-2 py-1 rounded-md bg-muted">
               <strong>Reconciliar</strong>: remove duplicatas e órfãos do mês.
