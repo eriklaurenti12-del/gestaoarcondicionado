@@ -6,7 +6,7 @@ import ProductsTab from './ProductsTab';
 import SuppliersTab from './SuppliersTab';
 import EstoqueTab from './EstoqueTab';
 import RegisterProductTab from './RegisterProductTab';
-import OnlineBookingConfigTab from './OnlineBookingConfigTab';
+
 import TabGuideCards from './TabGuideCards';
 
 import { supabase } from '@/integrations/supabase/client';
