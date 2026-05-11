@@ -1051,6 +1051,62 @@ export default function FinanceiroTab() {
         </Card>
       )}
 
+      {/* Recurring Contracts */}
+      {(() => {
+        const contractRows = records.filter((r) => {
+          const d = (r.description || '').toLowerCase().trim();
+          const c = (r.category || '').toLowerCase().trim();
+          return r.type === 'entrada' && (c === 'contrato' || d.startsWith('auto:contract:'));
+        });
+        if (contractRows.length === 0) return null;
+        const totalContracts = contractRows.reduce((a, r) => a + Number(r.amount), 0);
+        const cleanDesc = (d: string) => {
+          // Remove tag técnica "auto:contract:xxx | mensal |" e mostra só o nome legível
+          const parts = (d || '').split('|').map((s) => s.trim());
+          if (parts[0]?.toLowerCase().startsWith('auto:contract:')) {
+            return parts.slice(2).join(' - ') || parts[parts.length - 1] || d;
+          }
+          return d;
+        };
+        return (
+          <Card>
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-teal-500" />
+                Contratos Recorrentes - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                <span className="ml-auto text-xs sm:text-sm font-semibold text-teal-600">{formatCurrency(totalContracts)}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs">Contrato</TableHead>
+                      <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
+                      <TableHead className="text-xs text-right">Valor</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {contractRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs sm:text-sm py-2">{safeFormat(r.record_date, "dd/MM", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-xs sm:text-sm py-2 max-w-[260px] truncate">{cleanDesc(r.description || '')}</TableCell>
+                        <TableCell className="text-xs sm:text-sm py-2 hidden md:table-cell">
+                          <div className="flex items-center gap-1">{getPaymentIcon(r.payment_method)}<span className="hidden lg:inline">{r.payment_method}</span></div>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right font-medium text-teal-600 py-2">{formatCurrency(Number(r.amount))}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Manual Records Table */}
       <Card>
         <CardHeader className="p-3 sm:p-6">
@@ -1065,18 +1121,22 @@ export default function FinanceiroTab() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           {(() => {
-            // Show only TRULY manual entries here. Records auto-criados pela
-            // conclusão de agendamento (appointment_id) ou pelo PDV (sale_id)
-            // já aparecem em "Vendas de Serviços" / PDV — listá-los aqui
-            // duplica visualmente o mesmo valor e confunde o cliente.
-            const manualRecords = records.filter((r) => {
-              if (r.appointment_id) return false;
-              if (r.sale_id) return false;
-              const d = (r.description || '').toLowerCase();
-              if (d.startsWith('serviço concluído') || d.startsWith('servico concluido')) return false;
-              if (d.startsWith('auto:')) return false;
-              return true;
-            });
+            // Mostrar APENAS lançamentos verdadeiramente manuais.
+            // Tudo que é gerado automaticamente (baixa de agendamento, PDV,
+            // contrato recorrente, despesas auto) tem seu próprio bloco acima
+            // e deve ser ocultado aqui para não confundir o cliente.
+            const isAuto = (r: FinancialRecord) => {
+              if (r.appointment_id) return true;
+              if (r.sale_id) return true;
+              const d = (r.description || '').toLowerCase().trim();
+              const c = (r.category || '').toLowerCase().trim();
+              if (d.startsWith('auto:')) return true;
+              if (d.includes('serviço concluído') || d.includes('servico concluido')) return true;
+              if (c.startsWith('serviç') || c.startsWith('servic')) return true;
+              if (c === 'contrato') return true;
+              return false;
+            };
+            const manualRecords = records.filter((r) => !isAuto(r));
             if (loading) {
               return (
                 <div className="flex justify-center py-8">
