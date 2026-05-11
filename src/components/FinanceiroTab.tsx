@@ -63,7 +63,7 @@ interface Sale {
   payment_method: string;
   sale_date: string;
   clients: { name: string } | null;
-  products: { name: string; price: number; cost_price: number } | null;
+  products: { name: string; price: number; cost_price: number; type?: string | null } | null;
 }
 
 export default function FinanceiroTab() {
@@ -100,7 +100,7 @@ export default function FinanceiroTab() {
       const endDateStr = safeFormat(monthEnd, 'yyyy-MM-dd') + 'T23:59:59.999Z';
       const { data, error } = await supabase
         .from("sales")
-        .select("*, clients(name), products(name, price, cost_price)")
+        .select("*, clients(name), products(name, price, cost_price, type)")
         .gte("sale_date", startDate)
         .lte("sale_date", endDateStr)
         .order("sale_date", { ascending: false });
@@ -442,19 +442,21 @@ export default function FinanceiroTab() {
   };
 
   const entradas = records.filter(r => r.type === "entrada");
-  const totalServicos = entradas.filter(r => isServicoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
-  // Saldo: usa apenas financial_records (fonte da verdade do caixa)
+  const linkedSaleIds = new Set(records.map((r) => r.sale_id).filter(Boolean));
+  const serviceSales = (sales || []).filter((s) => (s.products?.type || 'service') === 'service');
+  const productSales = (sales || []).filter((s) => (s.products?.type || 'service') !== 'service');
+  const sumSales = (rows: Sale[]) => rows.reduce((acc, s) => acc + Number(s.sale_price) * Number(s.qty || 1), 0);
+  const serviceSalesWithoutRecord = serviceSales.filter((s) => !linkedSaleIds.has(s.id));
+  const productSalesWithoutRecord = productSales.filter((s) => !linkedSaleIds.has(s.id));
+  const totalServicosFR = entradas.filter(r => isServicoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalServicos = totalServicosFR + sumSales(serviceSalesWithoutRecord);
   const totalProdutosFR = entradas.filter(r => isProdutoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
-  // Card de Produtos: mostra o maior entre (vendas registradas no PDV) e
-  // (entradas manuais de produto), evitando aparecer R$ 0,00 quando há venda
-  // mas o registro financeiro ainda não foi sincronizado.
-  const totalProdutosSales = sales?.reduce((acc, s) => acc + Number(s.sale_price) * Number(s.qty || 1), 0) || 0;
-  const totalProdutos = Math.max(totalProdutosFR, totalProdutosSales);
+  const totalProdutos = totalProdutosFR + sumSales(productSalesWithoutRecord);
   const totalOutrasEntradas = entradas
     .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category))
     .reduce((acc, r) => acc + Number(r.amount), 0);
 
-  const totalEntradas = totalServicos + totalProdutosFR + totalOutrasEntradas;
+  const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
 
@@ -953,7 +955,7 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 sm:p-6">
             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
               <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Vendas de Serviços - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
@@ -963,14 +965,16 @@ export default function FinanceiroTab() {
                   <TableRow>
                     <TableHead className="text-xs">Data</TableHead>
                     <TableHead className="text-xs">Cliente</TableHead>
-                    <TableHead className="text-xs hidden sm:table-cell">Serviço</TableHead>
+                    <TableHead className="text-xs hidden sm:table-cell">Item</TableHead>
                     <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs text-right">Lucro</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sales.map((sale) => (
+                  {sales.map((sale) => {
+                    const hasLinkedRecord = linkedSaleIds.has(sale.id);
+                    return (
                     <TableRow key={sale.id}>
                       <TableCell className="text-xs sm:text-sm py-2">{safeFormat(sale.sale_date, "dd/MM", { locale: ptBR })}</TableCell>
                       <TableCell className="text-xs sm:text-sm font-medium py-2 max-w-[100px] truncate">{sale.clients?.name || "-"}</TableCell>
@@ -983,12 +987,13 @@ export default function FinanceiroTab() {
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-green-500 py-2">
                         {formatCurrency(Number(sale.sale_price) * sale.qty)}
+                        {!hasLinkedRecord && <div className="text-[9px] text-amber-600">incluído no total</div>}
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-emerald-500 py-2">
                         {formatCurrency(Number(sale.total_profit))}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  );})}
                 </TableBody>
               </Table>
             </div>
