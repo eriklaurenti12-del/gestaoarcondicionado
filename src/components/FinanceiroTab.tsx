@@ -102,46 +102,128 @@ export default function FinanceiroTab() {
       return raw ? JSON.parse(raw) : [];
     } catch { return []; }
   });
+  type SyncStatus = 'idle' | 'sending' | 'downloading' | 'merging' | 'done' | 'error';
   const [syncingHistory, setSyncingHistory] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('idle');
+  const [syncMessage, setSyncMessage] = useState<string>('');
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
 
-  // Carrega histórico do banco (sincroniza entre dispositivos)
+  // Merge inteligente: mantém a conferência mais recente por mês (compara `date`)
+  const mergeCheckEntries = (a: CheckEntry[], b: CheckEntry[]): CheckEntry[] => {
+    const map = new Map<string, CheckEntry>();
+    [...a, ...b].forEach((e) => {
+      if (!e || !e.month) return;
+      const cur = map.get(e.month);
+      if (!cur) { map.set(e.month, e); return; }
+      // mantém o mais recente por timestamp
+      const curT = new Date(cur.date).getTime() || 0;
+      const newT = new Date(e.date).getTime() || 0;
+      if (newT >= curT) map.set(e.month, e);
+    });
+    return Array.from(map.values())
+      .sort((x, y) => (new Date(y.date).getTime() || 0) - (new Date(x.date).getTime() || 0))
+      .slice(0, 36);
+  };
+
+  // Sincronização automática ao montar (login). Faz push de mudanças locais + pull do banco.
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session.session?.user) return;
-      const { data, error } = await (supabase as any)
-        .from('financial_check_history')
-        .select('*')
-        .eq('user_id', session.session.user.id)
-        .order('checked_at', { ascending: false })
-        .limit(36);
-      if (error || !data) return;
-      const remote: CheckEntry[] = data.map((r: any) => ({
-        month: r.month,
-        date: r.checked_at,
-        matched: r.matched,
-        saldo: Number(r.saldo) || 0,
-        totalEntradas: Number(r.total_entradas) || 0,
-        totalDespesas: Number(r.total_despesas) || 0,
-      }));
-      // merge com local (banco prevalece por mês)
-      setCheckHistory((prev) => {
-        const map = new Map<string, CheckEntry>();
-        prev.forEach((e) => map.set(e.month, e));
-        remote.forEach((e) => map.set(e.month, e));
-        const merged = Array.from(map.values())
-          .sort((a, b) => (b.date > a.date ? 1 : -1))
-          .slice(0, 36);
-        try { localStorage.setItem(CHECK_KEY, JSON.stringify(merged)); } catch {}
-        return merged;
-      });
+      try {
+        const { data: session } = await supabase.auth.getSession();
+        if (!session.session?.user || cancelled) return;
+        const userId = session.session.user.id;
+
+        setSyncStatus('sending');
+        setSyncMessage('Enviando alterações locais…');
+        // 1) Lê o que já existe no banco para evitar sobrescrever versões mais novas remotas
+        const { data: existing } = await (supabase as any)
+          .from('financial_check_history')
+          .select('month, checked_at')
+          .eq('user_id', userId);
+        const remoteMap = new Map<string, number>();
+        (existing || []).forEach((r: any) => remoteMap.set(r.month, new Date(r.checked_at).getTime() || 0));
+
+        // 2) Sobe apenas locais mais novos que o remoto (ou inexistentes no remoto)
+        const localToPush = checkHistory.filter((e) => {
+          const remoteT = remoteMap.get(e.month);
+          const localT = new Date(e.date).getTime() || 0;
+          return remoteT === undefined || localT > remoteT;
+        });
+        if (localToPush.length) {
+          await (supabase as any)
+            .from('financial_check_history')
+            .upsert(localToPush.map((e) => ({
+              user_id: userId,
+              month: e.month,
+              matched: e.matched,
+              saldo: e.saldo,
+              total_entradas: e.totalEntradas,
+              total_despesas: e.totalDespesas,
+              checked_at: e.date,
+            })), { onConflict: 'user_id,month' });
+        }
+
+        if (cancelled) return;
+        setSyncStatus('downloading');
+        setSyncMessage('Baixando histórico da nuvem…');
+        const { data, error } = await (supabase as any)
+          .from('financial_check_history')
+          .select('*')
+          .eq('user_id', userId)
+          .order('checked_at', { ascending: false })
+          .limit(36);
+        if (error || !data || cancelled) {
+          setSyncStatus('idle'); setSyncMessage(''); return;
+        }
+        const remote: CheckEntry[] = data.map((r: any) => ({
+          month: r.month,
+          date: r.checked_at,
+          matched: r.matched,
+          saldo: Number(r.saldo) || 0,
+          totalEntradas: Number(r.total_entradas) || 0,
+          totalDespesas: Number(r.total_despesas) || 0,
+        }));
+
+        setSyncStatus('merging');
+        setSyncMessage('Mesclando alterações…');
+        setCheckHistory((prev) => {
+          const merged = mergeCheckEntries(prev, remote);
+          try { localStorage.setItem(CHECK_KEY, JSON.stringify(merged)); } catch {}
+          return merged;
+        });
+
+        setSyncStatus('done');
+        setSyncMessage('Sincronizado');
+        setLastSyncAt(new Date().toISOString());
+        setTimeout(() => { if (!cancelled) { setSyncStatus('idle'); setSyncMessage(''); } }, 2500);
+      } catch (e) {
+        if (!cancelled) {
+          setSyncStatus('error');
+          setSyncMessage('Falha ao sincronizar');
+          setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 3500);
+        }
+      }
     })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Reage a login/logout em tempo real para re-sincronizar
+  useEffect(() => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        // dispara sync manual silencioso
+        syncCheckHistory(true).catch(() => {});
+      }
+    });
+    return () => { sub.subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const saveCheckEntry = async (entry: CheckEntry) => {
     setCheckHistory((prev) => {
-      const filtered = prev.filter((e) => e.month !== entry.month);
-      const next = [entry, ...filtered].slice(0, 36);
+      const next = mergeCheckEntries([entry], prev);
       try { localStorage.setItem(CHECK_KEY, JSON.stringify(next)); } catch {}
       return next;
     });
@@ -175,21 +257,37 @@ export default function FinanceiroTab() {
     } catch {}
   };
 
-  const syncCheckHistory = async () => {
+  const syncCheckHistory = async (silent = false) => {
+    if (syncingHistory) return; // evita cliques repetidos
     setSyncingHistory(true);
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session?.user) {
-        toast({ title: 'Sem sessão', description: 'Entre na conta para sincronizar.', variant: 'destructive' });
+        if (!silent) toast({ title: 'Sem sessão', description: 'Entre na conta para sincronizar.', variant: 'destructive' });
         return;
       }
-      // envia tudo do local
-      const local = checkHistory;
-      if (local.length) {
+      const userId = session.session.user.id;
+
+      setSyncStatus('sending');
+      setSyncMessage('Enviando alterações locais…');
+      // Lê remoto p/ comparar timestamps
+      const { data: existing } = await (supabase as any)
+        .from('financial_check_history')
+        .select('month, checked_at')
+        .eq('user_id', userId);
+      const remoteMap = new Map<string, number>();
+      (existing || []).forEach((r: any) => remoteMap.set(r.month, new Date(r.checked_at).getTime() || 0));
+
+      const localToPush = checkHistory.filter((e) => {
+        const remoteT = remoteMap.get(e.month);
+        const localT = new Date(e.date).getTime() || 0;
+        return remoteT === undefined || localT > remoteT;
+      });
+      if (localToPush.length) {
         await (supabase as any)
           .from('financial_check_history')
-          .upsert(local.map((e) => ({
-            user_id: session.session!.user.id,
+          .upsert(localToPush.map((e) => ({
+            user_id: userId,
             month: e.month,
             matched: e.matched,
             saldo: e.saldo,
@@ -198,13 +296,18 @@ export default function FinanceiroTab() {
             checked_at: e.date,
           })), { onConflict: 'user_id,month' });
       }
-      // re-baixa
+
+      setSyncStatus('downloading');
+      setSyncMessage('Baixando histórico da nuvem…');
       const { data } = await (supabase as any)
         .from('financial_check_history')
         .select('*')
-        .eq('user_id', session.session.user.id)
+        .eq('user_id', userId)
         .order('checked_at', { ascending: false })
         .limit(36);
+
+      setSyncStatus('merging');
+      setSyncMessage('Mesclando alterações…');
       if (data) {
         const remote: CheckEntry[] = data.map((r: any) => ({
           month: r.month, date: r.checked_at, matched: r.matched,
@@ -212,12 +315,22 @@ export default function FinanceiroTab() {
           totalEntradas: Number(r.total_entradas) || 0,
           totalDespesas: Number(r.total_despesas) || 0,
         }));
-        setCheckHistory(remote);
-        try { localStorage.setItem(CHECK_KEY, JSON.stringify(remote)); } catch {}
+        setCheckHistory((prev) => {
+          const merged = mergeCheckEntries(prev, remote);
+          try { localStorage.setItem(CHECK_KEY, JSON.stringify(merged)); } catch {}
+          return merged;
+        });
       }
-      toast({ title: 'Histórico sincronizado', description: 'Conferências salvas na nuvem.' });
+      setSyncStatus('done');
+      setSyncMessage('Sincronizado');
+      setLastSyncAt(new Date().toISOString());
+      if (!silent) toast({ title: 'Histórico sincronizado', description: `${localToPush.length} envio(s) · ${(data || []).length} no servidor.` });
+      setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 2500);
     } catch (e: any) {
-      toast({ title: 'Erro ao sincronizar', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+      setSyncStatus('error');
+      setSyncMessage('Falha ao sincronizar');
+      if (!silent) toast({ title: 'Erro ao sincronizar', description: e?.message || 'Tente novamente.', variant: 'destructive' });
+      setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 3500);
     } finally {
       setSyncingHistory(false);
     }
