@@ -717,45 +717,8 @@ export default function FinanceiroTab() {
         },
       ]} />
 
-      {/* Quick Actions Bar for Agility */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Combustível', 50, 'Abastecimento rápido')}
-          className="h-16 flex flex-col gap-1 border-blue-500/30 hover:bg-blue-500/5 text-blue-600"
-          disabled={saving || isLocked}
-        >
-          <Fuel className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Combustível R$50</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Alimentação', 30, 'Refeição rápida')}
-          className="h-16 flex flex-col gap-1 border-orange-500/30 hover:bg-orange-500/5 text-orange-600"
-          disabled={saving || isLocked}
-        >
-          <Utensils className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Almoço R$30</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => handleQuickAdd('Peças', 100, 'Compra de material/peças')}
-          className="h-16 flex flex-col gap-1 border-emerald-500/30 hover:bg-emerald-500/5 text-emerald-600"
-          disabled={saving || isLocked}
-        >
-          <Package className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Peças R$100</span>
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={() => setDialogOpen(true)}
-          className="h-16 flex flex-col gap-1 border-primary/30 hover:bg-primary/5 text-primary"
-          disabled={saving || isLocked}
-        >
-          <Plus className="w-5 h-5" />
-          <span className="text-[10px] font-bold uppercase">Novo Personalizado</span>
-        </Button>
-      </div>
+      {/* Quick Actions removidas — botão "Novo" do toolbar cobre o lançamento manual. */}
+
 
       {/* Header */}
       <div className="flex flex-col gap-3">
@@ -786,9 +749,14 @@ export default function FinanceiroTab() {
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline ml-1">Atualizar</span>
           </Button>
-          <Button onClick={handleReconcile} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px]" title="Remove duplicatas, órfãos e ressincroniza o mês">
+          <Button onClick={handleReconcile} variant={(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'default' : 'outline'} size="sm" disabled={refreshing} className={`min-w-[44px] relative ${(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}`} title="Remove duplicatas, órfãos e ressincroniza o mês">
             <CheckCircle2 className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Reconciliar</span>
+            {(serviceSalesWithoutRecord.length + productSalesWithoutRecord.length) > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
+                {serviceSalesWithoutRecord.length + productSalesWithoutRecord.length}
+              </span>
+            )}
           </Button>
           <Button onClick={handleSyncContracts} variant="outline" size="sm" disabled={refreshing} className="min-w-[44px] border-blue-300 text-blue-700 hover:bg-blue-50" title="Força o lançamento mensal dos contratos ativos">
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -1038,9 +1006,21 @@ export default function FinanceiroTab() {
               <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
                 {formatCurrency(saldoDisponivel)}
               </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5 truncate underline decoration-dotted">
-                Como calculamos?
-              </p>
+              {(() => {
+                const conf = checkHistory.find((h) => h.month === selectedMonth);
+                if (!conf) {
+                  return (
+                    <p className="text-[9px] text-muted-foreground mt-0.5 truncate underline decoration-dotted">
+                      Como calculamos?
+                    </p>
+                  );
+                }
+                return (
+                  <p className={`text-[9px] mt-0.5 truncate ${conf.matched ? 'text-emerald-600' : 'text-red-500'}`}>
+                    {conf.matched ? '✅ Conferido' : '⚠️ Não bateu'} · {safeFormat(conf.date, 'dd/MM')}
+                  </p>
+                );
+              })()}
             </button>
           </CardContent>
         </Card>
@@ -1642,13 +1622,36 @@ export default function FinanceiroTab() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-2 gap-2">
                   <p className="font-semibold text-xs">Histórico ({checkHistory.length})</p>
-                  {checkHistory.length > 0 && (
-                    <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground" onClick={clearCheckHistory}>
-                      Limpar
-                    </Button>
-                  )}
+                  <div className="flex gap-1">
+                    {checkHistory.length > 0 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[11px]"
+                          onClick={() => {
+                            const header = 'Mês;Data;Resultado;Saldo;Entradas;Despesas';
+                            const lines = checkHistory.map((h) =>
+                              [h.month, safeFormat(h.date, 'dd/MM/yyyy HH:mm'), h.matched ? 'Bateu' : 'Não bateu', h.saldo.toFixed(2), h.totalEntradas.toFixed(2), h.totalDespesas.toFixed(2)].join(';')
+                            );
+                            const csv = '\uFEFF' + [header, ...lines].join('\n');
+                            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url; a.download = `conferencias-financeiro.csv`;
+                            a.click(); URL.revokeObjectURL(url);
+                          }}
+                        >
+                          <FileSpreadsheet className="h-3 w-3 mr-1" /> CSV
+                        </Button>
+                        <Button size="sm" variant="ghost" className="h-7 text-[11px] text-muted-foreground" onClick={clearCheckHistory}>
+                          Limpar
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
                 {checkHistory.length === 0 ? (
                   <p className="text-xs text-muted-foreground italic">Nenhuma conferência salva ainda.</p>
