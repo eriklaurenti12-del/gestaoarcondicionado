@@ -310,6 +310,8 @@ export default function FinanceiroTab() {
       setTimeout(() => { setSyncStatus('idle'); setSyncMessage(''); }, 3000);
     }
   };
+
+  const syncCheckHistory = async (silent = false) => {
     if (syncingHistory) return; // evita cliques repetidos
     setSyncingHistory(true);
     try {
