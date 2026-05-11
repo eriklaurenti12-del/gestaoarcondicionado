@@ -32,6 +32,7 @@ import RotatingNotifications from "@/components/RotatingNotifications";
 import UpdateNotification from "@/components/UpdateNotification";
 import { AppSidebar } from "@/components/AppSidebar";
 import PWAInstallButton from "@/components/PWAInstallButton";
+import TabHelpButton from "@/components/TabHelpButton";
 import { UserProfileDropdown } from "@/components/UserProfileDropdown";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
