@@ -974,15 +974,30 @@ export default function FinanceiroTab() {
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-primary flex-shrink-0" />
               <span className="truncate">Saldo em Caixa</span>
+              <button
+                type="button"
+                onClick={() => setHelpOpen(true)}
+                aria-label="Como o Saldo em Caixa é calculado"
+                className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full hover:bg-primary/10 text-primary"
+              >
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
-              {formatCurrency(saldoDisponivel)}
-            </p>
-            <p className="text-[9px] text-muted-foreground mt-0.5 truncate">
-              Entradas − Despesas
-            </p>
+            <button
+              type="button"
+              onClick={() => setHelpOpen(true)}
+              className="w-full text-left"
+              title="Clique para ver a fórmula completa"
+            >
+              <p className={`text-sm sm:text-lg font-bold truncate ${saldoDisponivel >= 0 ? "text-primary" : "text-red-500"}`}>
+                {formatCurrency(saldoDisponivel)}
+              </p>
+              <p className="text-[9px] text-muted-foreground mt-0.5 truncate underline decoration-dotted">
+                Como calculamos?
+              </p>
+            </button>
           </CardContent>
         </Card>
 
