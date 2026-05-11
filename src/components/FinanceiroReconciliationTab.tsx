@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,11 +16,23 @@ const formatBRL = (v: number) => `R$ ${(Number(v) || 0).toFixed(2)}`;
 
 export default function FinanceiroReconciliationTab() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(() => format(new Date(), 'yyyy-MM'));
   const [busy, setBusy] = useState(false);
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
   const [repairing, setRepairing] = useState(false);
   const autoRepairRan = useRef(false);
+
+  // Invalida todas as queries que dependem desses dados — sincroniza Agenda,
+  // Dashboard, Financeiro, PDV, Clientes, etc. sem o usuário precisar atualizar.
+  const broadcastUpdates = () => {
+    queryClient.invalidateQueries({
+      predicate: (q) => {
+        const k = JSON.stringify(q.queryKey).toLowerCase();
+        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-/.test(k);
+      },
+    });
+  };
 
   const monthStart = `${selectedMonth}-01`;
   const monthEndDate = (() => {
@@ -133,6 +145,7 @@ export default function FinanceiroReconciliationTab() {
         toast({ title: '✅ Venda sincronizada' });
       }
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro ao sincronizar', description: e.message, variant: 'destructive' });
     } finally {
@@ -147,6 +160,7 @@ export default function FinanceiroReconciliationTab() {
       if (error) throw error;
       toast({ title: '🗑️ Duplicata removida' });
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro', description: e.message, variant: 'destructive' });
     } finally {
@@ -165,6 +179,7 @@ export default function FinanceiroReconciliationTab() {
         description: `${result.dupRecords + result.dupSales + result.orphanRecords + result.orphanSales} item(ns) ajustado(s).`,
       });
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       toast({ title: 'Erro na conciliação', description: e.message, variant: 'destructive' });
     } finally {
@@ -189,6 +204,7 @@ export default function FinanceiroReconciliationTab() {
         });
       }
       await refreshAll();
+      broadcastUpdates();
     } catch (e: any) {
       if (!silent) toast({ title: 'Erro no reparo', description: e.message, variant: 'destructive' });
     } finally {
