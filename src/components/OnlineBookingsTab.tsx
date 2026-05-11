@@ -195,6 +195,9 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
   );
 
   const updateStatus = async (id: string, status: string, booking?: OnlineBooking, silent = false) => {
+    // Snapshot previous status for accurate rollback
+    const previous = bookings.find(b => b.id === id)?.status ?? 'pendente';
+
     // Optimistic: remove instantly from pending list / update card status
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status } : b));
 
@@ -202,15 +205,34 @@ const OnlineBookingsTab: React.FC<OnlineBookingsTabProps> = ({ userId }) => {
       .update({ status, updated_at: new Date().toISOString() })
       .eq('id', id);
     if (error) {
-      // rollback
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'pendente' } : b));
-      if (!silent) toast({ title: "Erro", description: error.message, variant: "destructive" });
+      // rollback to previous state
+      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: previous } : b));
+      if (!silent) toast({ title: "Erro ao atualizar status", description: error.message, variant: "destructive" });
       return;
     }
 
     if (status === 'confirmado' && booking) {
-      await syncToAgenda(booking);
+      const ok = await syncToAgenda(booking);
+      if (!ok) {
+        // Rollback both DB and UI if agenda sync fails — keep the request pending
+        await (supabase.from('online_bookings') as any)
+          .update({ status: previous, updated_at: new Date().toISOString() })
+          .eq('id', id);
+        setBookings(prev => prev.map(b => b.id === id ? { ...b, status: previous } : b));
+        if (!silent) toast({
+          title: "Falha ao criar na agenda",
+          description: "Solicitação mantida como pendente. Tente novamente.",
+          variant: "destructive"
+        });
+        return;
+      }
     }
+
+    // Cross-tab refresh (agenda, financeiro, dashboard, clientes)
+    queryClient.invalidateQueries({ predicate: (q) => {
+      const k = JSON.stringify(q.queryKey).toLowerCase();
+      return /appointment|agenda|calendar|dashboard|online-booking|client|financial/.test(k);
+    }});
 
     if (!silent) toast({ title: status === 'confirmado' ? "✅ Confirmado e adicionado à agenda!" : status === 'recusado' ? "❌ Recusado" : `Status: ${status}` });
     loadBookings();
