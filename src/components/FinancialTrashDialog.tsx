@@ -65,6 +65,23 @@ export default function FinancialTrashDialog({ open, onOpenChange, userId, onRes
     removeTrash(it.id); refresh();
   };
 
+  const handleClearAll = () => {
+    if (!userId || items.length === 0) return;
+    if (!window.confirm(`Apagar PERMANENTEMENTE os ${items.length} item(ns) da lixeira? Esta ação NÃO pode ser desfeita.`)) return;
+    clearAllTrash(userId);
+    toast({ title: "Lixeira esvaziada", description: "Todos os itens foram removidos definitivamente." });
+    refresh();
+  };
+
+  const handlePurgeOldMonths = () => {
+    if (!userId) return;
+    const before = items.length;
+    purgePreviousMonths(userId);
+    refresh();
+    const after = (userId ? listTrash(userId) : []).length;
+    toast({ title: "Limpeza de meses anteriores", description: `${before - after} item(ns) removido(s) permanentemente.` });
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -81,13 +98,21 @@ export default function FinancialTrashDialog({ open, onOpenChange, userId, onRes
             </Label>
           </div>
           {items.length > 0 && (
-            <Button size="sm" variant="outline" onClick={handleRestoreAll}>
-              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restaurar todos ({items.length})
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <Button size="sm" variant="outline" onClick={handleRestoreAll}>
+                <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restaurar todos ({items.length})
+              </Button>
+              <Button size="sm" variant="outline" onClick={handlePurgeOldMonths} title="Apaga apenas itens de meses anteriores">
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Limpar meses anteriores
+              </Button>
+              <Button size="sm" variant="destructive" onClick={handleClearAll}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> Esvaziar tudo
+              </Button>
+            </div>
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Itens excluídos nos últimos 30 dias. Restaure se foi engano ou apague de vez.
+          Itens excluídos nos últimos 30 dias (auto-expiram). Restaure se foi engano, ou esvazie permanentemente.
         </p>
         {items.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
