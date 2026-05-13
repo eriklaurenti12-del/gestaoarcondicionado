@@ -2077,10 +2077,10 @@ export default function FinanceiroTab() {
                   <CheckCircle2 className="h-3.5 w-3.5" /> Marcar conferência do mês
                 </p>
                 <p className="text-muted-foreground">
-                  Confira: <em>Serviços + Produtos + Contratos + Manuais − Saques − Reservas − Gastos Fixos</em> bate com o Saldo em Caixa?
+                  Confira: <em>Serviços + Produtos + Contratos + Manuais − Saques − Reservas − Gastos Fixos − Gastos Rotas</em> bate com o Saldo em Caixa?
                 </p>
                 <div className="font-mono text-[11px] bg-muted/30 p-2 rounded">
-                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = <strong>{formatCurrency(saldoDisponivel)}</strong>
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)} = <strong>{formatCurrency(saldoDisponivel)}</strong>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button
