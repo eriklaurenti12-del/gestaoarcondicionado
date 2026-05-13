@@ -838,9 +838,16 @@ export default function FinanceiroTab() {
   const totalServicos = totalServicosFR + sumSales(serviceSalesWithoutRecord);
   const totalProdutosFR = entradas.filter(r => isProdutoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
   const totalProdutos = totalProdutosFR + sumSales(productSalesWithoutRecord);
-  const totalOutrasEntradas = entradas
-    .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category))
+  const isContratoEntry = (r: { category: string | null; description: string | null }) =>
+    normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:');
+  const totalContratos = entradas
+    .filter(r => isContratoEntry(r))
     .reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalManuaisOutras = entradas
+    .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category) && !isContratoEntry(r))
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+  // Mantido p/ compatibilidade do saldo: soma de tudo que não é serviço/produto
+  const totalOutrasEntradas = totalContratos + totalManuaisOutras;
 
   const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
