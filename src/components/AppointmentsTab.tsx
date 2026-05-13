@@ -456,6 +456,8 @@ const AppointmentsTab: React.FC = () => {
 
         // Auditoria visível: devolve dados pra exibir no toast
         const monthLabel = format(new Date(appointment.appointment_date), "MMMM 'de' yyyy", { locale: ptBR });
+        const completedAt = new Date();
+        const userLabel = session.user.email?.split('@')[0] || session.user.email || 'usuário';
         return {
           audit: {
             amount: salePrice,
@@ -463,6 +465,10 @@ const AppointmentsTab: React.FC = () => {
             recordId: (finRes?.data as any)?.id || null,
             skipped: !!finRes?.skipped,
             paymentMethod: finalPm,
+            user: userLabel,
+            email: session.user.email || '',
+            at: completedAt.toISOString(),
+            atLabel: format(completedAt, "dd/MM/yyyy 'às' HH:mm:ss"),
           },
         };
       }
