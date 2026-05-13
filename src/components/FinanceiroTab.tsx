@@ -2093,7 +2093,7 @@ export default function FinanceiroTab() {
                         matched: true,
                         saldo: saldoDisponivel,
                         totalEntradas,
-                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
                       });
                       toast({ title: 'Conferência salva', description: 'Soma marcada como conferida ✅' });
                     }}
