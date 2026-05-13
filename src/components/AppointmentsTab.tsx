@@ -372,6 +372,13 @@ const AppointmentsTab: React.FC = () => {
             `Valor R$ 0,00 detectado. Confira o preço em ${origem} antes de concluir — o lançamento no Financeiro foi bloqueado.`
           );
           err.code = 'PRICE_ZERO';
+          err.targetTab = fromQuote || fromOrder ? 'documents' : 'services';
+          err.targetLabel = fromQuote
+            ? `Abrir Orçamento #${fromQuote}`
+            : fromOrder
+              ? `Abrir Ordem #${fromOrder}`
+              : 'Abrir cadastro do Serviço';
+          err.targetRef = fromQuote || fromOrder || appointment.service_id || null;
           throw err;
         }
       }
