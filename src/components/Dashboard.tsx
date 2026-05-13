@@ -59,8 +59,13 @@ const getBrazilianHolidays = (year: number) => {
 
 const getAppointmentPrice = (apt: any) => {
   if (apt.notes) {
-    const match = apt.notes.match(/\[VALOR:([\d.]+)\]/);
-    if (match) return Number(match[1]);
+    const tag = apt.notes.match(/\[VALOR:([\d.]+)\]/);
+    if (tag) return Number(tag[1]);
+    const tot = apt.notes.match(/Total:\s*R\$\s*([\d.,]+)/i);
+    if (tot) {
+      const num = parseFloat(tot[1].replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(num) && num > 0) return num;
+    }
   }
   return Number(apt.products?.price) || 0;
 };
