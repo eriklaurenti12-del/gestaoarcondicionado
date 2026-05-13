@@ -470,26 +470,43 @@ const AppointmentsTab: React.FC = () => {
       }
       return { previousAppointments };
     },
-    onSuccess: () => {
+    onSuccess: (data: any, vars) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales-financial'] });
       queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      
-      if (showCompletionDialog) {
-        toast({ title: "Serviço Concluído!", description: "Feedback e próxima manutenção registrados." });
-        setShowCompletionDialog(false);
+      try { window.dispatchEvent(new CustomEvent('financial-data-updated')); } catch {}
+
+      const audit = data?.audit;
+      if (audit) {
+        // Auditoria visível: valor + mês + status do lançamento
+        const valorFmt = `R$ ${Number(audit.amount).toFixed(2).replace('.', ',')}`;
+        const desc = audit.skipped
+          ? `${valorFmt} • ${audit.month} • Lançamento já existia (não duplicou)`
+          : `${valorFmt} • ${audit.month} • Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        toast({ title: '✅ Baixa concluída', description: desc });
+      } else if (showCompletionDialog) {
+        toast({ title: 'Serviço Concluído!', description: 'Feedback e próxima manutenção registrados.' });
       } else {
-        toast({ title: "Status atualizado!" });
+        toast({ title: 'Status atualizado!' });
       }
+      if (showCompletionDialog) setShowCompletionDialog(false);
     },
     onError: (error: any, __, context) => {
       if (context?.previousAppointments) {
         queryClient.setQueryData(['appointments'], context.previousAppointments);
       }
-      toast({ variant: "destructive", title: "Erro", description: error.message });
+      if (error?.code === 'PRICE_ZERO') {
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Valor zerado — confira a origem',
+          description: error.message,
+        });
+        return;
+      }
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
     }
   });
 
