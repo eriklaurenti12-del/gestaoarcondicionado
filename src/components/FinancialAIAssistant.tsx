@@ -158,6 +158,19 @@ export default function FinancialAIAssistant({
           </DialogTitle>
         </DialogHeader>
 
+        {snapLoading && !snapshot && (
+          <div className="border rounded-md bg-muted/30 p-3 space-y-2" aria-live="polite" aria-busy="true">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando diagnóstico desta aba...
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-3 rounded bg-muted animate-pulse w-3/4" />
+              <div className="h-3 rounded bg-muted animate-pulse w-1/2" />
+              <div className="h-3 rounded bg-muted animate-pulse w-2/3" />
+            </div>
+          </div>
+        )}
+
         {snapshot && (
           <div className="border rounded-md bg-muted/30">
             <button
