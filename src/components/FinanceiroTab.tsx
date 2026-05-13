@@ -12,7 +12,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, type ReconcileResult } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
@@ -87,6 +88,16 @@ export default function FinanceiroTab() {
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
+  const [hideOriginLegend, setHideOriginLegend] = useState<boolean>(() => {
+    try { return localStorage.getItem('fin_hide_origin_legend') === '1'; } catch { return false; }
+  });
+  const toggleOriginLegend = () => {
+    setHideOriginLegend(prev => {
+      const next = !prev;
+      try { localStorage.setItem('fin_hide_origin_legend', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
@@ -1007,17 +1018,45 @@ export default function FinanceiroTab() {
             <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
             <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setHelpOpen(true)}
-            className="shrink-0 border-primary/30 text-primary hover:bg-primary/10"
-            title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
-          >
-            <HelpCircle className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Ajuda</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleOriginLegend}
+              className="border-muted"
+              title={hideOriginLegend ? 'Mostrar legenda Auto/Manual' : 'Ocultar legenda Auto/Manual'}
+            >
+              {hideOriginLegend ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              <span className="hidden sm:inline ml-1">{hideOriginLegend ? 'Mostrar legenda' : 'Ocultar legenda'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHelpOpen(true)}
+              className="border-primary/30 text-primary hover:bg-primary/10"
+              title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Ajuda</span>
+            </Button>
+          </div>
         </div>
+        {!hideOriginLegend && (
+          <div className="rounded-lg border bg-muted/30 p-3 text-xs flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
+                <Sparkles className="h-3 w-3" /> Auto
+              </Badge>
+              <span className="text-muted-foreground">vem de <b>agendamentos concluídos</b>, <b>vendas do PDV</b> e <b>contratos recorrentes</b>.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <Wallet className="h-3 w-3" /> Manual
+              </Badge>
+              <span className="text-muted-foreground">é tudo que <b>você digitou</b> no botão "Novo" (entradas avulsas, saques, reservas).</span>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <Input
             type="month"
@@ -1561,15 +1600,43 @@ export default function FinanceiroTab() {
                     return (
                     <TableRow key={record.id}>
                       <TableCell className="py-2">
-                        {auto ? (
-                          <Badge variant="secondary" className="text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
-                            <Sparkles className="h-3 w-3" /> Auto
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] gap-1">
-                            <Wallet className="h-3 w-3" /> Manual
-                          </Badge>
-                        )}
+                        <TooltipProvider delayDuration={150}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {auto ? (
+                                <Badge variant="secondary" className="text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 cursor-help">
+                                  <Sparkles className="h-3 w-3" /> Auto
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] gap-1 cursor-help">
+                                  <Wallet className="h-3 w-3" /> Manual
+                                </Badge>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs text-xs">
+                              {auto ? (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Lançamento Automático</p>
+                                  <p>Gerado pelo sistema a partir de:</p>
+                                  <ul className="list-disc pl-4 text-muted-foreground">
+                                    <li>Agendamento concluído pelo prestador</li>
+                                    <li>Venda do PDV / Produtos</li>
+                                    <li>Contrato recorrente do mês</li>
+                                  </ul>
+                                  {record.appointment_id && <p className="text-[10px] opacity-70">Vinculado ao agendamento.</p>}
+                                  {record.sale_id && <p className="text-[10px] opacity-70">Vinculado à venda #{record.sale_id}.</p>}
+                                  <p className="text-[10px] text-amber-600">Para apagar, remova na origem (agenda/PDV).</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Lançamento Manual</p>
+                                  <p>Você digitou no botão "Novo" do Financeiro. Não está vinculado a nenhum agendamento ou venda.</p>
+                                  <p className="text-[10px] text-muted-foreground">Pode ser editado ou excluído livremente aqui.</p>
+                                </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="flex items-center gap-1">
