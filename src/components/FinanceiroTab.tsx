@@ -715,11 +715,19 @@ export default function FinanceiroTab() {
 
       // 1) Hard fix: remove duplicates/orphans and ensure recurring rows for the month.
       let reconcile: ReconcileResult | null = null;
+      let repair: { appointmentsRepaired: number; salesRepaired: number; skipped: number; errors: number } | null = null;
       if (session) {
         try {
           reconcile = await reconcileFinancialMonth(session.user.id, selectedMonth, 'manual');
         } catch (e) {
           console.warn('refresh reconcile failed', e);
+        }
+        // 1b) Reprocessa agendamentos antigos sem [VALOR:] (idempotente, anti-duplicata).
+        try {
+          const since = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+          repair = await repairMissingFinancialRecords(session.user.id, since);
+        } catch (e) {
+          console.warn('refresh repair failed', e);
         }
       }
 
@@ -738,14 +746,19 @@ export default function FinanceiroTab() {
         refetchExpenses(),
       ]);
 
+      try { window.dispatchEvent(new CustomEvent('financial-data-updated')); } catch {}
+
       const removed = reconcile
         ? reconcile.dupRecords + reconcile.dupSales + reconcile.orphanRecords + reconcile.orphanSales
         : 0;
+      const repaired = repair ? repair.appointmentsRepaired + repair.salesRepaired : 0;
+      const parts: string[] = [];
+      if (removed > 0) parts.push(`${removed} duplicata(s)/órfão(s) removido(s)`);
+      if (reconcile?.insertedRecurring) parts.push(`${reconcile.insertedRecurring} recorrente(s) sincronizada(s)`);
+      if (repaired > 0) parts.push(`${repaired} agendamento(s)/venda(s) antigos lançados`);
       toast({
         title: '✅ Dados atualizados!',
-        description: reconcile
-          ? `${removed} duplicata(s)/órfão(s) removido(s) · ${reconcile.insertedRecurring} recorrente(s) sincronizada(s).`
-          : 'Todos os dados financeiros foram recarregados.',
+        description: parts.length > 0 ? parts.join(' · ') : 'Todos os dados financeiros foram recarregados.',
       });
     } catch {
       toast({ title: 'Erro ao atualizar', variant: 'destructive' });
