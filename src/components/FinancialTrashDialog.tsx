@@ -25,19 +25,39 @@ export default function FinancialTrashDialog({ open, onOpenChange, userId, onRes
   const { toast } = useToast();
   const [items, setItems] = useState<TrashItem[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [autoOpen, setAutoOpen] = useState<boolean>(() => {
+    try { return (localStorage.getItem(POST_DELETE_KEY) ?? "1") === "1"; } catch { return true; }
+  });
 
   const refresh = () => { if (userId) setItems(listTrash(userId)); };
   useEffect(() => { if (open) refresh(); }, [open, userId]);
+
+  const toggleAutoOpen = (v: boolean) => {
+    setAutoOpen(v);
+    try { localStorage.setItem(POST_DELETE_KEY, v ? "1" : "0"); } catch {}
+  };
 
   const handleRestore = async (it: TrashItem) => {
     setBusy(it.id);
     try {
       await restoreTrashItem(it);
-      toast({ title: "Restaurado!", description: it.summary.title });
-      refresh(); onRestored();
+      toast({ title: "Restaurado!", description: `${it.summary.title} voltou com os valores originais.` });
+      refresh();
+      onRestored();
     } catch (e: any) {
       toast({ title: "Erro ao restaurar", description: e.message, variant: "destructive" });
     } finally { setBusy(null); }
+  };
+
+  const handleRestoreAll = async () => {
+    if (items.length === 0) return;
+    if (!window.confirm(`Restaurar ${items.length} item(ns) da lixeira?`)) return;
+    let ok = 0, fail = 0;
+    for (const it of items) {
+      try { await restoreTrashItem(it); ok++; } catch { fail++; }
+    }
+    toast({ title: `${ok} restaurado(s)`, description: fail ? `${fail} falharam.` : "Tudo de volta na lista." });
+    refresh(); onRestored();
   };
 
   const handlePurge = (it: TrashItem) => {
