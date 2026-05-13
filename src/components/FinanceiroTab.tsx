@@ -1283,6 +1283,16 @@ export default function FinanceiroTab() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => setAiOpen(true)}
+              className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10"
+              title="Diagnóstico automático e perguntas livres sobre o financeiro do mês"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">IA</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHelpOpen(true)}
               className="border-primary/30 text-primary hover:bg-primary/10"
               title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
