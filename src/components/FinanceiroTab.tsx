@@ -962,6 +962,7 @@ export default function FinanceiroTab() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <FinanceiroUpdatePopup />
       <TabGuideCards cards={[
         {
           icon: TrendingUp,
