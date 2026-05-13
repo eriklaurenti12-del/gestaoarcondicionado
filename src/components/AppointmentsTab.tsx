@@ -2320,6 +2320,12 @@ const AppointmentsTab: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      <ConvertToContractDialog
+        open={!!convertContractAppointment}
+        onOpenChange={(v) => { if (!v) setConvertContractAppointment(null); }}
+        appointment={convertContractAppointment as any}
+      />
+
       <FinancialAIAssistant
         open={aiOpen}
         onOpenChange={setAiOpen}
