@@ -1622,6 +1622,7 @@ export default function FinanceiroTab() {
                       <TableHead className="text-xs">Contrato</TableHead>
                       <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                       <TableHead className="text-xs text-right">Valor</TableHead>
+                      <TableHead className="text-xs w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1633,6 +1634,11 @@ export default function FinanceiroTab() {
                           <div className="flex items-center gap-1">{getPaymentIcon(r.payment_method)}<span className="hidden lg:inline">{r.payment_method}</span></div>
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm text-right font-medium text-teal-600 py-2">{formatCurrency(Number(r.amount))}</TableCell>
+                        <TableCell className="py-2">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(r.id)} disabled={isLocked} title="Excluir contrato deste mês">
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
