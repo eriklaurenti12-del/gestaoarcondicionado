@@ -494,11 +494,13 @@ const AppointmentsTab: React.FC = () => {
 
       const audit = data?.audit;
       if (audit) {
-        // Auditoria visível: valor + mês + status do lançamento
         const valorFmt = `R$ ${Number(audit.amount).toFixed(2).replace('.', ',')}`;
-        const desc = audit.skipped
-          ? `${valorFmt} • ${audit.month} • Lançamento já existia (não duplicou)`
-          : `${valorFmt} • ${audit.month} • Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        const status = audit.skipped
+          ? 'Lançamento já existia (não duplicou)'
+          : `Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        const desc = `${valorFmt} • ${audit.month} • ${status} • Por ${audit.user} em ${audit.atLabel}`;
+        // Log estruturado para auditoria local (devtools / replay)
+        console.info('[audit:baixa]', { ...audit, appointmentId: vars?.id });
         toast({ title: '✅ Baixa concluída', description: desc });
       } else if (showCompletionDialog) {
         toast({ title: 'Serviço Concluído!', description: 'Feedback e próxima manutenção registrados.' });
@@ -512,10 +514,26 @@ const AppointmentsTab: React.FC = () => {
         queryClient.setQueryData(['appointments'], context.previousAppointments);
       }
       if (error?.code === 'PRICE_ZERO') {
+        const targetTab = error.targetTab || 'services';
+        const targetLabel = error.targetLabel || 'Abrir cadastro';
+        const targetRef = error.targetRef;
         toast({
           variant: 'destructive',
           title: '⚠️ Valor zerado — confira a origem',
           description: error.message,
+          action: (
+            <ToastAction
+              altText={targetLabel}
+              onClick={() => {
+                try {
+                  if (targetRef) sessionStorage.setItem('focus_target_ref', String(targetRef));
+                  window.dispatchEvent(new CustomEvent('app-navigate-tab', { detail: { tab: targetTab } }));
+                } catch {}
+              }}
+            >
+              {targetLabel}
+            </ToastAction>
+          ),
         });
         return;
       }
