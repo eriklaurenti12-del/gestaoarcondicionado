@@ -2303,6 +2303,40 @@ const AppointmentsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        context="agenda"
+        placeholder="Ex: Quais agendamentos estão pendentes de cobrança? Quais foram concluídos sem lançamento?"
+        buildSnapshot={async (): Promise<AISnapshot> => {
+          const all = appointments || [];
+          const now = new Date();
+          const overdue = all.filter(a => a.status === 'pendente' && new Date(a.appointment_date) < now).length;
+          const today = all.filter(a => isToday(new Date(a.appointment_date))).length;
+          const concluded = all.filter(a => a.status === 'concluido');
+          // checa pendência de cobrança: concluídos sem entrada financeira vinculada
+          let unbilled = 0;
+          if (userId && concluded.length > 0) {
+            const ids = concluded.map(a => a.id);
+            const { data: linked } = await supabase
+              .from('financial_records')
+              .select('appointment_id')
+              .eq('user_id', userId)
+              .in('appointment_id', ids);
+            const linkedIds = new Set((linked || []).map((r: any) => r.appointment_id));
+            unbilled = concluded.filter(a => !linkedIds.has(a.id)).length;
+          }
+          const issues: AISnapshot['issues'] = [];
+          if (overdue > 0) issues.push({ id: 'overdue', label: `${overdue} agendamento(s) pendente(s) com data passada.`, severity: 'warn' });
+          if (unbilled > 0) issues.push({ id: 'unbilled', label: `${unbilled} agendamento(s) concluído(s) sem cobrança lançada no Financeiro.`, severity: 'error' });
+          return {
+            headline: `${all.length} agendamento(s) total · ${today} hoje · ${overdue} atrasado(s) · ${unbilled} sem cobrança`,
+            counts: { total: all.length, today, overdue, concluded: concluded.length, unbilled },
+            issues,
+          };
+        }}
+      />
     </div>
   );
 };
