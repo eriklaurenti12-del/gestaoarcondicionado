@@ -491,12 +491,24 @@ const DummyDataSeeder: React.FC = () => {
       } catch {}
 
 
+      // Tenta apagar a chave global de prestadores. Se a RLS bloquear (usuário
+      // não é super_admin), grava um flag persistente por usuário para que o
+      // `ensureMonthlyRecurringExpenses` IGNORE a lista global de prestadores
+      // dali em diante. Sem isso, o reset não consegue limpar o R$2600/mês
+      // recriado pelo auto-reconcile a partir do JSON global.
+      try {
+        localStorage.setItem(`recurring_sync_skip_providers__${userId}`, '1');
+        localStorage.setItem(`recurring_sync_skip_team__${userId}`, '1');
+      } catch {}
+
       // Força limpeza total: cache + localStorage (lixeira financeira inclusa)
       try {
         queryClient.clear();
         const { clearAllTrash } = await import('@/utils/financialTrash');
         clearAllTrash(userId);
         Object.keys(localStorage).forEach((k) => {
+          // NÃO apaga as chaves recurring_sync_skip_* (precisamos delas)
+          if (/recurring_sync_skip_/.test(k)) return;
           if (/provider|prestador|agenda|appointment|financ|tax|client|product|trash|fin_open_trash/i.test(k)) {
             localStorage.removeItem(k);
           }
