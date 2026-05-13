@@ -838,9 +838,16 @@ export default function FinanceiroTab() {
   const totalServicos = totalServicosFR + sumSales(serviceSalesWithoutRecord);
   const totalProdutosFR = entradas.filter(r => isProdutoCat(r.category)).reduce((acc, r) => acc + Number(r.amount), 0);
   const totalProdutos = totalProdutosFR + sumSales(productSalesWithoutRecord);
-  const totalOutrasEntradas = entradas
-    .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category))
+  const isContratoEntry = (r: { category: string | null; description: string | null }) =>
+    normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:');
+  const totalContratos = entradas
+    .filter(r => isContratoEntry(r))
     .reduce((acc, r) => acc + Number(r.amount), 0);
+  const totalManuaisOutras = entradas
+    .filter(r => !isServicoCat(r.category) && !isProdutoCat(r.category) && !isContratoEntry(r))
+    .reduce((acc, r) => acc + Number(r.amount), 0);
+  // Mantido p/ compatibilidade do saldo: soma de tudo que não é serviço/produto
+  const totalOutrasEntradas = totalContratos + totalManuaisOutras;
 
   const totalEntradas = totalServicos + totalProdutos + totalOutrasEntradas;
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
@@ -1273,12 +1280,16 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-teal-500 flex-shrink-0" />
-              <span className="truncate">Contratos/Outras</span>
+              <span className="truncate">Contratos</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-teal-600 truncate">{formatCurrency(totalOutrasEntradas)}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">Mensalidades/manuais</p>
+            <p className="text-sm sm:text-lg font-bold text-teal-600 truncate" title="Apenas mensalidades de contratos recorrentes">{formatCurrency(totalContratos)}</p>
+            {totalManuaisOutras > 0 ? (
+              <p className="text-[9px] text-muted-foreground mt-0.5" title="Recebimentos avulsos digitados manualmente (não são contratos)">+ {formatCurrency(totalManuaisOutras)} em outras entradas manuais</p>
+            ) : (
+              <p className="text-[9px] text-muted-foreground mt-0.5">Mensalidades recorrentes</p>
+            )}
           </CardContent>
         </Card>
 
@@ -1959,7 +1970,7 @@ export default function FinanceiroTab() {
                     <p className="text-[11px] text-muted-foreground">Entradas digitadas por você (não vêm do PDV nem de contrato). Seção: <strong>Registros Manuais</strong>.</p>
                   </div>
                   <span className="font-bold text-purple-600 whitespace-nowrap">
-                    {formatCurrency(totalOutrasEntradas - entradas.filter(r => normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:')).reduce((a, r) => a + Number(r.amount), 0))}
+                    {formatCurrency(totalManuaisOutras)}
                   </span>
                 </div>
 
