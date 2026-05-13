@@ -1970,7 +1970,7 @@ export default function FinanceiroTab() {
                     <p className="text-[11px] text-muted-foreground">Entradas digitadas por você (não vêm do PDV nem de contrato). Seção: <strong>Registros Manuais</strong>.</p>
                   </div>
                   <span className="font-bold text-purple-600 whitespace-nowrap">
-                    {formatCurrency(totalOutrasEntradas - entradas.filter(r => normalizeCat(r.category) === 'contrato' || (r.description || '').startsWith('auto:contract:')).reduce((a, r) => a + Number(r.amount), 0))}
+                    {formatCurrency(totalManuaisOutras)}
                   </span>
                 </div>
 
