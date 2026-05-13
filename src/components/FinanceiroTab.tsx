@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
+import { useFinanceLegendHidden } from '@/hooks/useFinanceLegendHidden';
 import FinanceiroUpdatePopup from './FinanceiroUpdatePopup';
 import FinanceLastRepairBadge from './FinanceLastRepairBadge';
 import { useToast } from "@/hooks/use-toast";
@@ -88,16 +89,7 @@ export default function FinanceiroTab() {
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
-  const [hideOriginLegend, setHideOriginLegend] = useState<boolean>(() => {
-    try { return localStorage.getItem('fin_hide_origin_legend') === '1'; } catch { return false; }
-  });
-  const toggleOriginLegend = () => {
-    setHideOriginLegend(prev => {
-      const next = !prev;
-      try { localStorage.setItem('fin_hide_origin_legend', next ? '1' : '0'); } catch {}
-      return next;
-    });
-  };
+  const [hideOriginLegend, toggleOriginLegend] = useFinanceLegendHidden();
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
@@ -977,7 +969,7 @@ export default function FinanceiroTab() {
     <div className="space-y-4 sm:space-y-6">
       <FinanceiroUpdatePopup />
       <FinanceLastRepairBadge />
-      <TabGuideCards cards={[
+      {!hideOriginLegend && <TabGuideCards cards={[
         {
           icon: TrendingUp,
           title: 'Entradas e Vendas',
@@ -1006,7 +998,7 @@ export default function FinanceiroTab() {
           badgeColor: 'purple',
           description: <>O valor que você tem <strong>em mãos agora</strong>, após descontar reservas e todos os gastos do mês.</>,
         },
-      ]} />
+      ]} />}
 
       {/* Quick Actions removidas — botão "Novo" do toolbar cobre o lançamento manual. */}
 
