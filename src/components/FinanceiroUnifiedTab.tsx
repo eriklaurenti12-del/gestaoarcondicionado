@@ -7,9 +7,11 @@ import FinanceiroTab from './FinanceiroTab';
 import FixedExpensesTab from './FixedExpensesTab';
 import FinanceiroReconciliationTab from './FinanceiroReconciliationTab';
 import TabGuideCards from './TabGuideCards';
+import { useFinanceLegendHidden } from '@/hooks/useFinanceLegendHidden';
 
 const FinanceiroUnifiedTab: React.FC = () => {
   const [activeSubTab, setActiveSubTab] = useState("controle");
+  const [hideLegend] = useFinanceLegendHidden();
 
   const guideCards = [
     {
