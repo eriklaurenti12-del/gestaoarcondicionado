@@ -72,6 +72,23 @@ export function clearOldTrash() {
   writeAll(readAll());
 }
 
+/** Apaga TODOS os itens da lixeira de um usuário (ação irreversível). */
+export function clearAllTrash(userId: string) {
+  writeAll(readAll().filter((it) => it.userId !== userId));
+}
+
+/** Apaga itens cuja data de exclusão é anterior ao mês corrente. */
+export function purgePreviousMonths(userId: string) {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+  writeAll(
+    readAll().filter((it) => {
+      if (it.userId !== userId) return true;
+      return new Date(it.deletedAt).getTime() >= startOfMonth;
+    })
+  );
+}
+
 // Restaura no banco usando o snapshot. Mantém o id original quando possível.
 export async function restoreTrashItem(item: TrashItem): Promise<void> {
   const { record, sale, linkedRecords } = item.payload;
