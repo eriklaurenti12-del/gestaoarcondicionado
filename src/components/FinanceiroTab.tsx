@@ -1293,6 +1293,29 @@ export default function FinanceiroTab() {
         </div>
       </div>
 
+      {/* Validação automática dos cards */}
+      {validations.length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs sm:text-sm font-semibold text-amber-700 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4" /> Validação do Financeiro: {validations.length} alerta(s)
+            </p>
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">Conferência automática contra as fontes.</span>
+          </div>
+          <ul className="text-[11px] sm:text-xs space-y-1">
+            {validations.map((v) => (
+              <li key={v.key} className={`flex items-start gap-1.5 ${v.level === 'error' ? 'text-red-700' : 'text-amber-800'}`}>
+                <span className="font-bold">{v.level === 'error' ? '⛔' : '⚠️'}</span>
+                <span>
+                  {v.message}
+                  {v.hint && <span className="text-muted-foreground"> — {v.hint}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Summary Cards - responsive grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
         <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
