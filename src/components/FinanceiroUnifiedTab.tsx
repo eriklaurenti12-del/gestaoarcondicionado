@@ -63,7 +63,7 @@ const FinanceiroUnifiedTab: React.FC = () => {
 
   return (
     <div className="space-y-4">
-      <TabGuideCards cards={guideCards} columns={4} />
+      {!hideLegend && <TabGuideCards cards={guideCards} columns={4} />}
 
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
