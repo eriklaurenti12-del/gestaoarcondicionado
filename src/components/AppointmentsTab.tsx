@@ -1563,7 +1563,21 @@ const AppointmentsTab: React.FC = () => {
                             </Button>
                           )}
 
-                          {/* Quick Complete - 1 Click Concluir */}
+
+                          {/* Tornar Contrato Recorrente — opcional, manual */}
+                          {(appointment.status === 'concluido' || appointment.status === 'confirmado') && appointment.client_id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 w-9 p-0 text-purple-400 hover:text-white hover:bg-purple-500/20"
+                              aria-label="Tornar este atendimento em contrato recorrente"
+                              title="Tornar Contrato Recorrente"
+                              onClick={() => setConvertContractAppointment(appointment)}
+                            >
+                              <Repeat className="w-4 h-4" />
+                            </Button>
+                          )}
+
                           {appointment.status === 'confirmado' && (
                             <Button 
                               size="sm" 
