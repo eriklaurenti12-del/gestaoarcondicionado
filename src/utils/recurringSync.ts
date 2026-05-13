@@ -168,8 +168,15 @@ export async function ensureMonthlyRecurringExpenses(
       });
     }
     if (contractRecords.length > 0) {
-      await supabase.from('financial_records').insert(contractRecords);
-      insertedContracts = contractRecords.length;
+      // Insere um a um para tolerar 23505 (trigger anti-duplicidade) sem abortar todos
+      for (const rec of contractRecords) {
+        const { error } = await supabase.from('financial_records').insert(rec);
+        if (!error) {
+          insertedContracts++;
+        } else if ((error as any).code !== '23505' && !/duplicate/i.test(error.message)) {
+          console.warn('[contract sync] insert failed', error);
+        }
+      }
     }
   }
 
