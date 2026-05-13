@@ -8,8 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2, Sparkles } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2, Sparkles, Repeat } from "lucide-react";
 import FinancialAIAssistant, { type AISnapshot } from './FinancialAIAssistant';
+import ConvertToContractDialog from './ConvertToContractDialog';
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -206,6 +207,7 @@ const AppointmentsTab: React.FC = () => {
   const [completionFeedback, setCompletionFeedback] = useState("");
   const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
   const [customPrice, setCustomPrice] = useState("");
+  const [convertContractAppointment, setConvertContractAppointment] = useState<Appointment | null>(null);
 
   // Edit state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -1561,7 +1563,21 @@ const AppointmentsTab: React.FC = () => {
                             </Button>
                           )}
 
-                          {/* Quick Complete - 1 Click Concluir */}
+
+                          {/* Tornar Contrato Recorrente — opcional, manual */}
+                          {(appointment.status === 'concluido' || appointment.status === 'confirmado') && appointment.client_id && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-9 w-9 p-0 text-purple-400 hover:text-white hover:bg-purple-500/20"
+                              aria-label="Tornar este atendimento em contrato recorrente"
+                              title="Tornar Contrato Recorrente"
+                              onClick={() => setConvertContractAppointment(appointment)}
+                            >
+                              <Repeat className="w-4 h-4" />
+                            </Button>
+                          )}
+
                           {appointment.status === 'confirmado' && (
                             <Button 
                               size="sm" 
@@ -2303,6 +2319,12 @@ const AppointmentsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ConvertToContractDialog
+        open={!!convertContractAppointment}
+        onOpenChange={(v) => { if (!v) setConvertContractAppointment(null); }}
+        appointment={convertContractAppointment as any}
+      />
 
       <FinancialAIAssistant
         open={aiOpen}
