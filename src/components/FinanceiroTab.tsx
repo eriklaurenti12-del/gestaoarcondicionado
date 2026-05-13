@@ -1918,7 +1918,7 @@ export default function FinanceiroTab() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = {formatCurrency(saldoDisponivel)}
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)} = {formatCurrency(saldoDisponivel)}
                 </p>
               </div>
 
