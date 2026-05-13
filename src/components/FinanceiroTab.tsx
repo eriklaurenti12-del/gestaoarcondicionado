@@ -17,6 +17,7 @@ import { ToastAction } from "@/components/ui/toast";
 import DeleteWithReasonDialog from "./DeleteWithReasonDialog";
 import FinancialTrashDialog from "./FinancialTrashDialog";
 import EditFinancialRecordDialog from "./EditFinancialRecordDialog";
+import FinancialAIAssistant, { type FinancialSnapshot } from "./FinancialAIAssistant";
 import { pushTrash, restoreTrashItem, type TrashItem } from "@/utils/financialTrash";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
@@ -98,6 +99,7 @@ export default function FinanceiroTab() {
   const [reprocessing, setReprocessing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<FinancialRecord | null>(null);
   const [deletePrompt, setDeletePrompt] = useState<
     | { kind: "record"; id: string; title: string }
@@ -1277,6 +1279,16 @@ export default function FinanceiroTab() {
             >
               {reprocessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
               <span className="hidden sm:inline ml-1">{reprocessing ? 'Reprocessando…' : 'Reprocessar antigos'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setAiOpen(true)}
+              className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10"
+              title="Diagnóstico automático e perguntas livres sobre o financeiro do mês"
+            >
+              <Sparkles className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">IA</span>
             </Button>
             <Button
               variant="outline"
@@ -2490,6 +2502,88 @@ export default function FinanceiroTab() {
         onOpenChange={setTrashOpen}
         userId={currentUserId}
         onRestored={() => { fetchRecords(); refetchSales(); }}
+      />
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        buildSnapshot={async (): Promise<FinancialSnapshot> => {
+          const issues: FinancialSnapshot["issues"] = [];
+          const orphan = serviceSalesWithoutRecord.length + productSalesWithoutRecord.length;
+          if (orphan > 0) {
+            issues.push({
+              id: "reconcile",
+              label: `${orphan} venda(s) do PDV sem lançamento financeiro vinculado.`,
+              fix: "Reconciliar agora",
+              severity: "error",
+            });
+          }
+          // checa contratos: se há contratos ativos mas Card Contratos = 0
+          let activeContractsCount = 0;
+          try {
+            const { count } = await supabase
+              .from("maintenance_contracts")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", currentUserId || "")
+              .eq("status", "ativo");
+            activeContractsCount = count || 0;
+          } catch {}
+          if (activeContractsCount > 0 && totalContratos === 0) {
+            issues.push({
+              id: "sync-contracts",
+              label: `${activeContractsCount} contrato(s) ativo(s), mas card "Contratos" está R$ 0,00.`,
+              fix: "Sincronizar contratos do mês",
+              severity: "warn",
+            });
+          }
+          // saldo negativo grande
+          if (saldoDisponivel < -100) {
+            issues.push({
+              id: "balance-negative",
+              label: `Saldo em caixa negativo (${saldoDisponivel.toFixed(2)}).`,
+              fix: undefined,
+              severity: "warn",
+            });
+          }
+          // entradas com 0
+          const zeroEntries = entradas.filter((r) => Number(r.amount) === 0).length;
+          if (zeroEntries > 0) {
+            issues.push({
+              id: "reprocess",
+              label: `${zeroEntries} entrada(s) com R$ 0,00 — origem sem preço.`,
+              fix: "Reprocessar antigos",
+              severity: "warn",
+            });
+          }
+          const auto = entradas.filter((r) => /\[auto/.test(r.description || "")).length;
+          return {
+            month: selectedMonth,
+            cards: {
+              servicos: totalServicos,
+              produtos: totalProdutos,
+              contratos: totalContratos,
+              gastosRotas: totalGastosRotas,
+              gastosFixos: totalGastosFixos,
+              saques: totalSaques,
+              reservas: totalReservas,
+              saldo: saldoDisponivel,
+              totalEntradas,
+              totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
+            },
+            counts: {
+              records: records.length,
+              manual: records.length - auto,
+              auto,
+              sales: (sales || []).length,
+              activeContracts: activeContractsCount,
+            },
+            issues,
+          };
+        }}
+        onAction={(id) => {
+          if (id === "reconcile") handleReconcile();
+          else if (id === "sync-contracts") handleSyncContracts();
+          else if (id === "reprocess") handleReprocessOldAppointments();
+        }}
       />
       <EditFinancialRecordDialog
         open={!!editTarget}
