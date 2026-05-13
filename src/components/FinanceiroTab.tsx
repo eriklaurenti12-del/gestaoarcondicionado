@@ -998,7 +998,7 @@ export default function FinanceiroTab() {
           badgeColor: 'purple',
           description: <>O valor que você tem <strong>em mãos agora</strong>, após descontar reservas e todos os gastos do mês.</>,
         },
-      ]} />
+      ]} />}
 
       {/* Quick Actions removidas — botão "Novo" do toolbar cobre o lançamento manual. */}
 
