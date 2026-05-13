@@ -90,6 +90,34 @@ export default function FinanceiroTab() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
   const [hideOriginLegend, toggleOriginLegend] = useFinanceLegendHidden();
+  const [reprocessing, setReprocessing] = useState(false);
+
+  const handleReprocessOldAppointments = async () => {
+    if (reprocessing) return;
+    setReprocessing(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid) throw new Error('Sessão expirada');
+      // Varre últimos 24 meses para pegar agendamentos antigos sem [VALOR:]
+      const since = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+      const r = await repairMissingFinancialRecords(uid, since);
+      const total = r.appointmentsRepaired + r.salesRepaired;
+      toast({
+        title: total > 0 ? '✅ Reprocessamento concluído' : 'Nada a reprocessar',
+        description: total > 0
+          ? `${r.appointmentsRepaired} agendamento(s) e ${r.salesRepaired} venda(s) lançados. ${r.skipped} já estavam ok.`
+          : `Todos os agendamentos antigos já têm lançamento. ${r.skipped} verificados.`,
+      });
+      // Atualiza tudo (popup, listas, dashboard)
+      queryClient.invalidateQueries({ refetchType: 'active' });
+      try { window.dispatchEvent(new CustomEvent('financial-data-updated')); } catch {}
+    } catch (e: any) {
+      toast({ title: 'Erro ao reprocessar', description: e.message || String(e), variant: 'destructive' });
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
