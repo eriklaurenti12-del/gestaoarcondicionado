@@ -853,9 +853,21 @@ export default function FinanceiroTab() {
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
 
-  const totalGastosRotas = records
-    .filter(r => r.type === "saque" && (normalizeCat(r.category) === 'alimentação' || normalizeCat(r.category) === 'alimentacao' || normalizeCat(r.category) === 'combustível' || normalizeCat(r.category) === 'combustivel'))
+  // Gastos de rota: lê tanto de saques manuais (financial_records) quanto de
+  // gastos diários por prestador (fixed_expenses cat. Combustível/Alimentação).
+  // O fluxo real (RouteExpensesDialog) salva em fixed_expenses, então sem isso
+  // o card "Gastos Rotas" ficava sempre R$ 0,00.
+  const isRotaCat = (c: string | null) => {
+    const n = normalizeCat(c);
+    return n === 'alimentação' || n === 'alimentacao' || n === 'combustível' || n === 'combustivel';
+  };
+  const gastosRotasFromRecords = records
+    .filter(r => r.type === 'saque' && isRotaCat(r.category))
     .reduce((acc, r) => acc + Number(r.amount), 0);
+  const gastosRotasFromFixed = (fixedExpenses || [])
+    .filter((e: any) => isRotaCat(e.category))
+    .reduce((acc: number, e: any) => acc + Number(e.amount), 0);
+  const totalGastosRotas = gastosRotasFromRecords + gastosRotasFromFixed;
   
   // Lucro somente de produtos reais (products.type !== 'service').
   // Antes somava o profit de TODAS as vendas, inflando o card "Produtos" mesmo
@@ -868,8 +880,11 @@ export default function FinanceiroTab() {
     .reduce((acc, s) => acc + Number(s.total_profit || 0), 0);
   
   // Balance calculation (Source of truth: financial_records + fixed_expenses)
-  const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
-  const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalGastosFixos;
+  // O total de fixed_expenses inclui rotas; o card "Gastos Fixos" exibe apenas
+  // a parte NÃO-rota para evitar leitura visual dupla com "Gastos Rotas".
+  const totalFixedExpenses = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
+  const totalGastosFixos = totalFixedExpenses - gastosRotasFromFixed;
+  const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalFixedExpenses;
 
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
