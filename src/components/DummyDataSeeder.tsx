@@ -423,8 +423,18 @@ const DummyDataSeeder: React.FC = () => {
       if (!session) return;
       const userId = session.user.id;
 
-      // Lista oficial de tabelas a limpar (todas existem no schema atual).
+      // Marca um "freeze" curto para impedir que o auto-reconcile do Financeiro
+      // recrie despesas recorrentes enquanto o reset está em andamento.
+      try { sessionStorage.setItem('reset_in_progress_until', String(Date.now() + 15000)); } catch {}
+
+      // Lista oficial — ORDEM IMPORTA: primeiro removemos as FONTES de
+      // recorrência (team_members + service_providers) para que nenhum
+      // re-sync consiga reinserir gastos fixos depois.
       const targets: Array<{ table: string; userCol?: string }> = [
+        { table: 'team_members' },
+        { table: 'team_online_status', userCol: 'owner_id' },
+        { table: 'team_invites', userCol: 'created_by' },
+        { table: 'maintenance_contracts' },
         { table: 'installments' }, { table: 'sales' },
         { table: 'financial_records' }, { table: 'financial_audit_log' },
         { table: 'financial_reconciliation_log' }, { table: 'financial_check_history' },
@@ -432,11 +442,9 @@ const DummyDataSeeder: React.FC = () => {
         { table: 'service_orders' }, { table: 'quotes' },
         { table: 'appointments' }, { table: 'online_bookings' },
         { table: 'online_booking_settings' }, { table: 'client_equipment' },
-        { table: 'maintenance_contracts' }, { table: 'products' },
+        { table: 'products' },
         { table: 'clients' }, { table: 'suppliers' },
-        { table: 'tax_records' }, { table: 'team_members' },
-        { table: 'team_online_status', userCol: 'owner_id' },
-        { table: 'team_invites', userCol: 'created_by' },
+        { table: 'tax_records' },
         { table: 'support_requests', userCol: 'owner_id' },
       ];
 
@@ -470,6 +478,18 @@ const DummyDataSeeder: React.FC = () => {
         status: provErr ? 'error' : 'ok',
         message: provErr?.message,
       });
+
+      // Sweep final: garante que NENHUMA despesa fixa sobreviveu (caso algum
+      // auto-sync tenha conseguido inserir entre o delete inicial e agora).
+      try {
+        const { count: leftover } = await (supabase.from('fixed_expenses' as any) as any)
+          .select('*', { count: 'exact', head: true }).eq('user_id', userId);
+        if (leftover && leftover > 0) {
+          await (supabase.from('fixed_expenses' as any) as any).delete().eq('user_id', userId);
+          report.push({ table: 'fixed_expenses (sweep)', deleted: leftover, status: 'ok' });
+        }
+      } catch {}
+
 
       // Força limpeza total: cache + localStorage (lixeira financeira inclusa)
       try {
