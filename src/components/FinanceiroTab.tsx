@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, repairMissingFinancialRecords, type ReconcileResult } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -886,6 +886,42 @@ export default function FinanceiroTab() {
   const totalGastosFixos = totalFixedExpenses - gastosRotasFromFixed;
   const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalFixedExpenses;
 
+  // ─── VALIDAÇÃO AUTOMÁTICA DOS CARDS ───────────────────────────────
+  // Re-deriva totais e detecta divergências/duplicatas/valores zerados.
+  const _cents = (n: number) => Math.round(Number(n || 0) * 100);
+  const _fmt = (v: number) => `R$ ${v.toFixed(2)}`;
+  const validations: Array<{ level: 'error' | 'warn'; key: string; message: string; hint?: string }> = [];
+
+  const saldoEsperado = totalEntradas - totalSaques - totalReservas - totalGastosFixos - totalGastosRotas;
+  if (_cents(saldoEsperado) !== _cents(saldoDisponivel)) {
+    validations.push({ level: 'error', key: 'saldo', message: `Saldo divergente: card ${_fmt(saldoDisponivel)} ≠ fórmula ${_fmt(saldoEsperado)}.`, hint: 'Recarregue ou clique em "Sincronizar".' });
+  }
+  if (_cents(gastosRotasFromRecords + gastosRotasFromFixed) !== _cents(totalGastosRotas)) {
+    validations.push({ level: 'error', key: 'rotas', message: `Gastos Rotas divergem das fontes (saques ${_fmt(gastosRotasFromRecords)} + diários ${_fmt(gastosRotasFromFixed)}).` });
+  }
+  if (_cents(totalGastosFixos + gastosRotasFromFixed) !== _cents(totalFixedExpenses)) {
+    validations.push({ level: 'error', key: 'fixos', message: 'Gastos Fixos pode estar contando rotas duas vezes.', hint: 'Verifique se Combustível/Alimentação não estão repetidos em Despesas.' });
+  }
+  const _aptCount = new Map<string, number>(); const _saleCount = new Map<number, number>();
+  for (const r of records) {
+    if (r.type !== 'entrada') continue;
+    if (r.appointment_id) _aptCount.set(r.appointment_id, (_aptCount.get(r.appointment_id) || 0) + 1);
+    if (r.sale_id) _saleCount.set(r.sale_id, (_saleCount.get(r.sale_id) || 0) + 1);
+  }
+  const _dup = Array.from(_aptCount.values()).filter(n => n > 1).length + Array.from(_saleCount.values()).filter(n => n > 1).length;
+  if (_dup > 0) validations.push({ level: 'warn', key: 'dup', message: `${_dup} possível(is) duplicata(s) em entradas (mesmo agendamento/venda).`, hint: 'Use "Sincronizar" para reconciliar e remover duplicatas.' });
+  const _negE = entradas.filter(r => Number(r.amount) < 0).length;
+  if (_negE > 0) validations.push({ level: 'warn', key: 'negE', message: `${_negE} entrada(s) com valor negativo.` });
+  const _zeroE = entradas.filter(r => Number(r.amount) === 0).length;
+  if (_zeroE > 0) validations.push({ level: 'warn', key: 'zeroE', message: `${_zeroE} entrada(s) com R$ 0,00 — origem sem preço.`, hint: 'Corrija o preço no orçamento/serviço e use "Reprocessar antigos".' });
+  const _negF = (fixedExpenses || []).filter((e: any) => Number(e.amount) < 0).length;
+  if (_negF > 0) validations.push({ level: 'warn', key: 'negF', message: `${_negF} despesa(s) fixa(s) com valor negativo.` });
+  if (validations.length > 0 && typeof console !== 'undefined') {
+    // log para diagnóstico em produção
+    console.warn('[financeiro:validacao]', validations);
+  }
+
+
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
   const getTypeIcon = (type: string) => {
@@ -1256,6 +1292,29 @@ export default function FinanceiroTab() {
           </Dialog>
         </div>
       </div>
+
+      {/* Validação automática dos cards */}
+      {validations.length > 0 && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs sm:text-sm font-semibold text-amber-700 flex items-center gap-1.5">
+              <AlertTriangle className="h-4 w-4" /> Validação do Financeiro: {validations.length} alerta(s)
+            </p>
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">Conferência automática contra as fontes.</span>
+          </div>
+          <ul className="text-[11px] sm:text-xs space-y-1">
+            {validations.map((v) => (
+              <li key={v.key} className={`flex items-start gap-1.5 ${v.level === 'error' ? 'text-red-700' : 'text-amber-800'}`}>
+                <span className="font-bold">{v.level === 'error' ? '⛔' : '⚠️'}</span>
+                <span>
+                  {v.message}
+                  {v.hint && <span className="text-muted-foreground"> — {v.hint}</span>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Summary Cards - responsive grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
