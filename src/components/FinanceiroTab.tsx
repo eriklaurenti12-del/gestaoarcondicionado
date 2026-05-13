@@ -1322,6 +1322,10 @@ export default function FinanceiroTab() {
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline ml-1">Extrato PDF</span>
           </Button>
+          <Button onClick={() => setTrashOpen(true)} variant="outline" size="sm" className="min-w-[44px]" title="Lixeira de exclusões (últimos 30 dias)">
+            <Trash2 className="h-4 w-4" />
+            <span className="hidden sm:inline ml-1">Lixeira</span>
+          </Button>
 
           <Dialog open={dialogOpen} onOpenChange={(open) => !isLocked && setDialogOpen(open)}>
             <DialogTrigger asChild>
