@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, repairMissingFinancialRecords, type ReconcileResult } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
