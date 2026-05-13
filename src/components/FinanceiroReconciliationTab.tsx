@@ -23,14 +23,27 @@ export default function FinanceiroReconciliationTab() {
   const [repairing, setRepairing] = useState(false);
   const autoRepairRan = useRef(false);
 
-  // Invalida todas as queries que dependem desses dados — sincroniza Agenda,
-  // Dashboard, Financeiro, PDV, Clientes, etc. sem o usuário precisar atualizar.
-  const broadcastUpdates = () => {
+  // Invalida + refetch imediato. Cobre todas as abas que mostram dados
+  // financeiros ou de agenda (Agenda, Dashboard, PDV, Clientes, Parcelas,
+  // Gastos de Rota, Conciliação, Relatórios).
+  const broadcastUpdates = async () => {
+    const explicitKeys = [
+      'appointments', 'calendar-appointments', 'route-appointments',
+      'dashboard', 'sales', 'sales-financial', 'financial-records',
+      'financial_records', 'fixed_expenses', 'fixed-expenses',
+      'fixed-expenses-summary', 'installments', 'route-expenses-by-apt',
+      'pending-quotes', 'pending-orders', 'completed-appointments-financial',
+      'recon-sales', 'recon-records', 'recon-audit', 'recon-log',
+    ];
+    explicitKeys.forEach((k) =>
+      queryClient.invalidateQueries({ queryKey: [k], refetchType: 'active' }),
+    );
     queryClient.invalidateQueries({
       predicate: (q) => {
         const k = JSON.stringify(q.queryKey).toLowerCase();
-        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-/.test(k);
+        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-|fixed[-_]expense|route/.test(k);
       },
+      refetchType: 'active',
     });
   };
 
@@ -84,6 +97,23 @@ export default function FinanceiroReconciliationTab() {
     },
   });
 
+  // Histórico de reconciliações (auto + manual) — fonte da auditoria
+  const { data: reconLog, refetch: refetchReconLog } = useQuery({
+    queryKey: ['recon-log'],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) return [];
+      const { data, error } = await (supabase as any)
+        .from('financial_reconciliation_log')
+        .select('*')
+        .eq('user_id', sess.session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Vendas órfãs (sale sem financial_record)
   const orphanSales = (sales || []).filter((s: any) => {
     return !(records || []).some((r: any) => r.sale_id === s.id);
@@ -121,7 +151,7 @@ export default function FinanceiroReconciliationTab() {
   }
 
   const refreshAll = async () => {
-    await Promise.all([refetchSales(), refetchRecords(), refetchAudit()]);
+    await Promise.all([refetchSales(), refetchRecords(), refetchAudit(), refetchReconLog()]);
   };
 
   const handleSyncOrphanSale = async (sale: any) => {
@@ -454,26 +484,82 @@ export default function FinanceiroReconciliationTab() {
         </CardContent>
       </Card>
 
-      {/* Audit log */}
-      {auditLog && auditLog.length > 0 && (
-        <Card>
+      {/* Painel de Auditoria — histórico de reparos/conciliações em PT-BR */}
+      {((reconLog && reconLog.length > 0) || (auditLog && auditLog.length > 0)) && (
+        <Card className="border-blue-500/30">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="w-4 h-4" /> Últimas ações do rastreador (50)
+              <Activity className="w-4 h-4 text-blue-500" /> Painel de Auditoria
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Tudo que foi corrigido automaticamente — agendamentos, vendas e duplicados — com data, motivo e quantidade. Use para mostrar ao cliente.
+            </p>
           </CardHeader>
-          <CardContent className="max-h-96 overflow-y-auto">
-            <div className="space-y-1.5">
-              {auditLog.map((log: any) => (
-                <div key={log.id} className="flex items-start gap-2 text-xs border-b border-border/40 pb-1.5">
-                  <Badge variant={log.event_type === 'duplicate_blocked' ? 'destructive' : 'outline'} className="text-[10px]">
-                    {log.event_type}
-                  </Badge>
-                  <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm:ss')}</span>
-                  <span className="flex-1 truncate">{JSON.stringify(log.details)}</span>
+          <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
+            {/* Reconciliações */}
+            {reconLog && reconLog.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground mb-1.5">Conciliações executadas</div>
+                <div className="space-y-1.5">
+                  {reconLog.map((log: any) => {
+                    const total =
+                      (log.dup_records || 0) + (log.dup_sales || 0) +
+                      (log.orphan_records || 0) + (log.orphan_sales || 0) +
+                      (log.inserted_recurring || 0);
+                    return (
+                      <div key={log.id} className="flex flex-wrap items-center gap-2 text-xs border-b border-border/40 pb-1.5">
+                        <Badge variant={log.triggered_by === 'manual' ? 'default' : 'outline'} className="text-[10px]">
+                          {log.triggered_by === 'manual' ? 'Manual' : 'Auto'}
+                        </Badge>
+                        <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm')}</span>
+                        <span className="font-mono">{log.month_year}</span>
+                        <span className="flex-1 text-muted-foreground">
+                          {log.dup_records > 0 && <span className="mr-2">🗑️ {log.dup_records} duplicado(s) removido(s)</span>}
+                          {log.dup_sales > 0 && <span className="mr-2">🗑️ {log.dup_sales} venda(s) duplicada(s)</span>}
+                          {log.orphan_records > 0 && <span className="mr-2">🧹 {log.orphan_records} registro(s) órfão(s)</span>}
+                          {log.orphan_sales > 0 && <span className="mr-2">🔗 {log.orphan_sales} venda(s) reconectada(s)</span>}
+                          {log.inserted_recurring > 0 && <span className="mr-2">🔁 {log.inserted_recurring} recorrente(s) lançado(s)</span>}
+                          {total === 0 && <span className="text-emerald-600">✓ Nada a corrigir</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Eventos do trigger (duplicatas bloqueadas, etc.) */}
+            {auditLog && auditLog.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground mb-1.5">Eventos do rastreador</div>
+                <div className="space-y-1.5">
+                  {auditLog.map((log: any) => {
+                    const ptLabel: Record<string, string> = {
+                      duplicate_blocked: 'Duplicata bloqueada (impediu lançamento repetido)',
+                    };
+                    const motivo = ptLabel[log.event_type] || log.event_type;
+                    const det = log.details || {};
+                    return (
+                      <div key={log.id} className="flex flex-wrap items-start gap-2 text-xs border-b border-border/40 pb-1.5">
+                        <Badge variant={log.event_type === 'duplicate_blocked' ? 'destructive' : 'outline'} className="text-[10px]">
+                          {log.event_type === 'duplicate_blocked' ? 'Bloqueado' : log.event_type}
+                        </Badge>
+                        <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm:ss')}</span>
+                        <span className="flex-1">
+                          <span className="font-medium">{motivo}</span>
+                          {det.attempted_amount !== undefined && (
+                            <span className="text-muted-foreground"> · {formatBRL(Number(det.attempted_amount))}</span>
+                          )}
+                          {det.attempted_description && (
+                            <span className="text-muted-foreground"> · "{String(det.attempted_description).slice(0, 60)}"</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
