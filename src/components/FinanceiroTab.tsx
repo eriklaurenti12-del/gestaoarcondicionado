@@ -2111,7 +2111,7 @@ export default function FinanceiroTab() {
                         matched: false,
                         saldo: saldoDisponivel,
                         totalEntradas,
-                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
                       });
                       toast({ title: 'Conferência salva', description: 'Marcada como não conferida ⚠️', variant: 'destructive' });
                     }}
