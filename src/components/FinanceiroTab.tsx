@@ -823,28 +823,41 @@ export default function FinanceiroTab() {
   };
 
   // ===== Helpers de exclusão com Lixeira + Undo =====
+  // Preferência: abrir Lixeira automaticamente após excluir (default: true)
+  const POST_DELETE_KEY = "fin_open_trash_after_delete";
+  const shouldOpenTrashAfterDelete = () => {
+    try { return (localStorage.getItem(POST_DELETE_KEY) ?? "1") === "1"; } catch { return true; }
+  };
+  const restoreFromItem = async (item: TrashItem) => {
+    try {
+      await restoreTrashItem(item);
+      // Refresca tudo instantaneamente para refletir os valores corretos
+      await Promise.all([fetchRecords(), Promise.resolve(refetchSales())]);
+      toast({ title: "Restaurado!", description: `${item.summary.title} voltou para a lista com os valores originais.` });
+    } catch (e: any) {
+      toast({ title: "Erro ao restaurar", description: e.message, variant: "destructive" });
+    }
+  };
   const offerUndo = (item: TrashItem, label: string) => {
     toast({
       title: label,
-      description: "Você tem alguns segundos para desfazer.",
-      duration: 8000,
+      description: "Desfazer agora ou abrir a Lixeira para restaurar depois.",
+      duration: 9000,
       action: (
-        <ToastAction
-          altText="Desfazer"
-          onClick={async () => {
-            try {
-              await restoreTrashItem(item);
-              toast({ title: "Exclusão desfeita", description: item.summary.title });
-              refetchSales(); fetchRecords();
-            } catch (e: any) {
-              toast({ title: "Erro ao desfazer", description: e.message, variant: "destructive" });
-            }
-          }}
-        >
-          <RotateCcw className="h-3.5 w-3.5 mr-1" /> Desfazer
-        </ToastAction>
+        <div className="flex flex-col gap-1">
+          <ToastAction altText="Desfazer" onClick={() => restoreFromItem(item)}>
+            <RotateCcw className="h-3.5 w-3.5 mr-1" /> Desfazer
+          </ToastAction>
+          <ToastAction altText="Abrir Lixeira" onClick={() => setTrashOpen(true)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Lixeira
+          </ToastAction>
+        </div>
       ),
     });
+    if (shouldOpenTrashAfterDelete()) {
+      // pequeno atraso para o toast aparecer antes do dialog
+      setTimeout(() => setTrashOpen(true), 150);
+    }
   };
 
   const performDeleteRecord = async (id: string, reason: string) => {
