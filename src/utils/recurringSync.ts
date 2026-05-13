@@ -241,10 +241,31 @@ export async function repairMissingFinancialRecords(
 
     for (const apt of concluded) {
       if (have.has(apt.id)) continue;
-      const price = Number((apt as any).products?.price) || 0;
-      if (price <= 0) { result.skipped++; continue; }
-      const serviceName = (apt as any).products?.name || 'Serviço';
+      let price = Number((apt as any).products?.price) || 0;
+      let serviceName = (apt as any).products?.name || 'Serviço';
       const clientName = (apt as any).clients?.name || 'Cliente';
+      const notes: string = (apt as any).notes || '';
+
+      // Fallback: agendamentos vindos de Orçamento (sem service_id)
+      // — tenta resolver preço/título a partir de quotes #N nas notas.
+      if (price <= 0) {
+        const m = notes.match(/Or[çc]amento\s*#\s*(\d+)/i);
+        if (m) {
+          const quoteNumber = parseInt(m[1], 10);
+          const { data: q } = await supabase
+            .from('quotes')
+            .select('total, title')
+            .eq('user_id', userId)
+            .eq('quote_number', quoteNumber)
+            .maybeSingle();
+          if (q && Number(q.total) > 0) {
+            price = Number(q.total);
+            if (q.title) serviceName = q.title;
+          }
+        }
+      }
+
+      if (price <= 0) { result.skipped++; continue; }
       try {
         const { error } = await supabase.from('financial_records').insert({
           user_id: userId,
