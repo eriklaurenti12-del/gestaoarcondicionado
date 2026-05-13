@@ -60,18 +60,31 @@ export default function FinancialAIAssistant({
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [snapLoading, setSnapLoading] = useState(false);
   const [diagOpen, setDiagOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // reset transient state when closing to keep UX fluido
+      setSnapshot(null);
+      setMsgs([]);
+      setInput("");
+      setLoading(false);
+      setSnapLoading(false);
+      return;
+    }
     let cancelled = false;
+    setSnapLoading(true);
+    setSnapshot(null);
     (async () => {
       try {
         const snap = await buildSnapshot();
         if (!cancelled) setSnapshot(snap);
       } catch (e: any) {
-        toast({ title: "Erro ao montar diagnóstico", description: e.message, variant: "destructive" });
+        if (!cancelled) toast({ title: "Erro ao montar diagnóstico", description: e.message, variant: "destructive" });
+      } finally {
+        if (!cancelled) setSnapLoading(false);
       }
     })();
     return () => { cancelled = true; };
@@ -144,6 +157,19 @@ export default function FinancialAIAssistant({
             {finalTitle}
           </DialogTitle>
         </DialogHeader>
+
+        {snapLoading && !snapshot && (
+          <div className="border rounded-md bg-muted/30 p-3 space-y-2" aria-live="polite" aria-busy="true">
+            <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Carregando diagnóstico desta aba...
+            </div>
+            <div className="space-y-1.5">
+              <div className="h-3 rounded bg-muted animate-pulse w-3/4" />
+              <div className="h-3 rounded bg-muted animate-pulse w-1/2" />
+              <div className="h-3 rounded bg-muted animate-pulse w-2/3" />
+            </div>
+          </div>
+        )}
 
         {snapshot && (
           <div className="border rounded-md bg-muted/30">
