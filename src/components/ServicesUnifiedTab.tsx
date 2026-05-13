@@ -20,7 +20,7 @@ import {
   Plus, Search, FileText, Trash2, Download, Phone, RefreshCw,
   DollarSign, Users, Calendar, AlertTriangle, CheckCircle, Clock,
   Paperclip, Upload, XCircle, Info, Eye, ChevronLeft, ChevronRight,
-  ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit, Sparkles
+  ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit, Sparkles, Loader2
 } from 'lucide-react';
 import FinancialAIAssistant, { type AISnapshot } from './FinancialAIAssistant';
 import TabGuideCards from './TabGuideCards';
