@@ -618,8 +618,8 @@ const ServicesUnifiedTab: React.FC = () => {
                 Contratos de Manutenção
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Button onClick={() => setAiOpen(true)} size="sm" variant="outline" className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10" title="Assistente IA dos Contratos">
-                  <Sparkles className="w-4 h-4 mr-1" /> IA
+                <Button onClick={() => setAiOpen(true)} disabled={aiOpen} size="sm" variant="outline" className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10 disabled:opacity-70" title="Assistente IA dos Contratos" aria-busy={aiOpen}>
+                  {aiOpen ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />} {aiOpen ? 'Abrindo...' : 'IA'}
                 </Button>
                 <Button onClick={() => setContractDialogOpen(true)} size="sm">
                   <Plus className="w-4 h-4 mr-1" /> Novo Contrato
