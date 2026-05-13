@@ -1018,17 +1018,45 @@ export default function FinanceiroTab() {
             <h2 className="text-xl sm:text-2xl font-bold">Controle Financeiro</h2>
             <p className="text-sm text-muted-foreground">Gerencie suas entradas, saques e reservas</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setHelpOpen(true)}
-            className="shrink-0 border-primary/30 text-primary hover:bg-primary/10"
-            title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
-          >
-            <HelpCircle className="h-4 w-4" />
-            <span className="hidden sm:inline ml-1">Ajuda</span>
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleOriginLegend}
+              className="border-muted"
+              title={hideOriginLegend ? 'Mostrar legenda Auto/Manual' : 'Ocultar legenda Auto/Manual'}
+            >
+              {hideOriginLegend ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              <span className="hidden sm:inline ml-1">{hideOriginLegend ? 'Mostrar legenda' : 'Ocultar legenda'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setHelpOpen(true)}
+              className="border-primary/30 text-primary hover:bg-primary/10"
+              title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
+            >
+              <HelpCircle className="h-4 w-4" />
+              <span className="hidden sm:inline ml-1">Ajuda</span>
+            </Button>
+          </div>
         </div>
+        {!hideOriginLegend && (
+          <div className="rounded-lg border bg-muted/30 p-3 text-xs flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2">
+              <Badge variant="secondary" className="gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
+                <Sparkles className="h-3 w-3" /> Auto
+              </Badge>
+              <span className="text-muted-foreground">vem de <b>agendamentos concluídos</b>, <b>vendas do PDV</b> e <b>contratos recorrentes</b>.</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="gap-1">
+                <Wallet className="h-3 w-3" /> Manual
+              </Badge>
+              <span className="text-muted-foreground">é tudo que <b>você digitou</b> no botão "Novo" (entradas avulsas, saques, reservas).</span>
+            </div>
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <Input
             type="month"
