@@ -649,9 +649,19 @@ const AppointmentsTab: React.FC = () => {
       fullNotes = `[PRESTADOR:${selectedProvider}]\n${fullNotes}`.trim();
     }
     
-    // Add value tag if custom price is set
+    // Add value tag — sempre que vier de orçamento/pedido OU se houver customPrice.
+    // Isso garante que o card da agenda mostre o valor (não "A combinar") e que a
+    // baixa lance o valor correto no Financeiro.
+    let valueForTag: number | null = null;
     if (customPrice) {
-      fullNotes = `[VALOR:${customPrice}]\n${fullNotes}`.trim();
+      valueForTag = parseFloat(customPrice);
+    } else if (sourceType === 'quote' && selectedQuote) {
+      valueForTag = Number(selectedQuote.total) || null;
+    } else if (sourceType === 'order' && selectedOrder) {
+      valueForTag = Number(selectedOrder.total) || null;
+    }
+    if (valueForTag && valueForTag > 0) {
+      fullNotes = `[VALOR:${valueForTag.toFixed(2)}]\n${fullNotes}`.trim();
     }
 
     const installmentAmount = selectedTotal / installments;
