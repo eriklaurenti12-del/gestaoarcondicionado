@@ -2503,6 +2503,88 @@ export default function FinanceiroTab() {
         userId={currentUserId}
         onRestored={() => { fetchRecords(); refetchSales(); }}
       />
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        buildSnapshot={async (): Promise<FinancialSnapshot> => {
+          const issues: FinancialSnapshot["issues"] = [];
+          const orphan = serviceSalesWithoutRecord.length + productSalesWithoutRecord.length;
+          if (orphan > 0) {
+            issues.push({
+              id: "reconcile",
+              label: `${orphan} venda(s) do PDV sem lançamento financeiro vinculado.`,
+              fix: "Reconciliar agora",
+              severity: "error",
+            });
+          }
+          // checa contratos: se há contratos ativos mas Card Contratos = 0
+          let activeContractsCount = 0;
+          try {
+            const { count } = await supabase
+              .from("maintenance_contracts")
+              .select("id", { count: "exact", head: true })
+              .eq("user_id", currentUserId || "")
+              .eq("status", "ativo");
+            activeContractsCount = count || 0;
+          } catch {}
+          if (activeContractsCount > 0 && totalContratos === 0) {
+            issues.push({
+              id: "sync-contracts",
+              label: `${activeContractsCount} contrato(s) ativo(s), mas card "Contratos" está R$ 0,00.`,
+              fix: "Sincronizar contratos do mês",
+              severity: "warn",
+            });
+          }
+          // saldo negativo grande
+          if (saldoDisponivel < -100) {
+            issues.push({
+              id: "balance-negative",
+              label: `Saldo em caixa negativo (${saldoDisponivel.toFixed(2)}).`,
+              fix: undefined,
+              severity: "warn",
+            });
+          }
+          // entradas com 0
+          const zeroEntries = entradas.filter((r) => Number(r.amount) === 0).length;
+          if (zeroEntries > 0) {
+            issues.push({
+              id: "reprocess",
+              label: `${zeroEntries} entrada(s) com R$ 0,00 — origem sem preço.`,
+              fix: "Reprocessar antigos",
+              severity: "warn",
+            });
+          }
+          const auto = entradas.filter((r) => /\[auto/.test(r.description || "")).length;
+          return {
+            month: selectedMonth,
+            cards: {
+              servicos: totalServicos,
+              produtos: totalProdutos,
+              contratos: totalContratos,
+              gastosRotas: totalGastosRotas,
+              gastosFixos: totalGastosFixos,
+              saques: totalSaques,
+              reservas: totalReservas,
+              saldo: saldoDisponivel,
+              totalEntradas,
+              totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
+            },
+            counts: {
+              records: records.length,
+              manual: records.length - auto,
+              auto,
+              sales: (sales || []).length,
+              activeContracts: activeContractsCount,
+            },
+            issues,
+          };
+        }}
+        onAction={(id) => {
+          if (id === "reconcile") handleReconcile();
+          else if (id === "sync-contracts") handleSyncContracts();
+          else if (id === "reprocess") handleReprocessOldAppointments();
+        }}
+      />
       <EditFinancialRecordDialog
         open={!!editTarget}
         onOpenChange={(v) => { if (!v) setEditTarget(null); }}
