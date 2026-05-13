@@ -1305,6 +1305,10 @@ const AppointmentsTab: React.FC = () => {
             <Navigation className="w-4 h-4 mr-2 shrink-0" />
             <span className="truncate">Rota do Dia</span>
           </Button>
+          <Button onClick={() => setAiOpen(true)} variant="outline" className="min-h-[44px] flex-1 lg:flex-none text-purple-600 border-purple-300 hover:bg-purple-50" aria-label="Assistente IA da Agenda">
+            <Sparkles className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">IA</span>
+          </Button>
         </div>
       </div>
 
