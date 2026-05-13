@@ -266,7 +266,48 @@ export async function repairMissingFinancialRecords(
       }
 
       if (price <= 0) { result.skipped++; continue; }
+
+      // ANTI-DUPLICATA: procura lançamento manual já existente
+      // (mesmo user, mesmo valor, ±2 dias da data, sem appointment_id/sale_id)
+      // — se achar, apenas vincula o appointment_id em vez de criar novo.
       try {
+        const aptDate = new Date(apt.appointment_date);
+        const dStart = new Date(aptDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+        const dEnd = new Date(aptDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: candidates } = await supabase
+          .from('financial_records')
+          .select('id, description')
+          .eq('user_id', userId)
+          .eq('type', 'entrada')
+          .eq('amount', price)
+          .is('appointment_id', null)
+          .is('sale_id', null)
+          .gte('record_date', dStart)
+          .lte('record_date', dEnd)
+          .limit(5);
+
+        const matched = (candidates || []).find((c: any) => {
+          const d = String(c.description || '').toLowerCase();
+          return d.includes(String(clientName).toLowerCase()) ||
+                 d.includes(String(serviceName).toLowerCase().slice(0, 12));
+        }) || (candidates && candidates.length === 1 ? candidates[0] : null);
+
+        if (matched) {
+          const { error: upErr } = await supabase
+            .from('financial_records')
+            .update({ appointment_id: apt.id })
+            .eq('id', matched.id);
+          if (!upErr) {
+            result.appointmentsRepaired++;
+            result.details.appointmentRows.push({
+              appointment_id: apt.id,
+              amount: price,
+              description: `[vinculado a manual] ${serviceName} - ${clientName}`,
+            });
+            continue;
+          }
+        }
+
         const { error } = await supabase.from('financial_records').insert({
           user_id: userId,
           type: 'entrada',
