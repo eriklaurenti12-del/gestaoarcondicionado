@@ -1991,10 +1991,10 @@ export default function FinanceiroTab() {
 
                 <div className="p-2 rounded bg-red-500/5 border border-red-500/20 flex justify-between gap-2">
                   <div>
-                    <p className="font-medium text-red-700">Saques / Reservas / Gastos Fixos</p>
-                    <p className="text-[11px] text-muted-foreground">Saídas. Saques são saídas manuais, Reservas é dinheiro guardado, Gastos Fixos são despesas do mês.</p>
+                    <p className="font-medium text-red-700">Saques / Reservas / Gastos Fixos / Gastos Rotas</p>
+                    <p className="text-[11px] text-muted-foreground">Saídas. Saques são saídas manuais, Reservas é dinheiro guardado, Gastos Fixos são despesas do mês, Gastos Rotas são combustível/alimentação por prestador.</p>
                   </div>
-                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques + totalReservas + totalGastosFixos)}</span>
+                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)}</span>
                 </div>
               </div>
 
