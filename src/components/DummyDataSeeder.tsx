@@ -314,6 +314,38 @@ const DummyDataSeeder: React.FC = () => {
             recordDate: concluded.appointment_date,
           });
         }
+
+        // --- Venda manual avulsa (PDV sem agendamento) — testa fluxo standalone ---
+        const product = createdProducts.find((p) => p.type === 'piece');
+        const cli = createdClients[1] || createdClients[0];
+        if (product && cli) {
+          const price = Number(product.price || 0);
+          const cost = Number(product.cost_price || 0);
+          const saleDate = new Date(now); saleDate.setHours(15, 0, 0, 0);
+          const { data: manualSale } = await (supabase.from('sales') as any).insert({
+            user_id: userId,
+            appointment_id: null,
+            client_id: cli.id,
+            product_id: product.id,
+            qty: 1,
+            sale_price: price,
+            total_profit: price - cost,
+            payment_method: 'PIX',
+            sale_date: saleDate.toISOString(),
+          }).select().single();
+          if (manualSale) {
+            await recordFinancialEntry({
+              userId,
+              saleId: manualSale.id,
+              type: 'entrada',
+              amount: price,
+              description: `[auto:sale#${manualSale.id}] Venda PDV: ${product.name}`,
+              category: 'Produto',
+              paymentMethod: 'PIX',
+              recordDate: saleDate.toISOString(),
+            } as any);
+          }
+        }
       }
 
       // --- Reconciliação do mês: garante recorrentes + remove duplicatas ---
