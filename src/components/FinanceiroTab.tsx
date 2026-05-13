@@ -933,9 +933,15 @@ export default function FinanceiroTab() {
       toast({
         title: `${ids.length} vendas excluídas`,
         description: `Restauráveis pela Lixeira por 30 dias. Motivo: ${reason || "—"}`,
-        duration: 8000,
+        duration: 9000,
+        action: (
+          <ToastAction altText="Abrir Lixeira" onClick={() => setTrashOpen(true)}>
+            <Trash2 className="h-3.5 w-3.5 mr-1" /> Lixeira
+          </ToastAction>
+        ),
       });
       refetchSales(); fetchRecords();
+      if (shouldOpenTrashAfterDelete()) setTimeout(() => setTrashOpen(true), 150);
     } catch (e: any) {
       toast({ title: "Erro ao excluir vendas", description: e.message, variant: "destructive" });
     }
