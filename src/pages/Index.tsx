@@ -180,6 +180,23 @@ export default function Index() {
         const legacy = localStorage.getItem(`ac_onboarding_completed_${user.id}`);
         if (!tourDone && !legacy) setShowOnboarding(true);
         
+        // Auto-reparo único de lançamentos antigos (idempotente, anti-duplicata)
+        const repairFlag = `auto_repair_done_v2_${user.id}`;
+        if (!localStorage.getItem(repairFlag)) {
+          localStorage.setItem(repairFlag, '1');
+          (async () => {
+            try {
+              const { repairMissingFinancialRecords } = await import('@/utils/recurringSync');
+              const r = await repairMissingFinancialRecords(user.id);
+              console.log('[Index] auto-repair done:', r);
+              queryClient.invalidateQueries({ refetchType: 'active' });
+            } catch (e) {
+              console.warn('[Index] auto-repair failed', e);
+              localStorage.removeItem(repairFlag);
+            }
+          })();
+        }
+
         setLoading(false);
       } catch (error) {
         console.error('[Index] Auth check error:', error);
