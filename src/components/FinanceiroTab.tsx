@@ -17,6 +17,7 @@ import { ToastAction } from "@/components/ui/toast";
 import DeleteWithReasonDialog from "./DeleteWithReasonDialog";
 import FinancialTrashDialog from "./FinancialTrashDialog";
 import EditFinancialRecordDialog from "./EditFinancialRecordDialog";
+import FinancialAIAssistant, { type FinancialSnapshot } from "./FinancialAIAssistant";
 import { pushTrash, restoreTrashItem, type TrashItem } from "@/utils/financialTrash";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
