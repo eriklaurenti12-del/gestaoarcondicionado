@@ -114,6 +114,27 @@ export default function Index() {
   // Global cross-tab realtime sync — keeps every tab fresh automatically.
   useRealtimeSync(currentUserId);
 
+  // Listener global: qualquer componente pode disparar navegação por evento
+  // window.dispatchEvent(new CustomEvent('app-navigate-tab', { detail: { tab: 'documents' } }))
+  useEffect(() => {
+    const onNav = (e: Event) => {
+      const tab = (e as CustomEvent).detail?.tab;
+      if (typeof tab === 'string') setActiveTab(tab);
+    };
+    window.addEventListener('app-navigate-tab', onNav as EventListener);
+    return () => window.removeEventListener('app-navigate-tab', onNav as EventListener);
+  }, []);
+
+  // Rastreamento automático de aba ativa em tempo real (console + evento global)
+  useEffect(() => {
+    if (!currentUserId) return;
+    const ts = new Date().toISOString();
+    console.info('[nav-track]', { tab: activeTab, user: currentUserId, at: ts });
+    try {
+      window.dispatchEvent(new CustomEvent('app-tab-changed', { detail: { tab: activeTab, at: ts } }));
+    } catch {}
+  }, [activeTab, currentUserId]);
+
   useEffect(() => {
     let mounted = true;
 

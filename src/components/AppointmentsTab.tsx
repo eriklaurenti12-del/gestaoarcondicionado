@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2 } from "lucide-react";
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from "@/components/ui/badge";
 import { format, addMonths, isToday } from 'date-fns';
@@ -372,6 +373,13 @@ const AppointmentsTab: React.FC = () => {
             `Valor R$ 0,00 detectado. Confira o preço em ${origem} antes de concluir — o lançamento no Financeiro foi bloqueado.`
           );
           err.code = 'PRICE_ZERO';
+          err.targetTab = fromQuote || fromOrder ? 'documents' : 'services';
+          err.targetLabel = fromQuote
+            ? `Abrir Orçamento #${fromQuote}`
+            : fromOrder
+              ? `Abrir Ordem #${fromOrder}`
+              : 'Abrir cadastro do Serviço';
+          err.targetRef = fromQuote || fromOrder || appointment.service_id || null;
           throw err;
         }
       }
@@ -449,6 +457,8 @@ const AppointmentsTab: React.FC = () => {
 
         // Auditoria visível: devolve dados pra exibir no toast
         const monthLabel = format(new Date(appointment.appointment_date), "MMMM 'de' yyyy", { locale: ptBR });
+        const completedAt = new Date();
+        const userLabel = session.user.email?.split('@')[0] || session.user.email || 'usuário';
         return {
           audit: {
             amount: salePrice,
@@ -456,6 +466,10 @@ const AppointmentsTab: React.FC = () => {
             recordId: (finRes?.data as any)?.id || null,
             skipped: !!finRes?.skipped,
             paymentMethod: finalPm,
+            user: userLabel,
+            email: session.user.email || '',
+            at: completedAt.toISOString(),
+            atLabel: format(completedAt, "dd/MM/yyyy 'às' HH:mm:ss"),
           },
         };
       }
@@ -481,11 +495,13 @@ const AppointmentsTab: React.FC = () => {
 
       const audit = data?.audit;
       if (audit) {
-        // Auditoria visível: valor + mês + status do lançamento
         const valorFmt = `R$ ${Number(audit.amount).toFixed(2).replace('.', ',')}`;
-        const desc = audit.skipped
-          ? `${valorFmt} • ${audit.month} • Lançamento já existia (não duplicou)`
-          : `${valorFmt} • ${audit.month} • Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        const status = audit.skipped
+          ? 'Lançamento já existia (não duplicou)'
+          : `Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        const desc = `${valorFmt} • ${audit.month} • ${status} • Por ${audit.user} em ${audit.atLabel}`;
+        // Log estruturado para auditoria local (devtools / replay)
+        console.info('[audit:baixa]', { ...audit, appointmentId: vars?.id });
         toast({ title: '✅ Baixa concluída', description: desc });
       } else if (showCompletionDialog) {
         toast({ title: 'Serviço Concluído!', description: 'Feedback e próxima manutenção registrados.' });
@@ -499,10 +515,26 @@ const AppointmentsTab: React.FC = () => {
         queryClient.setQueryData(['appointments'], context.previousAppointments);
       }
       if (error?.code === 'PRICE_ZERO') {
+        const targetTab = error.targetTab || 'services';
+        const targetLabel = error.targetLabel || 'Abrir cadastro';
+        const targetRef = error.targetRef;
         toast({
           variant: 'destructive',
           title: '⚠️ Valor zerado — confira a origem',
           description: error.message,
+          action: (
+            <ToastAction
+              altText={targetLabel}
+              onClick={() => {
+                try {
+                  if (targetRef) sessionStorage.setItem('focus_target_ref', String(targetRef));
+                  window.dispatchEvent(new CustomEvent('app-navigate-tab', { detail: { tab: targetTab } }));
+                } catch {}
+              }}
+            >
+              {targetLabel}
+            </ToastAction>
+          ),
         });
         return;
       }
