@@ -151,14 +151,22 @@ const AppointmentsTab: React.FC = () => {
 
   const getAppointmentPrice = (appointment: any): number => {
   if (!appointment) return 0;
-  
-  // Try to get price from notes tag [VALOR:XXX.XX]
+
+  // 1) Tag explícita [VALOR:XXX.XX] (preferida — gravada na criação)
   if (appointment.notes) {
-    const match = appointment.notes.match(/\[VALOR:([\d.]+)\]/);
-    if (match) return parseFloat(match[1]);
+    const tag = appointment.notes.match(/\[VALOR:([\d.]+)\]/);
+    if (tag) return parseFloat(tag[1]);
+
+    // 2) Fallback retro-compatível: agendamentos antigos vindos de Orçamento/Pedido
+    //    têm "Total: R$ 1.234,56" no texto livre. Extrai e usa esse valor.
+    const tot = appointment.notes.match(/Total:\s*R\$\s*([\d.,]+)/i);
+    if (tot) {
+      const num = parseFloat(tot[1].replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(num) && num > 0) return num;
+    }
   }
-  
-  // Fallback to product price
+
+  // 3) Último fallback: preço do produto/serviço cadastrado
   return Number(appointment.products?.price) || 0;
 };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
