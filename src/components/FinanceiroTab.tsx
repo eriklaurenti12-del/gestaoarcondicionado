@@ -1957,16 +1957,28 @@ export default function FinanceiroTab() {
                         {safeFormat(record.record_date, "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell className="py-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(record.id)}
-                          disabled={isLocked || auto}
-                          title={auto ? 'Lançamento automático — apague na origem (agendamento/venda)' : 'Excluir'}
-                          className="text-destructive hover:text-destructive h-8 w-8 disabled:opacity-30"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-0.5">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditTarget(record)}
+                            disabled={isLocked}
+                            title="Editar lançamento"
+                            className="h-8 w-8 disabled:opacity-30"
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(record.id)}
+                            disabled={isLocked}
+                            title={auto ? 'Lançamento automático — vai para a Lixeira; restaurável por 30 dias' : 'Excluir'}
+                            className="text-destructive hover:text-destructive h-8 w-8 disabled:opacity-30"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     );
