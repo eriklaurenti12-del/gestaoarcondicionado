@@ -29,6 +29,7 @@ import DummyDataSeeder from "@/components/DummyDataSeeder";
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
+import AdminFinancialAuditTab from "@/components/AdminFinancialAuditTab";
 import { AdminShareTab } from "@/components/AdminShareTab";
 import AdminBrandingTab from "@/components/AdminBrandingTab";
 import AdminSupportContactsTab from "@/components/AdminSupportContactsTab";
@@ -85,6 +86,7 @@ const DEFAULT_TABS = [
   { id: 'support', label: 'Suporte', icon: 'LifeBuoy' },
   { id: 'system-guide', label: 'Guia PDF', icon: 'BookOpen' },
   { id: 'system', label: 'Sistema', icon: 'Settings2' },
+  { id: 'audit', label: 'Auditoria $', icon: 'ShieldAlert' },
 ];
 
 const TAB_ICONS: Record<string, any> = {
