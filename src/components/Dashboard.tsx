@@ -611,15 +611,19 @@ const Dashboard: React.FC<DashboardProps> = ({ onNavigateToTab, isSuperAdmin = f
                 sale_date: appointment.appointment_date
               });
 
-              await supabase.from('financial_records').insert({
+              const { error: frErr } = await supabase.from('financial_records').insert({
                 user_id: session.user.id,
                 type: 'entrada',
                 amount: salePrice,
                 description: `Serviço concluído (Dash): ${appointment.products?.name || 'Serviço'} - ${appointment.clients?.name || 'Cliente'}`,
                 payment_method: 'Dinheiro',
                 category: 'Serviço Agenda',
-                record_date: new Date().toISOString()
+                record_date: new Date().toISOString(),
+                appointment_id: appointment.id,
               });
+              if (frErr && (frErr as any).code !== '23505' && !/duplicate/i.test(frErr.message)) {
+                console.warn('[dash] financial insert failed', frErr);
+              }
             }
           }
         }
