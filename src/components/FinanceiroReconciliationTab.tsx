@@ -23,14 +23,27 @@ export default function FinanceiroReconciliationTab() {
   const [repairing, setRepairing] = useState(false);
   const autoRepairRan = useRef(false);
 
-  // Invalida todas as queries que dependem desses dados — sincroniza Agenda,
-  // Dashboard, Financeiro, PDV, Clientes, etc. sem o usuário precisar atualizar.
-  const broadcastUpdates = () => {
+  // Invalida + refetch imediato. Cobre todas as abas que mostram dados
+  // financeiros ou de agenda (Agenda, Dashboard, PDV, Clientes, Parcelas,
+  // Gastos de Rota, Conciliação, Relatórios).
+  const broadcastUpdates = async () => {
+    const explicitKeys = [
+      'appointments', 'calendar-appointments', 'route-appointments',
+      'dashboard', 'sales', 'sales-financial', 'financial-records',
+      'financial_records', 'fixed_expenses', 'fixed-expenses',
+      'fixed-expenses-summary', 'installments', 'route-expenses-by-apt',
+      'pending-quotes', 'pending-orders', 'completed-appointments-financial',
+      'recon-sales', 'recon-records', 'recon-audit', 'recon-log',
+    ];
+    explicitKeys.forEach((k) =>
+      queryClient.invalidateQueries({ queryKey: [k], refetchType: 'active' }),
+    );
     queryClient.invalidateQueries({
       predicate: (q) => {
         const k = JSON.stringify(q.queryKey).toLowerCase();
-        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-/.test(k);
+        return /appointment|agenda|calendar|dashboard|financial|finance|sale|pdv|client|installment|recurring|recon-|fixed[-_]expense|route/.test(k);
       },
+      refetchType: 'active',
     });
   };
 
