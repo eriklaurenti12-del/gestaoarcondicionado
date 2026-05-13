@@ -1600,15 +1600,43 @@ export default function FinanceiroTab() {
                     return (
                     <TableRow key={record.id}>
                       <TableCell className="py-2">
-                        {auto ? (
-                          <Badge variant="secondary" className="text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
-                            <Sparkles className="h-3 w-3" /> Auto
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px] gap-1">
-                            <Wallet className="h-3 w-3" /> Manual
-                          </Badge>
-                        )}
+                        <TooltipProvider delayDuration={150}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              {auto ? (
+                                <Badge variant="secondary" className="text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20 cursor-help">
+                                  <Sparkles className="h-3 w-3" /> Auto
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="text-[10px] gap-1 cursor-help">
+                                  <Wallet className="h-3 w-3" /> Manual
+                                </Badge>
+                              )}
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-xs text-xs">
+                              {auto ? (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Lançamento Automático</p>
+                                  <p>Gerado pelo sistema a partir de:</p>
+                                  <ul className="list-disc pl-4 text-muted-foreground">
+                                    <li>Agendamento concluído pelo prestador</li>
+                                    <li>Venda do PDV / Produtos</li>
+                                    <li>Contrato recorrente do mês</li>
+                                  </ul>
+                                  {record.appointment_id && <p className="text-[10px] opacity-70">Vinculado ao agendamento.</p>}
+                                  {record.sale_id && <p className="text-[10px] opacity-70">Vinculado à venda #{record.sale_id}.</p>}
+                                  <p className="text-[10px] text-amber-600">Para apagar, remova na origem (agenda/PDV).</p>
+                                </div>
+                              ) : (
+                                <div className="space-y-1">
+                                  <p className="font-semibold">Lançamento Manual</p>
+                                  <p>Você digitou no botão "Novo" do Financeiro. Não está vinculado a nenhum agendamento ou venda.</p>
+                                  <p className="text-[10px] text-muted-foreground">Pode ser editado ou excluído livremente aqui.</p>
+                                </div>
+                              )}
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </TableCell>
                       <TableCell className="py-2">
                         <div className="flex items-center gap-1">
