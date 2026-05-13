@@ -669,44 +669,17 @@ const AppointmentsTab: React.FC = () => {
       installment_amount: installmentAmount
     });
     
-    // Update quote/order status to "pendente"
+    // Update quote/order status to "pendente".
+    // IMPORTANTE: NÃO criamos lançamento financeiro aqui. O lançamento é
+    // criado APENAS quando o agendamento é concluído (vinculado via
+    // appointment_id), evitando duplicação no Financeiro.
     if (sourceType === 'quote' && selectedQuoteId) {
       await supabase.from('quotes').update({ status: 'pendente' }).eq('id', selectedQuoteId);
-      
-      // Add a financial record for the scheduled quote
-      if (selectedQuote) {
-        await recordFinancialEntry({
-          userId: userId,
-          type: 'entrada',
-          amount: Number(selectedQuote.total),
-          description: `Orçamento Agendado: ${selectedQuote.title}`,
-          paymentMethod: paymentMethod as any,
-          category: 'Serviço',
-          recordDate: dateTime.toISOString()
-        });
-        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
-      }
-      
       queryClient.invalidateQueries({ queryKey: ['pending-quotes'] });
       queryClient.invalidateQueries({ queryKey: ['quotes'] });
     }
     if (sourceType === 'order' && selectedOrderId) {
       await supabase.from('service_orders').update({ status: 'pendente' }).eq('id', selectedOrderId);
-      
-      // Add a financial record for the scheduled order
-      if (selectedOrder) {
-        await recordFinancialEntry({
-          userId: userId,
-          type: 'entrada',
-          amount: Number(selectedOrder.total),
-          description: `Pedido Agendado: ${selectedOrder.title}`,
-          paymentMethod: paymentMethod as any,
-          category: 'Serviço',
-          recordDate: dateTime.toISOString()
-        });
-        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
-      }
-      
       queryClient.invalidateQueries({ queryKey: ['pending-orders'] });
       queryClient.invalidateQueries({ queryKey: ['service-orders'] });
     }

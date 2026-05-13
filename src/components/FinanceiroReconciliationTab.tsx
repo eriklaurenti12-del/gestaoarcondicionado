@@ -212,12 +212,12 @@ export default function FinanceiroReconciliationTab() {
     }
   };
 
-  // Auto-reparo: roda 1x por sessão ao montar
+  // Auto-reparo DESLIGADO por padrão: rodava silenciosamente e criava
+  // lançamentos [auto-reparo] que duplicavam o que já vinha da agenda.
+  // Agora o reparo só roda quando o usuário clica em "Reparar lançamentos
+  // faltantes" — sob controle e com confirmação visual.
   useEffect(() => {
-    if (autoRepairRan.current) return;
     autoRepairRan.current = true;
-    handleRepair(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalIssues = orphanSales.length + orphanRecords.length + duplicates.length;

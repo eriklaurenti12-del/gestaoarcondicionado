@@ -1411,6 +1411,65 @@ export default function FinanceiroTab() {
         );
       })()}
 
+      {/* Serviços Concluídos (vindos da Agenda / OS / Orçamentos) */}
+      {(() => {
+        const serviceRows = records.filter((r) => {
+          if (r.type !== 'entrada') return false;
+          const d = (r.description || '').toLowerCase();
+          // Mostra TUDO que veio de agendamento concluído ou que tem categoria
+          // de serviço, mesmo legado sem appointment_id.
+          if (r.appointment_id) return true;
+          if (isServicoCat(r.category)) return true;
+          if (d.startsWith('serviço concluído') || d.startsWith('servico concluido')) return true;
+          return false;
+        });
+        if (serviceRows.length === 0) return null;
+        const total = serviceRows.reduce((a, r) => a + Number(r.amount), 0);
+        return (
+          <Card>
+            <CardHeader className="p-3 sm:p-6">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Wrench className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                Serviços Concluídos - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+                <span className="ml-auto text-xs sm:text-sm font-semibold text-blue-600">{formatCurrency(total)}</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="overflow-x-auto -mx-3 sm:mx-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Data</TableHead>
+                      <TableHead className="text-xs">Descrição</TableHead>
+                      <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
+                      <TableHead className="text-xs text-right">Valor</TableHead>
+                      <TableHead className="text-xs w-10"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {serviceRows.map((r) => (
+                      <TableRow key={r.id}>
+                        <TableCell className="text-xs sm:text-sm py-2">{safeFormat(r.record_date, "dd/MM", { locale: ptBR })}</TableCell>
+                        <TableCell className="text-xs sm:text-sm py-2 max-w-[260px] truncate" title={r.description || ''}>{r.description || '-'}</TableCell>
+                        <TableCell className="text-xs sm:text-sm py-2 hidden md:table-cell">
+                          <div className="flex items-center gap-1">{getPaymentIcon(r.payment_method)}<span className="hidden lg:inline">{r.payment_method}</span></div>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm text-right font-medium text-blue-600 py-2">{formatCurrency(Number(r.amount))}</TableCell>
+                        <TableCell className="py-2">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(r.id)} disabled={isLocked} title="Excluir">
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
+
       {/* Manual Records Table */}
       <Card>
         <CardHeader className="p-3 sm:p-6">
@@ -1425,19 +1484,18 @@ export default function FinanceiroTab() {
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           {(() => {
-            // Mostrar APENAS lançamentos verdadeiramente manuais.
-            // Tudo que é gerado automaticamente (baixa de agendamento, PDV,
-            // contrato recorrente, despesas auto) tem seu próprio bloco acima
-            // e deve ser ocultado aqui para não confundir o cliente.
+            // Manual = lançamento que o usuário digitou (sem vínculo com
+            // agendamento/venda/contrato). Categoria livre — NÃO filtramos por
+            // texto da categoria, para não esconder lançamentos legítimos.
             const isAuto = (r: FinancialRecord) => {
               if (r.appointment_id) return true;
               if (r.sale_id) return true;
               const d = (r.description || '').toLowerCase().trim();
               const c = (r.category || '').toLowerCase().trim();
               if (d.startsWith('auto:')) return true;
-              if (d.includes('serviço concluído') || d.includes('servico concluido')) return true;
-              if (c.startsWith('serviç') || c.startsWith('servic')) return true;
               if (c === 'contrato') return true;
+              // Legado: só esconde se a descrição for explícita do auto-fluxo
+              if (d.startsWith('serviço concluído:') || d.startsWith('servico concluido:')) return true;
               return false;
             };
             const manualRecords = records.filter((r) => !isAuto(r));
@@ -1453,7 +1511,7 @@ export default function FinanceiroTab() {
                 <div className="text-center py-8 text-muted-foreground">
                   <Wallet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
                   <p className="text-sm">Nenhum registro manual encontrado para este mês</p>
-                  <p className="text-[10px] mt-1 opacity-70">Lançamentos automáticos de agendamentos/PDV aparecem nas seções acima.</p>
+                  <p className="text-[10px] mt-1 opacity-70">Lançamentos automáticos aparecem em "Serviços Concluídos", "Vendas Registradas" e "Contratos Recorrentes" acima.</p>
                 </div>
               );
             }
