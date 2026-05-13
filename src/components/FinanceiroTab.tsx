@@ -98,6 +98,7 @@ export default function FinanceiroTab() {
   const [reprocessing, setReprocessing] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<FinancialRecord | null>(null);
   const [deletePrompt, setDeletePrompt] = useState<
     | { kind: "record"; id: string; title: string }
