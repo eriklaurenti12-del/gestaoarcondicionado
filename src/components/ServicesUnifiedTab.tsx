@@ -20,8 +20,9 @@ import {
   Plus, Search, FileText, Trash2, Download, Phone, RefreshCw,
   DollarSign, Users, Calendar, AlertTriangle, CheckCircle, Clock,
   Paperclip, Upload, XCircle, Info, Eye, ChevronLeft, ChevronRight,
-  ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit
+  ScrollText, Building2, Snowflake, TrendingUp, BarChart3, Edit, Sparkles
 } from 'lucide-react';
+import FinancialAIAssistant, { type AISnapshot } from './FinancialAIAssistant';
 import TabGuideCards from './TabGuideCards';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 
@@ -74,6 +75,7 @@ const ServicesUnifiedTab: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [contractSearch, setContractSearch] = useState('');
   const [contractFilterStatus, setContractFilterStatus] = useState<string>('all');
+  const [aiOpen, setAiOpen] = useState(false);
   
   // Month navigation
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -615,9 +617,14 @@ const ServicesUnifiedTab: React.FC = () => {
                 <ScrollText className="w-5 h-5 text-primary" />
                 Contratos de Manutenção
               </CardTitle>
-              <Button onClick={() => setContractDialogOpen(true)} size="sm">
-                <Plus className="w-4 h-4 mr-1" /> Novo Contrato
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => setAiOpen(true)} size="sm" variant="outline" className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10" title="Assistente IA dos Contratos">
+                  <Sparkles className="w-4 h-4 mr-1" /> IA
+                </Button>
+                <Button onClick={() => setContractDialogOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-1" /> Novo Contrato
+                </Button>
+              </div>
             </div>
 
             {/* Month navigator */}
@@ -1089,6 +1096,31 @@ const ServicesUnifiedTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        context="contratos"
+        placeholder="Ex: Quais contratos vão vencer? A receita do card Contratos bate com a soma mensal?"
+        buildSnapshot={(): AISnapshot => {
+          const issues: AISnapshot['issues'] = [];
+          if (expiredContracts.length > 0) issues.push({ id: 'expired', label: `${expiredContracts.length} contrato(s) vencido(s) — renovar ou encerrar.`, severity: 'error' });
+          if (expiringContracts.length > 0) issues.push({ id: 'expiring', label: `${expiringContracts.length} contrato(s) vencendo em breve.`, severity: 'warn' });
+          const zeroValue = activeContracts.filter(c => !Number(c.monthly_value)).length;
+          if (zeroValue > 0) issues.push({ id: 'zero-value', label: `${zeroValue} contrato(s) ativo(s) com valor mensal R$ 0,00.`, severity: 'warn' });
+          return {
+            headline: `${allContracts.length} contrato(s) · ${activeContracts.length} ativo(s) · receita R$ ${totalMonthlyRevenue.toFixed(2)}/mês (R$ ${totalAnnualRevenue.toFixed(2)}/ano)`,
+            counts: {
+              total: allContracts.length,
+              active: activeContracts.length,
+              expiring: expiringContracts.length,
+              expired: expiredContracts.length,
+            },
+            revenue: { monthly: totalMonthlyRevenue, annual: totalAnnualRevenue },
+            issues,
+          };
+        }}
+      />
     </div>
   );
 };

@@ -1283,6 +1283,21 @@ export default function FinanceiroTab() {
             <Button
               variant="outline"
               size="sm"
+              onClick={async () => {
+                await handleSyncContracts();
+                await handleRefreshAll();
+                await handleReconcile(); // sempre abre o relatório de divergências
+              }}
+              disabled={refreshing}
+              className="border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10"
+              title="Sincroniza contratos, recarrega tudo e roda reconciliação completa — abre relatório de divergências"
+            >
+              {refreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Calculator className="h-4 w-4" />}
+              <span className="hidden sm:inline ml-1">Recalcular agora</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setAiOpen(true)}
               className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10"
               title="Diagnóstico automático e perguntas livres sobre o financeiro do mês"

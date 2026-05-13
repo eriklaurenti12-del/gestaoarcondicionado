@@ -8,7 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2 } from "lucide-react";
+import { Trash2, Search, PlusCircle, Calendar, Clock, Check, CheckCircle, X, Phone, FileDown, List, CalendarRange, Send, FileText, MapPin, Navigation, ClipboardList, Receipt, History, Users, Zap, Wallet, RefreshCw, Loader2, Sparkles } from "lucide-react";
+import FinancialAIAssistant, { type AISnapshot } from './FinancialAIAssistant';
 import TabGuideCards from './TabGuideCards';
 import { useToast } from "@/components/ui/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -172,6 +173,7 @@ const AppointmentsTab: React.FC = () => {
 };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
+  const [aiOpen, setAiOpen] = useState(false);
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'board'>('list');
@@ -1303,6 +1305,10 @@ const AppointmentsTab: React.FC = () => {
             <Navigation className="w-4 h-4 mr-2 shrink-0" />
             <span className="truncate">Rota do Dia</span>
           </Button>
+          <Button onClick={() => setAiOpen(true)} variant="outline" className="min-h-[44px] flex-1 lg:flex-none text-purple-600 border-purple-300 hover:bg-purple-50" aria-label="Assistente IA da Agenda">
+            <Sparkles className="w-4 h-4 mr-2 shrink-0" />
+            <span className="truncate">IA</span>
+          </Button>
         </div>
       </div>
 
@@ -2297,6 +2303,40 @@ const AppointmentsTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        context="agenda"
+        placeholder="Ex: Quais agendamentos estão pendentes de cobrança? Quais foram concluídos sem lançamento?"
+        buildSnapshot={async (): Promise<AISnapshot> => {
+          const all = appointments || [];
+          const now = new Date();
+          const overdue = all.filter(a => a.status === 'pendente' && new Date(a.appointment_date) < now).length;
+          const today = all.filter(a => isToday(new Date(a.appointment_date))).length;
+          const concluded = all.filter(a => a.status === 'concluido');
+          // checa pendência de cobrança: concluídos sem entrada financeira vinculada
+          let unbilled = 0;
+          if (userId && concluded.length > 0) {
+            const ids = concluded.map(a => a.id);
+            const { data: linked } = await supabase
+              .from('financial_records')
+              .select('appointment_id')
+              .eq('user_id', userId)
+              .in('appointment_id', ids);
+            const linkedIds = new Set((linked || []).map((r: any) => r.appointment_id));
+            unbilled = concluded.filter(a => !linkedIds.has(a.id)).length;
+          }
+          const issues: AISnapshot['issues'] = [];
+          if (overdue > 0) issues.push({ id: 'overdue', label: `${overdue} agendamento(s) pendente(s) com data passada.`, severity: 'warn' });
+          if (unbilled > 0) issues.push({ id: 'unbilled', label: `${unbilled} agendamento(s) concluído(s) sem cobrança lançada no Financeiro.`, severity: 'error' });
+          return {
+            headline: `${all.length} agendamento(s) total · ${today} hoje · ${overdue} atrasado(s) · ${unbilled} sem cobrança`,
+            counts: { total: all.length, today, overdue, concluded: concluded.length, unbilled },
+            issues,
+          };
+        }}
+      />
     </div>
   );
 };
