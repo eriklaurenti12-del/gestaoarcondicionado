@@ -16,6 +16,7 @@ import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, Cr
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
+import FinanceiroUpdatePopup from './FinanceiroUpdatePopup';
 import { useToast } from "@/hooks/use-toast";
 import { format, endOfMonth, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
