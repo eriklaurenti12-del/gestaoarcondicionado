@@ -18,15 +18,28 @@ export async function ensureMonthlyRecurringExpenses(
   const [yr, mo] = monthYYYYMM.split('-').map(Number);
   const monthEnd = new Date(yr, mo, 0).toISOString().slice(0, 10);
 
+  // Per-user opt-out flags definidos pelo Reset Total. Quando presentes,
+  // ignoramos as fontes recorrentes (evita o R$2600 fantasma vindo do
+  // admin_settings.service_providers global que o usuário não tem permissão
+  // para apagar).
+  let skipProviders = false;
+  let skipTeam = false;
+  try {
+    skipProviders = typeof localStorage !== 'undefined' &&
+      localStorage.getItem(`recurring_sync_skip_providers__${userId}`) === '1';
+    skipTeam = typeof localStorage !== 'undefined' &&
+      localStorage.getItem(`recurring_sync_skip_team__${userId}`) === '1';
+  } catch {}
+
   // 1) Active team members
-  const { data: members } = await supabase
+  const { data: members } = skipTeam ? { data: [] as any[] } : await supabase
     .from('team_members')
     .select('id, name, monthly_salary, vale_amount, expense_category, is_active')
     .eq('user_id', userId)
     .eq('is_active', true);
 
   // 2) Providers (stored in admin_settings JSON)
-  const { data: settings } = await supabase
+  const { data: settings } = skipProviders ? { data: null as any } : await supabase
     .from('admin_settings')
     .select('value')
     .eq('key', 'service_providers')
