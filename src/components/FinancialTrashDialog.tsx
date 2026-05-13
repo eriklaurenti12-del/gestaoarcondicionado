@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { listTrash, removeTrash, restoreTrashItem, type TrashItem } from "@/utils/financialTrash";
+import { listTrash, removeTrash, restoreTrashItem, clearAllTrash, purgePreviousMonths, type TrashItem } from "@/utils/financialTrash";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, RotateCcw, Receipt } from "lucide-react";
 import { format } from "date-fns";
