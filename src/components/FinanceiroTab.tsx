@@ -96,6 +96,19 @@ export default function FinanceiroTab() {
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
   const [hideOriginLegend, toggleOriginLegend] = useFinanceLegendHidden();
   const [reprocessing, setReprocessing] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [trashOpen, setTrashOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<FinancialRecord | null>(null);
+  const [deletePrompt, setDeletePrompt] = useState<
+    | { kind: "record"; id: string; title: string }
+    | { kind: "sale"; saleId: number; title: string }
+    | { kind: "salesMonth" }
+    | null
+  >(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setCurrentUserId(data.session?.user.id || null));
+  }, []);
 
   const handleReprocessOldAppointments = async () => {
     if (reprocessing) return;
