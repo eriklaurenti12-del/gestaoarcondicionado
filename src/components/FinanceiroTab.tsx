@@ -805,12 +805,45 @@ export default function FinanceiroTab() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Excluir este lançamento? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("financial_records").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro ao excluir", variant: "destructive" });
     } else {
       toast({ title: "Registro excluído!" });
       fetchRecords();
+    }
+  };
+
+  const handleDeleteSale = async (saleId: number) => {
+    if (!window.confirm("Excluir esta venda/serviço? O lançamento financeiro vinculado também será removido.")) return;
+    try {
+      // Remove linked financial_records first (entrada vinculada à venda)
+      await supabase.from("financial_records").delete().eq("sale_id", saleId);
+      const { error } = await supabase.from("sales").delete().eq("id", saleId);
+      if (error) throw error;
+      toast({ title: "Venda excluída!", description: "Lançamento financeiro vinculado também foi removido." });
+      refetchSales();
+      fetchRecords();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir venda", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAllSalesOfMonth = async () => {
+    if (!sales || sales.length === 0) return;
+    if (!window.confirm(`Excluir TODAS as ${sales.length} vendas/serviços de ${selectedMonth}? Os lançamentos financeiros vinculados também serão removidos. Esta ação não pode ser desfeita.`)) return;
+    if (!window.confirm("Confirmar novamente: tem certeza absoluta? Isso é irreversível.")) return;
+    try {
+      const ids = sales.map((s) => s.id);
+      await supabase.from("financial_records").delete().in("sale_id", ids);
+      const { error } = await supabase.from("sales").delete().in("id", ids);
+      if (error) throw error;
+      toast({ title: `${ids.length} vendas excluídas`, description: "Todos os lançamentos vinculados foram removidos." });
+      refetchSales();
+      fetchRecords();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir vendas", description: e.message, variant: "destructive" });
     }
   };
 
@@ -1480,10 +1513,23 @@ export default function FinanceiroTab() {
       {sales && sales.length > 0 && (
         <Card>
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                onClick={handleDeleteAllSalesOfMonth}
+                disabled={isLocked || !sales || sales.length === 0}
+                title="Excluir todas as vendas/serviços deste mês"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Excluir todas do mês
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
@@ -1496,6 +1542,7 @@ export default function FinanceiroTab() {
                     <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs text-right">Lucro</TableHead>
+                    <TableHead className="text-xs w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1518,6 +1565,18 @@ export default function FinanceiroTab() {
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-emerald-500 py-2">
                         {formatCurrency(Number(sale.total_profit))}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleDeleteSale(sale.id)}
+                          disabled={isLocked}
+                          title="Excluir venda/serviço"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );})}
@@ -1563,6 +1622,7 @@ export default function FinanceiroTab() {
                       <TableHead className="text-xs">Contrato</TableHead>
                       <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                       <TableHead className="text-xs text-right">Valor</TableHead>
+                      <TableHead className="text-xs w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1574,6 +1634,11 @@ export default function FinanceiroTab() {
                           <div className="flex items-center gap-1">{getPaymentIcon(r.payment_method)}<span className="hidden lg:inline">{r.payment_method}</span></div>
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm text-right font-medium text-teal-600 py-2">{formatCurrency(Number(r.amount))}</TableCell>
+                        <TableCell className="py-2">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDelete(r.id)} disabled={isLocked} title="Excluir contrato deste mês">
+                            <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
