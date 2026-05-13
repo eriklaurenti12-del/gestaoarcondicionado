@@ -73,6 +73,19 @@ export default function FinancialTrashDialog({ open, onOpenChange, userId, onRes
             <Trash2 className="h-5 w-5 text-red-500" /> Lixeira do Financeiro
           </DialogTitle>
         </DialogHeader>
+        <div className="flex items-center justify-between gap-3 flex-wrap border rounded-md p-2 bg-muted/30">
+          <div className="flex items-center gap-2">
+            <Switch id="auto-open-trash" checked={autoOpen} onCheckedChange={toggleAutoOpen} />
+            <Label htmlFor="auto-open-trash" className="text-xs cursor-pointer">
+              Abrir Lixeira automaticamente após excluir
+            </Label>
+          </div>
+          {items.length > 0 && (
+            <Button size="sm" variant="outline" onClick={handleRestoreAll}>
+              <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restaurar todos ({items.length})
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
           Itens excluídos nos últimos 30 dias. Restaure se foi engano ou apague de vez.
         </p>
