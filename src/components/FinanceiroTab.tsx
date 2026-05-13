@@ -526,6 +526,12 @@ export default function FinanceiroTab() {
   // numbers stay consistent without the user having to click anything.
   useEffect(() => {
     (async () => {
+      // Respeita "freeze" disparado pelo Reset Total — evita que o auto-reconcile
+      // recrie despesas recorrentes (salário/prestador) logo após a limpeza.
+      try {
+        const until = Number(sessionStorage.getItem('reset_in_progress_until') || 0);
+        if (until && Date.now() < until) return;
+      } catch {}
       const { data: sessionData } = await supabase.auth.getSession();
       const session = sessionData?.session;
       if (!session) return;
@@ -536,7 +542,6 @@ export default function FinanceiroTab() {
         queryClient.invalidateQueries({ queryKey: ['sales-financial', selectedMonth] });
       } catch (e) {
         console.warn('auto-reconcile failed', e);
-        // Fallback: at least ensure recurring rows exist.
         try {
           await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
           queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
