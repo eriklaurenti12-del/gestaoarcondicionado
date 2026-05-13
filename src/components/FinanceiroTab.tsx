@@ -1358,7 +1358,7 @@ export default function FinanceiroTab() {
 
         <Card
           className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 col-span-2 sm:col-span-1"
-          title={`Entradas ${formatCurrency(totalEntradas)} − Saques ${formatCurrency(totalSaques)} − Reservas ${formatCurrency(totalReservas)} − Gastos Fixos ${formatCurrency(totalGastosFixos)} = ${formatCurrency(saldoDisponivel)}`}
+          title={`Entradas ${formatCurrency(totalEntradas)} − Saques ${formatCurrency(totalSaques)} − Reservas ${formatCurrency(totalReservas)} − Gastos Fixos ${formatCurrency(totalGastosFixos)} − Gastos Rotas ${formatCurrency(totalGastosRotas)} = ${formatCurrency(saldoDisponivel)}`}
         >
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
