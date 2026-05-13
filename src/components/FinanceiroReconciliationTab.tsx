@@ -484,26 +484,82 @@ export default function FinanceiroReconciliationTab() {
         </CardContent>
       </Card>
 
-      {/* Audit log */}
-      {auditLog && auditLog.length > 0 && (
-        <Card>
+      {/* Painel de Auditoria — histórico de reparos/conciliações em PT-BR */}
+      {((reconLog && reconLog.length > 0) || (auditLog && auditLog.length > 0)) && (
+        <Card className="border-blue-500/30">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
-              <Activity className="w-4 h-4" /> Últimas ações do rastreador (50)
+              <Activity className="w-4 h-4 text-blue-500" /> Painel de Auditoria
             </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Tudo que foi corrigido automaticamente — agendamentos, vendas e duplicados — com data, motivo e quantidade. Use para mostrar ao cliente.
+            </p>
           </CardHeader>
-          <CardContent className="max-h-96 overflow-y-auto">
-            <div className="space-y-1.5">
-              {auditLog.map((log: any) => (
-                <div key={log.id} className="flex items-start gap-2 text-xs border-b border-border/40 pb-1.5">
-                  <Badge variant={log.event_type === 'duplicate_blocked' ? 'destructive' : 'outline'} className="text-[10px]">
-                    {log.event_type}
-                  </Badge>
-                  <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm:ss')}</span>
-                  <span className="flex-1 truncate">{JSON.stringify(log.details)}</span>
+          <CardContent className="space-y-4 max-h-[500px] overflow-y-auto">
+            {/* Reconciliações */}
+            {reconLog && reconLog.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground mb-1.5">Conciliações executadas</div>
+                <div className="space-y-1.5">
+                  {reconLog.map((log: any) => {
+                    const total =
+                      (log.dup_records || 0) + (log.dup_sales || 0) +
+                      (log.orphan_records || 0) + (log.orphan_sales || 0) +
+                      (log.inserted_recurring || 0);
+                    return (
+                      <div key={log.id} className="flex flex-wrap items-center gap-2 text-xs border-b border-border/40 pb-1.5">
+                        <Badge variant={log.triggered_by === 'manual' ? 'default' : 'outline'} className="text-[10px]">
+                          {log.triggered_by === 'manual' ? 'Manual' : 'Auto'}
+                        </Badge>
+                        <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm')}</span>
+                        <span className="font-mono">{log.month_year}</span>
+                        <span className="flex-1 text-muted-foreground">
+                          {log.dup_records > 0 && <span className="mr-2">🗑️ {log.dup_records} duplicado(s) removido(s)</span>}
+                          {log.dup_sales > 0 && <span className="mr-2">🗑️ {log.dup_sales} venda(s) duplicada(s)</span>}
+                          {log.orphan_records > 0 && <span className="mr-2">🧹 {log.orphan_records} registro(s) órfão(s)</span>}
+                          {log.orphan_sales > 0 && <span className="mr-2">🔗 {log.orphan_sales} venda(s) reconectada(s)</span>}
+                          {log.inserted_recurring > 0 && <span className="mr-2">🔁 {log.inserted_recurring} recorrente(s) lançado(s)</span>}
+                          {total === 0 && <span className="text-emerald-600">✓ Nada a corrigir</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* Eventos do trigger (duplicatas bloqueadas, etc.) */}
+            {auditLog && auditLog.length > 0 && (
+              <div>
+                <div className="text-xs font-semibold text-muted-foreground mb-1.5">Eventos do rastreador</div>
+                <div className="space-y-1.5">
+                  {auditLog.map((log: any) => {
+                    const ptLabel: Record<string, string> = {
+                      duplicate_blocked: 'Duplicata bloqueada (impediu lançamento repetido)',
+                    };
+                    const motivo = ptLabel[log.event_type] || log.event_type;
+                    const det = log.details || {};
+                    return (
+                      <div key={log.id} className="flex flex-wrap items-start gap-2 text-xs border-b border-border/40 pb-1.5">
+                        <Badge variant={log.event_type === 'duplicate_blocked' ? 'destructive' : 'outline'} className="text-[10px]">
+                          {log.event_type === 'duplicate_blocked' ? 'Bloqueado' : log.event_type}
+                        </Badge>
+                        <span className="text-muted-foreground">{format(new Date(log.created_at), 'dd/MM HH:mm:ss')}</span>
+                        <span className="flex-1">
+                          <span className="font-medium">{motivo}</span>
+                          {det.attempted_amount !== undefined && (
+                            <span className="text-muted-foreground"> · {formatBRL(Number(det.attempted_amount))}</span>
+                          )}
+                          {det.attempted_description && (
+                            <span className="text-muted-foreground"> · "{String(det.attempted_description).slice(0, 60)}"</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
