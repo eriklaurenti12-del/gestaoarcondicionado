@@ -355,6 +355,27 @@ const AppointmentsTab: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, appointment, paymentMethod: pm }: { id: string; status: string; appointment?: Appointment; paymentMethod?: string }) => {
       const finalPm = pm || 'Dinheiro';
+
+      // VALIDAÇÃO PRÉ-DB: bloqueia conclusão com preço 0 antes de gravar status
+      if (status === 'concluido' && appointment?.client_id) {
+        const preCheckPrice = getAppointmentPrice(appointment);
+        if (preCheckPrice <= 0) {
+          const notes = appointment.notes || '';
+          const fromQuote = /Or[çc]amento\s*#\s*(\d+)/i.exec(notes)?.[1];
+          const fromOrder = /(?:O\.?S\.?|Pedido|Ordem)\s*#?\s*(\d+)/i.exec(notes)?.[1];
+          const origem = fromQuote
+            ? `Orçamento #${fromQuote}`
+            : fromOrder
+              ? `Ordem #${fromOrder}`
+              : 'cadastro do serviço (aba Serviços)';
+          const err: any = new Error(
+            `Valor R$ 0,00 detectado. Confira o preço em ${origem} antes de concluir — o lançamento no Financeiro foi bloqueado.`
+          );
+          err.code = 'PRICE_ZERO';
+          throw err;
+        }
+      }
+
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
 
@@ -376,7 +397,7 @@ const AppointmentsTab: React.FC = () => {
       // Register sale + financial entry on completion
       if (status === 'concluido' && appointment?.client_id) {
         const salePrice = getAppointmentPrice(appointment);
-        if (salePrice <= 0) return;
+        if (salePrice <= 0) return; // já validado acima; salva-guarda
 
         const { data: productData } = appointment.service_id ? await supabase
           .from('products')
@@ -414,7 +435,7 @@ const AppointmentsTab: React.FC = () => {
         }
 
         const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
-        await recordFinancialEntry({
+        const finRes = await recordFinancialEntry({
           userId: session.user.id,
           type: 'entrada',
           amount: salePrice,
@@ -425,6 +446,18 @@ const AppointmentsTab: React.FC = () => {
           appointmentId: id,
           recordDate: appointment.appointment_date,
         });
+
+        // Auditoria visível: devolve dados pra exibir no toast
+        const monthLabel = format(new Date(appointment.appointment_date), "MMMM 'de' yyyy", { locale: ptBR });
+        return {
+          audit: {
+            amount: salePrice,
+            month: monthLabel,
+            recordId: (finRes?.data as any)?.id || null,
+            skipped: !!finRes?.skipped,
+            paymentMethod: finalPm,
+          },
+        };
       }
     },
     onMutate: async ({ id, status }) => {
@@ -437,26 +470,43 @@ const AppointmentsTab: React.FC = () => {
       }
       return { previousAppointments };
     },
-    onSuccess: () => {
+    onSuccess: (data: any, vars) => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['sales-financial'] });
       queryClient.invalidateQueries({ queryKey: ['financial-records'] });
       queryClient.invalidateQueries({ queryKey: ['reports'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard'] });
-      
-      if (showCompletionDialog) {
-        toast({ title: "Serviço Concluído!", description: "Feedback e próxima manutenção registrados." });
-        setShowCompletionDialog(false);
+      try { window.dispatchEvent(new CustomEvent('financial-data-updated')); } catch {}
+
+      const audit = data?.audit;
+      if (audit) {
+        // Auditoria visível: valor + mês + status do lançamento
+        const valorFmt = `R$ ${Number(audit.amount).toFixed(2).replace('.', ',')}`;
+        const desc = audit.skipped
+          ? `${valorFmt} • ${audit.month} • Lançamento já existia (não duplicou)`
+          : `${valorFmt} • ${audit.month} • Lançamento criado no Financeiro (${audit.paymentMethod})`;
+        toast({ title: '✅ Baixa concluída', description: desc });
+      } else if (showCompletionDialog) {
+        toast({ title: 'Serviço Concluído!', description: 'Feedback e próxima manutenção registrados.' });
       } else {
-        toast({ title: "Status atualizado!" });
+        toast({ title: 'Status atualizado!' });
       }
+      if (showCompletionDialog) setShowCompletionDialog(false);
     },
     onError: (error: any, __, context) => {
       if (context?.previousAppointments) {
         queryClient.setQueryData(['appointments'], context.previousAppointments);
       }
-      toast({ variant: "destructive", title: "Erro", description: error.message });
+      if (error?.code === 'PRICE_ZERO') {
+        toast({
+          variant: 'destructive',
+          title: '⚠️ Valor zerado — confira a origem',
+          description: error.message,
+        });
+        return;
+      }
+      toast({ variant: 'destructive', title: 'Erro', description: error.message });
     }
   });
 
