@@ -617,9 +617,14 @@ const ServicesUnifiedTab: React.FC = () => {
                 <ScrollText className="w-5 h-5 text-primary" />
                 Contratos de Manutenção
               </CardTitle>
-              <Button onClick={() => setContractDialogOpen(true)} size="sm">
-                <Plus className="w-4 h-4 mr-1" /> Novo Contrato
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button onClick={() => setAiOpen(true)} size="sm" variant="outline" className="border-purple-500/40 text-purple-600 hover:bg-purple-500/10" title="Assistente IA dos Contratos">
+                  <Sparkles className="w-4 h-4 mr-1" /> IA
+                </Button>
+                <Button onClick={() => setContractDialogOpen(true)} size="sm">
+                  <Plus className="w-4 h-4 mr-1" /> Novo Contrato
+                </Button>
+              </div>
             </div>
 
             {/* Month navigator */}
