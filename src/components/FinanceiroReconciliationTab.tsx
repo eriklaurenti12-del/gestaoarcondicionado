@@ -151,7 +151,7 @@ export default function FinanceiroReconciliationTab() {
   }
 
   const refreshAll = async () => {
-    await Promise.all([refetchSales(), refetchRecords(), refetchAudit()]);
+    await Promise.all([refetchSales(), refetchRecords(), refetchAudit(), refetchReconLog()]);
   };
 
   const handleSyncOrphanSale = async (sale: any) => {
