@@ -97,6 +97,23 @@ export default function FinanceiroReconciliationTab() {
     },
   });
 
+  // Histórico de reconciliações (auto + manual) — fonte da auditoria
+  const { data: reconLog, refetch: refetchReconLog } = useQuery({
+    queryKey: ['recon-log'],
+    queryFn: async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) return [];
+      const { data, error } = await (supabase as any)
+        .from('financial_reconciliation_log')
+        .select('*')
+        .eq('user_id', sess.session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
   // Vendas órfãs (sale sem financial_record)
   const orphanSales = (sales || []).filter((s: any) => {
     return !(records || []).some((r: any) => r.sale_id === s.id);
