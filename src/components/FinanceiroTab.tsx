@@ -853,9 +853,21 @@ export default function FinanceiroTab() {
   const totalSaques = records.filter(r => r.type === "saque").reduce((acc, r) => acc + Number(r.amount), 0);
   const totalReservas = records.filter(r => r.type === "reserva").reduce((acc, r) => acc + Number(r.amount), 0);
 
-  const totalGastosRotas = records
-    .filter(r => r.type === "saque" && (normalizeCat(r.category) === 'alimentação' || normalizeCat(r.category) === 'alimentacao' || normalizeCat(r.category) === 'combustível' || normalizeCat(r.category) === 'combustivel'))
+  // Gastos de rota: lê tanto de saques manuais (financial_records) quanto de
+  // gastos diários por prestador (fixed_expenses cat. Combustível/Alimentação).
+  // O fluxo real (RouteExpensesDialog) salva em fixed_expenses, então sem isso
+  // o card "Gastos Rotas" ficava sempre R$ 0,00.
+  const isRotaCat = (c: string | null) => {
+    const n = normalizeCat(c);
+    return n === 'alimentação' || n === 'alimentacao' || n === 'combustível' || n === 'combustivel';
+  };
+  const gastosRotasFromRecords = records
+    .filter(r => r.type === 'saque' && isRotaCat(r.category))
     .reduce((acc, r) => acc + Number(r.amount), 0);
+  const gastosRotasFromFixed = (fixedExpenses || [])
+    .filter((e: any) => isRotaCat(e.category))
+    .reduce((acc: number, e: any) => acc + Number(e.amount), 0);
+  const totalGastosRotas = gastosRotasFromRecords + gastosRotasFromFixed;
   
   // Lucro somente de produtos reais (products.type !== 'service').
   // Antes somava o profit de TODAS as vendas, inflando o card "Produtos" mesmo
@@ -868,8 +880,11 @@ export default function FinanceiroTab() {
     .reduce((acc, s) => acc + Number(s.total_profit || 0), 0);
   
   // Balance calculation (Source of truth: financial_records + fixed_expenses)
-  const totalGastosFixos = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
-  const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalGastosFixos;
+  // O total de fixed_expenses inclui rotas; o card "Gastos Fixos" exibe apenas
+  // a parte NÃO-rota para evitar leitura visual dupla com "Gastos Rotas".
+  const totalFixedExpenses = fixedExpenses?.reduce((acc, e) => acc + Number(e.amount), 0) || 0;
+  const totalGastosFixos = totalFixedExpenses - gastosRotasFromFixed;
+  const saldoDisponivel = totalEntradas - totalSaques - totalReservas - totalFixedExpenses;
 
   const formatCurrency = (value: number) => `R$ ${value.toFixed(2)}`;
 
@@ -1343,7 +1358,7 @@ export default function FinanceiroTab() {
 
         <Card
           className="bg-gradient-to-br from-primary/10 to-accent/5 border-primary/20 col-span-2 sm:col-span-1"
-          title={`Entradas ${formatCurrency(totalEntradas)} − Saques ${formatCurrency(totalSaques)} − Reservas ${formatCurrency(totalReservas)} − Gastos Fixos ${formatCurrency(totalGastosFixos)} = ${formatCurrency(saldoDisponivel)}`}
+          title={`Entradas ${formatCurrency(totalEntradas)} − Saques ${formatCurrency(totalSaques)} − Reservas ${formatCurrency(totalReservas)} − Gastos Fixos ${formatCurrency(totalGastosFixos)} − Gastos Rotas ${formatCurrency(totalGastosRotas)} = ${formatCurrency(saldoDisponivel)}`}
         >
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
@@ -1903,7 +1918,7 @@ export default function FinanceiroTab() {
                   </span>
                 </div>
                 <p className="text-[11px] text-muted-foreground mt-1">
-                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = {formatCurrency(saldoDisponivel)}
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)} = {formatCurrency(saldoDisponivel)}
                 </p>
               </div>
 
@@ -1976,10 +1991,10 @@ export default function FinanceiroTab() {
 
                 <div className="p-2 rounded bg-red-500/5 border border-red-500/20 flex justify-between gap-2">
                   <div>
-                    <p className="font-medium text-red-700">Saques / Reservas / Gastos Fixos</p>
-                    <p className="text-[11px] text-muted-foreground">Saídas. Saques são saídas manuais, Reservas é dinheiro guardado, Gastos Fixos são despesas do mês.</p>
+                    <p className="font-medium text-red-700">Saques / Reservas / Gastos Fixos / Gastos Rotas</p>
+                    <p className="text-[11px] text-muted-foreground">Saídas. Saques são saídas manuais, Reservas é dinheiro guardado, Gastos Fixos são despesas do mês, Gastos Rotas são combustível/alimentação por prestador.</p>
                   </div>
-                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques + totalReservas + totalGastosFixos)}</span>
+                  <span className="font-bold text-red-600 whitespace-nowrap">{formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)}</span>
                 </div>
               </div>
 
@@ -2062,10 +2077,10 @@ export default function FinanceiroTab() {
                   <CheckCircle2 className="h-3.5 w-3.5" /> Marcar conferência do mês
                 </p>
                 <p className="text-muted-foreground">
-                  Confira: <em>Serviços + Produtos + Contratos + Manuais − Saques − Reservas − Gastos Fixos</em> bate com o Saldo em Caixa?
+                  Confira: <em>Serviços + Produtos + Contratos + Manuais − Saques − Reservas − Gastos Fixos − Gastos Rotas</em> bate com o Saldo em Caixa?
                 </p>
                 <div className="font-mono text-[11px] bg-muted/30 p-2 rounded">
-                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos)} = <strong>{formatCurrency(saldoDisponivel)}</strong>
+                  {formatCurrency(totalEntradas)} − {formatCurrency(totalSaques + totalReservas + totalGastosFixos + totalGastosRotas)} = <strong>{formatCurrency(saldoDisponivel)}</strong>
                 </div>
                 <div className="flex flex-wrap gap-2 pt-1">
                   <Button
@@ -2078,7 +2093,7 @@ export default function FinanceiroTab() {
                         matched: true,
                         saldo: saldoDisponivel,
                         totalEntradas,
-                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
                       });
                       toast({ title: 'Conferência salva', description: 'Soma marcada como conferida ✅' });
                     }}
@@ -2096,7 +2111,7 @@ export default function FinanceiroTab() {
                         matched: false,
                         saldo: saldoDisponivel,
                         totalEntradas,
-                        totalDespesas: totalSaques + totalReservas + totalGastosFixos,
+                        totalDespesas: totalSaques + totalReservas + totalGastosFixos + totalGastosRotas,
                       });
                       toast({ title: 'Conferência salva', description: 'Marcada como não conferida ⚠️', variant: 'destructive' });
                     }}
