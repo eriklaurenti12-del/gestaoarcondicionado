@@ -17,6 +17,7 @@ import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, typ
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
 import FinanceiroUpdatePopup from './FinanceiroUpdatePopup';
+import FinanceLastRepairBadge from './FinanceLastRepairBadge';
 import { useToast } from "@/hooks/use-toast";
 import { format, endOfMonth, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
