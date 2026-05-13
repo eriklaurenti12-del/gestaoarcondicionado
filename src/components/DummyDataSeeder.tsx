@@ -395,15 +395,17 @@ const DummyDataSeeder: React.FC = () => {
       const targets: Array<{ table: string; userCol?: string }> = [
         { table: 'installments' }, { table: 'sales' },
         { table: 'financial_records' }, { table: 'financial_audit_log' },
-        { table: 'financial_reconciliation_log' }, { table: 'fixed_expenses' },
-        { table: 'scheduled_maintenance' }, { table: 'service_orders' },
-        { table: 'quotes' }, { table: 'appointments' },
-        { table: 'online_bookings' }, { table: 'online_booking_settings' },
-        { table: 'client_equipment' }, { table: 'maintenance_contracts' },
-        { table: 'products' }, { table: 'clients' }, { table: 'suppliers' },
+        { table: 'financial_reconciliation_log' }, { table: 'financial_check_history' },
+        { table: 'fixed_expenses' }, { table: 'scheduled_maintenance' },
+        { table: 'service_orders' }, { table: 'quotes' },
+        { table: 'appointments' }, { table: 'online_bookings' },
+        { table: 'online_booking_settings' }, { table: 'client_equipment' },
+        { table: 'maintenance_contracts' }, { table: 'products' },
+        { table: 'clients' }, { table: 'suppliers' },
         { table: 'tax_records' }, { table: 'team_members' },
         { table: 'team_online_status', userCol: 'owner_id' },
         { table: 'team_invites', userCol: 'created_by' },
+        { table: 'support_requests', userCol: 'owner_id' },
       ];
 
       const report: Array<{ table: string; deleted: number; status: 'ok' | 'empty' | 'error'; message?: string }> = [];
@@ -437,11 +439,13 @@ const DummyDataSeeder: React.FC = () => {
         message: provErr?.message,
       });
 
-      // Força limpeza total de cache (React Query + storage local de prestadores/agenda)
+      // Força limpeza total: cache + localStorage (lixeira financeira inclusa)
       try {
         queryClient.clear();
+        const { clearAllTrash } = await import('@/utils/financialTrash');
+        clearAllTrash(userId);
         Object.keys(localStorage).forEach((k) => {
-          if (/provider|prestador|agenda|appointment|financ|tax|client|product/i.test(k)) {
+          if (/provider|prestador|agenda|appointment|financ|tax|client|product|trash|fin_open_trash/i.test(k)) {
             localStorage.removeItem(k);
           }
         });

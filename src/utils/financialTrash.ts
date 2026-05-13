@@ -77,6 +77,34 @@ export function clearAllTrash(userId: string) {
   writeAll(readAll().filter((it) => it.userId !== userId));
 }
 
+/**
+ * Roda automaticamente uma vez por mês: ao detectar que o mês mudou desde
+ * a última passagem, apaga permanentemente todos os itens da lixeira do
+ * usuário cuja exclusão ocorreu em meses anteriores.
+ * Usa localStorage para persistir a marca do último ciclo.
+ */
+const LAST_PURGE_KEY = "financeiro_trash_last_purge";
+
+export function autoPurgeOnMonthChange(userId: string): { ran: boolean; removed: number } {
+  if (!userId) return { ran: false, removed: 0 };
+  try {
+    const now = new Date();
+    const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const map = JSON.parse(localStorage.getItem(LAST_PURGE_KEY) || "{}");
+    if (map[userId] === stamp) return { ran: false, removed: 0 };
+
+    const before = listTrash(userId).length;
+    purgePreviousMonths(userId);
+    const after = listTrash(userId).length;
+
+    map[userId] = stamp;
+    localStorage.setItem(LAST_PURGE_KEY, JSON.stringify(map));
+    return { ran: true, removed: Math.max(0, before - after) };
+  } catch {
+    return { ran: false, removed: 0 };
+  }
+}
+
 /** Apaga itens cuja data de exclusão é anterior ao mês corrente. */
 export function purgePreviousMonths(userId: string) {
   const now = new Date();
