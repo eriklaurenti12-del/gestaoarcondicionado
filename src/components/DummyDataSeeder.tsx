@@ -439,11 +439,13 @@ const DummyDataSeeder: React.FC = () => {
         message: provErr?.message,
       });
 
-      // Força limpeza total de cache (React Query + storage local de prestadores/agenda)
+      // Força limpeza total: cache + localStorage (lixeira financeira inclusa)
       try {
         queryClient.clear();
+        const { clearAllTrash } = await import('@/utils/financialTrash');
+        clearAllTrash(userId);
         Object.keys(localStorage).forEach((k) => {
-          if (/provider|prestador|agenda|appointment|financ|tax|client|product/i.test(k)) {
+          if (/provider|prestador|agenda|appointment|financ|tax|client|product|trash|fin_open_trash/i.test(k)) {
             localStorage.removeItem(k);
           }
         });
