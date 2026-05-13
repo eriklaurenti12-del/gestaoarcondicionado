@@ -60,18 +60,31 @@ export default function FinancialAIAssistant({
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [snapLoading, setSnapLoading] = useState(false);
   const [diagOpen, setDiagOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // reset transient state when closing to keep UX fluido
+      setSnapshot(null);
+      setMsgs([]);
+      setInput("");
+      setLoading(false);
+      setSnapLoading(false);
+      return;
+    }
     let cancelled = false;
+    setSnapLoading(true);
+    setSnapshot(null);
     (async () => {
       try {
         const snap = await buildSnapshot();
         if (!cancelled) setSnapshot(snap);
       } catch (e: any) {
-        toast({ title: "Erro ao montar diagnóstico", description: e.message, variant: "destructive" });
+        if (!cancelled) toast({ title: "Erro ao montar diagnóstico", description: e.message, variant: "destructive" });
+      } finally {
+        if (!cancelled) setSnapLoading(false);
       }
     })();
     return () => { cancelled = true; };
