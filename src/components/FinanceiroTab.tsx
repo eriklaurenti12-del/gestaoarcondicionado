@@ -822,47 +822,124 @@ export default function FinanceiroTab() {
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm("Excluir este lançamento? Esta ação não pode ser desfeita.")) return;
-    const { error } = await supabase.from("financial_records").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Erro ao excluir", variant: "destructive" });
-    } else {
-      toast({ title: "Registro excluído!" });
-      fetchRecords();
-    }
+  // ===== Helpers de exclusão com Lixeira + Undo =====
+  const offerUndo = (item: TrashItem, label: string) => {
+    toast({
+      title: label,
+      description: "Você tem alguns segundos para desfazer.",
+      duration: 8000,
+      action: (
+        <ToastAction
+          altText="Desfazer"
+          onClick={async () => {
+            try {
+              await restoreTrashItem(item);
+              toast({ title: "Exclusão desfeita", description: item.summary.title });
+              refetchSales(); fetchRecords();
+            } catch (e: any) {
+              toast({ title: "Erro ao desfazer", description: e.message, variant: "destructive" });
+            }
+          }}
+        >
+          <RotateCcw className="h-3.5 w-3.5 mr-1" /> Desfazer
+        </ToastAction>
+      ),
+    });
   };
 
-  const handleDeleteSale = async (saleId: number) => {
-    if (!window.confirm("Excluir esta venda/serviço? O lançamento financeiro vinculado também será removido.")) return;
+  const performDeleteRecord = async (id: string, reason: string) => {
+    if (!currentUserId) return;
+    const target = records.find((r) => r.id === id);
+    const { data: full } = await supabase.from("financial_records").select("*").eq("id", id).maybeSingle();
+    const { error } = await supabase.from("financial_records").delete().eq("id", id);
+    if (error) { toast({ title: "Erro ao excluir", description: error.message, variant: "destructive" }); return; }
+    const item = pushTrash({
+      type: "financial_record",
+      reason: reason || null,
+      userId: currentUserId,
+      payload: { record: full || target },
+      summary: {
+        title: (target?.description || full?.description || "Lançamento").slice(0, 80),
+        amount: Number(target?.amount ?? full?.amount ?? 0),
+        dateLabel: target?.record_date,
+      },
+    });
+    fetchRecords();
+    offerUndo(item, "Registro excluído");
+  };
+
+  const performDeleteSale = async (saleId: number, reason: string) => {
+    if (!currentUserId) return;
+    const sale = (sales || []).find((s) => s.id === saleId);
+    const { data: fullSale } = await supabase.from("sales").select("*").eq("id", saleId).maybeSingle();
+    const { data: linked } = await supabase.from("financial_records").select("*").eq("sale_id", saleId);
     try {
-      // Remove linked financial_records first (entrada vinculada à venda)
       await supabase.from("financial_records").delete().eq("sale_id", saleId);
       const { error } = await supabase.from("sales").delete().eq("id", saleId);
       if (error) throw error;
-      toast({ title: "Venda excluída!", description: "Lançamento financeiro vinculado também foi removido." });
-      refetchSales();
-      fetchRecords();
+      const item = pushTrash({
+        type: "sale",
+        reason: reason || null,
+        userId: currentUserId,
+        payload: { sale: fullSale, linkedRecords: linked || [] },
+        summary: {
+          title: `Venda #${saleId} ${sale?.clients?.name ? "· " + sale.clients.name : ""}`.trim(),
+          amount: sale ? Number(sale.sale_price) * Number(sale.qty || 1) : undefined,
+          dateLabel: sale?.sale_date,
+        },
+      });
+      refetchSales(); fetchRecords();
+      offerUndo(item, "Venda excluída");
     } catch (e: any) {
       toast({ title: "Erro ao excluir venda", description: e.message, variant: "destructive" });
     }
   };
 
-  const handleDeleteAllSalesOfMonth = async () => {
-    if (!sales || sales.length === 0) return;
-    if (!window.confirm(`Excluir TODAS as ${sales.length} vendas/serviços de ${selectedMonth}? Os lançamentos financeiros vinculados também serão removidos. Esta ação não pode ser desfeita.`)) return;
-    if (!window.confirm("Confirmar novamente: tem certeza absoluta? Isso é irreversível.")) return;
+  const performDeleteAllSalesOfMonth = async (reason: string) => {
+    if (!currentUserId || !sales || sales.length === 0) return;
+    const ids = sales.map((s) => s.id);
+    const { data: fullSales } = await supabase.from("sales").select("*").in("id", ids);
+    const { data: linked } = await supabase.from("financial_records").select("*").in("sale_id", ids);
     try {
-      const ids = sales.map((s) => s.id);
       await supabase.from("financial_records").delete().in("sale_id", ids);
       const { error } = await supabase.from("sales").delete().in("id", ids);
       if (error) throw error;
-      toast({ title: `${ids.length} vendas excluídas`, description: "Todos os lançamentos vinculados foram removidos." });
-      refetchSales();
-      fetchRecords();
+      // Empilha cada venda na lixeira para restauração granular
+      (fullSales || []).forEach((s: any) => {
+        const itsLinked = (linked || []).filter((r: any) => r.sale_id === s.id);
+        pushTrash({
+          type: "sale", reason: reason || null, userId: currentUserId,
+          payload: { sale: s, linkedRecords: itsLinked },
+          summary: {
+            title: `Venda #${s.id}`,
+            amount: Number(s.sale_price) * Number(s.qty || 1),
+            dateLabel: s.sale_date,
+          },
+        });
+      });
+      toast({
+        title: `${ids.length} vendas excluídas`,
+        description: `Restauráveis pela Lixeira por 30 dias. Motivo: ${reason || "—"}`,
+        duration: 8000,
+      });
+      refetchSales(); fetchRecords();
     } catch (e: any) {
       toast({ title: "Erro ao excluir vendas", description: e.message, variant: "destructive" });
     }
+  };
+
+  // Triggers usados pelos botões da UI
+  const handleDelete = (id: string) => {
+    const r = records.find((x) => x.id === id);
+    setDeletePrompt({ kind: "record", id, title: r?.description || "este lançamento" });
+  };
+  const handleDeleteSale = (saleId: number) => {
+    const s = (sales || []).find((x) => x.id === saleId);
+    setDeletePrompt({ kind: "sale", saleId, title: `Venda #${saleId}${s?.clients?.name ? " · " + s.clients.name : ""}` });
+  };
+  const handleDeleteAllSalesOfMonth = () => {
+    if (!sales || sales.length === 0) return;
+    setDeletePrompt({ kind: "salesMonth" });
   };
 
   // Financial calculations
