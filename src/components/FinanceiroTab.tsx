@@ -1513,10 +1513,23 @@ export default function FinanceiroTab() {
       {sales && sales.length > 0 && (
         <Card>
           <CardHeader className="p-3 sm:p-6">
-            <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-              Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
-            </CardTitle>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+                <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                Vendas Registradas - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              </CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                onClick={handleDeleteAllSalesOfMonth}
+                disabled={isLocked || !sales || sales.length === 0}
+                title="Excluir todas as vendas/serviços deste mês"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Excluir todas do mês
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-3 sm:p-6 pt-0">
             <div className="overflow-x-auto -mx-3 sm:mx-0">
@@ -1529,6 +1542,7 @@ export default function FinanceiroTab() {
                     <TableHead className="text-xs hidden md:table-cell">Pagamento</TableHead>
                     <TableHead className="text-xs text-right">Valor</TableHead>
                     <TableHead className="text-xs text-right">Lucro</TableHead>
+                    <TableHead className="text-xs w-10"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1551,6 +1565,18 @@ export default function FinanceiroTab() {
                       </TableCell>
                       <TableCell className="text-xs sm:text-sm text-right font-medium text-emerald-500 py-2">
                         {formatCurrency(Number(sale.total_profit))}
+                      </TableCell>
+                      <TableCell className="py-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={() => handleDeleteSale(sale.id)}
+                          disabled={isLocked}
+                          title="Excluir venda/serviço"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                        </Button>
                       </TableCell>
                     </TableRow>
                   );})}
