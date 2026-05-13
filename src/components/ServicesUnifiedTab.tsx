@@ -1096,6 +1096,31 @@ const ServicesUnifiedTab: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <FinancialAIAssistant
+        open={aiOpen}
+        onOpenChange={setAiOpen}
+        context="contratos"
+        placeholder="Ex: Quais contratos vão vencer? A receita do card Contratos bate com a soma mensal?"
+        buildSnapshot={(): AISnapshot => {
+          const issues: AISnapshot['issues'] = [];
+          if (expiredContracts.length > 0) issues.push({ id: 'expired', label: `${expiredContracts.length} contrato(s) vencido(s) — renovar ou encerrar.`, severity: 'error' });
+          if (expiringContracts.length > 0) issues.push({ id: 'expiring', label: `${expiringContracts.length} contrato(s) vencendo em breve.`, severity: 'warn' });
+          const zeroValue = activeContracts.filter(c => !Number(c.monthly_value)).length;
+          if (zeroValue > 0) issues.push({ id: 'zero-value', label: `${zeroValue} contrato(s) ativo(s) com valor mensal R$ 0,00.`, severity: 'warn' });
+          return {
+            headline: `${allContracts.length} contrato(s) · ${activeContracts.length} ativo(s) · receita R$ ${totalMonthlyRevenue.toFixed(2)}/mês (R$ ${totalAnnualRevenue.toFixed(2)}/ano)`,
+            counts: {
+              total: allContracts.length,
+              active: activeContracts.length,
+              expiring: expiringContracts.length,
+              expired: expiredContracts.length,
+            },
+            revenue: { monthly: totalMonthlyRevenue, annual: totalAnnualRevenue },
+            issues,
+          };
+        }}
+      />
     </div>
   );
 };
