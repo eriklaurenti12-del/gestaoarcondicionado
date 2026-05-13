@@ -12,7 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
 import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, type ReconcileResult } from '@/utils/recurringSync';
-import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle } from "lucide-react";
+import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles } from "lucide-react";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
@@ -86,6 +86,7 @@ export default function FinanceiroTab() {
   const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
@@ -1477,20 +1478,31 @@ export default function FinanceiroTab() {
       {/* Manual Records Table */}
       <Card>
         <CardHeader className="p-3 sm:p-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <CardTitle className="text-sm sm:text-base">
-              Registros Manuais - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
+              Lançamentos - {safeFormat(new Date(parseInt(selectedMonth.split('-')[0]), parseInt(selectedMonth.split('-')[1]) - 1, 1), "MMMM yyyy", { locale: ptBR })}
             </CardTitle>
-            <Button variant="ghost" size="icon" onClick={fetchRecords} className="h-8 w-8">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
+            <div className="flex items-center gap-1">
+              {(['todos','manual','auto'] as const).map(opt => (
+                <Button
+                  key={opt}
+                  variant={originFilter === opt ? 'default' : 'outline'}
+                  size="sm"
+                  className="h-7 px-2 text-[11px]"
+                  onClick={() => setOriginFilter(opt)}
+                >
+                  {opt === 'todos' ? 'Todos' : opt === 'manual' ? 'Manuais' : 'Automáticos'}
+                </Button>
+              ))}
+              <Button variant="ghost" size="icon" onClick={fetchRecords} className="h-8 w-8">
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-3 sm:p-6 pt-0">
           {(() => {
-            // Manual = lançamento que o usuário digitou (sem vínculo com
-            // agendamento/venda/contrato). Categoria livre — NÃO filtramos por
-            // texto da categoria, para não esconder lançamentos legítimos.
+            // Origem: Auto = veio de agendamento/venda/PDV/contrato. Manual = digitado pelo usuário.
             const isAuto = (r: FinancialRecord) => {
               if (r.appointment_id) return true;
               if (r.sale_id) return true;
@@ -1498,11 +1510,14 @@ export default function FinanceiroTab() {
               const c = (r.category || '').toLowerCase().trim();
               if (d.startsWith('auto:')) return true;
               if (c === 'contrato') return true;
-              // Legado: só esconde se a descrição for explícita do auto-fluxo
               if (d.startsWith('serviço concluído:') || d.startsWith('servico concluido:')) return true;
               return false;
             };
-            const manualRecords = records.filter((r) => !isAuto(r));
+            const filtered = records.filter((r) => {
+              if (originFilter === 'manual') return !isAuto(r);
+              if (originFilter === 'auto') return isAuto(r);
+              return true;
+            });
             if (loading) {
               return (
                 <div className="flex justify-center py-8">
@@ -1510,12 +1525,18 @@ export default function FinanceiroTab() {
                 </div>
               );
             }
-            if (manualRecords.length === 0) {
+            if (filtered.length === 0) {
               return (
                 <div className="text-center py-8 text-muted-foreground">
                   <Wallet className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
-                  <p className="text-sm">Nenhum registro manual encontrado para este mês</p>
-                  <p className="text-[10px] mt-1 opacity-70">Lançamentos automáticos aparecem em "Serviços Concluídos", "Vendas Registradas" e "Contratos Recorrentes" acima.</p>
+                  <p className="text-sm">
+                    {originFilter === 'manual'
+                      ? 'Nenhum registro manual encontrado para este mês'
+                      : originFilter === 'auto'
+                      ? 'Nenhum lançamento automático encontrado para este mês'
+                      : 'Nenhum lançamento encontrado para este mês'}
+                  </p>
+                  <p className="text-[10px] mt-1 opacity-70">Use o filtro acima para alternar entre Manuais (digitados por você) e Automáticos (vindos de agendamentos, PDV e contratos).</p>
                 </div>
               );
             }
@@ -1524,6 +1545,7 @@ export default function FinanceiroTab() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="text-xs">Origem</TableHead>
                     <TableHead className="text-xs">Tipo</TableHead>
                     <TableHead className="text-xs">Descrição</TableHead>
                     <TableHead className="text-xs hidden sm:table-cell">Pagamento</TableHead>
@@ -1534,8 +1556,21 @@ export default function FinanceiroTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {manualRecords.map((record) => (
+                  {filtered.map((record) => {
+                    const auto = isAuto(record);
+                    return (
                     <TableRow key={record.id}>
+                      <TableCell className="py-2">
+                        {auto ? (
+                          <Badge variant="secondary" className="text-[10px] gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
+                            <Sparkles className="h-3 w-3" /> Auto
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] gap-1">
+                            <Wallet className="h-3 w-3" /> Manual
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="py-2">
                         <div className="flex items-center gap-1">
                           {getTypeIcon(record.type)}
@@ -1553,7 +1588,7 @@ export default function FinanceiroTab() {
                         {record.installments && record.installments > 1 ? `${record.installments}x` : "-"}
                       </TableCell>
                       <TableCell className={`text-xs sm:text-sm text-right font-medium py-2 ${
-                        record.type === "entrada" ? "text-green-500" : 
+                        record.type === "entrada" ? "text-green-500" :
                         record.type === "saque" ? "text-red-500" : "text-blue-500"
                       }`}>
                         {formatCurrency(Number(record.amount))}
@@ -1566,14 +1601,16 @@ export default function FinanceiroTab() {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(record.id)}
-                          disabled={isLocked}
-                          className="text-destructive hover:text-destructive h-8 w-8"
+                          disabled={isLocked || auto}
+                          title={auto ? 'Lançamento automático — apague na origem (agendamento/venda)' : 'Excluir'}
+                          className="text-destructive hover:text-destructive h-8 w-8 disabled:opacity-30"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))}
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
