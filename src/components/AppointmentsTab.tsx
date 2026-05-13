@@ -397,24 +397,7 @@ const AppointmentsTab: React.FC = () => {
       // Register sale + financial entry on completion
       if (status === 'concluido' && appointment?.client_id) {
         const salePrice = getAppointmentPrice(appointment);
-
-        // VALIDAÇÃO: alerta se preço = 0 (orienta a conferir origem antes de lançar)
-        if (salePrice <= 0) {
-          const notes = appointment.notes || '';
-          const fromQuote = /Or[çc]amento\s*#\s*(\d+)/i.exec(notes)?.[1];
-          const fromOrder = /(?:O\.?S\.?|Pedido|Ordem)\s*#?\s*(\d+)/i.exec(notes)?.[1];
-          const origem = fromQuote
-            ? `Orçamento #${fromQuote}`
-            : fromOrder
-              ? `Ordem #${fromOrder}`
-              : 'cadastro do serviço (aba Serviços)';
-          const err: any = new Error(
-            `Não foi possível lançar no Financeiro: o valor está R$ 0,00. Confira o preço em ${origem} antes de concluir.`
-          );
-          err.code = 'PRICE_ZERO';
-          err.origem = origem;
-          throw err;
-        }
+        if (salePrice <= 0) return; // já validado acima; salva-guarda
 
         const { data: productData } = appointment.service_id ? await supabase
           .from('products')
