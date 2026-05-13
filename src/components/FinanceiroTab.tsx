@@ -1052,6 +1052,17 @@ export default function FinanceiroTab() {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleReprocessOldAppointments}
+              disabled={reprocessing}
+              className="border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+              title="Lê agendamentos antigos (sem [VALOR:]) e cria os lançamentos faltantes no Financeiro. Idempotente: não duplica."
+            >
+              {reprocessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+              <span className="hidden sm:inline ml-1">{reprocessing ? 'Reprocessando…' : 'Reprocessar antigos'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setHelpOpen(true)}
               className="border-primary/30 text-primary hover:bg-primary/10"
               title="Como o Saldo é calculado, quando reconciliar, e baixar o guia"
