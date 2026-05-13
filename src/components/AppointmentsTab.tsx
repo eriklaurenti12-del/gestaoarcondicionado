@@ -376,7 +376,24 @@ const AppointmentsTab: React.FC = () => {
       // Register sale + financial entry on completion
       if (status === 'concluido' && appointment?.client_id) {
         const salePrice = getAppointmentPrice(appointment);
-        if (salePrice <= 0) return;
+
+        // VALIDAÇÃO: alerta se preço = 0 (orienta a conferir origem antes de lançar)
+        if (salePrice <= 0) {
+          const notes = appointment.notes || '';
+          const fromQuote = /Or[çc]amento\s*#\s*(\d+)/i.exec(notes)?.[1];
+          const fromOrder = /(?:O\.?S\.?|Pedido|Ordem)\s*#?\s*(\d+)/i.exec(notes)?.[1];
+          const origem = fromQuote
+            ? `Orçamento #${fromQuote}`
+            : fromOrder
+              ? `Ordem #${fromOrder}`
+              : 'cadastro do serviço (aba Serviços)';
+          const err: any = new Error(
+            `Não foi possível lançar no Financeiro: o valor está R$ 0,00. Confira o preço em ${origem} antes de concluir.`
+          );
+          err.code = 'PRICE_ZERO';
+          err.origem = origem;
+          throw err;
+        }
 
         const { data: productData } = appointment.service_id ? await supabase
           .from('products')
@@ -414,7 +431,7 @@ const AppointmentsTab: React.FC = () => {
         }
 
         const provName = appointment.notes?.match(/\[PRESTADOR:(.+?)\]/)?.[1];
-        await recordFinancialEntry({
+        const finRes = await recordFinancialEntry({
           userId: session.user.id,
           type: 'entrada',
           amount: salePrice,
@@ -425,6 +442,18 @@ const AppointmentsTab: React.FC = () => {
           appointmentId: id,
           recordDate: appointment.appointment_date,
         });
+
+        // Auditoria visível: devolve dados pra exibir no toast
+        const monthLabel = format(new Date(appointment.appointment_date), "MMMM 'de' yyyy", { locale: ptBR });
+        return {
+          audit: {
+            amount: salePrice,
+            month: monthLabel,
+            recordId: (finRes?.data as any)?.id || null,
+            skipped: !!finRes?.skipped,
+            paymentMethod: finalPm,
+          },
+        };
       }
     },
     onMutate: async ({ id, status }) => {
