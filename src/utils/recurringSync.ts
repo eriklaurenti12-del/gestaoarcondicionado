@@ -231,13 +231,40 @@ export async function repairMissingFinancialRecords(
 
   if (concluded && concluded.length > 0) {
     const aptIds = concluded.map((a: any) => a.id);
-    const { data: existingRecs } = await supabase
-      .from('financial_records')
-      .select('appointment_id')
-      .eq('user_id', userId)
-      .eq('type', 'entrada')
-      .in('appointment_id', aptIds);
+    const [{ data: existingRecs }, { data: linkedSales }] = await Promise.all([
+      supabase
+        .from('financial_records')
+        .select('appointment_id')
+        .eq('user_id', userId)
+        .eq('type', 'entrada')
+        .in('appointment_id', aptIds),
+      // Vendas (PDV) já vinculadas a esses agendamentos: se existir uma sale
+      // com financial_record para esse appointment, NÃO criar duplicata.
+      supabase
+        .from('sales')
+        .select('id, appointment_id')
+        .eq('user_id', userId)
+        .in('appointment_id', aptIds),
+    ]);
     const have = new Set((existingRecs || []).map((r: any) => r.appointment_id));
+    // Mapear sale_id -> appointment_id e marcar como "have" se já há fr daquele sale_id
+    const saleAptMap = new Map<number, string>();
+    for (const s of (linkedSales || []) as any[]) {
+      if (s.appointment_id) saleAptMap.set(s.id, s.appointment_id);
+    }
+    if (saleAptMap.size > 0) {
+      const saleIds = Array.from(saleAptMap.keys());
+      const { data: salesRecs } = await supabase
+        .from('financial_records')
+        .select('sale_id')
+        .eq('user_id', userId)
+        .eq('type', 'entrada')
+        .in('sale_id', saleIds);
+      for (const r of (salesRecs || []) as any[]) {
+        const aptId = saleAptMap.get(r.sale_id);
+        if (aptId) have.add(aptId);
+      }
+    }
 
     for (const apt of concluded) {
       if (have.has(apt.id)) continue;
@@ -294,15 +321,14 @@ export async function repairMissingFinancialRecords(
         const dEnd = new Date(aptDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
         const { data: candidates } = await supabase
           .from('financial_records')
-          .select('id, description')
+          .select('id, description, appointment_id, sale_id')
           .eq('user_id', userId)
           .eq('type', 'entrada')
           .eq('amount', price)
           .is('appointment_id', null)
-          .is('sale_id', null)
           .gte('record_date', dStart)
           .lte('record_date', dEnd)
-          .limit(5);
+          .limit(10);
 
         const matched = (candidates || []).find((c: any) => {
           const d = String(c.description || '').toLowerCase();
