@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Shield, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy, GripVertical, Palette, Wind, Database, Lock, CheckCircle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Search, Shield, ShieldAlert, Ban, UserX, Trash2, Users, Phone, Bell, Zap, Webhook, Megaphone, Gift, UserPlus, Monitor, Headphones, Menu, ExternalLink, MessageCircle, Edit2, ToggleLeft, ToggleRight, Settings2, BookOpen, LifeBuoy, Link, Copy, GripVertical, Palette, Wind, Database, Lock, CheckCircle, RefreshCw } from "lucide-react";
 import { useBetaMode } from "@/contexts/BetaModeContext";
 import { format } from "date-fns";
 
@@ -29,6 +29,7 @@ import DummyDataSeeder from "@/components/DummyDataSeeder";
 import AdminSystemGuideTab from "@/components/AdminSystemGuideTab";
 import AdminThemeTab from "@/components/AdminThemeTab";
 import AdminSupportTab from "@/components/AdminSupportTab";
+import AdminFinancialAuditTab from "@/components/AdminFinancialAuditTab";
 import { AdminShareTab } from "@/components/AdminShareTab";
 import AdminBrandingTab from "@/components/AdminBrandingTab";
 import AdminSupportContactsTab from "@/components/AdminSupportContactsTab";
@@ -85,10 +86,11 @@ const DEFAULT_TABS = [
   { id: 'support', label: 'Suporte', icon: 'LifeBuoy' },
   { id: 'system-guide', label: 'Guia PDF', icon: 'BookOpen' },
   { id: 'system', label: 'Sistema', icon: 'Settings2' },
+  { id: 'audit', label: 'Auditoria $', icon: 'ShieldAlert' },
 ];
 
 const TAB_ICONS: Record<string, any> = {
-  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind, Headphones, Settings2
+  Users, UserPlus, Bell, Zap, Webhook, Megaphone, Link, Gift, Menu, LifeBuoy, BookOpen, Palette, Wind, Headphones, Settings2, ShieldAlert
 };
 
 export default function Members() {
@@ -939,6 +941,7 @@ export default function Members() {
           <TabsContent value="sidebar-config" className="mt-6"><AdminSidebarConfig /></TabsContent>
           <TabsContent value="support-contacts" className="mt-6"><AdminSupportContactsTab /></TabsContent>
           <TabsContent value="support" className="mt-6"><AdminSupportTab /></TabsContent>
+          <TabsContent value="audit" className="mt-6"><AdminFinancialAuditTab /></TabsContent>
           <TabsContent value="links" className="mt-6">
             <AdminShareTab />
           </TabsContent>
