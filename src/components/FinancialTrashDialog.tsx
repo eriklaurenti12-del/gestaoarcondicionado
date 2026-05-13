@@ -1,11 +1,15 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { listTrash, removeTrash, restoreTrashItem, type TrashItem } from "@/utils/financialTrash";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, RotateCcw, Receipt } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+const POST_DELETE_KEY = "fin_open_trash_after_delete";
 
 interface FinancialTrashDialogProps {
   open: boolean;
