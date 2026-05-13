@@ -355,6 +355,27 @@ const AppointmentsTab: React.FC = () => {
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status, appointment, paymentMethod: pm }: { id: string; status: string; appointment?: Appointment; paymentMethod?: string }) => {
       const finalPm = pm || 'Dinheiro';
+
+      // VALIDAÇÃO PRÉ-DB: bloqueia conclusão com preço 0 antes de gravar status
+      if (status === 'concluido' && appointment?.client_id) {
+        const preCheckPrice = getAppointmentPrice(appointment);
+        if (preCheckPrice <= 0) {
+          const notes = appointment.notes || '';
+          const fromQuote = /Or[çc]amento\s*#\s*(\d+)/i.exec(notes)?.[1];
+          const fromOrder = /(?:O\.?S\.?|Pedido|Ordem)\s*#?\s*(\d+)/i.exec(notes)?.[1];
+          const origem = fromQuote
+            ? `Orçamento #${fromQuote}`
+            : fromOrder
+              ? `Ordem #${fromOrder}`
+              : 'cadastro do serviço (aba Serviços)';
+          const err: any = new Error(
+            `Valor R$ 0,00 detectado. Confira o preço em ${origem} antes de concluir — o lançamento no Financeiro foi bloqueado.`
+          );
+          err.code = 'PRICE_ZERO';
+          throw err;
+        }
+      }
+
       const { error } = await supabase.from('appointments').update({ status }).eq('id', id);
       if (error) throw error;
 
