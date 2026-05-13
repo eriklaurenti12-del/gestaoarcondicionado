@@ -805,12 +805,45 @@ export default function FinanceiroTab() {
   };
 
   const handleDelete = async (id: string) => {
+    if (!window.confirm("Excluir este lançamento? Esta ação não pode ser desfeita.")) return;
     const { error } = await supabase.from("financial_records").delete().eq("id", id);
     if (error) {
       toast({ title: "Erro ao excluir", variant: "destructive" });
     } else {
       toast({ title: "Registro excluído!" });
       fetchRecords();
+    }
+  };
+
+  const handleDeleteSale = async (saleId: number) => {
+    if (!window.confirm("Excluir esta venda/serviço? O lançamento financeiro vinculado também será removido.")) return;
+    try {
+      // Remove linked financial_records first (entrada vinculada à venda)
+      await supabase.from("financial_records").delete().eq("sale_id", saleId);
+      const { error } = await supabase.from("sales").delete().eq("id", saleId);
+      if (error) throw error;
+      toast({ title: "Venda excluída!", description: "Lançamento financeiro vinculado também foi removido." });
+      refetchSales();
+      fetchRecords();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir venda", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAllSalesOfMonth = async () => {
+    if (!sales || sales.length === 0) return;
+    if (!window.confirm(`Excluir TODAS as ${sales.length} vendas/serviços de ${selectedMonth}? Os lançamentos financeiros vinculados também serão removidos. Esta ação não pode ser desfeita.`)) return;
+    if (!window.confirm("Confirmar novamente: tem certeza absoluta? Isso é irreversível.")) return;
+    try {
+      const ids = sales.map((s) => s.id);
+      await supabase.from("financial_records").delete().in("sale_id", ids);
+      const { error } = await supabase.from("sales").delete().in("id", ids);
+      if (error) throw error;
+      toast({ title: `${ids.length} vendas excluídas`, description: "Todos os lançamentos vinculados foram removidos." });
+      refetchSales();
+      fetchRecords();
+    } catch (e: any) {
+      toast({ title: "Erro ao excluir vendas", description: e.message, variant: "destructive" });
     }
   };
 
