@@ -321,15 +321,14 @@ export async function repairMissingFinancialRecords(
         const dEnd = new Date(aptDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
         const { data: candidates } = await supabase
           .from('financial_records')
-          .select('id, description')
+          .select('id, description, appointment_id, sale_id')
           .eq('user_id', userId)
           .eq('type', 'entrada')
           .eq('amount', price)
           .is('appointment_id', null)
-          .is('sale_id', null)
           .gte('record_date', dStart)
           .lte('record_date', dEnd)
-          .limit(5);
+          .limit(10);
 
         const matched = (candidates || []).find((c: any) => {
           const d = String(c.description || '').toLowerCase();
