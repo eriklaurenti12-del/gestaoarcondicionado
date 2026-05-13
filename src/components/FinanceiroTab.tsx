@@ -86,6 +86,7 @@ export default function FinanceiroTab() {
   const [reconcileResult, setReconcileResult] = useState<ReconcileResult | null>(null);
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
