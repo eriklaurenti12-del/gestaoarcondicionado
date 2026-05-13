@@ -206,6 +206,7 @@ const AppointmentsTab: React.FC = () => {
   const [completionFeedback, setCompletionFeedback] = useState("");
   const [nextMaintenanceDate, setNextMaintenanceDate] = useState("");
   const [customPrice, setCustomPrice] = useState("");
+  const [convertContractAppointment, setConvertContractAppointment] = useState<Appointment | null>(null);
 
   // Edit state
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
