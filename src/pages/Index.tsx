@@ -180,10 +180,12 @@ export default function Index() {
         const legacy = localStorage.getItem(`ac_onboarding_completed_${user.id}`);
         if (!tourDone && !legacy) setShowOnboarding(true);
         
-        // Auto-reparo único de lançamentos antigos (idempotente, anti-duplicata)
-        const repairFlag = `auto_repair_done_v2_${user.id}`;
+        // Auto-reparo único por versão (mesma versão do popup do Financeiro).
+        // Roda 1x por usuário por versão; quando subimos uma nova correção, roda de novo só uma vez.
+        const { FINANCE_POPUP_VERSION } = await import('@/components/FinanceiroUpdatePopup');
+        const repairFlag = `auto_repair_${FINANCE_POPUP_VERSION}_${user.id}`;
         if (!localStorage.getItem(repairFlag)) {
-          localStorage.setItem(repairFlag, '1');
+          localStorage.setItem(repairFlag, '1'); // marca antes para impedir loop em re-renders
           (async () => {
             try {
               const { repairMissingFinancialRecords } = await import('@/utils/recurringSync');
@@ -192,7 +194,7 @@ export default function Index() {
               queryClient.invalidateQueries({ refetchType: 'active' });
             } catch (e) {
               console.warn('[Index] auto-repair failed', e);
-              localStorage.removeItem(repairFlag);
+              localStorage.removeItem(repairFlag); // libera retry no próximo login se falhar
             }
           })();
         }
