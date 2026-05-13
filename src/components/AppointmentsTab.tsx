@@ -173,6 +173,7 @@ const AppointmentsTab: React.FC = () => {
 };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
   const [filterMonth, setFilterMonth] = useState<string>(String(new Date().getMonth() + 1));
+  const [aiOpen, setAiOpen] = useState(false);
   const [filterYear, setFilterYear] = useState<string>(String(new Date().getFullYear()));
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar' | 'board'>('list');
