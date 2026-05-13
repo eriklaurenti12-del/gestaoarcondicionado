@@ -88,6 +88,16 @@ export default function FinanceiroTab() {
   const [reconcileDialogOpen, setReconcileDialogOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
+  const [hideOriginLegend, setHideOriginLegend] = useState<boolean>(() => {
+    try { return localStorage.getItem('fin_hide_origin_legend') === '1'; } catch { return false; }
+  });
+  const toggleOriginLegend = () => {
+    setHideOriginLegend(prev => {
+      const next = !prev;
+      try { localStorage.setItem('fin_hide_origin_legend', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  };
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
