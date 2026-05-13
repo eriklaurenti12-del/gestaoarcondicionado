@@ -25,3 +25,6 @@ verify_jwt = false
 
 [functions.create-fake-user]
 verify_jwt = false
+
+[functions.financial-ai-assistant]
+verify_jwt = false
