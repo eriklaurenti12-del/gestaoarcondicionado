@@ -181,6 +181,12 @@ export default function Index() {
         localStorage.setItem('current_user_id', user.id);
         setCurrentUserId(user.id);
 
+        // Auto-purga lixeira financeira de meses anteriores (1x por mês)
+        try {
+          const { autoPurgeOnMonthChange } = await import('@/utils/financialTrash');
+          autoPurgeOnMonthChange(user.id);
+        } catch { /* ignore */ }
+
         // Pré-aquece o endpoint da agenda online para abrir instantâneo
         try {
           const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
