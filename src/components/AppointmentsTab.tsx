@@ -151,14 +151,22 @@ const AppointmentsTab: React.FC = () => {
 
   const getAppointmentPrice = (appointment: any): number => {
   if (!appointment) return 0;
-  
-  // Try to get price from notes tag [VALOR:XXX.XX]
+
+  // 1) Tag explícita [VALOR:XXX.XX] (preferida — gravada na criação)
   if (appointment.notes) {
-    const match = appointment.notes.match(/\[VALOR:([\d.]+)\]/);
-    if (match) return parseFloat(match[1]);
+    const tag = appointment.notes.match(/\[VALOR:([\d.]+)\]/);
+    if (tag) return parseFloat(tag[1]);
+
+    // 2) Fallback retro-compatível: agendamentos antigos vindos de Orçamento/Pedido
+    //    têm "Total: R$ 1.234,56" no texto livre. Extrai e usa esse valor.
+    const tot = appointment.notes.match(/Total:\s*R\$\s*([\d.,]+)/i);
+    if (tot) {
+      const num = parseFloat(tot[1].replace(/\./g, '').replace(',', '.'));
+      if (!isNaN(num) && num > 0) return num;
+    }
   }
-  
-  // Fallback to product price
+
+  // 3) Último fallback: preço do produto/serviço cadastrado
   return Number(appointment.products?.price) || 0;
 };
   const [filterStatus, setFilterStatus] = useState<string>("todos");
@@ -649,9 +657,19 @@ const AppointmentsTab: React.FC = () => {
       fullNotes = `[PRESTADOR:${selectedProvider}]\n${fullNotes}`.trim();
     }
     
-    // Add value tag if custom price is set
+    // Add value tag — sempre que vier de orçamento/pedido OU se houver customPrice.
+    // Isso garante que o card da agenda mostre o valor (não "A combinar") e que a
+    // baixa lance o valor correto no Financeiro.
+    let valueForTag: number | null = null;
     if (customPrice) {
-      fullNotes = `[VALOR:${customPrice}]\n${fullNotes}`.trim();
+      valueForTag = parseFloat(customPrice);
+    } else if (sourceType === 'quote' && selectedQuote) {
+      valueForTag = Number(selectedQuote.total) || null;
+    } else if (sourceType === 'order' && selectedOrder) {
+      valueForTag = Number(selectedOrder.total) || null;
+    }
+    if (valueForTag && valueForTag > 0) {
+      fullNotes = `[VALOR:${valueForTag.toFixed(2)}]\n${fullNotes}`.trim();
     }
 
     const installmentAmount = selectedTotal / installments;
