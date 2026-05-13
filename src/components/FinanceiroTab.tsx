@@ -1280,12 +1280,16 @@ export default function FinanceiroTab() {
           <CardHeader className="p-3 pb-1">
             <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-teal-500 flex-shrink-0" />
-              <span className="truncate">Contratos/Outras</span>
+              <span className="truncate">Contratos</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 pt-0">
-            <p className="text-sm sm:text-lg font-bold text-teal-600 truncate">{formatCurrency(totalOutrasEntradas)}</p>
-            <p className="text-[9px] text-muted-foreground mt-0.5">Mensalidades/manuais</p>
+            <p className="text-sm sm:text-lg font-bold text-teal-600 truncate" title="Apenas mensalidades de contratos recorrentes">{formatCurrency(totalContratos)}</p>
+            {totalManuaisOutras > 0 ? (
+              <p className="text-[9px] text-muted-foreground mt-0.5" title="Recebimentos avulsos digitados manualmente (não são contratos)">+ {formatCurrency(totalManuaisOutras)} em outras entradas manuais</p>
+            ) : (
+              <p className="text-[9px] text-muted-foreground mt-0.5">Mensalidades recorrentes</p>
+            )}
           </CardContent>
         </Card>
 
