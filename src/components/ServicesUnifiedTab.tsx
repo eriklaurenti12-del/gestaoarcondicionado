@@ -75,6 +75,7 @@ const ServicesUnifiedTab: React.FC = () => {
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
   const [contractSearch, setContractSearch] = useState('');
   const [contractFilterStatus, setContractFilterStatus] = useState<string>('all');
+  const [aiOpen, setAiOpen] = useState(false);
   
   // Month navigation
   const [selectedMonth, setSelectedMonth] = useState(new Date());
