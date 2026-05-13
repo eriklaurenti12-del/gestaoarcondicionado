@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
 import { Checkbox } from "@/components/ui/checkbox";
 import TabGuideCards from './TabGuideCards';
+import { useFinanceLegendHidden } from '@/hooks/useFinanceLegendHidden';
 import FinanceiroUpdatePopup from './FinanceiroUpdatePopup';
 import FinanceLastRepairBadge from './FinanceLastRepairBadge';
 import { useToast } from "@/hooks/use-toast";
