@@ -1,30 +1,41 @@
 import { useEffect, useState } from "react";
+import { getUserPref, setUserPref } from "@/utils/userPreferences";
 
-const KEY = "fin_hide_origin_legend";
+const PREF_KEY = "finance_hide_origin_legend"; // saved in profiles.preferences
 const EVT = "fin-hide-legend-change";
 
 export function useFinanceLegendHidden(): [boolean, () => void] {
+  // Optimistic initial value from localStorage mirror to avoid flicker.
   const [hidden, setHidden] = useState<boolean>(() => {
-    try { return localStorage.getItem(KEY) === "1"; } catch { return false; }
+    try { return localStorage.getItem(`pref_${PREF_KEY}`) === "true"; } catch { return false; }
   });
 
+  // Hydrate from per-user profile preference (cross-device).
   useEffect(() => {
-    const sync = () => {
-      try { setHidden(localStorage.getItem(KEY) === "1"); } catch {}
+    let cancelled = false;
+    (async () => {
+      const v = await getUserPref<boolean>(PREF_KEY);
+      if (!cancelled && typeof v === "boolean") setHidden(v);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Sync between tabs/components in same session.
+  useEffect(() => {
+    const sync = (e: Event) => {
+      const ce = e as CustomEvent<boolean>;
+      if (typeof ce.detail === "boolean") setHidden(ce.detail);
     };
-    window.addEventListener(EVT, sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener(EVT, sync);
-      window.removeEventListener("storage", sync);
-    };
+    window.addEventListener(EVT, sync as EventListener);
+    return () => window.removeEventListener(EVT, sync as EventListener);
   }, []);
 
   const toggle = () => {
     setHidden(prev => {
       const next = !prev;
-      try { localStorage.setItem(KEY, next ? "1" : "0"); } catch {}
-      window.dispatchEvent(new Event(EVT));
+      // Persist per-user (DB) + local mirror, broadcast to siblings.
+      setUserPref(PREF_KEY, next);
+      window.dispatchEvent(new CustomEvent(EVT, { detail: next }));
       return next;
     });
   };

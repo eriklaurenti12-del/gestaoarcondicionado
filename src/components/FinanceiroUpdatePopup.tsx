@@ -8,21 +8,21 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 // IMPORTANT: bump this whenever you ship a new financial fix the user must see.
-export const FINANCE_POPUP_VERSION = "2026-05-13.1";
+export const FINANCE_POPUP_VERSION = "2026-05-13.2";
 
 const NOTES = [
-  "Reparo automático de lançamentos antigos sem duplicar (vincula o manual existente em vez de criar outro).",
-  "Agendamentos vindos de Orçamento agora geram entrada com o valor do orçamento.",
-  "Vendas órfãs (PDV) são reconectadas automaticamente.",
-  "Painel de Auditoria mostra tudo que foi corrigido (data, mês e contadores).",
-  "Sincronização instantânea: Agenda e Dashboard atualizam sem precisar dar F5.",
+  "Nova etiqueta Origem em cada lançamento: Auto (vem de agendamento/PDV/contrato) ou Manual (digitado por você).",
+  "Filtro Todos / Manuais / Automáticos no topo da tabela para enxergar separado o que entrou sozinho.",
+  "Tooltip detalhado no badge mostra de onde veio o lançamento e se está vinculado a agendamento ou venda.",
+  "Botão Ocultar legenda ao lado da Ajuda — sua preferência agora é salva por usuário (não mistura entre dispositivos compartilhados).",
+  "Reparo automático e anti-duplicata continuam ativos: nada é duplicado mesmo rodando várias vezes.",
 ];
 
 const STEPS = [
   "Confirme o mês selecionado no topo do Financeiro.",
-  "Clique em \"Reparar lançamentos faltantes\" se vir agendamentos concluídos sem entrada.",
-  "Veja no Painel de Auditoria o que foi corrigido (vinculados, criados, duplicados removidos).",
-  "Se algum valor parecer divergente, edite o lançamento manual; o reparo nunca duplica.",
+  "Use o filtro Todos / Manuais / Automáticos para revisar cada origem.",
+  "Passe o mouse no badge Auto/Manual para ver o detalhe da origem.",
+  "Se quiser interface mais limpa, clique em Ocultar legenda — sua escolha fica salva no seu usuário.",
 ];
 
 interface RecentRecon {
