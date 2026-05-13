@@ -246,7 +246,16 @@ export async function repairMissingFinancialRecords(
       const clientName = (apt as any).clients?.name || 'Cliente';
       const notes: string = (apt as any).notes || '';
 
-      // Fallback: agendamentos vindos de Orçamento (sem service_id)
+      // Fallback 1: tag [VALOR:X] gravada nas notas (formato novo)
+      if (price <= 0) {
+        const mv = notes.match(/\[VALOR:\s*([\d.,]+)\s*\]/i);
+        if (mv) {
+          const n = parseFloat(mv[1].replace(/\./g, '').replace(',', '.'));
+          if (!isNaN(n) && n > 0) price = n;
+        }
+      }
+
+      // Fallback 2: agendamentos vindos de Orçamento (sem service_id)
       // — tenta resolver preço/título a partir de quotes #N nas notas.
       if (price <= 0) {
         const m = notes.match(/Or[çc]amento\s*#\s*(\d+)/i);
@@ -262,6 +271,15 @@ export async function repairMissingFinancialRecords(
             price = Number(q.total);
             if (q.title) serviceName = q.title;
           }
+        }
+      }
+
+      // Fallback 3: texto livre "Total: R$ 1.234,56" nas notas (legado)
+      if (price <= 0) {
+        const mt = notes.match(/Total:\s*R\$\s*([\d.,]+)/i);
+        if (mt) {
+          const n = parseFloat(mt[1].replace(/\./g, '').replace(',', '.'));
+          if (!isNaN(n) && n > 0) price = n;
         }
       }
 

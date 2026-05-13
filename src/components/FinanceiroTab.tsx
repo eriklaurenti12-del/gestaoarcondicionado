@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { recordFinancialEntry } from '@/utils/financialHelpers';
-import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, type ReconcileResult } from '@/utils/recurringSync';
+import { reconcileFinancialMonth, ensureMonthlyRecurringExpenses, repairMissingFinancialRecords, type ReconcileResult } from '@/utils/recurringSync';
 import { Plus, TrendingUp, TrendingDown, Wallet, Trash2, Loader2, DollarSign, CreditCard, Banknote, QrCode, FileDown, Receipt, Target, Fuel, RefreshCw, Wrench, Package, Info, CheckCircle2, Calculator, BarChart3, Utensils, FileSpreadsheet, HelpCircle, Sparkles, Eye, EyeOff } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { buildMonthDataset, buildMonthCsv, downloadCsv, DEFAULT_CSV_FILTERS, type CsvFilters } from '@/utils/financialExport';
@@ -90,6 +90,34 @@ export default function FinanceiroTab() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [originFilter, setOriginFilter] = useState<'todos' | 'manual' | 'auto'>('manual');
   const [hideOriginLegend, toggleOriginLegend] = useFinanceLegendHidden();
+  const [reprocessing, setReprocessing] = useState(false);
+
+  const handleReprocessOldAppointments = async () => {
+    if (reprocessing) return;
+    setReprocessing(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const uid = sess.session?.user.id;
+      if (!uid) throw new Error('Sessão expirada');
+      // Varre últimos 24 meses para pegar agendamentos antigos sem [VALOR:]
+      const since = new Date(Date.now() - 730 * 24 * 60 * 60 * 1000).toISOString();
+      const r = await repairMissingFinancialRecords(uid, since);
+      const total = r.appointmentsRepaired + r.salesRepaired;
+      toast({
+        title: total > 0 ? '✅ Reprocessamento concluído' : 'Nada a reprocessar',
+        description: total > 0
+          ? `${r.appointmentsRepaired} agendamento(s) e ${r.salesRepaired} venda(s) lançados. ${r.skipped} já estavam ok.`
+          : `Todos os agendamentos antigos já têm lançamento. ${r.skipped} verificados.`,
+      });
+      // Atualiza tudo (popup, listas, dashboard)
+      queryClient.invalidateQueries({ refetchType: 'active' });
+      try { window.dispatchEvent(new CustomEvent('financial-data-updated')); } catch {}
+    } catch (e: any) {
+      toast({ title: 'Erro ao reprocessar', description: e.message || String(e), variant: 'destructive' });
+    } finally {
+      setReprocessing(false);
+    }
+  };
 
   // Histórico de conferências (checklist concluído) salvo localmente.
   // Cada item: { month, date, matched, saldo, totalEntradas, totalDespesas }
@@ -1020,6 +1048,17 @@ export default function FinanceiroTab() {
             >
               {hideOriginLegend ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
               <span className="hidden sm:inline ml-1">{hideOriginLegend ? 'Mostrar legenda' : 'Ocultar legenda'}</span>
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReprocessOldAppointments}
+              disabled={reprocessing}
+              className="border-blue-500/30 text-blue-600 hover:bg-blue-500/10"
+              title="Lê agendamentos antigos (sem [VALOR:]) e cria os lançamentos faltantes no Financeiro. Idempotente: não duplica."
+            >
+              {reprocessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Wrench className="h-4 w-4" />}
+              <span className="hidden sm:inline ml-1">{reprocessing ? 'Reprocessando…' : 'Reprocessar antigos'}</span>
             </Button>
             <Button
               variant="outline"
