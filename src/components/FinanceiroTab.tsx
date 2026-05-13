@@ -2466,6 +2466,44 @@ export default function FinanceiroTab() {
           </div>
         </DialogContent>
       </Dialog>
+      <FinancialTrashDialog
+        open={trashOpen}
+        onOpenChange={setTrashOpen}
+        userId={currentUserId}
+        onRestored={() => { fetchRecords(); refetchSales(); }}
+      />
+      <EditFinancialRecordDialog
+        open={!!editTarget}
+        onOpenChange={(v) => { if (!v) setEditTarget(null); }}
+        record={editTarget}
+        onSaved={() => { fetchRecords(); }}
+      />
+      <DeleteWithReasonDialog
+        open={!!deletePrompt}
+        onOpenChange={(v) => { if (!v) setDeletePrompt(null); }}
+        title={
+          deletePrompt?.kind === "salesMonth"
+            ? `Excluir TODAS as ${sales?.length || 0} vendas de ${selectedMonth}?`
+            : deletePrompt?.kind === "sale"
+            ? `Excluir esta venda?`
+            : "Excluir lançamento?"
+        }
+        description={
+          deletePrompt?.kind === "salesMonth"
+            ? "Os lançamentos vinculados também serão removidos. Tudo vai para a Lixeira e pode ser restaurado em até 30 dias."
+            : deletePrompt && "title" in deletePrompt
+            ? `Item: ${deletePrompt.title}. Vai para a Lixeira e pode ser restaurado em até 30 dias (Desfazer disponível por 8s).`
+            : undefined
+        }
+        confirmLabel={deletePrompt?.kind === "salesMonth" ? "Excluir todas" : "Excluir"}
+        onConfirm={async (reason) => {
+          if (!deletePrompt) return;
+          if (deletePrompt.kind === "record") await performDeleteRecord(deletePrompt.id, reason);
+          else if (deletePrompt.kind === "sale") await performDeleteSale(deletePrompt.saleId, reason);
+          else if (deletePrompt.kind === "salesMonth") await performDeleteAllSalesOfMonth(reason);
+          setDeletePrompt(null);
+        }}
+      />
     </div>
   );
 }
