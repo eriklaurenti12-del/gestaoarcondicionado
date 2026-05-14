@@ -542,10 +542,9 @@ export default function FinanceiroTab() {
         queryClient.invalidateQueries({ queryKey: ['sales-financial', selectedMonth] });
       } catch (e) {
         console.warn('auto-reconcile failed', e);
-        try {
-          await ensureMonthlyRecurringExpenses(session.user.id, selectedMonth);
-          queryClient.invalidateQueries({ queryKey: ['fixed-expenses'] });
-        } catch {}
+        // 🛡️ Não chamar ensureMonthlyRecurringExpenses aqui: re-injetava
+        // receitas de contrato (auto:contract:) e despesas auto, alterando
+        // valores que a usuária acabou de lançar. Sync real só via botão.
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
