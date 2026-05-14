@@ -497,6 +497,30 @@ export async function reconcileFinancialMonth(
   const monthEnd = new Date(yr, mo, 0);
   const monthEndIso = `${monthEnd.toISOString().slice(0, 10)}T23:59:59.999Z`;
 
+  // 🛡️ MODO AUTO: estritamente não-destrutivo.
+  // Antes este caminho deletava financial_records cujo appointment_id não
+  // estava 'concluido' — apagando lançamentos manuais que a usuária tinha
+  // acabado de criar (bug relatado pela Bruna/Excelência: valores mudavam
+  // sozinhos depois do logout/login). E ainda re-injetava receitas de
+  // contrato, dobrando valores. Em 'auto' agora só retornamos um resultado
+  // vazio; reconciliação real só roda em 'manual' (botão da aba).
+  if (triggeredBy === 'auto') {
+    return {
+      orphanSales: 0,
+      orphanRecords: 0,
+      dupRecords: 0,
+      dupSales: 0,
+      insertedRecurring: 0,
+      details: {
+        orphanSaleIds: [],
+        orphanRecordIds: [],
+        dupRecordIds: [],
+        dupSaleIds: [],
+        insertedRecurringRows: [],
+      },
+    };
+  }
+
   // a) Pull current month sales and records linked to appointments
   const [{ data: monthSales }, { data: monthRecords }] = await Promise.all([
     supabase.from('sales').select('id, appointment_id, sale_date, sale_price')
