@@ -332,29 +332,40 @@ export async function repairMissingFinancialRecords(
 
       if (price <= 0) { result.skipped++; continue; }
 
-      // ANTI-DUPLICATA: procura lançamento manual já existente
-      // (mesmo user, mesmo valor, ±2 dias da data, sem appointment_id/sale_id)
-      // — se achar, apenas vincula o appointment_id em vez de criar novo.
+      // ANTI-DUPLICATA (reforçada): procura lançamento manual já existente
+      // dentro de ±3 dias com valor exato OU dentro de 5% do preço.
+      // Se achar, vincula o appointment_id em vez de criar novo —
+      // independente do texto da descrição (cliente costuma abreviar nomes).
       try {
         const aptDate = new Date(apt.appointment_date);
-        const dStart = new Date(aptDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
-        const dEnd = new Date(aptDate.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString();
+        const dStart = new Date(aptDate.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+        const dEnd = new Date(aptDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString();
+        const tol = Math.max(1, price * 0.05); // 5% de tolerância (ex: 1400 ~ 1404)
         const { data: candidates } = await supabase
           .from('financial_records')
-          .select('id, description, appointment_id, sale_id')
+          .select('id, description, appointment_id, sale_id, amount')
           .eq('user_id', userId)
           .eq('type', 'entrada')
-          .eq('amount', price)
           .is('appointment_id', null)
+          .is('sale_id', null)
+          .gte('amount', price - tol)
+          .lte('amount', price + tol)
           .gte('record_date', dStart)
           .lte('record_date', dEnd)
-          .limit(10);
+          .limit(20);
 
-        const matched = (candidates || []).find((c: any) => {
+        // Prioriza match por nome do cliente/serviço; se não houver,
+        // pega o candidato mais próximo em valor (vincula em vez de duplicar).
+        const lowerClient = String(clientName).toLowerCase();
+        const lowerService = String(serviceName).toLowerCase().slice(0, 8);
+        const byText = (candidates || []).find((c: any) => {
           const d = String(c.description || '').toLowerCase();
-          return d.includes(String(clientName).toLowerCase()) ||
-                 d.includes(String(serviceName).toLowerCase().slice(0, 12));
-        }) || (candidates && candidates.length === 1 ? candidates[0] : null);
+          return d.includes(lowerClient) || (lowerService && d.includes(lowerService));
+        });
+        const byClosest = (candidates || []).slice().sort(
+          (a: any, b: any) => Math.abs(Number(a.amount) - price) - Math.abs(Number(b.amount) - price)
+        )[0];
+        const matched = byText || byClosest;
 
         if (matched) {
           const { error: upErr } = await supabase
