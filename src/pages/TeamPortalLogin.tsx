@@ -30,6 +30,8 @@ type PortalSession = {
   role: string;
   ownerId: string;
   permissions?: string[] | null;
+  token?: string;
+  expiresAt?: number;
 };
 
 export default function TeamPortalLogin() {
