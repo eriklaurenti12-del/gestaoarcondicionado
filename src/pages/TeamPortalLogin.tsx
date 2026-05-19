@@ -295,7 +295,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2).toISOString();
     
     const { data, error } = await supabase.functions.invoke('team-portal-data', {
-      body: { owner_id: session.ownerId, member_id: session.memberId, type, start, end, ...extra }
+      body: { owner_id: session.ownerId, member_id: session.memberId, token: session.token, type, start, end, ...extra }
     });
     if (error) throw error;
     return data;
