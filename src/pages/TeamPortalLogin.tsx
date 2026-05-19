@@ -30,6 +30,8 @@ type PortalSession = {
   role: string;
   ownerId: string;
   permissions?: string[] | null;
+  token?: string;
+  expiresAt?: number;
 };
 
 export default function TeamPortalLogin() {
@@ -79,6 +81,8 @@ export default function TeamPortalLogin() {
         role: data.role,
         ownerId: data.owner_id,
         permissions: Array.isArray(data.permissions) ? data.permissions : null,
+        token: data.token,
+        expiresAt: data.expires_at,
       };
 
       sessionStorage.setItem('portal_session', JSON.stringify(portalSession));
@@ -291,7 +295,7 @@ function PortalDashboard({ session, onLogout }: { session: PortalSession; onLogo
     const end = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2).toISOString();
     
     const { data, error } = await supabase.functions.invoke('team-portal-data', {
-      body: { owner_id: session.ownerId, member_id: session.memberId, type, start, end, ...extra }
+      body: { owner_id: session.ownerId, member_id: session.memberId, token: session.token, type, start, end, ...extra }
     });
     if (error) throw error;
     return data;

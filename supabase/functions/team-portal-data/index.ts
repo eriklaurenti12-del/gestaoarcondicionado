@@ -5,6 +5,44 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function b64urlDecode(s: string): Uint8Array {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  while (s.length % 4) s += '=';
+  const bin = atob(s);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function verifySessionToken(token: string): Promise<{ member_id: string; owner_id: string; role: string } | null> {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const secret = Deno.env.get('TEAM_PORTAL_JWT_SECRET') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+    const sigBytes = b64urlDecode(parts[2]);
+    const ok = await crypto.subtle.verify(
+      'HMAC',
+      key,
+      sigBytes,
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
+    );
+    if (!ok) return null;
+    const payload = JSON.parse(new TextDecoder().decode(b64urlDecode(parts[1])));
+    if (typeof payload.exp === 'number' && payload.exp * 1000 < Date.now()) return null;
+    if (!payload.member_id || !payload.owner_id) return null;
+    return { member_id: payload.member_id, owner_id: payload.owner_id, role: payload.role };
+  } catch {
+    return null;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,7 +50,21 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { owner_id, member_id, type, start, end } = body;
+    let { owner_id, member_id, type, start, end } = body;
+    const token = body.token || req.headers.get('x-portal-token') || '';
+
+    // Prefer signed JWT when provided; falls back to legacy id-pair for backward compatibility.
+    if (token) {
+      const claims = await verifySessionToken(token);
+      if (!claims) {
+        return new Response(JSON.stringify({ error: 'Sessão expirada. Faça login novamente.' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      // Override body ids with verified claims — never trust body when token present.
+      member_id = claims.member_id;
+      owner_id = claims.owner_id;
+    }
 
     if (!owner_id || !member_id) {
       return new Response(JSON.stringify({ error: 'IDs obrigatórios' }), {
@@ -24,6 +76,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
 
     // Verify the member exists and is active
     const { data: member } = await supabase

@@ -8,6 +8,31 @@ const corsHeaders = {
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MINUTES = 15;
 const GENERIC_ERROR = 'Credenciais inválidas';
+const TOKEN_TTL_SECONDS = 8 * 60 * 60; // 8h
+
+function b64url(input: Uint8Array | string): string {
+  const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : input;
+  let str = '';
+  for (const b of bytes) str += String.fromCharCode(b);
+  return btoa(str).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+async function signSessionToken(payload: Record<string, unknown>): Promise<string> {
+  const secret = Deno.env.get('TEAM_PORTAL_JWT_SECRET') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const headerB64 = b64url(JSON.stringify(header));
+  const payloadB64 = b64url(JSON.stringify(payload));
+  const data = `${headerB64}.${payloadB64}`;
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data)));
+  return `${data}.${b64url(sig)}`;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -96,12 +121,24 @@ Deno.serve(async (req) => {
       last_attempt_at: new Date().toISOString(),
     }, { onConflict: 'member_id' });
 
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signSessionToken({
+      sub: match.id,
+      member_id: match.id,
+      owner_id: match.user_id,
+      role: match.role,
+      iat: now,
+      exp: now + TOKEN_TTL_SECONDS,
+    });
+
     return new Response(JSON.stringify({
       member_id: match.id,
       member_name: match.name,
       role: match.role,
       owner_id: match.user_id,
       permissions: (match as any).permissions || null,
+      token,
+      expires_at: (now + TOKEN_TTL_SECONDS) * 1000,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
