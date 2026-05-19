@@ -208,43 +208,11 @@ const ServicesUnifiedTab: React.FC = () => {
       toast.success('Contrato criado com sucesso!');
       setContractDialogOpen(false);
       resetContractForm();
-    },
-    onError: (error: any) => toast.error(error.message)
-  });
-
-  const updateContractMutation = useMutation({
-    mutationFn: async (data: typeof contractFormData) => {
-      if (!editingContractId) throw new Error('ID do contrato ausente');
-      const extraData = {
-        responsibleName: data.responsibleName, responsibleCpf: data.responsibleCpf,
-        responsiblePhone: data.responsiblePhone, responsibleRg: data.responsibleRg,
-        equipmentBrand: data.equipmentBrand, equipmentModel: data.equipmentModel,
-        equipmentBtus: data.equipmentBtus, equipmentLocation: data.equipmentLocation,
-        serviceAddress: data.serviceAddress, paymentMethod: data.paymentMethod,
-        contractType: data.contractType, equipmentCount: data.equipmentCount,
-        serviceType: data.serviceType,
-      };
-      const enrichedNotes = JSON.stringify({ userNotes: data.notes || '', ...extraData });
-      const { error } = await supabase.from('maintenance_contracts').update({
-        client_id: parseInt(data.clientId),
-        title: data.title, description: data.description || null,
-        start_date: data.startDate, end_date: data.endDate || null,
-        cleaning_interval_months: parseInt(data.intervalMonths),
-        monthly_value: parseFloat(data.monthlyValue) || 0,
-        notes: enrichedNotes
-      }).eq('id', editingContractId);
-      
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
-      toast.success('Contrato criado com sucesso!');
-      setContractDialogOpen(false);
-      resetContractForm();
       syncContractToFinance(queryClient);
     },
     onError: (error: any) => toast.error(error.message)
   });
+
 
   const updateContractMutation = useMutation({
     mutationFn: async (data: typeof contractFormData) => {
