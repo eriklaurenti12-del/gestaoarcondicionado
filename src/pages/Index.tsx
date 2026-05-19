@@ -237,9 +237,11 @@ export default function Index() {
           })();
         }
 
+        clearTimeout(safetyTimeout);
         setLoading(false);
       } catch (error) {
         console.error('[Index] Auth check error:', error);
+        clearTimeout(safetyTimeout);
         if (mounted) {
           setLoading(false);
           navigate("/");
@@ -250,6 +252,7 @@ export default function Index() {
     checkAuth();
     return () => { 
       mounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe(); 
     };
   }, [navigate, queryClient]);
