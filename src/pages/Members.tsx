@@ -55,7 +55,7 @@ type TeamMember = {
   id: string;
   name: string;
   phone: string | null;
-  pin: string;
+  pin?: string;
   role: string;
   is_active: boolean;
   created_at: string;

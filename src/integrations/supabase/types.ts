@@ -1473,7 +1473,6 @@ export type Database = {
           name: string
           permissions: Json | null
           phone: string | null
-          pin: string | null
           pin_hash: string | null
           role: string
           updated_at: string
@@ -1489,7 +1488,6 @@ export type Database = {
           name: string
           permissions?: Json | null
           phone?: string | null
-          pin?: string | null
           pin_hash?: string | null
           role?: string
           updated_at?: string
@@ -1505,7 +1503,6 @@ export type Database = {
           name?: string
           permissions?: Json | null
           phone?: string | null
-          pin?: string | null
           pin_hash?: string | null
           role?: string
           updated_at?: string
