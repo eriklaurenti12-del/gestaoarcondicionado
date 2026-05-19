@@ -168,6 +168,30 @@ async function detectPlanFromMapping(supabase: any, platform: string, payload: a
   return null;
 }
 
+async function verifyHmac(secret: string, body: string, signature: string): Promise<boolean> {
+  try {
+    const key = await crypto.subtle.importKey(
+      'raw',
+      new TextEncoder().encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(body));
+    const expected = Array.from(new Uint8Array(sigBuf))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+    const provided = signature.trim().toLowerCase().replace(/^sha256=/, '');
+    // constant-time-ish compare
+    if (provided.length !== expected.length) return false;
+    let diff = 0;
+    for (let i = 0; i < expected.length; i++) diff |= expected.charCodeAt(i) ^ provided.charCodeAt(i);
+    return diff === 0;
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -179,6 +203,38 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const bodyText = await req.text();
+
+    // ═══ HMAC / SHARED-SECRET VERIFICATION (opt-in via WEBHOOK_SECRET) ═══
+    // Backward-compatible: if WEBHOOK_SECRET is not set, skip verification.
+    // If set, require either:
+    //   1. Header `x-webhook-signature: sha256=<hex hmac of raw body>`, OR
+    //   2. Query param `?secret=<WEBHOOK_SECRET>` (shared-secret fallback for platforms that don't sign).
+    // GET/ping requests with empty body bypass verification (for connection tests).
+    const webhookSecret = Deno.env.get('WEBHOOK_SECRET');
+    if (webhookSecret && bodyText && bodyText.trim() !== '') {
+      const url = new URL(req.url);
+      const querySecret = url.searchParams.get('secret');
+      const signature =
+        req.headers.get('x-webhook-signature') ||
+        req.headers.get('x-signature') ||
+        req.headers.get('x-hub-signature-256') ||
+        '';
+
+      let authorized = false;
+      if (querySecret && querySecret === webhookSecret) {
+        authorized = true;
+      } else if (signature) {
+        authorized = await verifyHmac(webhookSecret, bodyText, signature);
+      }
+
+      if (!authorized) {
+        console.warn('🚫 Webhook rejected: missing or invalid signature/secret');
+        return new Response(
+          JSON.stringify({ success: false, error: 'Unauthorized: invalid or missing webhook signature' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     
     if (!bodyText || bodyText.trim() === '') {
       return new Response(
