@@ -138,10 +138,21 @@ export default function Index() {
   useEffect(() => {
     let mounted = true;
 
+    // SAFETY TIMEOUT: se em 10s ainda estiver carregando, libera o usuário
+    // para a tela de login (evita "Iniciando painel..." travado pra sempre
+    // quando a rede falha ou o refresh token expirou no app desktop)
+    const safetyTimeout = setTimeout(() => {
+      if (!mounted) return;
+      console.warn('[Index] Safety timeout — liberando loading e redirecionando para /');
+      setLoading(false);
+      navigate('/');
+    }, 10000);
+
     // Check for recovery tokens in URL hash
     const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
     if (accessToken) {
+      clearTimeout(safetyTimeout);
       navigate(`/reset-password${window.location.hash}`);
       return;
     }
