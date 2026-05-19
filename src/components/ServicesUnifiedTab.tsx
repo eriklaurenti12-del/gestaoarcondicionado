@@ -25,6 +25,40 @@ import {
 import FinancialAIAssistant, { type AISnapshot } from './FinancialAIAssistant';
 import TabGuideCards from './TabGuideCards';
 import { recordFinancialEntry } from '@/utils/financialHelpers';
+import type { QueryClient } from '@tanstack/react-query';
+
+// 🔄 Sincronização automática do lançamento mensal "auto:contract:<id>" no Financeiro
+// sempre que um contrato é criado/editado/excluído — para o usuário não precisar
+// mais clicar em "Sincronizar Contratos". Cirúrgico: só mexe em linhas tagueadas.
+async function syncContractToFinance(
+  qc: QueryClient,
+  opts?: { removeContractId?: string }
+) {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (opts?.removeContractId) {
+      const monthStart = `${ym}-01`;
+      const [yr, mo] = ym.split('-').map(Number);
+      const monthEndIso = new Date(yr, mo, 0).toISOString().slice(0, 10) + 'T23:59:59.999Z';
+      await supabase.from('financial_records').delete()
+        .eq('user_id', user.id)
+        .eq('type', 'entrada')
+        .ilike('description', `auto:contract:${opts.removeContractId}%`)
+        .gte('record_date', monthStart)
+        .lte('record_date', monthEndIso);
+    }
+    const { ensureMonthlyRecurringExpenses } = await import('@/utils/recurringSync');
+    await ensureMonthlyRecurringExpenses(user.id, ym);
+    qc.invalidateQueries({ queryKey: ['financial_records'] });
+    qc.invalidateQueries({ queryKey: ['financial-records'] });
+    qc.invalidateQueries({ queryKey: ['fixed-expenses'] });
+  } catch (e) {
+    console.warn('auto contract sync failed', e);
+  }
+}
 
 // ============================================================
 // TYPES
@@ -174,9 +208,11 @@ const ServicesUnifiedTab: React.FC = () => {
       toast.success('Contrato criado com sucesso!');
       setContractDialogOpen(false);
       resetContractForm();
+      syncContractToFinance(queryClient);
     },
     onError: (error: any) => toast.error(error.message)
   });
+
 
   const updateContractMutation = useMutation({
     mutationFn: async (data: typeof contractFormData) => {
@@ -207,6 +243,7 @@ const ServicesUnifiedTab: React.FC = () => {
       toast.success('Contrato atualizado com sucesso!');
       setContractDialogOpen(false);
       resetContractForm();
+      syncContractToFinance(queryClient);
     },
     onError: (error: any) => toast.error(error.message)
   });
@@ -215,10 +252,12 @@ const ServicesUnifiedTab: React.FC = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('maintenance_contracts').delete().eq('id', id);
       if (error) throw error;
+      return id;
     },
-    onSuccess: () => {
+    onSuccess: (id) => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
       toast.success('Contrato excluído!');
+      syncContractToFinance(queryClient, { removeContractId: id });
     }
   });
 
@@ -233,6 +272,7 @@ const ServicesUnifiedTab: React.FC = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
       toast.success('Contrato renovado por mais 1 ano!');
+      syncContractToFinance(queryClient);
     }
   });
 

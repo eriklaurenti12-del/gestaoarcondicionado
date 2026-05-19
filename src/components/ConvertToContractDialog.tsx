@@ -114,6 +114,20 @@ export default function ConvertToContractDialog({ open, onOpenChange, appointmen
       }
 
       queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
+
+      // 🔄 Sincroniza imediatamente o lançamento mensal do contrato no Financeiro,
+      // sem o usuário precisar clicar em "Sincronizar Contratos".
+      try {
+        const now = new Date();
+        const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const { ensureMonthlyRecurringExpenses } = await import('@/utils/recurringSync');
+        await ensureMonthlyRecurringExpenses(appointment.user_id, ym);
+        queryClient.invalidateQueries({ queryKey: ['financial_records'] });
+        queryClient.invalidateQueries({ queryKey: ['financial-records'] });
+      } catch (e) {
+        console.warn('auto contract sync failed', e);
+      }
+
       toast.success('Cliente convertido em contrato recorrente! Histórico preservado.');
       onOpenChange(false);
     } catch (e: any) {
