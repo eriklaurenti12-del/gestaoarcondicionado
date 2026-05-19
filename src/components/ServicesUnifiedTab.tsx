@@ -180,27 +180,18 @@ const ServicesUnifiedTab: React.FC = () => {
         serviceType: data.serviceType,
       };
       const enrichedNotes = JSON.stringify({ userNotes: data.notes || '', ...extraData });
-      const { error } = await supabase.from('maintenance_contracts').insert({
+      const { data: inserted, error } = await supabase.from('maintenance_contracts').insert({
         user_id: user.id, client_id: parseInt(data.clientId),
         title: data.title, description: data.description || null,
         start_date: data.startDate, end_date: data.endDate || null,
         cleaning_interval_months: parseInt(data.intervalMonths),
         monthly_value: parseFloat(data.monthlyValue) || 0,
         notes: enrichedNotes
-      });
+      }).select('id').single();
 
-      if (!error && parseFloat(data.monthlyValue) > 0) {
-        await recordFinancialEntry({
-          userId: user.id,
-          type: 'entrada',
-          amount: parseFloat(data.monthlyValue),
-          description: `Primeira parcela - Contrato: ${data.title}`,
-          paymentMethod: (data.paymentMethod === 'mensal' ? 'Dinheiro' : data.paymentMethod) as any,
-          category: 'Serviço', // Or 'Contrato' if you want a specific category
-          recordDate: new Date().toISOString()
-        });
-      }
-      
+      // 🔒 Não cria mais a "Primeira parcela" como lançamento separado.
+      // O auto-sync (auto:contract:<id>) já cria a entrada do mês atual.
+      // Antes ficava DUPLICADO: 1x como Serviço (manual) + 1x como Contrato (auto).
       if (error) throw error;
     },
     onSuccess: () => {
