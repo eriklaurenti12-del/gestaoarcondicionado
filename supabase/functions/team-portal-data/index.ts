@@ -181,7 +181,8 @@ Deno.serve(async (req) => {
       const { request_id } = body;
       await supabase.from('support_requests')
         .update({ status: 'resolvido', assigned_member_id: member_id, resolved_at: new Date().toISOString() })
-        .eq('id', request_id);
+        .eq('id', request_id)
+        .eq('owner_id', owner_id);
 
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
