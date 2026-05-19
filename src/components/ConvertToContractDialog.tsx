@@ -96,22 +96,9 @@ export default function ConvertToContractDialog({ open, onOpenChange, appointmen
       });
       if (error) throw error;
 
-      if (form.chargeFirst && parseFloat(form.monthlyValue) > 0) {
-        try {
-          await recordFinancialEntry({
-            userId: appointment.user_id,
-            type: 'entrada',
-            amount: parseFloat(form.monthlyValue),
-            description: `Primeira parcela - ${form.title.trim()}`,
-            paymentMethod: (form.paymentMethod === 'mensal' ? 'Dinheiro' : form.paymentMethod) as any,
-            category: 'Serviço',
-            recordDate: new Date().toISOString(),
-          });
-        } catch (e: any) {
-          // Dedup pode bloquear — não falhar a conversão por causa disso.
-          console.warn('recordFinancialEntry skipped:', e?.message);
-        }
-      }
+      // 🔒 Não cria mais a "Primeira parcela" como lançamento separado.
+      // O auto-sync (auto:contract:<id>) abaixo já garante a entrada do mês
+      // atual. Antes ficava DUPLICADO no Financeiro.
 
       queryClient.invalidateQueries({ queryKey: ['maintenance-contracts'] });
 
