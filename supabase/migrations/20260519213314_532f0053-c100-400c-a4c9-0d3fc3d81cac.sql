@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "team_login_attempts_deny_all" ON public.team_login_attempts;
