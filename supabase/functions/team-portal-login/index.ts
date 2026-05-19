@@ -121,12 +121,24 @@ Deno.serve(async (req) => {
       last_attempt_at: new Date().toISOString(),
     }, { onConflict: 'member_id' });
 
+    const now = Math.floor(Date.now() / 1000);
+    const token = await signSessionToken({
+      sub: match.id,
+      member_id: match.id,
+      owner_id: match.user_id,
+      role: match.role,
+      iat: now,
+      exp: now + TOKEN_TTL_SECONDS,
+    });
+
     return new Response(JSON.stringify({
       member_id: match.id,
       member_name: match.name,
       role: match.role,
       owner_id: match.user_id,
       permissions: (match as any).permissions || null,
+      token,
+      expires_at: (now + TOKEN_TTL_SECONDS) * 1000,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
