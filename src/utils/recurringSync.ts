@@ -145,29 +145,48 @@ export async function ensureMonthlyRecurringExpenses(
   if (activeContracts.length > 0) {
     const { data: existingContractRecs } = await supabase
       .from('financial_records')
-      .select('id, description')
+      .select('id, description, amount')
       .eq('user_id', userId)
       .eq('type', 'entrada')
       .gte('record_date', monthStart)
       .lte('record_date', monthEnd + 'T23:59:59.999Z')
       .ilike('description', 'auto:contract:%');
 
-    const existingTags = new Set<string>();
+    // Mapa: tag -> { id, description, amount } da linha auto:contract existente no mês.
+    const existingByTag = new Map<string, { id: string; description: string; amount: number }>();
     for (const r of existingContractRecs || []) {
       const m = (r.description || '').match(/^(auto:contract:[^|\s]+)/i);
-      if (m) existingTags.add(m[1]);
+      if (m) existingByTag.set(m[1], { id: r.id, description: r.description || '', amount: Number(r.amount) || 0 });
     }
 
     const contractRecords: any[] = [];
     for (const c of activeContracts) {
       const tag = `auto:contract:${c.id}`;
-      if (existingTags.has(tag)) continue;
       const clientName = (c as any).clients?.name || 'Cliente';
       const desc = `${tag} | mensal | Contrato mensal: ${c.title} - ${clientName}`;
+      const liveAmount = Number(c.monthly_value) || 0;
+      const existing = existingByTag.get(tag);
+      if (existing) {
+        // 🔄 LIVE SYNC: se o usuário editou o valor mensal ou o título do contrato
+        // DEPOIS que o auto-lançamento já foi criado, o valor exibido ficava velho
+        // e "não batia". Atualizamos in-place — só linhas tagueadas auto:contract:,
+        // nunca lançamentos manuais.
+        const needsUpdate =
+          Math.abs(existing.amount - liveAmount) > 0.009 ||
+          existing.description !== desc;
+        if (needsUpdate) {
+          const { error: upErr } = await supabase
+            .from('financial_records')
+            .update({ amount: liveAmount, description: desc })
+            .eq('id', existing.id);
+          if (upErr) console.warn('[contract sync] update failed', upErr);
+        }
+        continue;
+      }
       contractRecords.push({
         user_id: userId,
         type: 'entrada',
-        amount: Number(c.monthly_value) || 0,
+        amount: liveAmount,
         description: desc,
         payment_method: 'PIX',
         category: 'Contrato',
@@ -176,7 +195,7 @@ export async function ensureMonthlyRecurringExpenses(
       insertedContractRows.push({
         category: 'Contrato',
         helper_name: clientName,
-        amount: Number(c.monthly_value) || 0,
+        amount: liveAmount,
         description: desc,
       });
     }
