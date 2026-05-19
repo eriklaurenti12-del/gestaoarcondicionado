@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
         .eq('user_id', user.id);
 
       const userRoles = roles?.map((r: any) => r.role) || [];
-      const hasPermission = userRoles.includes('super_admin') || userRoles.includes('admin');
+      const hasPermission = userRoles.includes('super_admin');
 
       if (!hasPermission) {
         console.warn(`[create-fake-user] Denied for ${callerEmail}, roles: ${userRoles.join(',')}`);
